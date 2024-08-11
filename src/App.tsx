@@ -1,5 +1,6 @@
 import './App.css';
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { NFID } from '@nfid/embed';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
 import { AuthClient } from "@dfinity/auth-client";
 import { Actor, Identity, HttpAgent } from "@dfinity/agent";
@@ -7,6 +8,7 @@ import KWA from './assets/KWAF LT.mp4';
 import { initialise } from '@open-ic/openchat-xframe';
 import type { OpenChatXFrame, OpenChatXFrameOptions } from "./OpenChat/types";
 import NFIDAuth from './NFIDAuth';
+import { useNFID } from './useNFID';
 
 function App() {
   const [authClient, setAuthClient] = useState<AuthClient | null>(null);
@@ -14,11 +16,16 @@ function App() {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]);
   const [sec, setSec] = useState<number>(0);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false);
+  const { nfid, isInitialized } = useNFID();
+
   // Initialize AuthClient on component mount
   useEffect(() => {
     const init = async (): Promise<void> => {
       const client: AuthClient = await AuthClient.create();
       setAuthClient(client);
+      setIsNFIDAuthLoaded(true);
     };
     init();
   }, []);
@@ -28,23 +35,34 @@ function App() {
   const backend = useMemo(() => Actor.createActor(backend_idlFactory, { agent, canisterId: backend_canisterId }), [agent]);
 
   // Fetch trusted origins from the backend
-  const getTrustedOrigins = useCallback(async (): Promise<string[]> => {
-    const trustedOrigins = await backend.get_trusted_origins() as string[];
-    return trustedOrigins;
-  }, [backend]);
-
   useEffect(() => {
     const fetchTrustedOrigins = async () => {
-      const origins = await getTrustedOrigins();
+      const origins = await backend.get_trusted_origins() as string[];
       setTrustedOrigins(origins);
     };
-
     fetchTrustedOrigins();
-  }, [getTrustedOrigins]);
-
+  }, [backend]);
 
   function getRandomNumberOfSeconds(): number {
     return Math.floor(Math.random() * (21600 - 3600 + 1)) + 3600;
+  }
+
+  // Function to format time
+  function formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    const hoursDisplay = hours > 0 ? `${hours} hour${hours === 1 ? '' : 's'}` : '';
+    const minutesDisplay = minutes > 0 ? `${minutes} minute${minutes === 1 ? '' : 's'}` : '';
+    const secondsDisplay = secs > 0 ? `${secs} second${secs === 1 ? '' : 's'}` : '';
+
+    const timeArray = [hoursDisplay, minutesDisplay, secondsDisplay].filter(Boolean);
+    if (timeArray.length > 1) {
+      const lastElement = timeArray.pop();
+      return `${timeArray.join(', ')} and ${lastElement}`;
+    }
+    return timeArray[0];
   }
 
   // Handle successful authentication
@@ -53,14 +71,16 @@ function App() {
       throw new Error("AuthClient not initialized");
     }
     const identity: Identity = authClient.getIdentity();
-    setPrincipalId(principalId);
     const generatedSec = getRandomNumberOfSeconds();
+    setPrincipalId(principalId);
     setSec(generatedSec);
-    backend.registerid(principalId, sec);
+    backend.registerid(principalId, generatedSec);
     const agent = Actor.agentOf(backend);
     if (agent && typeof agent.replaceIdentity === 'function') {
       agent.replaceIdentity(identity);
     }
+    setIsAuthenticated(true);
+    setShowModal(false);
   }, [authClient, backend]);
 
   // Open and close modal handlers
@@ -80,14 +100,6 @@ function App() {
       onSuccess: () => handleSuccess(principalId),
     });
   }, [authClient, handleSuccess]);
-
-  // Update principalId element
-  useEffect(() => {
-    const principalIdElement = document.getElementById("principalId");
-    if (principalIdElement) {
-      principalIdElement.innerText = `Your PrincipalId: ${principalId}. You have got ${sec} seconds`;
-    }
-  }, [principalId]);
 
   // Theme interfaces
   interface ThemeOverrides {
@@ -167,8 +179,13 @@ function App() {
       <div className="midd">
         <h1>Join the Konectª Army</h1>
         <br />
-        <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
+        {!isAuthenticated && (
+          <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
+        )}
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
+        {isAuthenticated && (
+          <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
+        )}
       </div>
       {showModal && (
         <div className={`modal ${showModal ? 'show' : ''}`}>
@@ -178,7 +195,9 @@ function App() {
             <p>Enter to claim your points</p>
             <br />
             <button id="login" onClick={handleLogin} className="identityButton">Log in with Internet Identity</button>
-            <NFIDAuth onSuccess={(principalId) => handleSuccess(principalId)} />
+            {isNFIDAuthLoaded && (
+              <NFIDAuth showButton={showModal} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
+            )}
           </div>
         </div>
       )}

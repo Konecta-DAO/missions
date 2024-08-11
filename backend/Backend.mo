@@ -32,7 +32,7 @@ actor class Backend() {
 
   public shared query func get_trusted_origins() : async [Text] {
     let trustedOrigins = [
-      "https://x5pps-pqaaa-aaaab-qadbq-cai.icp0.io" //Frontend Canister
+      "https://4k2wq-cqaaa-aaaab-qac7q-cai.icp0.io" //Frontend Canister
     ];
     return trustedOrigins;
   };
