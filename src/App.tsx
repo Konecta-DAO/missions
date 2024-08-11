@@ -1,124 +1,185 @@
 import './App.css';
-import { useEffect, useState } from 'react';
-import { backend } from './declarations/backend';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
 import { AuthClient } from "@dfinity/auth-client";
-import { Actor, Identity } from "@dfinity/agent";
-import KWA from './assets/KWAF LT.mp4'
-import { useQueryCall, useUpdateCall } from '@ic-reactor/react';
+import { Actor, Identity, HttpAgent } from "@dfinity/agent";
+import KWA from './assets/KWAF LT.mp4';
+import { initialise } from '@open-ic/openchat-xframe';
+import type { OpenChatXFrame, OpenChatXFrameOptions } from "./OpenChat/types";
+import NFIDAuth from './NFIDAuth';
 
 function App() {
-
   const [authClient, setAuthClient] = useState<AuthClient | null>(null);
-  const [principalId, setPrincipalId] = useState<string>(''); // Type annotation for principalId
+  const [principalId, setPrincipalId] = useState<string>('');
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]);
 
+  // Initialize AuthClient on component mount
   useEffect(() => {
     const init = async (): Promise<void> => {
-      const client: AuthClient = await AuthClient.create();
-      setAuthClient(client);
+        const client: AuthClient = await AuthClient.create();
+        setAuthClient(client);
     };
     init();
   }, []);
 
-  function handleSuccess(): void {
+  // Create an HttpAgent and backend actor
+  const agent = useMemo(() => new HttpAgent(), []);
+  const backend = useMemo(() => Actor.createActor(backend_idlFactory, { agent, canisterId: backend_canisterId }), [agent]);
+
+  // Fetch trusted origins from the backend
+  const getTrustedOrigins = useCallback(async (): Promise<string[]> => {
+      const trustedOrigins = await backend.get_trusted_origins() as string[];
+      return trustedOrigins;
+  }, [backend]);
+
+  useEffect(() => {
+    const fetchTrustedOrigins = async () => {
+      const origins = await getTrustedOrigins();
+      setTrustedOrigins(origins);
+    };
+
+    fetchTrustedOrigins();
+  }, [getTrustedOrigins]);
+
+  // Handle successful authentication
+  const handleSuccess = useCallback((principalId: string): void => {
     if (!authClient) {
       throw new Error("AuthClient not initialized");
     }
     const identity: Identity = authClient.getIdentity();
-    const principalId: string = authClient.getIdentity().getPrincipal().toText();
     setPrincipalId(principalId);
     backend.registerid(principalId);
     const agent = Actor.agentOf(backend);
     if (agent && typeof agent.replaceIdentity === 'function') {
       agent.replaceIdentity(identity);
     }
-  };
+  }, [authClient, backend]);
 
-  const handleOpenModal = (): void => {
+  // Open and close modal handlers
+  const handleOpenModal = useCallback((): void => {
     setShowModal(true);
-  };
+  }, []);
 
-  const handleCloseModal = (): void => {
+  const handleCloseModal = useCallback((): void => {
     setShowModal(false);
-  };
+  }, []);
 
-  const { data: count, call: refetchCount } = useQueryCall({
-    functionName: 'get',
-  });
+  // Handle login
+  const handleLogin = useCallback(async (): Promise<void> => {
+    if (!authClient) throw new Error("AuthClient not initialized");
+    const principalId: string = authClient.getIdentity().getPrincipal().toText();
+    authClient.login({
+      onSuccess: () => handleSuccess(principalId),
+    });
+  }, [authClient, handleSuccess]);
 
- /* const { call: increment, loading } = useUpdateCall({
-    functionName: 'inc',
-    onSuccess: () => {
-      refetchCount();
-    },
-  });
-*/
+  // Update principalId element
+  useEffect(() => {
+    const principalIdElement = document.getElementById("principalId");
+    if (principalIdElement) {
+      principalIdElement.innerText = `Your PrincipalId: ${principalId}`;
+    }
+  }, [principalId]);
 
-const handleLogin = async (): Promise<void> => {
-  if (!authClient) throw new Error("AuthClient not initialized");
+  // Theme interfaces
+  interface ThemeOverrides {
+    primary: string;
+    bd: string;
+    bg: string;
+    txt: string;
+    placeholder: string;
+    'txt-light': string;
+    timeline: {
+      txt: string;
+    };
+  }
 
-  authClient.login({
-    onSuccess: handleSuccess,
-  });
-};
+  interface Theme {
+    name: string;
+    base: string;
+    overrides: ThemeOverrides;
+  }
 
-const handleLogin2 = async (): Promise<void> => {
-  if (!authClient) throw new Error("AuthClient not initialized");
+  interface OpenChatXFrameOptions {
+    theme?: Theme;
+    targetOrigin: string;
+    initialPath?: string;
+    onUserIdentified?: (userId: string) => void;
+    settings?: {
+      disableLeftNav: boolean;
+    };
+  }
 
-  const APP_NAME = "Konectª Points Airdrop";
-  const APP_LOGO = "https://nfid.one/icons/favicon-96x96.png";
-  const CONFIG_QUERY = `?applicationName=${APP_NAME}&applicationLogo=${APP_LOGO}`;
+  // Initialize OpenChat iframe
+  useEffect(() => {
+    const initOpenChat = async () => {
+      const iframe = document.getElementById('openchat-iframe') as HTMLIFrameElement;
+      if (!iframe) {
+        console.error('Iframe element not found');
+        return;
+      }
 
-  const identityProvider = `https://nfid.one/authenticate${CONFIG_QUERY}`;
+      const client = await initialise(iframe, {
+        targetOrigin: 'https://oc.app',
+        initialPath: '/community/rfeib-riaaa-aaaar-ar3oq-cai/channel/334961401678552956581044255076222828441',
+        theme: {
+          name: 'my-app-theme',
+          base: 'dark',
+          overrides: {
+            primary: "green",
+            bd: 'rgb(91, 243, 190)',
+            bg: 'transparent',
+            txt: "black",
+            placeholder: "green",
+            'txt-light': '#75c8af',
+            timeline: {
+              txt: "yellow"
+            }
+          }
+        }
+      });
 
-  authClient.login({
-    identityProvider,
-    onSuccess: handleSuccess,
-    windowOpenerFeatures: `
-    left=${window.screen.width / 2 - 525 / 2},
-    top=${window.screen.height / 2 - 705 / 2},
-    toolbar=0,location=0,menubar=0,width=525,height=705
-  `,
-  });
-};
+      // client.changePath('/new/path');
+      // client.logout();
+    };
 
-const principalIdElement = document.getElementById("principalId");
-if (principalIdElement) {
-  principalIdElement.innerText = `Your PrincipalId: ${principalId}`;
-}
+    document.addEventListener('DOMContentLoaded', initOpenChat);
+  }, []);
 
-return (
-  <main>
-    <div className="contVid">
-      <video className='videoTag' autoPlay loop muted>
-        <source src={KWA} type='video/mp4' />
-      </video>
-    </div>
-    {showModal && (
-      <div className={`overlay ${showModal ? 'show' : ''}`}></div>
-    )}
-    <div className="midd">
-      <h1>Join the Konectª Army</h1>
-      <br />
-      <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
-      {principalId && (
-        <div id="principalId">Registration Success with ID: {principalId}</div>
-      )}
-    </div>
-    {showModal && (
-      <div className={`modal ${showModal ? 'show' : ''}`}>
-        <div className="modal-content">
-          <span className="close" onClick={handleCloseModal}>&times;</span>
-          <br />
-          <p>Enter to claim your points</p>
-          <br />
-          <button id="login" onClick={handleLogin} className="identityButton">Log in with Internet Identity</button>
-          <button id="nflogin" onClick={handleLogin2} className="nfButton">Log in with NFID</button>
-        </div>
+  return (
+    <main>
+      <div className="contVid">
+        <video className='videoTag' autoPlay loop muted>
+          <source src={KWA} type='video/mp4' />
+        </video>
       </div>
-    )}
-  </main>
-);
+      {showModal && (
+        <div className={`overlay ${showModal ? 'show' : ''}`}></div>
+      )}
+      <div className="midd">
+        <h1>Join the Konectª Army</h1>
+        <br />
+        <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
+        <iframe id="openchat-iframe" title="OpenChat"></iframe>
+        {principalId && (
+          <div id="principalId">Registration Success with ID: {principalId}</div>
+        )}
+      </div>
+      {showModal && (
+        <div className={`modal ${showModal ? 'show' : ''}`}>
+          <div className="modal-content">
+            <span className="close" onClick={handleCloseModal}>×</span>
+            <br />
+            <p>Enter to claim your points</p>
+            <br />
+            <button id="login" onClick={handleLogin} className="identityButton">Log in with Internet Identity</button>
+            <NFIDAuth onSuccess={(principalId) => handleSuccess(principalId)} />
+          </div>
+        </div>
+      )}
+    </main>
+  );
 }
 
 export default App;

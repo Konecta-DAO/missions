@@ -217,7 +217,7 @@ button[type="submit"] {
 
 @media screen and (min-width: 1200px) {
   div {
-    h1 {
+    .h1 {
       font-size: 60px;
     }
   }
@@ -225,7 +225,7 @@ button[type="submit"] {
 
 @media screen and (max-width: 600px) {
   div {
-    h1 {
+    .h1 {
       font-size: 30px;
     }
   }
@@ -233,7 +233,7 @@ button[type="submit"] {
 
 @media screen and (max-width: 1200px) and (min-width: 600px) {
   div {
-    h1 {
+    .h1 {
       font-size: 60px;
     }
   }
