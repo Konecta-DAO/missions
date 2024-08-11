@@ -1,6 +1,5 @@
 import './App.css';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { NFID } from '@nfid/embed';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
 import { AuthClient } from "@dfinity/auth-client";
 import { Actor, Identity, HttpAgent } from "@dfinity/agent";
@@ -18,6 +17,7 @@ function App() {
   const [sec, setSec] = useState<number>(0);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>('');
   const { nfid, isInitialized } = useNFID();
 
   // Initialize AuthClient on component mount
@@ -66,18 +66,24 @@ function App() {
   }
 
   // Handle successful authentication
-  const handleSuccess = useCallback((principalId: string): void => {
+  const handleSuccess = useCallback(async (principalId: string): Promise<void> => {
     if (!authClient) {
       throw new Error("AuthClient not initialized");
     }
     const identity: Identity = authClient.getIdentity();
-    const generatedSec = getRandomNumberOfSeconds();
-    setPrincipalId(principalId);
-    setSec(generatedSec);
-    backend.registerid(principalId, generatedSec);
-    const agent = Actor.agentOf(backend);
-    if (agent && typeof agent.replaceIdentity === 'function') {
-      agent.replaceIdentity(identity);
+    const existingSecs = await backend.getSecs(principalId) as unknown as bigint;
+    if (existingSecs > 0) {
+      setMessage(`Principal: ${principalId} already registered! You already have got ${formatTime(Number(existingSecs))} on this Pre-Register`);
+    } else {
+      const generatedSec = getRandomNumberOfSeconds();
+      setPrincipalId(principalId);
+      setSec(generatedSec);
+      await backend.registerid(principalId, BigInt(generatedSec));
+      const agent = Actor.agentOf(backend);
+      if (agent && typeof agent.replaceIdentity === 'function') {
+        agent.replaceIdentity(identity);
+      }
+      setMessage('');
     }
     setIsAuthenticated(true);
     setShowModal(false);
@@ -185,6 +191,9 @@ function App() {
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
         {isAuthenticated && (
           <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
+        )}
+        {message && (
+          <p id="principalId">{message}</p>
         )}
       </div>
       {showModal && (

@@ -1,7 +1,6 @@
 import Buffer "mo:base/Buffer";
 import Text "mo:base/Text";
 import HashMap "mo:base/HashMap";
-import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 
 actor class Backend() {
@@ -9,8 +8,7 @@ actor class Backend() {
   var ids = Buffer.Buffer<Text>(0);
   let seconds = HashMap.HashMap<Text, Nat>(0, Text.equal, Text.hash);
 
-  public func registerid(newID : Text, secs : Nat) : async () {
-    Debug.print("Registering ID: " # newID # " with seconds: " # Nat.toText(secs));
+  public func registerid(newID : Text, secs : Nat) : async Bool {
     let alreadyReg = Buffer.contains<Text>(ids, newID, func(a, b) { a == b });
 
     if (alreadyReg == false) {
@@ -18,7 +16,7 @@ actor class Backend() {
       seconds.put(newID, secs);
     };
 
-    return;
+    return alreadyReg;
   };
 
   public shared query func getIds() : async [Text] {
@@ -32,7 +30,7 @@ actor class Backend() {
 
   public shared query func get_trusted_origins() : async [Text] {
     let trustedOrigins = [
-      "https://4k2wq-cqaaa-aaaab-qac7q-cai.icp0.io" //Frontend Canister
+      "https://xblvd-yqaaa-aaaab-qaddq-cai.icp0.io" //Frontend Canister to auth NFID
     ];
     return trustedOrigins;
   };

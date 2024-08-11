@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Identity } from '@dfinity/agent';
 
-const targetCanisterIds = ['5vsfh-biaaa-aaaab-qac3a-cai']; // Backend Canister ID
+const targetCanisterIds = ['xtnc2-uaaaa-aaaab-qadaq-cai']; // Backend Canister ID to get Truster Origins on NFID
 
 type ResponseType = Identity | { error: string } | null;
 
