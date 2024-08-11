@@ -13,12 +13,12 @@ function App() {
   const [principalId, setPrincipalId] = useState<string>('');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]);
-
+  const [sec, setSec] = useState<number>(0);
   // Initialize AuthClient on component mount
   useEffect(() => {
     const init = async (): Promise<void> => {
-        const client: AuthClient = await AuthClient.create();
-        setAuthClient(client);
+      const client: AuthClient = await AuthClient.create();
+      setAuthClient(client);
     };
     init();
   }, []);
@@ -29,8 +29,8 @@ function App() {
 
   // Fetch trusted origins from the backend
   const getTrustedOrigins = useCallback(async (): Promise<string[]> => {
-      const trustedOrigins = await backend.get_trusted_origins() as string[];
-      return trustedOrigins;
+    const trustedOrigins = await backend.get_trusted_origins() as string[];
+    return trustedOrigins;
   }, [backend]);
 
   useEffect(() => {
@@ -42,6 +42,11 @@ function App() {
     fetchTrustedOrigins();
   }, [getTrustedOrigins]);
 
+
+  function getRandomNumberOfSeconds(): number {
+    return Math.floor(Math.random() * (21600 - 3600 + 1)) + 3600;
+  }
+
   // Handle successful authentication
   const handleSuccess = useCallback((principalId: string): void => {
     if (!authClient) {
@@ -49,7 +54,9 @@ function App() {
     }
     const identity: Identity = authClient.getIdentity();
     setPrincipalId(principalId);
-    backend.registerid(principalId);
+    const generatedSec = getRandomNumberOfSeconds();
+    setSec(generatedSec);
+    backend.registerid(principalId, sec);
     const agent = Actor.agentOf(backend);
     if (agent && typeof agent.replaceIdentity === 'function') {
       agent.replaceIdentity(identity);
@@ -78,7 +85,7 @@ function App() {
   useEffect(() => {
     const principalIdElement = document.getElementById("principalId");
     if (principalIdElement) {
-      principalIdElement.innerText = `Your PrincipalId: ${principalId}`;
+      principalIdElement.innerText = `Your PrincipalId: ${principalId}. You have got ${sec} seconds`;
     }
   }, [principalId]);
 
@@ -162,9 +169,6 @@ function App() {
         <br />
         <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
-        {principalId && (
-          <div id="principalId">Registration Success with ID: {principalId}</div>
-        )}
       </div>
       {showModal && (
         <div className={`modal ${showModal ? 'show' : ''}`}>
