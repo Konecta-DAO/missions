@@ -6,8 +6,8 @@
       "declarations": {
         "node_compatibility": true
       },
-      "remote": {
-        "enable_http_request": true
+      "settings": {
+        "network": ["http_request"]
       }
     },
     "frontend": {

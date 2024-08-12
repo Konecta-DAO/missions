@@ -5,7 +5,6 @@ import { AuthClient } from "@dfinity/auth-client";
 import { Actor, Identity, HttpAgent } from "@dfinity/agent";
 import KWA from './assets/KWAF LT.mp4';
 import { initialise } from '@open-ic/openchat-xframe';
-import type { OpenChatXFrame, OpenChatXFrameOptions } from "./OpenChat/types";
 import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
 
@@ -22,7 +21,7 @@ function App() {
   const [twitterHandle, setTwitterHandle] = useState<string>('');
   const { nfid, isInitialized } = useNFID();
 
-  // Initialize AuthClient on component mount
+  // Initialize AuthClient on App Start
   useEffect(() => {
     const init = async (): Promise<void> => {
       const client: AuthClient = await AuthClient.create();
@@ -45,6 +44,7 @@ function App() {
     fetchTrustedOrigins();
   }, [backend]);
 
+  //Function that generates a random number of time, in secons, between 1 hour and 6 hours
   function getRandomNumberOfSeconds(): number {
     return Math.floor(Math.random() * (21600 - 3600 + 1)) + 3600;
   }
@@ -128,8 +128,8 @@ function App() {
       handle = handle.slice(1);
     }
 
-    // Extract handle from URL if it's a link
-    const urlPattern = /(?:https?:\/\/)?(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/;
+    // Extract handle from URL if it's a link from twitter.com or x.com
+    const urlPattern = /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/;
     const match = handle.match(urlPattern);
     if (match) {
       handle = match[1];
@@ -158,35 +158,6 @@ function App() {
     }
   }, [backend, principalId, twitterHandle]);
 
-  // Theme interfaces
-  interface ThemeOverrides {
-    primary: string;
-    bd: string;
-    bg: string;
-    txt: string;
-    placeholder: string;
-    'txt-light': string;
-    timeline: {
-      txt: string;
-    };
-  }
-
-  interface Theme {
-    name: string;
-    base: string;
-    overrides: ThemeOverrides;
-  }
-
-  interface OpenChatXFrameOptions {
-    theme?: Theme;
-    targetOrigin: string;
-    initialPath?: string;
-    onUserIdentified?: (userId: string) => void;
-    settings?: {
-      disableLeftNav: boolean;
-    };
-  }
-
   // Initialize OpenChat iframe
   useEffect(() => {
     const initOpenChat = async () => {
@@ -196,31 +167,42 @@ function App() {
         return;
       }
 
-      const client = await initialise(iframe, {
-        targetOrigin: 'https://oc.app',
-        initialPath: '/community/rfeib-riaaa-aaaar-ar3oq-cai/channel/334961401678552956581044255076222828441',
-        theme: {
-          name: 'my-app-theme',
-          base: 'dark',
-          overrides: {
-            primary: "green",
-            bd: 'rgb(91, 243, 190)',
-            bg: 'transparent',
-            txt: "black",
-            placeholder: "green",
-            'txt-light': '#75c8af',
-            timeline: {
-              txt: "yellow"
+      try {
+        const client = await initialise(iframe, {
+          targetOrigin: 'https://oc.app',
+          initialPath: '/community/rfeib-riaaa-aaaar-ar3oq-cai/channel/334961401678552956581044255076222828441',
+          theme: {
+            name: 'my-app-theme',
+            base: 'dark',
+            overrides: {
+              primary: "green",
+              bd: 'rgb(91, 243, 190)',
+              bg: 'transparent',
+              txt: "black",
+              placeholder: "green",
+              'txt-light': '#75c8af',
+              timeline: {
+                txt: "yellow"
+              }
             }
+          },
+          onUserIdentified: (userId: string) => {
+            console.log(`User identified: ${userId}`);
+          },
+          settings: {
+            disableLeftNav: true
           }
-        }
-      });
+        });
 
-      // client.changePath('/new/path');
-      // client.logout();
+        // Example usage of client
+        // client.changePath('/new/path');
+        // client.logout();
+      } catch (error) {
+        console.error('Error initializing OpenChat:', error);
+      }
     };
 
-    document.addEventListener('DOMContentLoaded', initOpenChat);
+    initOpenChat();
   }, []);
 
   return (
