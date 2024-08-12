@@ -18,6 +18,8 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
+  const [tweetStatus, setTweetStatus] = useState<string>('');
+  const [twitterHandle, setTwitterHandle] = useState<string>('');
   const { nfid, isInitialized } = useNFID();
 
   // Initialize AuthClient on component mount
@@ -98,7 +100,7 @@ function App() {
     setShowModal(false);
   }, []);
 
-  // Handle login
+  // Handle Internet Identity login
   const handleLogin = useCallback(async (): Promise<void> => {
     if (!authClient) throw new Error("AuthClient not initialized");
     const principalId: string = authClient.getIdentity().getPrincipal().toText();
@@ -106,6 +108,55 @@ function App() {
       onSuccess: () => handleSuccess(principalId),
     });
   }, [authClient, handleSuccess]);
+
+  // Handle tweet
+  const handleTweet = useCallback((): void => {
+    const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+    window.open(tweetUrl, "_blank");
+  }, []);
+
+  // Validate and format Twitter handle
+  const validateTwitterHandle = (handle: string): string => {
+    if (!handle) {
+      alert("Twitter handle cannot be empty");
+      throw new Error("Twitter handle cannot be empty");
+    }
+
+    // Remove "@" if present
+    if (handle.startsWith("@")) {
+      handle = handle.slice(1);
+    }
+
+    // Extract handle from URL if it's a link
+    const urlPattern = /(?:https?:\/\/)?(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/;
+    const match = handle.match(urlPattern);
+    if (match) {
+      handle = match[1];
+    }
+
+    return handle;
+  };
+
+  // Handle tweet verification
+  const handleCheckTweet = useCallback(async (): Promise<void> => {
+    try {
+      const formattedHandle = validateTwitterHandle(twitterHandle);
+      const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
+      const tweetVerified = await backend.verifyTweet(principalId, formattedHandle, tweetText);
+      if (tweetVerified) {
+        alert("Tweet verified");
+        setTweetStatus("Tweet verified");
+      } else {
+        alert("Tweet not found");
+        setTweetStatus("Tweet not found");
+      }
+    } catch (error) {
+      console.error("Error verifying tweet:", error);
+      alert("Error verifying tweet");
+      setTweetStatus("Error verifying tweet");
+    }
+  }, [backend, principalId, twitterHandle]);
 
   // Theme interfaces
   interface ThemeOverrides {
@@ -190,7 +241,21 @@ function App() {
         )}
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
         {isAuthenticated && (
-          <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
+          <>
+            <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
+            <p>Want to earn more seconds? Tweet about this to get more!</p>
+            <input
+              type="text"
+              placeholder="Enter your Twitter handle"
+              value={twitterHandle}
+              onChange={(e) => setTwitterHandle(e.target.value)}
+            />
+            <button className="btn-grad" onClick={handleTweet}>Tweet</button>
+            <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
+            {tweetStatus && (
+              <p>{tweetStatus}</p>
+            )}
+          </>
         )}
         {message && (
           <p id="principalId">{message}</p>

@@ -5,12 +5,19 @@
       "main": "backend/Backend.mo",
       "declarations": {
         "node_compatibility": true
+      },
+      "remote": {
+        "enable_http_request": true
       }
     },
     "frontend": {
-      "dependencies": ["backend"],
+      "dependencies": [
+        "backend"
+      ],
       "type": "assets",
-      "source": ["dist/"]
+      "source": [
+        "dist/"
+      ]
     }
   },
   "defaults": {
