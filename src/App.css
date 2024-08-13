@@ -19,6 +19,10 @@ img {
   margin: auto;
 }
 
+.p{
+  color:black;
+}
+
 form {
   display: flex;
   justify-content: center;

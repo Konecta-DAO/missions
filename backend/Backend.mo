@@ -3,12 +3,12 @@ import Text "mo:base/Text";
 import HashMap "mo:base/HashMap";
 import Nat "mo:base/Nat";
 import Cycles "mo:base/ExperimentalCycles";
-import Array "mo:base/Array";
 import Blob "mo:base/Blob";
-import Iter "mo:base/Iter";
-import Error "mo:base/Error";
-
 import Types "Types";
+import Array "mo:base/Array";
+import Iter "mo:base/Iter";
+import Time "mo:base/Time";
+import Random "mo:base/Random";
 
 actor class Backend() {
 
@@ -16,9 +16,12 @@ actor class Backend() {
   var ids = Buffer.Buffer<Text>(0);
   // Seconds Accumulated by each Registered ID
   let seconds = HashMap.HashMap<Text, Nat>(0, Text.equal, Text.hash);
+  // Tweet IDs for each Principal ID
+  let tweetIds = HashMap.HashMap<Text, [Nat]>(0, Text.equal, Text.hash);
+  // Timestamp for each Principal ID
+  let timestamps = HashMap.HashMap<Text, Int>(0, Text.equal, Text.hash);
 
-  // Twitter Related Variables
-  let tweet = HashMap.HashMap<Text, Bool>(0, Text.equal, Text.hash);
+  // Twitter Checking Related Variables
   var keywords : [Text] = [];
   var tags : [Text] = [];
 
@@ -46,12 +49,17 @@ actor class Backend() {
   };
 
   // Function to register that a Principal ID did tweet successfully
-  public func registerTweet(newID : Text) : async () {
-    tweet.put(newID, true);
+  public func registerTweet(newID : Text, tweetID : Nat) : async () {
+    let existingTweets = switch (tweetIds.get(newID)) {
+      case (?tweets) { tweets };
+      case null { [] };
+    };
+    let updatedTweets = Array.append(existingTweets, [tweetID]);
+    tweetIds.put(newID, updatedTweets);
   };
 
   // Function to check if a tweet was made by the user
-  public func check_tweet(handle : Text) : async Bool {
+  public func check_tweet(principalId : Text, handle : Text) : async Bool {
 
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
@@ -131,10 +139,43 @@ actor class Backend() {
     };
 
     if (isValid) {
-      await registerTweet("a");
-      true;
+      // Store the Tweet ID (assuming the first line of the response contains the Tweet ID)
+      let tweetID : Nat = switch (tweets) {
+        case (array) {
+          if (array.size() > 0) {
+            switch (Nat.fromText(array[0])) {
+              case (?id) { id };
+              case null { 0 };
+            };
+          } else {
+            0;
+          };
+        };
+      };
+      await registerTweet(principalId, tweetID);
+
+      // Generate a random number of seconds
+      let random = Random.Finite(await Random.blob());
+      let randomSecs = switch (random.range(32)) {
+        case (?value) { 3600 + (value % (21600 - 3600 + 1)) };
+        case null { 3600 }; // Fallback in case of error
+      };
+
+      // Add the random seconds to the existing seconds
+      let existingSecs = switch (seconds.get(principalId)) {
+        case (?secs) { secs };
+        case null { 0 };
+      };
+      let newSecs = existingSecs + randomSecs;
+      seconds.put(principalId, newSecs);
+
+      // Store the current timestamp
+      let currentTimestamp = Time.now();
+      timestamps.put(principalId, currentTimestamp);
+
+      return true;
     } else {
-      false;
+      return false;
     };
   };
 
@@ -276,11 +317,11 @@ actor class Backend() {
     };
   };
 
-  // Function to check if a Principal ID did tweet
-  public shared query func getTweet(id : Text) : async Bool {
-    switch (tweet.get(id)) {
-      case (?value) { return value };
-      case null { return false };
+  // Function to get the timestamp for a Principal ID
+  public shared query func getTimestamp(principalId : Text) : async Int {
+    switch (timestamps.get(principalId)) {
+      case (?timestamp) { return timestamp };
+      case null { return 0 };
     };
   };
 
@@ -289,85 +330,4 @@ actor class Backend() {
     return Cycles.balance();
   };
 
-  public func post_tweet(status : Text) : async (Bool, Text) {
-    let ic : Types.IC = actor ("aaaaa-aa");
-    let host : Text = "api.twitter.com";
-    let url = "https://" # host # "/1.1/statuses/update.json";
-
-    let request_headers = [
-      { name = "Host"; value = host # ":443" },
-      { name = "User-Agent"; value = "twitter_post_canister" },
-      { name = "Authorization"; value = "Bearer YAAAAAAAAAAAAAAAAAAAAANNBvQEAAAAAwIGyKk3%2FN5poBsSYSETQ35TOApE%3DC5Qu9kRUPHBRP1W9rnkanW0fY7UYXYKqgB9mR12EkoQi6ZCsjx" },
-      { name = "Content-Type"; value = "application/x-www-form-urlencoded" },
-    ];
-
-    let body_prefix = Text.encodeUtf8("status=");
-    let body_status = Text.encodeUtf8(status);
-    let body_array = Array.append(Blob.toArray(body_prefix), Blob.toArray(body_status));
-
-    let transform_context : Types.TransformContext = {
-      function = transform;
-      context = Blob.fromArray([]);
-    };
-
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = request_headers;
-      body = ?body_array;
-      method = #post;
-      transform = ?transform_context;
-    };
-
-    try {
-      Cycles.add(22_935_266_640);
-      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-      let response_body : Blob = Blob.fromArray(http_response.body);
-      let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
-        case (null) { "No value returned" };
-        case (?y) { y };
-      };
-      return (true, "Tweet posted: " # decoded_text);
-    } catch (e) {
-      return (false, "Error posting tweet: " # Error.message(e));
-    };
-  };
-
-  public func get_random_post() : async (Bool, Text) {
-    let ic : Types.IC = actor ("aaaaa-aa");
-    let host : Text = "jsonplaceholder.typicode.com";
-    let url = "https://" # host # "/posts/1";
-
-    let request_headers = [
-      { name = "Host"; value = host # ":443" },
-      { name = "User-Agent"; value = "json_placeholder_canister" },
-    ];
-
-    let transform_context : Types.TransformContext = {
-      function = transform;
-      context = Blob.fromArray([]);
-    };
-
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = request_headers;
-      body = null;
-      method = #get;
-      transform = ?transform_context;
-    };
-
-    try {
-      Cycles.add(22_935_266_640);
-      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-      let response_body : Blob = Blob.fromArray(http_response.body);
-      let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
-        case (null) { "No value returned" };
-        case (?y) { y };
-      };
-      return (true, "Post title: " # decoded_text);
-    } catch (e) {
-      return (false, "Error fetching post: " # Error.message(e));
-    };
-  };
 };

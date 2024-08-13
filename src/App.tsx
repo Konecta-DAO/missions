@@ -19,6 +19,9 @@ function App() {
   const [message, setMessage] = useState<string>('');
   const [tweetStatus, setTweetStatus] = useState<string>('');
   const [twitterHandle, setTwitterHandle] = useState<string>('');
+  const [showTweetInput, setShowTweetInput] = useState<boolean>(false);
+  const [earnedSecs, setEarnedSecs] = useState<number>(0);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
   const { nfid, isInitialized } = useNFID();
 
   // Initialize AuthClient on App Start
@@ -44,7 +47,7 @@ function App() {
     fetchTrustedOrigins();
   }, [backend]);
 
-  //Function that generates a random number of time, in secons, between 1 hour and 6 hours
+  // Function that generates a random number of time, in seconds, between 1 hour and 6 hours
   function getRandomNumberOfSeconds(): number {
     return Math.floor(Math.random() * (21600 - 3600 + 1)) + 3600;
   }
@@ -76,6 +79,7 @@ function App() {
     const existingSecs = await backend.getSecs(principalId) as unknown as bigint;
     if (existingSecs > 0) {
       setMessage(`Principal: ${principalId} already registered! You already have got ${formatTime(Number(existingSecs))} on this Pre-Register`);
+      setSec(Number(existingSecs));
     } else {
       const generatedSec = getRandomNumberOfSeconds();
       setPrincipalId(principalId);
@@ -114,6 +118,7 @@ function App() {
     const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
     const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
     window.open(tweetUrl, "_blank");
+    setShowTweetInput(true);
   }, []);
 
   // Validate and format Twitter handle
@@ -142,11 +147,35 @@ function App() {
   const handleCheckTweet = useCallback(async (): Promise<void> => {
     try {
       const formattedHandle = validateTwitterHandle(twitterHandle);
-      const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
-      const tweetVerified = await backend.verifyTweet(principalId, formattedHandle, tweetText);
+      const tweetVerified = await backend.check_tweet(principalId, formattedHandle);
       if (tweetVerified) {
-        alert("Tweet verified");
-        setTweetStatus("Tweet verified");
+        const randomSecs = getRandomNumberOfSeconds();
+        const newSecs = sec + randomSecs;
+        setSec(newSecs);
+        setEarnedSecs(randomSecs);
+
+        // Fetch the timestamp from the backend
+        const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
+        const currentTimestamp = BigInt(Date.now());
+        const elapsedTime = Number(currentTimestamp - backendTimestamp) / 1000; // Convert to seconds
+        const remainingTime = Math.max(600 - elapsedTime, 0); // 10 minutes in seconds
+
+        setRemainingTime(remainingTime);
+        setTweetStatus(`You have earned ${formatTime(randomSecs)}. Now you have ${formatTime(newSecs)} in total! Get back in ${formatTime(remainingTime)} to earn more.`);
+        setShowTweetInput(false);
+
+        // Start the countdown timer
+        const timer = setInterval(() => {
+          setRemainingTime((prevTime) => {
+            if (prevTime <= 1) {
+              clearInterval(timer);
+              setTweetStatus('');
+              setShowTweetInput(true);
+              return 0;
+            }
+            return prevTime - 1;
+          });
+        }, 1000);
       } else {
         alert("Tweet not found");
         setTweetStatus("Tweet not found");
@@ -156,7 +185,7 @@ function App() {
       alert("Error verifying tweet");
       setTweetStatus("Error verifying tweet");
     }
-  }, [backend, principalId, twitterHandle]);
+  }, [backend, principalId, sec, twitterHandle]);
 
   // Initialize OpenChat iframe
   useEffect(() => {
@@ -205,6 +234,7 @@ function App() {
     initOpenChat();
   }, []);
 
+
   return (
     <main>
       <div className="contVid">
@@ -221,19 +251,28 @@ function App() {
         {!isAuthenticated && (
           <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
         )}
+        <br />
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
         {isAuthenticated && (
           <>
-            <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
+            {message ? (
+              <p id="principalId">{message}</p>
+            ) : (
+              <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
+            )}
             <p>Want to earn more seconds? Tweet about this to get more!</p>
-            <input
-              type="text"
-              placeholder="Enter your Twitter handle"
-              value={twitterHandle}
-              onChange={(e) => setTwitterHandle(e.target.value)}
-            />
             <button className="btn-grad" onClick={handleTweet}>Tweet</button>
-            <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
+            {showTweetInput && (
+              <>
+                <input
+                  type="text"
+                  placeholder="Enter your Twitter handle"
+                  value={twitterHandle}
+                  onChange={(e) => setTwitterHandle(e.target.value)}
+                />
+                <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
+              </>
+            )}
             {tweetStatus && (
               <p>{tweetStatus}</p>
             )}
