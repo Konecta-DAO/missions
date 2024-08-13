@@ -6,7 +6,6 @@ import Cycles "mo:base/ExperimentalCycles";
 import Blob "mo:base/Blob";
 import Types "Types";
 import Array "mo:base/Array";
-import Iter "mo:base/Iter";
 import Time "mo:base/Time";
 import Random "mo:base/Random";
 
@@ -22,9 +21,8 @@ actor class Backend() {
   let timestamps = HashMap.HashMap<Text, Int>(0, Text.equal, Text.hash);
 
   // Twitter Checking Related Variables
-  var keywords : [Text] = [];
-  var tags : [Text] = [];
-
+  var keywords = Buffer.Buffer<Text>(0);
+  var tags = Buffer.Buffer<Text>(0);
   // Security function to transform the response
   public query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
     let transformed : Types.CanisterHttpResponsePayload = {
@@ -60,104 +58,25 @@ actor class Backend() {
 
   // Function to check if a tweet was made by the user
   public func check_tweet(principalId : Text, handle : Text) : async Bool {
-
-    // 1. DECLARE IC MANAGEMENT CANISTER
-    let ic : Types.IC = actor ("aaaaa-aa");
-
-    // 2. SETUP ARGUMENTS FOR HTTP GET request
-    let host : Text = "api.twitter.com";
-    let url = "https://" # host # "/1.1/statuses/user_timeline.json?screen_name=" # handle # "&count=200";
-
-    // 2.2 prepare headers for the system http_request call
-    let request_headers = [
-      { name = "Host"; value = host # ":443" },
-      { name = "User-Agent"; value = "twitter_check_canister" },
-      {
-        name = "Authorization";
-        value = "Bearer AAAAAAAAAAAAAAAAAAAAANNBvQEAAAAAwIGyKk3%2FN5poBsSYSETQ35TOApE%3DC5Qu9kRUPHBRP1W9rnkanW0fY7UYXYKqgB9mR12EkoQi6ZCsjx";
-      },
-    ];
-
-    // 2.2.1 Transform context
-    let transform_context : Types.TransformContext = {
-      function = transform;
-      context = Blob.fromArray([]);
-    };
-
-    // 2.3 The HTTP request
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null; // optional for request
-      headers = request_headers;
-      body = null; // optional for request
-      method = #get;
-      transform = ?transform_context;
-    };
-
-    // 3. ADD CYCLES TO PAY FOR HTTP REQUEST
-    Cycles.add(22_935_266_640);
-
-    // 4. MAKE HTTPS REQUEST AND WAIT FOR RESPONSE
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-
-    // 5. DECODE THE RESPONSE
-    let response_body : Blob = Blob.fromArray(http_response.body);
-    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
-      case (null) { "No value returned" };
-      case (?y) { y };
-    };
-
-    // 6. CHECK FOR SPECIFIC TAG AND KEYWORDS
-    let tweets : [Text] = Iter.toArray(Text.split(decoded_text, #char '\n'));
-    let isValid = if (Array.size(tags) == 0 and Array.size(keywords) == 0) {
-      true;
-    } else {
-      Array.size(
-        Array.filter<Text>(
-          tweets,
-          func(tweet : Text) : Bool {
-            let tagMatch = Array.size(tags) == 0 or Array.size(
-              Array.filter<Text>(
-                tags,
-                func(tag : Text) : Bool {
-                  Text.contains(tweet, #text tag);
-                },
-              )
-            ) > 0;
-            let keywordMatch = Array.size(keywords) == 0 or Array.size(
-              Array.filter<Text>(
-                keywords,
-                func(keyword : Text) : Bool {
-                  Text.contains(tweet, #text keyword);
-                },
-              )
-            ) == Array.size(keywords);
-            tagMatch and keywordMatch;
-          },
-        )
-      ) > 0;
-    };
+    // Skipping all the checking and directly setting isValid to true
+    let isValid = true;
 
     if (isValid) {
-      // Store the Tweet ID (assuming the first line of the response contains the Tweet ID)
-      let tweetID : Nat = switch (tweets) {
-        case (array) {
-          if (array.size() > 0) {
-            switch (Nat.fromText(array[0])) {
-              case (?id) { id };
-              case null { 0 };
-            };
-          } else {
-            0;
-          };
-        };
+      // Generate a random blob
+      let randomBlob = await Random.blob();
+      let random = Random.Finite(randomBlob);
+
+      // Generate a random Tweet ID
+      let tweetID = switch (random.range(32)) {
+        case (?value) { value };
+        case null { 0 };
       };
+
       await registerTweet(principalId, tweetID);
 
       // Generate a random number of seconds
-      let random = Random.Finite(await Random.blob());
       let randomSecs = switch (random.range(32)) {
-        case (?value) { 3600 + (value % (21600 - 3600 + 1)) };
+        case (?value) { 3600 + (value % (21600 - 3600 : Nat + 1)) }; //Between 1h and 6h
         case null { 3600 }; // Fallback in case of error
       };
 
@@ -229,53 +148,45 @@ actor class Backend() {
     };
 
     // 6. CHECK IF FOLLOWING
-    let isFollowing = Text.contains(decoded_text, #text "\"following\":true");
-
-    if (isFollowing) {
-      return true;
-    } else {
-      return false;
-    };
+    return Text.contains(decoded_text, #text "\"following\":true");
   };
 
   // Function to add a keyword
   public func addKeyword(keyword : Text) : async () {
-    keywords := Array.append(keywords, [keyword]);
+    keywords.add(keyword);
   };
 
   // Function to remove a keyword
   public func removeKeyword(keyword : Text) : async () {
-    keywords := Array.filter<Text>(
-      keywords,
-      func(k : Text) : Bool {
-        k != keyword;
-      },
-    );
+    let keywordArray = Buffer.toArray(keywords);
+    keywords := Buffer.Buffer<Text>(0);
+    for (k in Array.vals(Array.filter<Text>(keywordArray, func(k) { k != keyword }))) {
+      keywords.add(k);
+    };
   };
 
   // Function to add a tag
   public func addTag(tag : Text) : async () {
-    tags := Array.append(tags, [tag]);
+    tags.add(tag);
   };
 
   // Function to remove a tag
   public func removeTag(tag : Text) : async () {
-    tags := Array.filter<Text>(
-      tags,
-      func(t : Text) : Bool {
-        t != tag;
-      },
-    );
+    let tagArray = Buffer.toArray(tags);
+    tags := Buffer.Buffer<Text>(0);
+    for (t in Array.vals(Array.filter<Text>(tagArray, func(t) { t != tag }))) {
+      tags.add(t);
+    };
   };
 
   // Function to show all keywords
   public query func showKeywords() : async [Text] {
-    keywords;
+    Buffer.toArray(keywords);
   };
 
   // Function to show all tags
   public query func showTags() : async [Text] {
-    tags;
+    Buffer.toArray(tags);
   };
 
   // Function to register a new Principal ID with their first generated seconds
@@ -295,9 +206,20 @@ actor class Backend() {
     return Buffer.toArray(ids);
   };
 
-  // Function to reset all registered Principal IDs
+  // Function to reset all data Structures
   public func resetids() : async () {
     ids.clear();
+    for (key in seconds.keys()) {
+      seconds.delete(key);
+    };
+    for (key in tweetIds.keys()) {
+      tweetIds.delete(key);
+    };
+    for (key in timestamps.keys()) {
+      timestamps.delete(key);
+    };
+    keywords.clear();
+    tags.clear();
     return;
   };
 

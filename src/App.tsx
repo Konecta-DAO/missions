@@ -22,6 +22,8 @@ function App() {
   const [showTweetInput, setShowTweetInput] = useState<boolean>(false);
   const [earnedSecs, setEarnedSecs] = useState<number>(0);
   const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [hasChecked, setHasChecked] = useState<boolean>(false);
+  const [hasTweeted, setHasTweeted] = useState<boolean>(false);
   const { nfid, isInitialized } = useNFID();
 
   // Initialize AuthClient on App Start
@@ -38,7 +40,7 @@ function App() {
   const agent = useMemo(() => new HttpAgent(), []);
   const backend = useMemo(() => Actor.createActor(backend_idlFactory, { agent, canisterId: backend_canisterId }), [agent]);
 
-  // Fetch trusted origins from the backend
+  // Fetch trusted origins from the backend (For NFID Auth)
   useEffect(() => {
     const fetchTrustedOrigins = async () => {
       const origins = await backend.get_trusted_origins() as string[];
@@ -52,11 +54,11 @@ function App() {
     return Math.floor(Math.random() * (21600 - 3600 + 1)) + 3600;
   }
 
-  // Function to format time
+  // Function to format time from Seconds to Hours, Minutes and Seconds
   function formatTime(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+    const secs = Math.round(seconds % 60); // Round the seconds
 
     const hoursDisplay = hours > 0 ? `${hours} hour${hours === 1 ? '' : 's'}` : '';
     const minutesDisplay = minutes > 0 ? `${minutes} minute${minutes === 1 ? '' : 's'}` : '';
@@ -77,9 +79,44 @@ function App() {
     }
     const identity: Identity = authClient.getIdentity();
     const existingSecs = await backend.getSecs(principalId) as unknown as bigint;
+    setPrincipalId(principalId); // Ensure principalId is set here
     if (existingSecs > 0) {
       setMessage(`Principal: ${principalId} already registered! You already have got ${formatTime(Number(existingSecs))} on this Pre-Register`);
       setSec(Number(existingSecs));
+
+      // Check if the user has a timestamp
+      const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
+      if (backendTimestamp > 0) {
+        const backendTimestampMs = backendTimestamp / BigInt(1_000_000); // Convert nanoseconds to milliseconds
+        const currentTimestamp = BigInt(Date.now());
+        const elapsedTime = Number(currentTimestamp - backendTimestampMs) / 1000; // Convert to seconds
+        const remainingTime = Math.max(600 - elapsedTime, 0); // 10 minutes in seconds
+
+        if (remainingTime > 0) {
+          setRemainingTime(remainingTime);
+          setTweetStatus(`Get back in ${formatTime(remainingTime)} to earn more.`);
+          setShowTweetInput(false);
+
+          // Start the countdown timer
+          const timer = setInterval(() => {
+            setRemainingTime((prevTime) => {
+              const newTime = prevTime - 1;
+              if (newTime <= 0) {
+                clearInterval(timer);
+                setTweetStatus('');
+                setShowTweetInput(true);
+                return 0;
+              }
+              setTweetStatus(`Get back in ${formatTime(newTime)} to earn more.`);
+              return newTime;
+            });
+          }, 1000);
+        } else {
+          setShowTweetInput(true);
+        }
+      } else {
+        setShowTweetInput(true);
+      }
     } else {
       const generatedSec = getRandomNumberOfSeconds();
       setPrincipalId(principalId);
@@ -90,6 +127,7 @@ function App() {
         agent.replaceIdentity(identity);
       }
       setMessage('');
+      setShowTweetInput(true);
     }
     setIsAuthenticated(true);
     setShowModal(false);
@@ -118,7 +156,7 @@ function App() {
     const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
     const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
     window.open(tweetUrl, "_blank");
-    setShowTweetInput(true);
+    setHasTweeted(true); // Set hasTweeted to true
   }, []);
 
   // Validate and format Twitter handle
@@ -147,17 +185,19 @@ function App() {
   const handleCheckTweet = useCallback(async (): Promise<void> => {
     try {
       const formattedHandle = validateTwitterHandle(twitterHandle);
-      const tweetVerified = await backend.check_tweet(principalId, formattedHandle);
+      const tweetVerified = await backend.check_tweet(principalId, formattedHandle) as boolean;
       if (tweetVerified) {
         const randomSecs = getRandomNumberOfSeconds();
         const newSecs = sec + randomSecs;
         setSec(newSecs);
         setEarnedSecs(randomSecs);
+        setHasChecked(true); // Set hasChecked to true
 
         // Fetch the timestamp from the backend
         const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
+        const backendTimestampMs = backendTimestamp / BigInt(1_000_000); // Convert nanoseconds to milliseconds
         const currentTimestamp = BigInt(Date.now());
-        const elapsedTime = Number(currentTimestamp - backendTimestamp) / 1000; // Convert to seconds
+        const elapsedTime = Number(currentTimestamp - backendTimestampMs) / 1000; // Convert to seconds
         const remainingTime = Math.max(600 - elapsedTime, 0); // 10 minutes in seconds
 
         setRemainingTime(remainingTime);
@@ -167,23 +207,23 @@ function App() {
         // Start the countdown timer
         const timer = setInterval(() => {
           setRemainingTime((prevTime) => {
-            if (prevTime <= 1) {
+            const newTime = prevTime - 1;
+            if (newTime <= 0) {
               clearInterval(timer);
               setTweetStatus('');
               setShowTweetInput(true);
               return 0;
             }
-            return prevTime - 1;
+            setTweetStatus(`Get back in ${formatTime(newTime)} to earn more.`);
+            return newTime;
           });
         }, 1000);
       } else {
         alert("Tweet not found");
-        setTweetStatus("Tweet not found");
       }
     } catch (error) {
       console.error("Error verifying tweet:", error);
       alert("Error verifying tweet");
-      setTweetStatus("Error verifying tweet");
     }
   }, [backend, principalId, sec, twitterHandle]);
 
@@ -255,31 +295,31 @@ function App() {
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
         {isAuthenticated && (
           <>
-            {message ? (
+            {message && !tweetStatus ? (
               <p id="principalId">{message}</p>
             ) : (
               <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
             )}
-            <p>Want to earn more seconds? Tweet about this to get more!</p>
-            <button className="btn-grad" onClick={handleTweet}>Tweet</button>
-            {showTweetInput && (
+            {tweetStatus ? (
+              <p>{hasChecked ? tweetStatus : `Your PrincipalId: ${principalId}. You have got ${formatTime(sec)}. Get back in ${formatTime(remainingTime)} to earn more.`}</p>
+            ) : (
               <>
-                <input
-                  type="text"
-                  placeholder="Enter your Twitter handle"
-                  value={twitterHandle}
-                  onChange={(e) => setTwitterHandle(e.target.value)}
-                />
-                <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
+                <p>Want to earn more seconds? Tweet about this to get more!</p>
+                <button className="btn-grad" onClick={handleTweet}>Tweet</button>
+                {hasTweeted && showTweetInput && (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Enter your Twitter handle"
+                      value={twitterHandle}
+                      onChange={(e) => setTwitterHandle(e.target.value)}
+                    />
+                    <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
+                  </>
+                )}
               </>
             )}
-            {tweetStatus && (
-              <p>{tweetStatus}</p>
-            )}
           </>
-        )}
-        {message && (
-          <p id="principalId">{message}</p>
         )}
       </div>
       {showModal && (
@@ -287,7 +327,7 @@ function App() {
           <div className="modal-content">
             <span className="close" onClick={handleCloseModal}>×</span>
             <br />
-            <p>Enter to claim your points</p>
+            <p className="sera">Enter to claim your points</p>
             <br />
             <button id="login" onClick={handleLogin} className="identityButton">Log in with Internet Identity</button>
             {isNFIDAuthLoaded && (
