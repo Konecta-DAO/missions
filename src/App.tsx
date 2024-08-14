@@ -9,22 +9,19 @@ import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
 
 function App() {
-  const [authClient, setAuthClient] = useState<AuthClient | null>(null);
-  const [principalId, setPrincipalId] = useState<string>('');
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]);
-  const [sec, setSec] = useState<number>(0);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>('');
-  const [tweetStatus, setTweetStatus] = useState<string>('');
-  const [twitterHandle, setTwitterHandle] = useState<string>('');
-  const [showTweetInput, setShowTweetInput] = useState<boolean>(false);
-  const [earnedSecs, setEarnedSecs] = useState<number>(0);
-  const [remainingTime, setRemainingTime] = useState<number>(0);
-  const [hasChecked, setHasChecked] = useState<boolean>(false);
-  const [hasTweeted, setHasTweeted] = useState<boolean>(false);
-  const { nfid, isInitialized } = useNFID();
+  const [authClient, setAuthClient] = useState<AuthClient | null>(null); //AuthClient for NFID Auth
+  const [principalId, setPrincipalId] = useState<string>(''); //Principal ID for NFID Auth
+  const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]); //Trusted Origins for NFID Auth
+  const [sec, setSec] = useState<number>(0); //Seconds earned by the user
+  const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false); //Flag to check if NFID Auth is loaded
+  const [message, setMessage] = useState<string>(''); //Message to display to the user
+  const [twitterHandle, setTwitterHandle] = useState<string>(''); //Twitter handle input
+  const [remainingTime, setRemainingTime] = useState<number>(0); //Remaining time for the user to earn more points
+  const [showAuthenticateButton, setShowAuthenticateButton] = useState<boolean>(true); //Flag to show Authenticate button
+  const [showTweetButton, setShowTweetButton] = useState<boolean>(false); //Flag to show Tweet button
+  const [showCheckButton, setShowCheckButton] = useState<boolean>(false); //Flag to show Check button
+  const [showInput, setShowInput] = useState<boolean>(false); //Flag to show Twitter handle input
+  const { nfid, isInitialized } = useNFID(); //NFID Auth
 
   // Initialize AuthClient on App Start
   useEffect(() => {
@@ -79,86 +76,67 @@ function App() {
     }
     const identity: Identity = authClient.getIdentity();
     const existingSecs = await backend.getSecs(principalId) as unknown as bigint;
-    setPrincipalId(principalId); // Ensure principalId is set here
-    if (existingSecs > 0) {
-      setMessage(`Principal: ${principalId} already registered! You already have got ${formatTime(Number(existingSecs))} on this Pre-Register`);
-      setSec(Number(existingSecs));
+    setPrincipalId(principalId);
 
-      // Check if the user has a timestamp
+    if (existingSecs === 0n) {
+      // Case 1: First time authenticating
+      const generatedSec = getRandomNumberOfSeconds();
+      await backend.registerid(principalId, BigInt(generatedSec));
+      setSec(generatedSec);
+      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(generatedSec)}`);
+      setShowAuthenticateButton(false);
+      setShowTweetButton(true);
+    } else {
+      // Case 2: User already has seconds
+      setSec(Number(existingSecs));
       const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
-      if (backendTimestamp > 0) {
-        const backendTimestampMs = backendTimestamp / BigInt(1_000_000); // Convert nanoseconds to milliseconds
-        const currentTimestamp = BigInt(Date.now());
-        const elapsedTime = Number(currentTimestamp - backendTimestampMs) / 1000; // Convert to seconds
-        const remainingTime = Math.max(600 - elapsedTime, 0); // 10 minutes in seconds
+      if (backendTimestamp === 0n) {
+        // Case 2.1: No previous timestamp
+        setMessage(`Your principalId is: ${principalId}. You already have got ${formatTime(Number(existingSecs))}`);
+        setShowAuthenticateButton(false);
+        setShowTweetButton(true);
+      } else {
+        // Case 2.2: Has previous timestamp
+        const currentTimestamp = BigInt(Date.now()) * BigInt(1_000_000); // Convert to nanoseconds
+        const elapsedTime = Number(currentTimestamp - backendTimestamp) / 1_000_000_000; // Convert to seconds
+        const remainingTime = Math.max(600 - elapsedTime, 0);
 
         if (remainingTime > 0) {
+          // Case 2.2.2: Less than 10 minutes passed
           setRemainingTime(remainingTime);
-          setTweetStatus(`Get back in ${formatTime(remainingTime)} to earn more.`);
-          setShowTweetInput(false);
-
-          // Start the countdown timer
+          setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(existingSecs))}. Get back in ${formatTime(remainingTime)} to earn more.`);
+          setShowAuthenticateButton(false);
           const timer = setInterval(() => {
             setRemainingTime((prevTime) => {
               const newTime = prevTime - 1;
               if (newTime <= 0) {
                 clearInterval(timer);
-                setTweetStatus('');
-                setShowTweetInput(true);
+                setMessage(`You already have got ${formatTime(Number(existingSecs))}`);
+                setShowTweetButton(true);
                 return 0;
               }
-              setTweetStatus(`Get back in ${formatTime(newTime)} to earn more.`);
+              setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(existingSecs))}. Get back in ${formatTime(newTime)} to earn more.`);
               return newTime;
             });
           }, 1000);
         } else {
-          setShowTweetInput(true);
+          // Case 2.2.1: More than 10 minutes passed
+          setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(existingSecs))}`);
+          setShowAuthenticateButton(false);
+          setShowTweetButton(true);
         }
-      } else {
-        setShowTweetInput(true);
       }
-    } else {
-      const generatedSec = getRandomNumberOfSeconds();
-      setPrincipalId(principalId);
-      setSec(generatedSec);
-      await backend.registerid(principalId, BigInt(generatedSec));
-      const agent = Actor.agentOf(backend);
-      if (agent && typeof agent.replaceIdentity === 'function') {
-        agent.replaceIdentity(identity);
-      }
-      setMessage('');
-      setShowTweetInput(true);
     }
-    setIsAuthenticated(true);
-    setShowModal(false);
   }, [authClient, backend]);
-
-  // Open and close modal handlers
-  const handleOpenModal = useCallback((): void => {
-    setShowModal(true);
-  }, []);
-
-  const handleCloseModal = useCallback((): void => {
-    setShowModal(false);
-  }, []);
-
-  // Handle Internet Identity login
-  const handleLogin = useCallback(async (): Promise<void> => {
-    if (!authClient) throw new Error("AuthClient not initialized");
-    const principalId: string = authClient.getIdentity().getPrincipal().toText();
-    authClient.login({
-      onSuccess: () => handleSuccess(principalId),
-    });
-  }, [authClient, handleSuccess]);
 
   // Handle tweet
   const handleTweet = useCallback((): void => {
     const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
     const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
     window.open(tweetUrl, "_blank");
-    setHasTweeted(true); // Set hasTweeted to true
+    setShowInput(true);
+    setShowCheckButton(true);
   }, []);
-
   // Validate and format Twitter handle
   const validateTwitterHandle = (handle: string): string => {
     if (!handle) {
@@ -190,19 +168,19 @@ function App() {
         const randomSecs = getRandomNumberOfSeconds();
         const newSecs = sec + randomSecs;
         setSec(newSecs);
-        setEarnedSecs(randomSecs);
-        setHasChecked(true); // Set hasChecked to true
 
         // Fetch the timestamp from the backend
         const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
         const backendTimestampMs = backendTimestamp / BigInt(1_000_000); // Convert nanoseconds to milliseconds
         const currentTimestamp = BigInt(Date.now());
         const elapsedTime = Number(currentTimestamp - backendTimestampMs) / 1000; // Convert to seconds
-        const remainingTime = Math.max(600 - elapsedTime, 0); // 10 minutes in seconds
+        const remainingTime = Math.max(600 - elapsedTime, 0);
 
         setRemainingTime(remainingTime);
-        setTweetStatus(`You have earned ${formatTime(randomSecs)}. Now you have ${formatTime(newSecs)} in total! Get back in ${formatTime(remainingTime)} to earn more.`);
-        setShowTweetInput(false);
+        setMessage(`You have earned ${formatTime(randomSecs)}. Now you have ${formatTime(newSecs)} in total! Get back in ${formatTime(remainingTime)} to earn more.`);
+        setShowTweetButton(false);
+        setShowCheckButton(false);
+        setShowInput(false);
 
         // Start the countdown timer
         const timer = setInterval(() => {
@@ -210,11 +188,11 @@ function App() {
             const newTime = prevTime - 1;
             if (newTime <= 0) {
               clearInterval(timer);
-              setTweetStatus('');
-              setShowTweetInput(true);
+              setMessage(`You already have got ${formatTime(newSecs)}`);
+              setShowTweetButton(true);
               return 0;
             }
-            setTweetStatus(`Get back in ${formatTime(newTime)} to earn more.`);
+            setMessage(`You have earned ${formatTime(randomSecs)}. Now you have ${formatTime(newSecs)} in total! Get back in ${formatTime(newTime)} to earn more.`);
             return newTime;
           });
         }, 1000);
@@ -274,7 +252,6 @@ function App() {
     initOpenChat();
   }, []);
 
-
   return (
     <main>
       <div className="contVid">
@@ -282,60 +259,29 @@ function App() {
           <source src={KWA} type='video/mp4' />
         </video>
       </div>
-      {showModal && (
-        <div className={`overlay ${showModal ? 'show' : ''}`}></div>
-      )}
       <div className="midd">
         <h1>Join the Konectª Army</h1>
         <br />
-        {!isAuthenticated && (
-          <button className="btn-grad" onClick={handleOpenModal}>Click Here to Pre-Register and earn points</button>
+        {showAuthenticateButton && (
+          <NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
         )}
-        <br />
+        <p>{message}</p>
+        {showTweetButton && (
+          <button className="btn-grad" onClick={handleTweet}>Tweet</button>
+        )}
+        {showInput && (
+          <input
+            type="text"
+            placeholder="Enter your Twitter handle"
+            value={twitterHandle}
+            onChange={(e) => setTwitterHandle(e.target.value)}
+          />
+        )}
+        {showCheckButton && (
+          <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
+        )}
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
-        {isAuthenticated && (
-          <>
-            {message && !tweetStatus ? (
-              <p id="principalId">{message}</p>
-            ) : (
-              <p id="principalId">Your PrincipalId: {principalId}. You have got {formatTime(sec)}</p>
-            )}
-            {tweetStatus ? (
-              <p>{hasChecked ? tweetStatus : `Your PrincipalId: ${principalId}. You have got ${formatTime(sec)}. Get back in ${formatTime(remainingTime)} to earn more.`}</p>
-            ) : (
-              <>
-                <p>Want to earn more seconds? Tweet about this to get more!</p>
-                <button className="btn-grad" onClick={handleTweet}>Tweet</button>
-                {hasTweeted && showTweetInput && (
-                  <>
-                    <input
-                      type="text"
-                      placeholder="Enter your Twitter handle"
-                      value={twitterHandle}
-                      onChange={(e) => setTwitterHandle(e.target.value)}
-                    />
-                    <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
-                  </>
-                )}
-              </>
-            )}
-          </>
-        )}
       </div>
-      {showModal && (
-        <div className={`modal ${showModal ? 'show' : ''}`}>
-          <div className="modal-content">
-            <span className="close" onClick={handleCloseModal}>×</span>
-            <br />
-            <p className="sera">Enter to claim your points</p>
-            <br />
-            <button id="login" onClick={handleLogin} className="identityButton">Log in with Internet Identity</button>
-            {isNFIDAuthLoaded && (
-              <NFIDAuth showButton={showModal} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
-            )}
-          </div>
-        </div>
-      )}
     </main>
   );
 }

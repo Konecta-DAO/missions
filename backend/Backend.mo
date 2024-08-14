@@ -58,15 +58,97 @@ actor class Backend() {
 
   // Function to check if a tweet was made by the user
   public func check_tweet(principalId : Text, handle : Text) : async Bool {
+
+    /*
+
+// 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. SETUP ARGUMENTS FOR HTTP GET request
+    let host : Text = "api.twitter.com";
+    let url = "https://" # host # "/1.1/statuses/user_timeline.json?screen_name=" # handle # "&count=200";
+
+    // 2.2 prepare headers for the system http_request call
+    let request_headers = [
+      { name = "Host"; value = host # ":443" },
+      { name = "User-Agent"; value = "twitter_check_canister" },
+      {
+        name = "Authorization";
+        value = "Bearer AAAAAAAAAAAAAAAAAAAAANNBvQEAAAAAwIGyKk3%2FN5poBsSYSETQ35TOApE%3DC5Qu9kRUPHBRP1W9rnkanW0fY7UYXYKqgB9mR12EkoQi6ZCsjx";
+      },
+    ];
+
+    // 2.2.1 Transform context
+    let transform_context : Types.TransformContext = {
+      function = transform;
+      context = Blob.fromArray([]);
+    };
+
+    // 2.3 The HTTP request
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null; // optional for request
+      headers = request_headers;
+      body = null; // optional for request
+      method = #get;
+      transform = ?transform_context;
+    };
+
+    // 3. ADD CYCLES TO PAY FOR HTTP REQUEST
+    Cycles.add(22_935_266_640);
+
+    // 4. MAKE HTTPS REQUEST AND WAIT FOR RESPONSE
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+
+    // 5. DECODE THE RESPONSE
+    let response_body : Blob = Blob.fromArray(http_response.body);
+    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
+      case (null) { "No value returned" };
+      case (?y) { y };
+    };
+
+    // 6. CHECK FOR SPECIFIC TAG AND KEYWORDS
+    let tweets : [Text] = Iter.toArray(Text.split(decoded_text, #char '\n'));
+    let isValid = if (Array.size(tags) == 0 and Array.size(keywords) == 0) {
+      true;
+    } else {
+      Array.size(
+        Array.filter<Text>(
+          tweets,
+          func(tweet : Text) : Bool {
+            let tagMatch = Array.size(tags) == 0 or Array.size(
+              Array.filter<Text>(
+                tags,
+                func(tag : Text) : Bool {
+                  Text.contains(tweet, #text tag);
+                },
+              )
+            ) > 0;
+            let keywordMatch = Array.size(keywords) == 0 or Array.size(
+              Array.filter<Text>(
+                keywords,
+                func(keyword : Text) : Bool {
+                  Text.contains(tweet, #text keyword);
+                },
+              )
+            ) == Array.size(keywords);
+            tagMatch and keywordMatch;
+          },
+        )
+      ) > 0;
+    };
+
+    */
+
     // Skipping all the checking and directly setting isValid to true
     let isValid = true;
 
     if (isValid) {
-      // Generate a random blob
+      // Generate a random blob ONLY WHEN SIMULATING
       let randomBlob = await Random.blob();
       let random = Random.Finite(randomBlob);
 
-      // Generate a random Tweet ID
+      // Generate a random Tweet ID ONLY WHEN SIMULATING
       let tweetID = switch (random.range(32)) {
         case (?value) { value };
         case null { 0 };
@@ -233,17 +315,16 @@ actor class Backend() {
 
   // Function to get seconds accumulated by a registered Principal ID
   public shared query func getSecs(principal : Text) : async Nat {
-    switch (seconds.get(principal)) {
-      case (?secs) { return secs };
-      case null { return 0 };
+    return switch (seconds.get(principal)) {
+      case (?secs) secs;
+      case null 0;
     };
   };
-
   // Function to get the timestamp for a Principal ID
   public shared query func getTimestamp(principalId : Text) : async Int {
-    switch (timestamps.get(principalId)) {
-      case (?timestamp) { return timestamp };
-      case null { return 0 };
+    return switch (timestamps.get(principalId)) {
+      case (?timestamp) timestamp;
+      case null 0;
     };
   };
 
