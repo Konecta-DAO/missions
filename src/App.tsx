@@ -118,27 +118,40 @@ function App() {
     }
 
     const identity: Identity = authClient.getIdentity();
-    const existingSecs = await backend.getSecs(principalId) as unknown as bigint;
     setPrincipalId(principalId);
-
     // Store identity in local storage
     localStorage.setItem('identity', JSON.stringify(identity));
 
+    // Call the main logic function
+    await mainLogic(principalId);
+
+  }, [authClient, backend, nfid]);
+
+  const mainLogic = async (principalID: String) => {
+
+    // Check if the user is following @KonectA_Dao
+    const isFollowing = await backend.getFollow(principalId) as boolean;
+    if (!isFollowing) {
+      setShowFollowMessage(true);
+      setShowFollowButton(true);
+    }
+
+    const existingSecs = await backend.getSecs(principalID) as unknown as bigint;
     if (existingSecs === 0n) {
       // Case 1: First time authenticating
       const generatedSec = getRandomNumberOfSeconds();
-      await backend.registerid(principalId, BigInt(generatedSec));
+      await backend.registerid(principalID, BigInt(generatedSec));
       setSec(generatedSec);
-      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(generatedSec)}`);
+      setMessage(`Your principalId is: ${principalID}. You have got ${formatTime(generatedSec)}`);
       setShowAuthenticateButton(false);
       setShowTweetButton(true);
     } else {
       // Case 2: User already has seconds
       setSec(Number(existingSecs));
-      const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
+      const backendTimestamp = await backend.getTimestamp(principalID) as unknown as bigint;
       if (backendTimestamp === 0n) {
         // Case 2.1: No previous timestamp
-        setMessage(`Your principalId is: ${principalId}. You already have got ${formatTime(Number(existingSecs))}`);
+        setMessage(`Your principalId is: ${principalID}. You already have got ${formatTime(Number(existingSecs))}`);
         setShowAuthenticateButton(false);
         setShowTweetButton(true);
       } else {
@@ -150,7 +163,7 @@ function App() {
         if (remainingTime > 0) {
           // Case 2.2.2: Less than 10 minutes passed
           setRemainingTime(remainingTime);
-          setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(existingSecs))}. Get back in ${formatTime(remainingTime)} to earn more.`);
+          setMessage(`Your principalId is: ${principalID}. You have got ${formatTime(Number(existingSecs))}. Get back in ${formatTime(remainingTime)} to earn more.`);
           setShowAuthenticateButton(false);
           const timer = setInterval(() => {
             setRemainingTime((prevTime) => {
@@ -161,26 +174,19 @@ function App() {
                 setShowTweetButton(true);
                 return 0;
               }
-              setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(existingSecs))}. Get back in ${formatTime(newTime)} to earn more.`);
+              setMessage(`Your principalId is: ${principalID}. You have got ${formatTime(Number(existingSecs))}. Get back in ${formatTime(newTime)} to earn more.`);
               return newTime;
             });
           }, 1000);
         } else {
           // Case 2.2.1: More than 10 minutes passed
-          setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(existingSecs))}`);
+          setMessage(`Your principalId is: ${principalID}. You have got ${formatTime(Number(existingSecs))}`);
           setShowAuthenticateButton(false);
           setShowTweetButton(true);
         }
       }
     }
-
-    // Check if the user is following @KonectA_Dao
-    const isFollowing = await backend.getFollow(principalId) as boolean;
-    if (!isFollowing) {
-      setShowFollowMessage(true);
-      setShowFollowButton(true);
-    }
-  }, [authClient, backend, nfid]);
+  };
 
   // Handle tweet
   const handleTweet = useCallback((): void => {
@@ -275,7 +281,7 @@ function App() {
         const additionalSecs = 1800; // 30 minutes in seconds
         const newSecs = sec + additionalSecs;
         setSec(newSecs);
-        setMessage(`Following done successfully, you have earned ${formatTime(additionalSecs)} more minutes.`);
+        setMessage(`Following done successfully, you have earned ${formatTime(additionalSecs)} more minutes. Now you have ${formatTime(newSecs)} in total!`);
         setShowFollowMessage(false);
         setShowFollowButton(false);
         setShowFollowInput(false);
@@ -378,7 +384,11 @@ function App() {
           </>
         )}
         {showTweetButton && (
-          <button className="btn-grad" onClick={handleTweet}>Tweet</button>
+          <>
+            <br />
+            <p>Tweet to earn some more minutes!</p>
+            <button className="btn-grad" onClick={handleTweet}>Tweet</button>
+          </>
         )}
         {showInput && (
           <input

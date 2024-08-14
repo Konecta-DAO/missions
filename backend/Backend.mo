@@ -25,6 +25,18 @@ actor class Backend() {
   // Twitter Checking Related Variables
   var keywords = Buffer.Buffer<Text>(0);
   var tags = Buffer.Buffer<Text>(0);
+
+  func indexOf(t : Text, char : Char) : ?Nat {
+    var i = 0;
+    for (c in Text.toIter(t)) {
+      if (c == char) {
+        return ?i;
+      };
+      i += 1;
+    };
+    return null;
+  };
+
   // Security function to transform the response
   public query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
     let transformed : Types.CanisterHttpResponsePayload = {
@@ -182,59 +194,90 @@ actor class Backend() {
     };
   };
 
-  // Function to check if a handle follows @konectA_Dao
   public func check_if_following(principalId : Text, handle : Text) : async Bool {
 
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
-    // 2. SETUP ARGUMENTS FOR HTTP GET request
-    let host : Text = "api.twitter.com";
-    let url = "https://" # host # "/1.1/friendships/show.json?source_screen_name=" # handle # "&target_screen_name=konectA_Dao";
+    // 2. GET USER ID OF THE HANDLE
+    let userIdUrl = "https://" # "api.twitter.com/2/users/by/username/" # handle;
+    let userIdRequestHeaders = [{
+      name = "Authorization";
+      value = "Bearer YOUR_BEARER_TOKEN";
+    }];
+    let userIdRequest : Types.HttpRequestArgs = {
+      url = userIdUrl;
+      max_response_bytes = null;
+      headers = userIdRequestHeaders;
+      body = null;
+      method = #get;
+      transform = null;
+    };
 
-    // 2.2 prepare headers for the system http_request call
+    Cycles.add(22_935_266_640);
+    let userIdResponse : Types.HttpResponsePayload = await ic.http_request(userIdRequest);
+    let userIdResponseBody : Blob = Blob.fromArray(userIdResponse.body);
+    let userIdDecodedText : Text = switch (Text.decodeUtf8(userIdResponseBody)) {
+      case (null) { "No value returned" };
+      case (?y) { y };
+    };
+
+    // Manually extract the user ID
+    let idPattern = "\"id\":\"";
+    let userId : Text = if (Text.contains(userIdDecodedText, #text idPattern)) {
+      let parts = Text.split(userIdDecodedText, #text idPattern);
+      let idPart = Text.split(parts[1], #char '\"');
+      idPart[0];
+    } else {
+      "No ID found";
+    };
+
+    // 3. SETUP ARGUMENTS FOR HTTP GET request to get followers
+    let host : Text = "api.twitter.com";
+    let url = "https://" # host # "/1.1/followers/ids.json?screen_name=YOUR_TWITTER_HANDLE";
+
     let request_headers = [
       { name = "Host"; value = host # ":443" },
       { name = "User-Agent"; value = "twitter_check_canister" },
       {
         name = "Authorization";
-        value = "Bearer AAAAAAAAAAAAAAAAAAAAANNBvQEAAAAAwIGyKk3%2FN5poBsSYSETQ35TOApE%3DC5Qu9kRUPHBRP1W9rnkanW0fY7UYXYKqgB9mR12EkoQi6ZCsjx";
+        value = "Bearer YOUR_BEARER_TOKEN";
       },
     ];
 
-    // 2.2.1 Transform context
     let transform_context : Types.TransformContext = {
       function = transform;
       context = Blob.fromArray([]);
     };
 
-    // 2.3 The HTTP request
     let http_request : Types.HttpRequestArgs = {
       url = url;
-      max_response_bytes = null; // optional for request
+      max_response_bytes = null;
       headers = request_headers;
-      body = null; // optional for request
+      body = null;
       method = #get;
       transform = ?transform_context;
     };
 
-    // 3. ADD CYCLES TO PAY FOR HTTP REQUEST
     Cycles.add(22_935_266_640);
-
-    // 4. MAKE HTTPS REQUEST AND WAIT FOR RESPONSE
     let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
 
-    // 5. DECODE THE RESPONSE
     let response_body : Blob = Blob.fromArray(http_response.body);
     let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
       case (null) { "No value returned" };
       case (?y) { y };
     };
 
-    // 6. CHECK IF FOLLOWING
-    let isFollowingStatus = Text.contains(decoded_text, #text "\"following\":true");
+    let followerIds : [Text] = [];
+    let idsStart = indexOf(decoded_text, "[");
+    let idsEnd = indexOf(decoded_text, "]");
+    if (idsStart != null and idsEnd != null) {
+      let idsText = Text.slice(decoded_text, idsStart! + 1, idsEnd!);
+      followerIds := Text.split(idsText, ",");
+    };
 
-    // 7. UPDATE HASHMAP IF FOLLOWING
+    let isFollowingStatus = Array.find<Text>(followerIds, func(id) { id == userId }) != null;
+
     if (isFollowingStatus) {
       isFollowing.put(principalId, true);
     };
