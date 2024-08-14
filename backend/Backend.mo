@@ -19,6 +19,8 @@ actor class Backend() {
   let tweetIds = HashMap.HashMap<Text, [Nat]>(0, Text.equal, Text.hash);
   // Timestamp for each Principal ID
   let timestamps = HashMap.HashMap<Text, Int>(0, Text.equal, Text.hash);
+  // Konecta Following Status for each Principal ID
+  let isFollowing = HashMap.HashMap<Text, Bool>(0, Text.equal, Text.hash);
 
   // Twitter Checking Related Variables
   var keywords = Buffer.Buffer<Text>(0);
@@ -181,7 +183,7 @@ actor class Backend() {
   };
 
   // Function to check if a handle follows @konectA_Dao
-  public func check_if_following(handle : Text) : async Bool {
+  public func check_if_following(principalId : Text, handle : Text) : async Bool {
 
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
@@ -230,7 +232,30 @@ actor class Backend() {
     };
 
     // 6. CHECK IF FOLLOWING
-    return Text.contains(decoded_text, #text "\"following\":true");
+    let isFollowingStatus = Text.contains(decoded_text, #text "\"following\":true");
+
+    // 7. UPDATE HASHMAP IF FOLLOWING
+    if (isFollowingStatus) {
+      isFollowing.put(principalId, true);
+    };
+
+    return isFollowingStatus;
+  };
+
+  // Function to get the following status of a Principal ID
+  public func getFollow(principalId : Text) : async Bool {
+    switch (isFollowing.get(principalId)) {
+      case (?true) {
+        let existingSecs = switch (seconds.get(principalId)) {
+          case (?secs) { secs };
+          case null { 0 };
+        };
+        let newSecs = existingSecs + 1800;
+        seconds.put(principalId, newSecs);
+        return true;
+      };
+      case _ { false };
+    };
   };
 
   // Function to add a keyword

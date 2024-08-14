@@ -1,4 +1,3 @@
-// useNFID.ts
 import { useState, useEffect } from 'react';
 import { NFID } from '@nfid/embed';
 
@@ -6,7 +5,7 @@ const NFID_PROVIDER_URL = 'https://nfid.one'; // NFID provider URL
 
 export const useNFID = () => {
   const [nfid, setNfid] = useState<any>(null);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [isNfidIframeInstantiated, setIsNfidIframeInstantiated] = useState<boolean>(false);
 
   useEffect(() => {
     const initNFID = async () => {
@@ -18,10 +17,10 @@ export const useNFID = () => {
         },
       });
       setNfid(nfidInstance);
-      setIsInitialized(true);
+      setIsNfidIframeInstantiated(true); // Set the iframe instantiation status
     };
     initNFID();
   }, []);
 
-  return { nfid, isInitialized };
+  return { nfid, isNfidIframeInstantiated };
 };

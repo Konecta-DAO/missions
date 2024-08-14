@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css?family=Inter');
 
-body, html {
+body,
+html {
   font-family: 'Inter';
   margin: 0;
   padding: 0;
@@ -19,8 +20,8 @@ img {
   margin: auto;
 }
 
-.sera{
-  color:black;
+.sera {
+  color: black;
 }
 
 form {
@@ -84,26 +85,26 @@ button[type="submit"] {
   align-items: center;
 }
 
-.identityButton{
+.identityButton {
   text-align: center;
-  color:white;
+  color: white;
   background-color: black;
   border-radius: 10px;
   border: none;
   font-size: 1.5vh;
-  cursor:pointer;
+  cursor: pointer;
   padding: 10px 20px;
   margin: 10px;
 }
 
-.nfButton{
+.nfButton {
   text-align: center;
-  color:white;
+  color: white;
   background-color: black;
   border-radius: 10px;
   border: none;
   font-size: 1.5vh;
-  cursor:pointer;
+  cursor: pointer;
   padding: 10px 20px;
 }
 
@@ -140,6 +141,54 @@ button[type="submit"] {
   z-index: -2;
   overflow: hidden;
 }
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px; 
+  z-index: 1;
+}
+
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  margin: 0 20px;
+  padding: 10px; 
+}
+
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%); 
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
 
 @media screen and (min-width: 1200px) {
   div {

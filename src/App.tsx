@@ -9,19 +9,25 @@ import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
 
 function App() {
-  const [authClient, setAuthClient] = useState<AuthClient | null>(null); //AuthClient for NFID Auth
-  const [principalId, setPrincipalId] = useState<string>(''); //Principal ID for NFID Auth
-  const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]); //Trusted Origins for NFID Auth
-  const [sec, setSec] = useState<number>(0); //Seconds earned by the user
-  const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false); //Flag to check if NFID Auth is loaded
-  const [message, setMessage] = useState<string>(''); //Message to display to the user
-  const [twitterHandle, setTwitterHandle] = useState<string>(''); //Twitter handle input
-  const [remainingTime, setRemainingTime] = useState<number>(0); //Remaining time for the user to earn more points
-  const [showAuthenticateButton, setShowAuthenticateButton] = useState<boolean>(true); //Flag to show Authenticate button
-  const [showTweetButton, setShowTweetButton] = useState<boolean>(false); //Flag to show Tweet button
-  const [showCheckButton, setShowCheckButton] = useState<boolean>(false); //Flag to show Check button
-  const [showInput, setShowInput] = useState<boolean>(false); //Flag to show Twitter handle input
-  const { nfid, isInitialized } = useNFID(); //NFID Auth
+  const [authClient, setAuthClient] = useState<AuthClient | null>(null); // AuthClient for NFID Auth
+  const [principalId, setPrincipalId] = useState<string>(''); // Principal ID for NFID Auth
+  const [trustedOrigins, setTrustedOrigins] = useState<string[]>([]); // Trusted Origins for NFID Auth
+  const [sec, setSec] = useState<number>(0); // Seconds earned by the user
+  const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false); // Flag to check if NFID Auth is loaded
+  const [message, setMessage] = useState<string>(''); // Message to display to the user
+  const [twitterHandle, setTwitterHandle] = useState<string>(''); // Twitter handle input
+  const [remainingTime, setRemainingTime] = useState<number>(0); // Remaining time for the user to earn more points
+  const [showAuthenticateButton, setShowAuthenticateButton] = useState<boolean>(true); // Flag to show Authenticate button
+  const [EnableAuthenticateButton, setEnableAuthenticateButton] = useState<boolean>(true); // Flag to enable Authenticate button
+  const [showTweetButton, setShowTweetButton] = useState<boolean>(false); // Flag to show Tweet button
+  const [showCheckButton, setShowCheckButton] = useState<boolean>(false); // Flag to show Check button
+  const [showInput, setShowInput] = useState<boolean>(false); // Flag to show Twitter handle input
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state
+  const [showFollowMessage, setShowFollowMessage] = useState<boolean>(false); // Flag to show Follow message
+  const [showFollowButton, setShowFollowButton] = useState<boolean>(false); // Flag to show Follow button
+  const [showFollowInput, setShowFollowInput] = useState<boolean>(false); // Flag to show Follow input
+  const [showCheckFollowButton, setShowCheckFollowButton] = useState<boolean>(false); // Flag to show Check Follow button
+  const { nfid, isNfidIframeInstantiated } = useNFID(); // NFID Auth
 
   // Initialize AuthClient on App Start
   useEffect(() => {
@@ -29,6 +35,27 @@ function App() {
       const client: AuthClient = await AuthClient.create();
       setAuthClient(client);
       setIsNFIDAuthLoaded(true);
+
+      // Check for stored identity
+      const storedIdentity = localStorage.getItem('identity');
+      if (storedIdentity) {
+        try {
+          const identity = await client.getIdentity(); // Properly instantiate the identity
+          const actor = Actor.createActor(backend_idlFactory, {
+            agent: new HttpAgent({
+              identity,
+            }),
+            canisterId: backend_canisterId,
+          });
+          const principalId = identity.getPrincipal().toText();
+          setPrincipalId(principalId);
+          handleSuccess(principalId);
+        } catch (error) {
+          console.error("Error restoring identity:", error);
+          localStorage.removeItem('identity'); // Remove invalid identity from local storage
+        }
+      }
+      setIsLoading(false); // Set loading state to false after initialization
     };
     init();
   }, []);
@@ -45,6 +72,13 @@ function App() {
     };
     fetchTrustedOrigins();
   }, [backend]);
+
+  // Update showAuthenticateButton based on NFID Auth and iframe instantiation status
+  useEffect(() => {
+    if (isNFIDAuthLoaded && isNfidIframeInstantiated) {
+      setEnableAuthenticateButton(true);
+    }
+  }, [isNFIDAuthLoaded, isNfidIframeInstantiated]);
 
   // Function that generates a random number of time, in seconds, between 1 hour and 6 hours
   function getRandomNumberOfSeconds(): number {
@@ -74,9 +108,21 @@ function App() {
     if (!authClient) {
       throw new Error("AuthClient not initialized");
     }
+
+    // Check delegation type
+    const delegationType = nfid.getDelegationType();
+    if (delegationType === 1) { // 1 corresponds to ANONYMOUS
+      alert("Anonymous Delegations aren't allowed, please try again");
+      await nfid.logout(); // Log out the user
+      return;
+    }
+
     const identity: Identity = authClient.getIdentity();
     const existingSecs = await backend.getSecs(principalId) as unknown as bigint;
     setPrincipalId(principalId);
+
+    // Store identity in local storage
+    localStorage.setItem('identity', JSON.stringify(identity));
 
     if (existingSecs === 0n) {
       // Case 1: First time authenticating
@@ -127,7 +173,14 @@ function App() {
         }
       }
     }
-  }, [authClient, backend]);
+
+    // Check if the user is following @KonectA_Dao
+    const isFollowing = await backend.getFollow(principalId) as boolean;
+    if (!isFollowing) {
+      setShowFollowMessage(true);
+      setShowFollowButton(true);
+    }
+  }, [authClient, backend, nfid]);
 
   // Handle tweet
   const handleTweet = useCallback((): void => {
@@ -205,6 +258,37 @@ function App() {
     }
   }, [backend, principalId, sec, twitterHandle]);
 
+  // Handle follow
+  const handleFollow = useCallback((): void => {
+    const followUrl = `https://twitter.com/intent/follow?screen_name=KonectA_Dao`;
+    window.open(followUrl, "_blank");
+    setShowFollowInput(true);
+    setShowCheckFollowButton(true);
+  }, []);
+
+  // Handle follow verification
+  const handleCheckFollow = useCallback(async (): Promise<void> => {
+    try {
+      const formattedHandle = validateTwitterHandle(twitterHandle);
+      const followVerified = await backend.check_if_following(principalId, formattedHandle) as boolean;
+      if (followVerified) {
+        const additionalSecs = 1800; // 30 minutes in seconds
+        const newSecs = sec + additionalSecs;
+        setSec(newSecs);
+        setMessage(`Following done successfully, you have earned ${formatTime(additionalSecs)} more minutes.`);
+        setShowFollowMessage(false);
+        setShowFollowButton(false);
+        setShowFollowInput(false);
+        setShowCheckFollowButton(false);
+      } else {
+        alert("Not Following KonectA_Dao");
+      }
+    } catch (error) {
+      console.error("Error verifying follow:", error);
+      alert("Error verifying follow");
+    }
+  }, [backend, principalId, sec, twitterHandle]);
+
   // Initialize OpenChat iframe
   useEffect(() => {
     const initOpenChat = async () => {
@@ -249,8 +333,15 @@ function App() {
       }
     };
 
-    initOpenChat();
-  }, []);
+    if (!isLoading) {
+      initOpenChat();
+    }
+  }, [isLoading]);
+
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <main>
@@ -263,9 +354,29 @@ function App() {
         <h1>Join the Konectª Army</h1>
         <br />
         {showAuthenticateButton && (
-          <NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
+          < NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
         )}
         <p>{message}</p>
+        {showFollowMessage && (
+          <>
+            <br />
+            <p>Follow @KonectA_Dao to earn 30 more minutes</p>
+            {showFollowButton && (
+              <button className="btn-grad" onClick={handleFollow}>Follow</button>
+            )}
+            {showFollowInput && (
+              <input
+                type="text"
+                placeholder="Enter your Twitter handle"
+                value={twitterHandle}
+                onChange={(e) => setTwitterHandle(e.target.value)}
+              />
+            )}
+            {showCheckFollowButton && (
+              <button className="btn-grad" onClick={handleCheckFollow}>Check if Following</button>
+            )}
+          </>
+        )}
         {showTweetButton && (
           <button className="btn-grad" onClick={handleTweet}>Tweet</button>
         )}
@@ -280,10 +391,24 @@ function App() {
         {showCheckButton && (
           <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
         )}
+        <br />
+        <p>Share this with friends</p>
+        <br />
         <iframe id="openchat-iframe" title="OpenChat"></iframe>
       </div>
+      <footer className="footer">
+        <div className="tooltip">
+          What is Konecta?
+          <span className="tooltiptext">Konecta Webapp is a Placeholder</span>
+        </div>
+        <div className="tooltip">
+          What are the seconds?
+          <span className="tooltiptext">It is a secret to be revealed soon</span>
+        </div>
+      </footer>
     </main>
   );
+
 }
 
 export default App;
