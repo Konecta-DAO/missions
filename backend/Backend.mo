@@ -7,6 +7,7 @@ import Blob "mo:base/Blob";
 import Types "Types";
 import Array "mo:base/Array";
 import Time "mo:base/Time";
+import Iter "mo:base/Iter";
 import Random "mo:base/Random";
 
 actor class Backend() {
@@ -195,7 +196,6 @@ actor class Backend() {
   };
 
   public func check_if_following(principalId : Text, handle : Text) : async Bool {
-
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
@@ -225,9 +225,9 @@ actor class Backend() {
     // Manually extract the user ID
     let idPattern = "\"id\":\"";
     let userId : Text = if (Text.contains(userIdDecodedText, #text idPattern)) {
-      let parts = Text.split(userIdDecodedText, #text idPattern);
-      let idPart = Text.split(parts[1], #char '\"');
-      idPart[0];
+      let partsArray = Iter.toArray(Text.tokens(userIdDecodedText, #text idPattern));
+      let idPartArray = Iter.toArray(Text.tokens(partsArray[1], #char '\"'));
+      idPartArray[0];
     } else {
       "No ID found";
     };
@@ -268,12 +268,23 @@ actor class Backend() {
       case (?y) { y };
     };
 
-    let followerIds : [Text] = [];
-    let idsStart = indexOf(decoded_text, "[");
-    let idsEnd = indexOf(decoded_text, "]");
-    if (idsStart != null and idsEnd != null) {
-      let idsText = Text.slice(decoded_text, idsStart! + 1, idsEnd!);
-      followerIds := Text.split(idsText, ",");
+    var followerIds : [Text] = [];
+    let idsStart = indexOf(decoded_text, '[');
+    let idsEnd = indexOf(decoded_text, ']');
+
+    switch (idsStart, idsEnd) {
+      case (?start, ?end) {
+        var idsText = "";
+        var i = start + 1;
+        while (i < end) {
+          idsText #= Text.fromChar(Text.toArray(decoded_text)[i]);
+          i += 1;
+        };
+        followerIds := Iter.toArray(Text.tokens(idsText, #char ','));
+      };
+      case _ {
+        return false;
+      };
     };
 
     let isFollowingStatus = Array.find<Text>(followerIds, func(id) { id == userId }) != null;
