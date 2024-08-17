@@ -9,6 +9,7 @@ import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Iter "mo:base/Iter";
 import Random "mo:base/Random";
+import Error "mo:base/Error";
 
 actor class Backend() {
 
@@ -22,6 +23,10 @@ actor class Backend() {
   let timestamps = HashMap.HashMap<Text, Int>(0, Text.equal, Text.hash);
   // Konecta Following Status for each Principal ID
   let isFollowing = HashMap.HashMap<Text, Bool>(0, Text.equal, Text.hash);
+  // Twitter ID for each Principal ID
+  let twitterHandles = HashMap.HashMap<Text, Text>(0, Text.equal, Text.hash);
+  // Twitter Handle for each Principal ID
+  let twitterIds = HashMap.HashMap<Text, Text>(0, Text.equal, Text.hash);
 
   // Twitter Checking Related Variables
   var keywords = Buffer.Buffer<Text>(0);
@@ -71,92 +76,83 @@ actor class Backend() {
     tweetIds.put(newID, updatedTweets);
   };
 
+  public func storeTwitterHandle(principalId : Text, handle : Text, twitterId : Text) : async () {
+    // Store the Twitter handle and ID in HashMaps
+    twitterHandles.put(principalId, handle);
+    twitterIds.put(principalId, twitterId);
+  };
+
   // Function to check if a tweet was made by the user
-  public func check_tweet(principalId : Text, handle : Text) : async Bool {
+  public func check_tweet(principalId : Text) : async Bool {
+    // Retrieve the stored Twitter handle or ID
+    let handle = switch (twitterHandles.get(principalId)) {
+      case (?h) h;
+      case null "No handle found";
+    };
+    let id = switch (twitterIds.get(principalId)) {
+      case (?id) id;
+      case null "No ID found";
+    };
 
-    /*
-
-// 1. DECLARE IC MANAGEMENT CANISTER
+    // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
-    // 2. SETUP ARGUMENTS FOR HTTP GET request
-    let host : Text = "api.twitter.com";
-    let url = "https://" # host # "/1.1/statuses/user_timeline.json?screen_name=" # handle # "&count=200";
+    // 2. SETUP ARGUMENTS FOR HTTP GET request to check tweets
+    let host : Text = "[2604:a880:400:d0::22e6:5001]";
+    let url = "https://" # host # "/checkTweet?handle=" # handle;
 
-    // 2.2 prepare headers for the system http_request call
-    let request_headers = [
-      { name = "Host"; value = host # ":443" },
-      { name = "User-Agent"; value = "twitter_check_canister" },
-      {
-        name = "Authorization";
-        value = "Bearer AAAAAAAAAAAAAAAAAAAAANNBvQEAAAAAwIGyKk3%2FN5poBsSYSETQ35TOApE%3DC5Qu9kRUPHBRP1W9rnkanW0fY7UYXYKqgB9mR12EkoQi6ZCsjx";
-      },
-    ];
-
-    // 2.2.1 Transform context
-    let transform_context : Types.TransformContext = {
-      function = transform;
-      context = Blob.fromArray([]);
-    };
-
-    // 2.3 The HTTP request
     let http_request : Types.HttpRequestArgs = {
       url = url;
-      max_response_bytes = null; // optional for request
-      headers = request_headers;
-      body = null; // optional for request
+      max_response_bytes = null;
+      headers = [];
+      body = null;
       method = #get;
-      transform = ?transform_context;
+      transform = null;
     };
 
-    // 3. ADD CYCLES TO PAY FOR HTTP REQUEST
-    Cycles.add(22_935_266_640);
-
-    // 4. MAKE HTTPS REQUEST AND WAIT FOR RESPONSE
+    Cycles.add<system>(22_935_266_640);
     let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
 
-    // 5. DECODE THE RESPONSE
     let response_body : Blob = Blob.fromArray(http_response.body);
     let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
-      case (null) { "No value returned" };
-      case (?y) { y };
+      case (null) "No value returned";
+      case (?y) y;
     };
 
-    // 6. CHECK FOR SPECIFIC TAG AND KEYWORDS
+    // Convert Buffer to Array
+    let tagsArray = Buffer.toArray(tags);
+    let keywordsArray = Buffer.toArray(keywords);
+
+    // Check for specific tag and keywords
     let tweets : [Text] = Iter.toArray(Text.split(decoded_text, #char '\n'));
-    let isValid = if (Array.size(tags) == 0 and Array.size(keywords) == 0) {
+    let isValid = if (Array.size(tagsArray) == 0 and Array.size(keywordsArray) == 0) {
       true;
     } else {
       Array.size(
         Array.filter<Text>(
           tweets,
           func(tweet : Text) : Bool {
-            let tagMatch = Array.size(tags) == 0 or Array.size(
+            let tagMatch = Array.size(tagsArray) == 0 or Array.size(
               Array.filter<Text>(
-                tags,
+                tagsArray,
                 func(tag : Text) : Bool {
                   Text.contains(tweet, #text tag);
                 },
               )
             ) > 0;
-            let keywordMatch = Array.size(keywords) == 0 or Array.size(
+            let keywordMatch = Array.size(keywordsArray) == 0 or Array.size(
               Array.filter<Text>(
-                keywords,
+                keywordsArray,
                 func(keyword : Text) : Bool {
                   Text.contains(tweet, #text keyword);
                 },
               )
-            ) == Array.size(keywords);
+            ) == Array.size(keywordsArray);
             tagMatch and keywordMatch;
           },
         )
       ) > 0;
     };
-
-    */
-
-    // Skipping all the checking and directly setting isValid to true
-    let isValid = true;
 
     if (isValid) {
       // Generate a random blob ONLY WHEN SIMULATING
@@ -165,22 +161,22 @@ actor class Backend() {
 
       // Generate a random Tweet ID ONLY WHEN SIMULATING
       let tweetID = switch (random.range(32)) {
-        case (?value) { value };
-        case null { 0 };
+        case (?value) value;
+        case null 0;
       };
 
       await registerTweet(principalId, tweetID);
 
       // Generate a random number of seconds
       let randomSecs = switch (random.range(32)) {
-        case (?value) { 3600 + (value % (21600 - 3600 : Nat + 1)) }; //Between 1h and 6h
-        case null { 3600 }; // Fallback in case of error
+        case (?value) 3600 + (value % (21600 - 3600 : Nat + 1)); // Between 1h and 6h
+        case null 3600; // Fallback in case of error
       };
 
       // Add the random seconds to the existing seconds
       let existingSecs = switch (seconds.get(principalId)) {
-        case (?secs) { secs };
-        case null { 0 };
+        case (?secs) secs;
+        case null 0;
       };
       let newSecs = existingSecs + randomSecs;
       seconds.put(principalId, newSecs);
@@ -195,37 +191,134 @@ actor class Backend() {
     };
   };
 
-  public func check_if_following(principalId : Text, handle : Text) : async Bool {
+  public func requestToken() : async Text {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. SETUP ARGUMENTS FOR HTTP POST request to request a token
+    let host : Text = "[2604:a880:400:d0::22e6:5001]";
+    let url = "https://" # host # "/requestToken";
+
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [];
+      body = null;
+      method = #post;
+      transform = null;
+    };
+
+    Cycles.add<system>(22_935_266_640);
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+    let response_body : Blob = Blob.fromArray(http_response.body);
+    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
+      case (null) "No value returned";
+      case (?y) y;
+    };
+
+    // Extract the request token from the response
+    let tokenPattern = "oauth_token=";
+    let requestToken : Text = if (Text.contains(decoded_text, #text tokenPattern)) {
+      let partsArray = Iter.toArray(Text.tokens(decoded_text, #text tokenPattern));
+      let tokenPartArray = Iter.toArray(Text.tokens(partsArray[1], #char '&'));
+      tokenPartArray[0];
+    } else {
+      "No token found";
+    };
+
+    return requestToken;
+  };
+
+  public func handleCallback(principalId : Text, oauthVerifier : Text) : async (Text, Text) {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. SETUP ARGUMENTS FOR HTTP POST request to exchange the request token for an access token
+    let host : Text = "[2604:a880:400:d0::22e6:5001]";
+    let url = "https://" # host # "/accessToken";
+
+    let bodyContent : [Nat8] = Blob.toArray(Text.encodeUtf8("oauth_verifier=" # oauthVerifier));
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [];
+      body = ?bodyContent;
+      method = #post;
+      transform = null;
+    };
+
+    Cycles.add<system>(22_935_266_640);
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+    let response_body : Blob = Blob.fromArray(http_response.body);
+    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
+      case (null) "No value returned";
+      case (?y) y;
+    };
+
+    // Extract the access token and user information from the response
+    let handlePattern = "screen_name=";
+    let idPattern = "user_id=";
+    let twitterHandle : Text = if (Text.contains(decoded_text, #text handlePattern)) {
+      let partsArray = Iter.toArray(Text.tokens(decoded_text, #text handlePattern));
+      let handlePartArray = Iter.toArray(Text.tokens(partsArray[1], #char '&'));
+      handlePartArray[0];
+    } else {
+      "No handle found";
+    };
+    let twitterId : Text = if (Text.contains(decoded_text, #text idPattern)) {
+      let partsArray = Iter.toArray(Text.tokens(decoded_text, #text idPattern));
+      let idPartArray = Iter.toArray(Text.tokens(partsArray[1], #char '&'));
+      idPartArray[0];
+    } else {
+      "No ID found";
+    };
+
+    // Store the Twitter handle and ID in HashMaps
+    twitterHandles.put(principalId, twitterHandle);
+    twitterIds.put(principalId, twitterId);
+
+    return (twitterHandle, twitterId);
+  };
+
+  public func check_if_following(principalId : Text) : async Bool {
+    // Retrieve the stored Twitter handle or ID
+    let handle = switch (twitterHandles.get(principalId)) {
+      case (?h) h;
+      case null "No handle found";
+    };
+    let id = switch (twitterIds.get(principalId)) {
+      case (?id) id;
+      case null "No ID found";
+    };
+
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
     // 2. GET USER ID OF THE HANDLE
-    let userIdUrl = "https://" # "api.twitter.com/2/users/by/username/" # handle;
-    let userIdRequestHeaders = [{
-      name = "Authorization";
-      value = "Bearer YOUR_BEARER_TOKEN";
-    }];
-    let userIdRequest : Types.HttpRequestArgs = {
-      url = userIdUrl;
+    let host : Text = "[2604:a880:400:d0::22e6:5001]";
+    let url = "https://" # host # "/checkFollow?handle=" # handle;
+
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
       max_response_bytes = null;
-      headers = userIdRequestHeaders;
+      headers = [];
       body = null;
       method = #get;
       transform = null;
     };
 
-    Cycles.add(22_935_266_640);
-    let userIdResponse : Types.HttpResponsePayload = await ic.http_request(userIdRequest);
-    let userIdResponseBody : Blob = Blob.fromArray(userIdResponse.body);
-    let userIdDecodedText : Text = switch (Text.decodeUtf8(userIdResponseBody)) {
-      case (null) { "No value returned" };
-      case (?y) { y };
+    Cycles.add<system>(22_935_266_640);
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+    let response_body : Blob = Blob.fromArray(http_response.body);
+    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
+      case (null) "No value returned";
+      case (?y) y;
     };
 
     // Manually extract the user ID
     let idPattern = "\"id\":\"";
-    let userId : Text = if (Text.contains(userIdDecodedText, #text idPattern)) {
-      let partsArray = Iter.toArray(Text.tokens(userIdDecodedText, #text idPattern));
+    let userId : Text = if (Text.contains(decoded_text, #text idPattern)) {
+      let partsArray = Iter.toArray(Text.tokens(decoded_text, #text idPattern));
       let idPartArray = Iter.toArray(Text.tokens(partsArray[1], #char '\"'));
       idPartArray[0];
     } else {
@@ -233,51 +326,36 @@ actor class Backend() {
     };
 
     // 3. SETUP ARGUMENTS FOR HTTP GET request to get followers
-    let host : Text = "api.twitter.com";
-    let url = "https://" # host # "/1.1/followers/ids.json?screen_name=YOUR_TWITTER_HANDLE";
+    let url_followers = "https://" # host # "/followers?handle=" # handle;
 
-    let request_headers = [
-      { name = "Host"; value = host # ":443" },
-      { name = "User-Agent"; value = "twitter_check_canister" },
-      {
-        name = "Authorization";
-        value = "Bearer YOUR_BEARER_TOKEN";
-      },
-    ];
-
-    let transform_context : Types.TransformContext = {
-      function = transform;
-      context = Blob.fromArray([]);
-    };
-
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
+    let http_request_followers : Types.HttpRequestArgs = {
+      url = url_followers;
       max_response_bytes = null;
-      headers = request_headers;
+      headers = [];
       body = null;
       method = #get;
-      transform = ?transform_context;
+      transform = null;
     };
 
-    Cycles.add(22_935_266_640);
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+    Cycles.add<system>(22_935_266_640);
+    let http_response_followers : Types.HttpResponsePayload = await ic.http_request(http_request_followers);
 
-    let response_body : Blob = Blob.fromArray(http_response.body);
-    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
-      case (null) { "No value returned" };
-      case (?y) { y };
+    let response_body_followers : Blob = Blob.fromArray(http_response_followers.body);
+    let decoded_text_followers : Text = switch (Text.decodeUtf8(response_body_followers)) {
+      case (null) "No value returned";
+      case (?y) y;
     };
 
     var followerIds : [Text] = [];
-    let idsStart = indexOf(decoded_text, '[');
-    let idsEnd = indexOf(decoded_text, ']');
+    let idsStart = indexOf(decoded_text_followers, '[');
+    let idsEnd = indexOf(decoded_text_followers, ']');
 
     switch (idsStart, idsEnd) {
       case (?start, ?end) {
         var idsText = "";
         var i = start + 1;
         while (i < end) {
-          idsText #= Text.fromChar(Text.toArray(decoded_text)[i]);
+          idsText #= Text.fromChar(Text.toArray(decoded_text_followers)[i]);
           i += 1;
         };
         followerIds := Iter.toArray(Text.tokens(idsText, #char ','));
@@ -301,8 +379,8 @@ actor class Backend() {
     switch (isFollowing.get(principalId)) {
       case (?true) {
         let existingSecs = switch (seconds.get(principalId)) {
-          case (?secs) { secs };
-          case null { 0 };
+          case (?secs) secs;
+          case null 0;
         };
         let newSecs = existingSecs + 1800;
         seconds.put(principalId, newSecs);
@@ -329,6 +407,7 @@ actor class Backend() {
   // Function to add a tag
   public func addTag(tag : Text) : async () {
     tags.add(tag);
+    let a = Buffer.toArray(tags);
   };
 
   // Function to remove a tag
@@ -348,6 +427,58 @@ actor class Backend() {
   // Function to show all tags
   public query func showTags() : async [Text] {
     Buffer.toArray(tags);
+  };
+
+  // Function to authenticate the user using Twitter OAuth and store the handle or ID
+  public func authenticateTwitter(principalId : Text) : async (Text, Text) {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. SETUP ARGUMENTS FOR HTTP POST request to authenticate
+    let host : Text = "[2604:a880:400:d0::22e6:5001]";
+    let url = "https://" # host # "/authenticateTwitter";
+
+    let bodyContent : [Nat8] = Blob.toArray(Text.encodeUtf8("principalId=" # principalId));
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [];
+      body = ?bodyContent;
+      method = #post;
+      transform = null;
+    };
+
+    Cycles.add<system>(22_935_266_640);
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+    let response_body : Blob = Blob.fromArray(http_response.body);
+    let decoded_text : Text = switch (Text.decodeUtf8(response_body)) {
+      case (null) "No value returned";
+      case (?y) y;
+    };
+
+    // Extract Twitter handle and ID from the response
+    let handlePattern = "\"screen_name\":\"";
+    let idPattern = "\"user_id\":\"";
+    let twitterHandle : Text = if (Text.contains(decoded_text, #text handlePattern)) {
+      let partsArray = Iter.toArray(Text.tokens(decoded_text, #text handlePattern));
+      let handlePartArray = Iter.toArray(Text.tokens(partsArray[1], #char '\"'));
+      handlePartArray[0];
+    } else {
+      "No handle found";
+    };
+    let twitterId : Text = if (Text.contains(decoded_text, #text idPattern)) {
+      let partsArray = Iter.toArray(Text.tokens(decoded_text, #text idPattern));
+      let idPartArray = Iter.toArray(Text.tokens(partsArray[1], #char '\"'));
+      idPartArray[0];
+    } else {
+      "No ID found";
+    };
+
+    // Store the Twitter handle and ID in HashMaps
+    twitterHandles.put(principalId, twitterHandle);
+    twitterIds.put(principalId, twitterId);
+
+    return (twitterHandle, twitterId);
   };
 
   // Function to register a new Principal ID with their first generated seconds
@@ -379,6 +510,15 @@ actor class Backend() {
     for (key in timestamps.keys()) {
       timestamps.delete(key);
     };
+    for (key in twitterHandles.keys()) {
+      twitterHandles.delete(key);
+    };
+    for (key in twitterIds.keys()) {
+      twitterIds.delete(key);
+    };
+    for (key in isFollowing.keys()) {
+      isFollowing.delete(key);
+    };
     keywords.clear();
     tags.clear();
     return;
@@ -399,6 +539,7 @@ actor class Backend() {
       case null 0;
     };
   };
+
   // Function to get the timestamp for a Principal ID
   public shared query func getTimestamp(principalId : Text) : async Int {
     return switch (timestamps.get(principalId)) {
@@ -410,6 +551,58 @@ actor class Backend() {
   // Function to get canister cycles balance
   public query func getCyclesBalance() : async Nat {
     return Cycles.balance();
+  };
+
+  // Function to check if the Twitter API is reachable
+  public func isTwitterApiReachable() : async Bool {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. SETUP ARGUMENTS FOR HTTP GET request to test Twitter API via Render middleman
+    let url = "[2604:a880:400:d0::22e6:5001]/testTWMiddleman";
+    let httpRequest : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [];
+      body = null;
+      method = #get;
+      transform = null;
+    };
+
+    // Add cycles
+    Cycles.add<system>(22_935_266_640);
+    let httpResponse : Types.HttpResponsePayload = await ic.http_request(httpRequest);
+
+    // Check if the response status is 200 (OK)
+    return httpResponse.status == 200;
+  };
+  public func isMiddlemanReachable() : async Bool {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. SETUP ARGUMENTS FOR HTTP GET request to test the middleman server
+    let host : Text = "do.konecta.one";
+    let url = "https://" # host # "/ping";
+
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [
+        { name = "Host"; value = host },
+      ];
+      body = null;
+      method = #get;
+      transform = null;
+    };
+
+    // Add sufficient cycles for the HTTP request
+    Cycles.add<system>(22_935_266_640);
+
+    // Make the HTTP request and wait for the response
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+
+    // Check if the response status is 200 (OK)
+    return http_response.status == 200;
   };
 
 };

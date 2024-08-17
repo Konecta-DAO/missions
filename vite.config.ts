@@ -9,6 +9,11 @@ dotenv.config();
 export default defineConfig({
   root: 'src',
   build: {
+    rollupOptions: {
+      input: {
+        main: 'src/index.html'
+      }
+    },
     outDir: '../dist',
     emptyOutDir: true,
   },

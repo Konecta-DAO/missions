@@ -15,7 +15,6 @@ function App() {
   const [sec, setSec] = useState<number>(0); // Seconds earned by the user
   const [isNFIDAuthLoaded, setIsNFIDAuthLoaded] = useState<boolean>(false); // Flag to check if NFID Auth is loaded
   const [message, setMessage] = useState<string>(''); // Message to display to the user
-  const [twitterHandle, setTwitterHandle] = useState<string>(''); // Twitter handle input
   const [remainingTime, setRemainingTime] = useState<number>(0); // Remaining time for the user to earn more points
   const [showAuthenticateButton, setShowAuthenticateButton] = useState<boolean>(true); // Flag to show Authenticate button
   const [EnableAuthenticateButton, setEnableAuthenticateButton] = useState<boolean>(true); // Flag to enable Authenticate button
@@ -25,8 +24,6 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state
   const [showFollowMessage, setShowFollowMessage] = useState<boolean>(false); // Flag to show Follow message
   const [showFollowButton, setShowFollowButton] = useState<boolean>(false); // Flag to show Follow button
-  const [showFollowInput, setShowFollowInput] = useState<boolean>(false); // Flag to show Follow input
-  const [showCheckFollowButton, setShowCheckFollowButton] = useState<boolean>(false); // Flag to show Check Follow button
   const { nfid, isNfidIframeInstantiated } = useNFID(); // NFID Auth
 
   // Initialize AuthClient on App Start
@@ -79,6 +76,34 @@ function App() {
       setEnableAuthenticateButton(true);
     }
   }, [isNFIDAuthLoaded, isNfidIframeInstantiated]);
+
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const oauthVerifier = urlParams.get('oauth_verifier');
+      if (oauthVerifier) {
+        const result = await backend.handleCallback(principalId, oauthVerifier);
+        const [twitterHandle, twitterId] = result as [string, string];
+        // Store the handle and ID, and proceed with follow verification
+        if (twitterHandle && twitterId) {
+          // Proceed with follow verification or any other necessary actions
+          const followVerified = await backend.check_if_following(principalId);
+          if (followVerified) {
+            const additionalSecs = 1800; // 30 minutes in seconds
+            const newSecs = sec + additionalSecs;
+            setSec(newSecs);
+            setMessage(`Following done successfully, you have earned ${formatTime(additionalSecs)} more minutes. Now you have ${formatTime(newSecs)} in total!`);
+            setShowFollowMessage(false);
+            setShowFollowButton(false);
+          } else {
+            alert("Not Following KonectA_Dao");
+          }
+        }
+      }
+    };
+    handleOAuthCallback();
+  }, [backend, principalId, sec]);
+
 
   // Function that generates a random number of time, in seconds, between 1 hour and 6 hours
   function getRandomNumberOfSeconds(): number {
@@ -193,107 +218,81 @@ function App() {
     const tweetText = encodeURIComponent("Join the Konectª Army and earn points! #KonectArmy");
     const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
     window.open(tweetUrl, "_blank");
-    setShowInput(true);
     setShowCheckButton(true);
   }, []);
-  // Validate and format Twitter handle
-  const validateTwitterHandle = (handle: string): string => {
-    if (!handle) {
-      alert("Twitter handle cannot be empty");
-      throw new Error("Twitter handle cannot be empty");
-    }
-
-    // Remove "@" if present
-    if (handle.startsWith("@")) {
-      handle = handle.slice(1);
-    }
-
-    // Extract handle from URL if it's a link from twitter.com or x.com
-    const urlPattern = /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/;
-    const match = handle.match(urlPattern);
-    if (match) {
-      handle = match[1];
-    }
-
-    return handle;
-  };
-
-  // Handle tweet verification
-  const handleCheckTweet = useCallback(async (): Promise<void> => {
-    try {
-      const formattedHandle = validateTwitterHandle(twitterHandle);
-      const tweetVerified = await backend.check_tweet(principalId, formattedHandle) as boolean;
-      if (tweetVerified) {
-        const randomSecs = getRandomNumberOfSeconds();
-        const newSecs = sec + randomSecs;
-        setSec(newSecs);
-
-        // Fetch the timestamp from the backend
-        const backendTimestamp = await backend.getTimestamp(principalId) as unknown as bigint;
-        const backendTimestampMs = backendTimestamp / BigInt(1_000_000); // Convert nanoseconds to milliseconds
-        const currentTimestamp = BigInt(Date.now());
-        const elapsedTime = Number(currentTimestamp - backendTimestampMs) / 1000; // Convert to seconds
-        const remainingTime = Math.max(600 - elapsedTime, 0);
-
-        setRemainingTime(remainingTime);
-        setMessage(`You have earned ${formatTime(randomSecs)}. Now you have ${formatTime(newSecs)} in total! Get back in ${formatTime(remainingTime)} to earn more.`);
-        setShowTweetButton(false);
-        setShowCheckButton(false);
-        setShowInput(false);
-
-        // Start the countdown timer
-        const timer = setInterval(() => {
-          setRemainingTime((prevTime) => {
-            const newTime = prevTime - 1;
-            if (newTime <= 0) {
-              clearInterval(timer);
-              setMessage(`You already have got ${formatTime(newSecs)}`);
-              setShowTweetButton(true);
-              return 0;
-            }
-            setMessage(`You have earned ${formatTime(randomSecs)}. Now you have ${formatTime(newSecs)} in total! Get back in ${formatTime(newTime)} to earn more.`);
-            return newTime;
-          });
-        }, 1000);
-      } else {
-        alert("Tweet not found");
-      }
-    } catch (error) {
-      console.error("Error verifying tweet:", error);
-      alert("Error verifying tweet");
-    }
-  }, [backend, principalId, sec, twitterHandle]);
 
   // Handle follow
-  const handleFollow = useCallback((): void => {
-    const followUrl = `https://twitter.com/intent/follow?screen_name=KonectA_Dao`;
-    window.open(followUrl, "_blank");
-    setShowFollowInput(true);
-    setShowCheckFollowButton(true);
-  }, []);
-
-  // Handle follow verification
-  const handleCheckFollow = useCallback(async (): Promise<void> => {
+  const handleFollow = useCallback(async (): Promise<void> => {
     try {
-      const formattedHandle = validateTwitterHandle(twitterHandle);
-      const followVerified = await backend.check_if_following(principalId, formattedHandle) as boolean;
-      if (followVerified) {
-        const additionalSecs = 1800; // 30 minutes in seconds
-        const newSecs = sec + additionalSecs;
-        setSec(newSecs);
-        setMessage(`Following done successfully, you have earned ${formatTime(additionalSecs)} more minutes. Now you have ${formatTime(newSecs)} in total!`);
-        setShowFollowMessage(false);
-        setShowFollowButton(false);
-        setShowFollowInput(false);
-        setShowCheckFollowButton(false);
-      } else {
-        alert("Not Following KonectA_Dao");
+      // Step 1: Request a token from the backend
+      const requestToken = await backend.requestToken();
+
+      // Step 2: Redirect the user to Twitter for authentication
+      const authUrl = `https://api.twitter.com/oauth/authenticate?oauth_token=${requestToken}`;
+      const authWindow = window.open(authUrl, "_blank");
+
+      if (!authWindow) {
+        alert("Failed to open authentication window");
+        return;
       }
+
+      // Step 3: Poll the auth window for the callback URL
+      const pollAuthWindow = setInterval(async () => {
+        if (authWindow.closed) {
+          clearInterval(pollAuthWindow);
+          alert("Authentication window closed by user");
+          return;
+        }
+
+        try {
+          const urlParams = new URLSearchParams(authWindow.location.search);
+          const oauthVerifier = urlParams.get('oauth_verifier');
+          if (oauthVerifier) {
+            clearInterval(pollAuthWindow);
+            authWindow.close();
+
+            // Step 4: Handle the callback and store Twitter handle and ID
+            const result = await backend.handleCallback(principalId, oauthVerifier);
+            const [twitterHandle, twitterId] = result as [string, string];
+            if (twitterHandle && twitterId) {
+              // Step 5: Prompt the user to follow KonectA_Dao
+              const followUrl = `https://twitter.com/intent/follow?screen_name=KonectA_Dao`;
+              const followWindow = window.open(followUrl, "_blank");
+
+              if (!followWindow) {
+                alert("Failed to open follow window");
+                return;
+              }
+
+              // Step 6: Verify the follow
+              const pollFollowWindow = setInterval(async () => {
+                if (followWindow.closed) {
+                  clearInterval(pollFollowWindow);
+                  const followVerified = await backend.check_if_following(principalId);
+                  if (followVerified) {
+                    const additionalSecs = 1800; // 30 minutes in seconds
+                    const newSecs = sec + additionalSecs;
+                    setSec(newSecs);
+                    setMessage(`Following done successfully, you have earned ${formatTime(additionalSecs)} more minutes. Now you have ${formatTime(newSecs)} in total!`);
+                    setShowFollowMessage(false);
+                    setShowFollowButton(false);
+                  } else {
+                    alert("Not Following KonectA_Dao");
+                  }
+                }
+              }, 1000);
+            }
+          }
+        } catch (error) {
+          console.error("Error during Twitter authentication:", error);
+          alert("Error during Twitter authentication");
+        }
+      }, 1000);
     } catch (error) {
-      console.error("Error verifying follow:", error);
-      alert("Error verifying follow");
+      console.error("Error during Twitter authentication:", error);
+      alert("Error during Twitter authentication");
     }
-  }, [backend, principalId, sec, twitterHandle]);
+  }, [backend, principalId, sec, formatTime]);
 
   // Initialize OpenChat iframe
   useEffect(() => {
@@ -344,7 +343,6 @@ function App() {
     }
   }, [isLoading]);
 
-
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -370,17 +368,6 @@ function App() {
             {showFollowButton && (
               <button className="btn-grad" onClick={handleFollow}>Follow</button>
             )}
-            {showFollowInput && (
-              <input
-                type="text"
-                placeholder="Enter your Twitter handle"
-                value={twitterHandle}
-                onChange={(e) => setTwitterHandle(e.target.value)}
-              />
-            )}
-            {showCheckFollowButton && (
-              <button className="btn-grad" onClick={handleCheckFollow}>Check if Following</button>
-            )}
           </>
         )}
         {showTweetButton && (
@@ -389,17 +376,6 @@ function App() {
             <p>Tweet to earn some more minutes!</p>
             <button className="btn-grad" onClick={handleTweet}>Tweet</button>
           </>
-        )}
-        {showInput && (
-          <input
-            type="text"
-            placeholder="Enter your Twitter handle"
-            value={twitterHandle}
-            onChange={(e) => setTwitterHandle(e.target.value)}
-          />
-        )}
-        {showCheckButton && (
-          <button className="btn-grad" onClick={handleCheckTweet}>Check</button>
         )}
         <br />
         <p>Share this with friends</p>

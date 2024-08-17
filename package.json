@@ -8,7 +8,8 @@
     "start": "run-p frontend backend",
     "frontend": "vite --port 3000",
     "backend": "mo-dev --generate --deploy -y",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && npm run copy-well-known",
+    "copy-well-known": "copyfiles -u 1 src/.well-known/**/* dist/",
     "test": "run-s test:backend test:frontend",
     "test:frontend": "vitest run",
     "test:backend": "mo-test",
@@ -22,8 +23,7 @@
     "@open-ic/openchat-xframe": "^1.0.6",
     "react": "^18.3.1",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.26.0",
-    "swr": "^2.2.5"
+    "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.5",
@@ -31,6 +31,7 @@
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "@vitejs/plugin-react": "^4.0.1",
+    "copyfiles": "^2.4.1",
     "cross-fetch": "^3.1.6",
     "dotenv": "^16.3.1",
     "ic-mops": "^0.39.2",
