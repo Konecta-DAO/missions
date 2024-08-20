@@ -1,20 +1,20 @@
-/// <reference types="vitest" />
-import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import environment from 'vite-plugin-environment';
 import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config();
 
+const isAdmin = process.env.BUILD_TARGET === 'admin';
+
 export default defineConfig({
-  root: 'src',
+  root: isAdmin ? path.resolve(__dirname, 'src/admin_frontend') : path.resolve(__dirname, 'src/frontend'),
   build: {
     rollupOptions: {
-      input: {
-        main: 'src/index.html'
-      }
+      input: isAdmin ? path.resolve(__dirname, 'src/admin_frontend/index.html') : path.resolve(__dirname, 'src/frontend/index.html')
     },
-    outDir: '../dist',
+    outDir: isAdmin ? path.resolve(__dirname, 'dist/admin') : path.resolve(__dirname, 'dist/frontend'),
     emptyOutDir: true,
   },
   optimizeDeps: {
@@ -37,9 +37,4 @@ export default defineConfig({
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
   ],
-  test: {
-    environment: 'jsdom',
-    setupFiles: 'setupTests.ts',
-    cache: { dir: '../node_modules/.vitest' },
-  },
 });
