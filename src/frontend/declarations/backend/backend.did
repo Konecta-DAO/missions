@@ -20,40 +20,57 @@ type CanisterHttpResponsePayload = record {
   body: vec nat8;
 };
 
-type User = record {
-  id : text;
-  mission : nat;
-  seconds : nat;
-  twitterid : nat;
-  twitterhandle : text;
-  creationTime : int;
+type SerializedUser = record {
+  id: text;
+  seconds: nat;
+  twitterid: nat;
+  twitterhandle: text;
+  creationTime: int;
 };
 
-type Mission = record {
-  id : nat;
-  mode : nat;
-  description : text;
-  obj1 : text;
-  obj2 : text;
-  recursive : bool;
-  howmany : int;
+type SerializedMission = record {
+  id: nat;
+  mode: nat;
+  description: text;
+  obj1: text;
+  obj2: text;
+  recursive: bool;
+  maxtime: int;
+  image: vec nat8;
+  functionName1: text;
+  functionName2: text;
 };
 
-type Backend = service {
+type SerializedProgress = record {
+  done: bool;
+  timestamp: int;
+  totalearned: nat;
+  amountOfTimes: nat;
+  usedCodes: vec record { text; bool };
+};
+
+type Tweet = record {
+  userid: text;
+  tweetid: nat;
+};
+
+service : {
   getIds: () -> (vec text) query;
-  registerid: (text, nat) -> ();
   resetall: () -> ();
   get_trusted_origins: () -> (vec text) query;
-  getSeconds: (text, nat) -> (?nat) query;
   getTotalSeconds: (text) -> (nat) query;
   addTweet: (text, nat) -> ();
   transform: (TransformArgs) -> (CanisterHttpResponsePayload) query;
   availableCycles: () -> (nat) query;
   verifyFollow: (text) -> (bool);
-  handleTwitterCallback: (text, text, text) -> (?User);
-  addUser: (text, nat) -> ();
+  handleTwitterCallback: (text, text, text) -> (?SerializedUser);
+  addUser: (text) -> ();
   isMiddlemanReachable: () -> (bool);
-  addMission: (nat, nat, text, text, text, bool) -> ();
+  addMission: (nat, nat, text, text, text, bool, int, vec nat8, text, text) -> ();
   getNumberOfMissions: () -> (nat) query;
-  getMissionById: (nat) -> (?Mission) query;
-};
+  getMissionById: (nat) -> (?SerializedMission) query;
+  updateProgress: (text, SerializedMission, SerializedProgress) -> ();
+  getProgress: (text, SerializedMission) -> (SerializedProgress) query;
+  submitSecretCode: (text, SerializedMission, text) -> (bool);
+  getTotalEarned: (text, SerializedMission) -> (?nat) query;
+}

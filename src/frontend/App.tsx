@@ -88,23 +88,17 @@ function App() {
     const existingSecs = existingSecsArray[0]; // Extract the first element from the array
     console.log(principalId, existingSecs);
     if (existingSecs === undefined) {
-      const generatedSec = getRandomNumberOfSeconds();
-      await backend.addUser(principalId, BigInt(generatedSec));
-      setSec(generatedSec);
-      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(generatedSec)}`);
+      await backend.addUser(principalId);
+      const baseseconds = await backend.getTotalSeconds(principalId) as number;
+      setSec(baseseconds);
+      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(baseseconds)}`);
     } else {
       setSec(Number(existingSecs));
       setMessage(`Your principalId is: ${principalId}. You already have got ${formatTime(Number(existingSecs))}`);
     }
-
     setShowFollowButton(true);
     setShowVerifyButton(true);
   };
-
-  // Function that generates a random number of time, in seconds, between 1 hour and 6 hours
-  function getRandomNumberOfSeconds(): number {
-    return Math.floor(Math.random() * (21600 - 3600 + 1)) + 3600;
-  }
 
   // Function to format time from Seconds to Hours, Minutes and Seconds
   function formatTime(seconds: number): string {

@@ -2,62 +2,182 @@ import Text "mo:base/Text";
 import Nat "mo:base/Nat";
 import Cycles "mo:base/ExperimentalCycles";
 import Types "Types";
+import Serialization "Serialization";
 import Array "mo:base/Array";
 import Time "mo:base/Time";
-//import Random "mo:base/Random";
+import Random "mo:base/Random";
 import Vector "mo:vector";
 import Serde "mo:serde";
 import Blob "mo:base/Blob";
 import Int "mo:base/Int";
+import Hash "mo:base/Hash";
+import TrieMap "mo:base/TrieMap";
 
 actor class Backend() {
 
-  // User Class
-  type User = {
-    id : Text;
-    mission : Nat;
-    seconds : Nat;
-    twitterid : Nat;
-    twitterhandle : Text;
-    creationTime : Int;
-  };
-
-  type Mission = {
-    id : Nat;
-    mode : Nat;
-    description : Text;
-    obj1 : Text;
-    obj2 : Text;
-    recursive : Bool;
-    howmany : Int;
-    maxtime : Int;
-    image : [Nat8];
-  };
-
-  type Tweet = {
-    userid : Text;
-    tweetid : Nat;
-  };
-
-  // Mission List
-  stable var missions : Vector.Vector<Mission> = Vector.new<Mission>();
   // Registered Users
-  stable var users : Vector.Vector<User> = Vector.new<User>();
+  stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
+
+  // Mission Related functions
+  type UserMissions = TrieMap.TrieMap<Types.Mission, Types.Progress>;
+  // Mission List
+  stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
+
+  // Comparison and hash functions for Text-based UserId
+  private func compareUserId(id1 : Text, id2 : Text) : Bool {
+    id1 == id2;
+  };
+
+  private func hashUserId(id : Text) : Hash.Hash {
+    Text.hash(id);
+  };
+
+  // Comparison and hash functions for Mission
+  private func compareMission(m1 : Types.Mission, m2 : Types.Mission) : Bool {
+    m1.id == m2.id;
+  };
+
+  private func hashMission(m : Types.Mission) : Hash.Hash {
+    Text.hash(Text.concat(m.description, Nat.toText(m.id)));
+  };
+
+  // TrieMap to store the progress of each user's missions
+  private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+
+  // Function to record or update progress on a mission
+  public func updateProgress(userId : Text, serializedMission : Types.SerializedMission, serializedProgress : Types.SerializedProgress) : async () {
+    let mission = Serialization.deserializeMission(serializedMission);
+    let progress = Serialization.deserializeProgress(serializedProgress);
+
+    let missions = switch (userProgress.get(userId)) {
+      case (?map) map;
+      case null TrieMap.TrieMap<Types.Mission, Types.Progress>(compareMission, hashMission);
+    };
+    missions.put(mission, progress);
+    userProgress.put(userId, missions);
+  };
+
+  // Function to get the progress of a specific mission for a user
+  public query func getProgress(userId : Text, serializedMission : Types.SerializedMission) : async Types.SerializedProgress {
+    let mission = Serialization.deserializeMission(serializedMission);
+    switch (userProgress.get(userId)) {
+      case (?missions) {
+        switch (missions.get(mission)) {
+          case (?progress) Serialization.serializeProgress(progress);
+          case null {
+            let defaultProgress : Types.Progress = {
+              var done = false;
+              var timestamp = 0;
+              var totalearned = 0;
+              var amountOfTimes = 0;
+              usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+            };
+            Serialization.serializeProgress(defaultProgress);
+          };
+        };
+      };
+      case null {
+        let defaultProgress : Types.Progress = {
+          var done = false;
+          var timestamp = 0;
+          var totalearned = 0;
+          var amountOfTimes = 0;
+          usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+        };
+        Serialization.serializeProgress(defaultProgress);
+      };
+    };
+  };
+
+  // Function to add a secret code to a user's progress for the mission
+  public func submitSecretCode(userId : Text, serializedMission : Types.SerializedMission, code : Text) : async Bool {
+    let mission = Serialization.deserializeMission(serializedMission);
+    var progress : Types.Progress = switch (userProgress.get(userId)) {
+      case (?missions) switch (missions.get(mission)) {
+        case (?prog) prog;
+        case null {
+          var progress : Types.Progress = {
+            var done = false;
+            var timestamp = 0;
+            var totalearned = 0;
+            var amountOfTimes = 0;
+            usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+          };
+          progress;
+        };
+      };
+      case null {
+        var progress : Types.Progress = {
+          var done = false;
+          var timestamp = 0;
+          var totalearned = 0;
+          var amountOfTimes = 0;
+          usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+        };
+        progress;
+      };
+    };
+
+    // Check if the code has already been used
+    if (progress.usedCodes.get(code) != null) {
+      return false; // Code has already been used
+    } else {
+      // Update progress
+      progress.usedCodes.put(code, true);
+      progress.amountOfTimes += 1;
+      progress.timestamp := Time.now(); // Update the timestamp
+      progress.totalearned += 100; // Example: Earn 100 seconds or points for each code
+
+      // Save updated progress
+      var missions = switch (userProgress.get(userId)) {
+        case (?map) map;
+        case null TrieMap.TrieMap<Types.Mission, Types.Progress>(compareMission, hashMission);
+      };
+      missions.put(mission, progress);
+      userProgress.put(userId, missions);
+
+      return true;
+    };
+  };
+
+  // Function to get the total earned seconds on a specific mission for a user
+  public query func getTotalEarned(userId : Text, serializedMission : Types.SerializedMission) : async ?Nat {
+    let mission = Serialization.deserializeMission(serializedMission);
+    switch (userProgress.get(userId)) {
+      case (?missions) {
+        switch (missions.get(mission)) {
+          case (?progress) return ?progress.totalearned;
+          case null return null;
+        };
+      };
+      case null return null;
+    };
+  };
+
   // Tweets per Users
-  stable var tweets : Vector.Vector<Tweet> = Vector.new<Tweet>();
+  stable var tweets : Vector.Vector<Types.Tweet> = Vector.new<Types.Tweet>();
 
   // Function to add a new mission
-  public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, obj2 : Text, recursive : Bool, howmany : Int, maxtime : Int, image : [Nat8]) : async () {
-    let newMission : Mission = {
+  public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, newobj2 : Text, recursive : Bool, maxtime : Int, image : [Nat8], functionName1 : Text, newfunctionName2 : Text) : async () {
+
+    var obj2 : Text = "";
+    var functionName2 : Text = "";
+    if (mode != 0) {
+      obj2 := newobj2;
+      functionName2 := newfunctionName2;
+    };
+
+    let newMission : Types.Mission = {
       id;
-      mode;
-      description;
-      obj1;
-      obj2;
-      recursive;
-      howmany;
-      maxtime;
-      image;
+      var mode;
+      var description;
+      var obj1;
+      var obj2;
+      var recursive;
+      var maxtime;
+      var image;
+      var functionName1;
+      var functionName2;
     };
     Vector.add(missions, newMission);
   };
@@ -68,25 +188,28 @@ actor class Backend() {
   };
 
   // Function to get a missions by ID
-  public query func getMissionById(id : Nat) : async ?Mission {
+  public query func getMissionById(id : Nat) : async ?Types.SerializedMission {
     for (mission in Vector.vals(missions)) {
       if (mission.id == id) {
-        return ?mission;
+        return ?Serialization.serializeMission(mission);
       };
     };
     return null;
   };
 
   // Register an user by Principalid
-  public func addUser(id : Text, seconds : Nat) : async () {
-    let twitterid = 0;
-    let mission = 0;
-    let twitterhandle = "";
+  public func addUser(id : Text) : async () {
+    let twitterid : Nat = 0;
+    let twitterhandle : Text = "";
     let creationTime = Time.now();
-    let newuser : User = {
+    let randomNumberOpt = await getRandomNumber();
+    let seconds : Nat = switch (randomNumberOpt) {
+      case (?value) value;
+      case null 3600; // Default value if random number generation fails
+    };
+    let newuser : Types.User = {
       id;
-      mission;
-      seconds;
+      var seconds;
       twitterid;
       twitterhandle;
       creationTime;
@@ -94,43 +217,28 @@ actor class Backend() {
     Vector.add(users, newuser);
   };
 
-  // Get the seconds of an user by Principalid for a given mission
-  public query func getSeconds(id : Text, mission : Nat) : async ?Nat {
-    for (user in Vector.vals(users)) {
-      if (user.id == id and user.mission == mission) {
-        return ?user.seconds;
+  public func getRandomNumber() : async ?Nat {
+    let random = Random.Finite(await Random.blob());
+    let range : Nat = 21600 - 3600 + 1;
+    let randomValue = random.range(32); // Adjust the range as needed
+    switch (randomValue) {
+      case (?value) {
+        return ?(value % range + 3600);
+      };
+      case null {
+        return null;
       };
     };
-    return null;
   };
 
   // Get the total seconds of an user by Principalid
   public query func getTotalSeconds(id : Text) : async Nat {
-    var sum : Nat = 0;
     for (user in Vector.vals(users)) {
       if (user.id == id) {
-        sum += user.seconds;
+        return user.seconds;
       };
     };
-    return sum;
-  };
-
-  // Function to register a new Principal ID with their first generated seconds
-  public func registerid(newID : Text, secs : Nat) : async () {
-    var alreadyReg = false;
-
-    label searching for (user in Vector.vals(users)) {
-      if (user.id == newID) {
-        alreadyReg := true;
-        break searching;
-      };
-    };
-
-    if (alreadyReg) {
-      await addUser(newID, secs);
-    };
-
-    return;
+    return 0;
   };
 
   // Function to get all registered Principal IDs
@@ -144,7 +252,7 @@ actor class Backend() {
 
   // Register a tweet to an user
   public func addTweet(userid : Text, tweetid : Nat) : async () {
-    let newtweet : Tweet = { userid; tweetid };
+    let newtweet : Types.Tweet = { userid; tweetid };
     Vector.add(tweets, newtweet);
   };
 
@@ -194,10 +302,9 @@ actor class Backend() {
       case _ false; // Handle non-200 status codes
     };
     return follows;
-
   };
 
-  public shared func handleTwitterCallback(principalId : Text, oauthToken : Text, oauthVerifier : Text) : async ?User {
+  public shared func handleTwitterCallback(principalId : Text, oauthToken : Text, oauthVerifier : Text) : async ?Types.SerializedUser {
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
@@ -247,10 +354,9 @@ actor class Backend() {
                             case null 0;
                           };
 
-                          let updatedUser : User = {
+                          let updatedUser : Types.User = {
                             id = user.id;
-                            mission = user.mission;
-                            seconds = user.seconds;
+                            var seconds = user.seconds;
                             twitterid = twitterid;
                             twitterhandle = info.screen_name;
                             creationTime = user.creationTime;
@@ -258,7 +364,7 @@ actor class Backend() {
 
                           // Update the user in the vector
                           Vector.put(users, i, updatedUser);
-                          return ?updatedUser;
+                          return ?Serialization.serializeUser(updatedUser);
                         };
                       };
                       case _ {};
@@ -286,7 +392,6 @@ actor class Backend() {
     } else {
       return null;
     };
-
   };
 
   // Function to reset all data Structures
@@ -300,6 +405,8 @@ actor class Backend() {
     let trustedOrigins = [
       "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", // Frontend Canister to auth NFID
       "https://pre.konecta.one", // Domain
+      "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io", // Admin Frontend Canister to auth NFID
+      "https://adminpre.konecta.one", // Admin Domain
     ];
     return trustedOrigins;
   };
@@ -360,5 +467,4 @@ actor class Backend() {
     // Check if the response status is 200 (OK)
     return http_response.status == 200;
   };
-
 };

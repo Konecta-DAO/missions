@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import environment from 'vite-plugin-environment';
 import dotenv from 'dotenv';
 import path from 'path';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 dotenv.config();
 
@@ -36,5 +37,13 @@ export default defineConfig({
     react(),
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    viteStaticCopy({
+      targets: [
+        {
+          src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known' : 'src/frontend/.well-known'),
+          dest: '.'
+        }
+      ]
+    })
   ],
 });
