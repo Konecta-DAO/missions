@@ -7,7 +7,8 @@ import KWA from './assets/KWAF LT.mp4';
 import { initialise } from '@open-ic/openchat-xframe';
 import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
-
+import { Usergeek } from "usergeek-ic-js";
+import { User, SerializedUser, Mission, Progress, SerializedProgress, Tweet, HttpRequestArgs, HttpHeader, HttpMethod, HttpResponsePayload, TransformRawResponseFunction, TransformArgs, CanisterHttpResponsePayload, TransformContext, IC, HttpRequest, HttpResponse } from './types';
 
 function App() {
   const [authClient, setAuthClient] = useState<AuthClient | null>(null);
@@ -18,35 +19,23 @@ function App() {
   const [showVerifyButton, setShowVerifyButton] = useState<boolean>(false);
   const { nfid, isNfidIframeInstantiated } = useNFID();
 
-  type User = {
-    id: Text;
-    mission: BigInt;
-    seconds: BigInt;
-    twitterid: BigInt;
-    twitterhandle: Text;
-    creationTime: BigInt;
-  };
-
-  type Mission = {
-    id: BigInt;
-    mode: BigInt;
-    description: Text;
-    obj1: Text;
-    obj2: Text;
-    recursive: Boolean;
-  };
+  // Initialize Usergeek
+  useEffect(() => {
+    Usergeek.init({
+      apiKey: "<01430201F8439A7B36CA9DD48F411A95>", // replace <API_KEY> with your actual API key
+    });
+  }, []);
 
   // Initialize AuthClient on App Start
   useEffect(() => {
     const init = async (): Promise<void> => {
       const client: AuthClient = await AuthClient.create();
       setAuthClient(client);
-
       // Check for stored identity
       const storedIdentity = localStorage.getItem('identity');
       if (storedIdentity) {
         try {
-          const identity = await client.getIdentity();
+          const identity = client.getIdentity();
           const actor = Actor.createActor(backend_idlFactory, {
             agent: new HttpAgent({
               identity,
@@ -55,7 +44,7 @@ function App() {
           });
           const principalId = identity.getPrincipal().toText();
           setPrincipalId(principalId);
-          handleSuccess(principalId);
+          await handleSuccess(principalId); // Add await here
         } catch (error) {
           console.error("Error restoring identity:", error);
           localStorage.removeItem('identity');
@@ -64,6 +53,7 @@ function App() {
     };
     init();
   }, []);
+
 
   // Create an HttpAgent and backend actor
   const agent = useMemo(() => new HttpAgent(), []);
@@ -79,22 +69,28 @@ function App() {
     setPrincipalId(principalId);
     localStorage.setItem('identity', JSON.stringify(identity));
 
+    // Set Usergeek Principal and track session
+    Usergeek.setPrincipal(identity.getPrincipal());
+    Usergeek.trackSession();
+
     await mainLogic(principalId);
   }, [authClient, backend]);
 
   // Main logic of the app
   const mainLogic = async (principalId: string) => {
-    const existingSecsArray = await backend.getSeconds(principalId, 0) as unknown[] as number[];
-    const existingSecs = existingSecsArray[0]; // Extract the first element from the array
-    console.log(principalId, existingSecs);
-    if (existingSecs === undefined) {
+    // Check if the User is already registered
+    const existingSecs = await backend.getTotalSeconds(principalId) as unknown as BigInt;
+    console.log(existingSecs); // Get existing seconds
+
+    if (Number(existingSecs) === 0) { // If the user is not registered, register the user
       await backend.addUser(principalId);
-      const baseseconds = await backend.getTotalSeconds(principalId) as number;
-      setSec(baseseconds);
-      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(baseseconds)}`);
-    } else {
-      setSec(Number(existingSecs));
-      setMessage(`Your principalId is: ${principalId}. You already have got ${formatTime(Number(existingSecs))}`);
+      const baseseconds = await backend.getTotalSeconds(principalId) as unknown as BigInt; // Get the total seconds generated from the Backend
+      setSec(Number(baseseconds)); // Set the seconds to the state
+      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(baseseconds))}`);
+      Usergeek.trackEvent("User Registered");
+    } else { // If the user is already registered, show the existing seconds
+      setSec(Number(existingSecs)); // Set the seconds to the state
+      setMessage(`Your principalId is: ${principalId}. You already have got ${formatTime(Number(existingSecs))}`); // Set the message
     }
     setShowFollowButton(true);
     setShowVerifyButton(true);

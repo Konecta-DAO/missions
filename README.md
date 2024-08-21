@@ -7,7 +7,7 @@ WebApp for  **Konectª**  Pre-register Campaign. It includes a Pre-Register Butt
 
 # Technology Used
 
-Developed using Motoko, React and Vite, integrating NFID and Openchat, and including a Node.js Middleman to reach Twitter API.
+Developed using Motoko, React and Vite, integrating NFID to Authenticate and an Openchat iFrame. It also includes userGeek to track the site ,metrics and a Node.js Middleman to reach Twitter API.
 
 ```mermaid
 graph LR
@@ -22,4 +22,5 @@ B[Backend Canister] ----> F[Node.js Middleman Server]
 F[Node.js Middleman Server] ----> B[Backend Canister]
 F[Node.js Middleman Server] ----> G[Twitter API]
 G[Twitter API] ----> F[Node.js Middleman Server]
+H[UserGeek ] --- A[Frontend Canister]
 ```

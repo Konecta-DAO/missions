@@ -10,8 +10,6 @@ function App() {
   const [authClient, setAuthClient] = useState<AuthClient | null>(null);
   const [principalId, setPrincipalId] = useState<string>('');
   const [message, setMessage] = useState<string>('');
-  const [showFollowButton, setShowFollowButton] = useState<boolean>(false);
-  const [showVerifyButton, setShowVerifyButton] = useState<boolean>(false);
   const { nfid, isNfidIframeInstantiated } = useNFID();
 
   type User = {
