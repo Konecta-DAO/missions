@@ -19,7 +19,7 @@ actor class Backend() {
   stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
 
   // Mission Related functions
-  type UserMissions = TrieMap.TrieMap<Types.Mission, Types.Progress>;
+  type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
   // Mission List
   stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
 
@@ -32,68 +32,40 @@ actor class Backend() {
     Text.hash(id);
   };
 
-  // Comparison and hash functions for Mission
-  private func compareMission(m1 : Types.Mission, m2 : Types.Mission) : Bool {
-    m1.id == m2.id;
-  };
-
-  private func hashMission(m : Types.Mission) : Hash.Hash {
-    Text.hash(Text.concat(m.description, Nat.toText(m.id)));
-  };
-
   // TrieMap to store the progress of each user's missions
   private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
 
   // Function to record or update progress on a mission
-  public func updateProgress(userId : Text, serializedMission : Types.SerializedMission, serializedProgress : Types.SerializedProgress) : async () {
-    let mission = Serialization.deserializeMission(serializedMission);
+  public func updateProgress(userId : Text, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
     let progress = Serialization.deserializeProgress(serializedProgress);
 
     let missions = switch (userProgress.get(userId)) {
       case (?map) map;
-      case null TrieMap.TrieMap<Types.Mission, Types.Progress>(compareMission, hashMission);
+      case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
     };
-    missions.put(mission, progress);
+    missions.put(missionId, progress);
     userProgress.put(userId, missions);
   };
 
   // Function to get the progress of a specific mission for a user
-  public query func getProgress(userId : Text, serializedMission : Types.SerializedMission) : async Types.SerializedProgress {
-    let mission = Serialization.deserializeMission(serializedMission);
+  public query func getProgress(userId : Text, missionId : Nat) : async ?Types.SerializedProgress {
     switch (userProgress.get(userId)) {
       case (?missions) {
-        switch (missions.get(mission)) {
-          case (?progress) Serialization.serializeProgress(progress);
-          case null {
-            let defaultProgress : Types.Progress = {
-              var done = false;
-              var timestamp = 0;
-              var totalearned = 0;
-              var amountOfTimes = 0;
-              usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-            };
-            Serialization.serializeProgress(defaultProgress);
-          };
+        switch (missions.get(missionId)) {
+          case (?progress) return ?Serialization.serializeProgress(progress);
+          case null return null;
         };
       };
-      case null {
-        let defaultProgress : Types.Progress = {
-          var done = false;
-          var timestamp = 0;
-          var totalearned = 0;
-          var amountOfTimes = 0;
-          usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-        };
-        Serialization.serializeProgress(defaultProgress);
-      };
+      case null return null;
     };
   };
 
   // Function to add a secret code to a user's progress for the mission
-  public func submitSecretCode(userId : Text, serializedMission : Types.SerializedMission, code : Text) : async Bool {
-    let mission = Serialization.deserializeMission(serializedMission);
+  public func submitSecretCode(userId : Text, code : Text) : async Bool {
+    let missionId : Nat = 5; // Fixed missionId
+
     var progress : Types.Progress = switch (userProgress.get(userId)) {
-      case (?missions) switch (missions.get(mission)) {
+      case (?missions) switch (missions.get(missionId)) {
         case (?prog) prog;
         case null {
           var progress : Types.Progress = {
@@ -131,9 +103,9 @@ actor class Backend() {
       // Save updated progress
       var missions = switch (userProgress.get(userId)) {
         case (?map) map;
-        case null TrieMap.TrieMap<Types.Mission, Types.Progress>(compareMission, hashMission);
+        case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
       };
-      missions.put(mission, progress);
+      missions.put(missionId, progress);
       userProgress.put(userId, missions);
 
       return true;
@@ -141,11 +113,10 @@ actor class Backend() {
   };
 
   // Function to get the total earned seconds on a specific mission for a user
-  public query func getTotalEarned(userId : Text, serializedMission : Types.SerializedMission) : async ?Nat {
-    let mission = Serialization.deserializeMission(serializedMission);
+  public query func getTotalEarned(userId : Text, missionId : Nat) : async ?Nat {
     switch (userProgress.get(userId)) {
       case (?missions) {
-        switch (missions.get(mission)) {
+        switch (missions.get(missionId)) {
           case (?progress) return ?progress.totalearned;
           case null return null;
         };
@@ -397,6 +368,9 @@ actor class Backend() {
   // Function to reset all data Structures
   public func resetall() : async () {
     Vector.clear(users);
+    userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+    Vector.clear(tweets);
+    return;
     return;
   };
 
