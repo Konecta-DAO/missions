@@ -49,10 +49,6 @@ type SerializedProgress = record {
   usedCodes: vec record { text; bool };
 };
 
-type Tweet = record {
-  userid: text;
-  tweetid: nat;
-};
 
 service : {
   getIds: () -> (vec text) query;
@@ -73,4 +69,5 @@ service : {
   getProgress: (text, SerializedMission) -> (SerializedProgress) query;
   submitSecretCode: (text, SerializedMission, text) -> (bool);
   getTotalEarned: (text, SerializedMission) -> (?nat) query;
+  isAdmin: (text) -> (bool) query;
 }

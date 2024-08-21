@@ -53,11 +53,6 @@ export interface SerializedProgress {
   usedCodes: Array<[string, boolean]>;
 }
 
-export interface Tweet {
-  userid: string;
-  tweetid: bigint;
-}
-
 export interface Backend {
   getIds: ActorMethod<[], Array<string>>;
   resetall: ActorMethod<[], undefined>;
@@ -77,6 +72,7 @@ export interface Backend {
   getProgress: ActorMethod<[string, SerializedMission], SerializedProgress>;
   submitSecretCode: ActorMethod<[string, SerializedMission, string], boolean>;
   getTotalEarned: ActorMethod<[string, SerializedMission], [bigint | null]>;
+  isAdmin: ActorMethod<[string], boolean>;
 }
 export interface _SERVICE extends Backend {}
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

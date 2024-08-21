@@ -7,57 +7,11 @@ import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
 
 function App() {
-  const [authClient, setAuthClient] = useState<AuthClient | null>(null);
   const [principalId, setPrincipalId] = useState<string>('');
   const [message, setMessage] = useState<string>('');
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('Statistics');
   const { nfid, isNfidIframeInstantiated } = useNFID();
-
-  type User = {
-    id: Text;
-    mission: BigInt;
-    seconds: BigInt;
-    twitterid: BigInt;
-    twitterhandle: Text;
-    creationTime: BigInt;
-  };
-
-  type Mission = {
-    id: BigInt;
-    mode: BigInt;
-    description: Text;
-    obj1: Text;
-    obj2: Text;
-    recursive: Boolean;
-  };
-
-  // Initialize AuthClient on App Start
-  useEffect(() => {
-    const init = async (): Promise<void> => {
-      const client: AuthClient = await AuthClient.create();
-      setAuthClient(client);
-
-      // Check for stored identity
-      const storedIdentity = localStorage.getItem('identity');
-      if (storedIdentity) {
-        try {
-          const identity = await client.getIdentity();
-          const actor = Actor.createActor(backend_idlFactory, {
-            agent: new HttpAgent({
-              identity,
-            }),
-            canisterId: backend_canisterId,
-          });
-          const principalId = identity.getPrincipal().toText();
-          setPrincipalId(principalId);
-          handleSuccess(principalId);
-        } catch (error) {
-          console.error("Error restoring identity:", error);
-          localStorage.removeItem('identity');
-        }
-      }
-    };
-    init();
-  }, []);
 
   // Create an HttpAgent and backend actor
   const agent = useMemo(() => new HttpAgent(), []);
@@ -65,50 +19,59 @@ function App() {
 
   // Handle successful authentication
   const handleSuccess = useCallback(async (principalId: string): Promise<void> => {
-    if (!authClient) {
-      throw new Error("AuthClient not initialized");
+    if (!nfid) {
+      console.error("NFID is not initialized");
+      return;
     }
 
-    const identity = authClient.getIdentity();
     setPrincipalId(principalId);
-    localStorage.setItem('identity', JSON.stringify(identity));
+
+    // Call the backend function to check authorization
+    const authorized = await backend.isAdmin(principalId);
+    if (!authorized) {
+      alert("Unauthorized User");
+    } else {
+      setIsAuthorized(true);
+    }
 
     await mainLogic(principalId);
-  }, [authClient, backend]);
+  }, [backend]);
 
   // Main logic of the app
   const mainLogic = async (principalId: string) => {
   };
 
-  // Function to format time from Seconds to Hours, Minutes and Seconds
-  function formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.round(seconds % 60);
+  // Function to switch tabs
+  const openTab = (tabName: string) => {
+    setActiveTab(tabName);
+  };
 
-    const hoursDisplay = hours > 0 ? `${hours} hour${hours === 1 ? '' : 's'}` : '';
-    const minutesDisplay = minutes > 0 ? `${minutes} minute${minutes === 1 ? '' : 's'}` : '';
-    const secondsDisplay = secs > 0 ? `${secs} second${secs === 1 ? '' : 's'}` : '';
-
-    const timeArray = [hoursDisplay, minutesDisplay, secondsDisplay].filter(Boolean);
-    if (timeArray.length > 1) {
-      const lastElement = timeArray.pop();
-      return `${timeArray.join(', ')} and ${lastElement}`;
-    }
-    return timeArray[0];
-  }
-
-    return (
+  return (
     <main>
-      <div className="midd">
-        <h1>Login to access to the Konectª Admin Module</h1>
+      <div className="container">
+        {!isAuthorized && <h1>Login to access to the Konectª Admin Module</h1>}
         <br />
-        < NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
+        {!isAuthorized && <NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />}
         <p>{message}</p>
+        {isAuthorized && (
+          <div>
+            <div className="tab">
+              <button className={`tablinks ${activeTab === 'Statistics' ? 'active' : ''}`} onClick={() => openTab('Statistics')}>Statistics</button>
+              <button className={`tablinks ${activeTab === 'Administer' ? 'active' : ''}`} onClick={() => openTab('Administer')}>Administer</button>
+            </div>
+            <div id="Statistics" className={`tabcontent ${activeTab === 'Statistics' ? 'active' : ''}`}>
+              <h3>Statistics</h3>
+              <p>Users:</p>
+            </div>
+            <div id="Administer" className={`tabcontent ${activeTab === 'Administer' ? 'active' : ''}`}>
+              <h3>Administer</h3>
+              <p>Missions:</p>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
-
 }
 
 export default App;

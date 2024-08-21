@@ -1,96 +1,137 @@
 import './App.css';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
-import { AuthClient } from "@dfinity/auth-client";
 import { Actor, HttpAgent } from "@dfinity/agent";
 import KWA from './assets/KWAF LT.mp4';
 import { initialise } from '@open-ic/openchat-xframe';
 import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
 import { Usergeek } from "usergeek-ic-js";
-import { User, SerializedUser, Mission, Progress, SerializedProgress, Tweet, HttpRequestArgs, HttpHeader, HttpMethod, HttpResponsePayload, TransformRawResponseFunction, TransformArgs, CanisterHttpResponsePayload, TransformContext, IC, HttpRequest, HttpResponse } from './types';
+import CryptoJS from 'crypto-js';
+import { Principal } from '@dfinity/principal';
 
 function App() {
-  const [authClient, setAuthClient] = useState<AuthClient | null>(null);
   const [principalId, setPrincipalId] = useState<string>('');
-  const [sec, setSec] = useState<number>(0);
   const [message, setMessage] = useState<string>('');
   const [showFollowButton, setShowFollowButton] = useState<boolean>(false);
   const [showVerifyButton, setShowVerifyButton] = useState<boolean>(false);
-  const { nfid, isNfidIframeInstantiated } = useNFID();
+  const [NFIDing, setNFIDing] = useState<boolean>(true);
+  const [decrypting, setDecrypting] = useState<boolean>(true);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
+  // Callback function to set NFIDing to false and isInitialized to true
+  const handleNfidIframeInstantiated = useCallback(() => {
+    setNFIDing(false);
+    setIsInitialized(true);
+  }, []);
+
+  const { nfid } = useNFID(handleNfidIframeInstantiated);
+
+  // Encryption and Decryption functions
+  const phrase = 'Awesome-Ultra-Secret-Key-That-Definitely-Should-Not-Be-Here';
+
+  // Ensure the key is exactly 32 bytes long
+  const key = CryptoJS.enc.Utf8.parse(phrase).sigBytes > 32
+    ? CryptoJS.enc.Utf8.parse(phrase.slice(0, 32))
+    : CryptoJS.enc.Utf8.parse(phrase.padEnd(32));
+
+  function encrypt(text: string): { iv: string, encryptedData: string } {
+    const iv = CryptoJS.lib.WordArray.random(16); // Generate a new IV for each encryption
+    const encrypted = CryptoJS.AES.encrypt(text, key, {
+      iv: iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    });
+    return { iv: iv.toString(CryptoJS.enc.Hex), encryptedData: encrypted.toString() };
+  }
+
+  function decrypt(encryptedText: string, iv: string): string {
+    const decrypted = CryptoJS.AES.decrypt(encryptedText, key, {
+      iv: CryptoJS.enc.Hex.parse(iv),
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    });
+
+    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+    if (!decryptedText) {
+      throw new Error("Decryption resulted in an empty string.");
+    }
+
+    return decryptedText;
+  }
+
+  useEffect(() => {
+    const encryptedData = localStorage.getItem('encryptedData');
+    const iv = localStorage.getItem('iv');
+    if (encryptedData && iv) {
+      try {
+        const decryptedData = decrypt(encryptedData, iv);
+        if (decryptedData) {
+          const parsedData = JSON.parse(decryptedData);
+          const { principalId, expirationTime } = parsedData;
+
+          if (Date.now() < expirationTime) {
+            handleSuccess(principalId);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to decrypt session data:", error);
+        localStorage.removeItem('encryptedData');
+        localStorage.removeItem('iv');
+      } finally {
+        setDecrypting(false);
+        console.log("Decrypt not loading");
+      }
+    }
+
+  }, []);
 
   // Initialize Usergeek
   useEffect(() => {
     Usergeek.init({
-      apiKey: "<01430201F8439A7B36CA9DD48F411A95>", // replace <API_KEY> with your actual API key
+      apiKey: "<01430201F8439A7B36CA9DD48F411A95>",
     });
   }, []);
-
-  // Initialize AuthClient on App Start
-  useEffect(() => {
-    const init = async (): Promise<void> => {
-      const client: AuthClient = await AuthClient.create();
-      setAuthClient(client);
-      // Check for stored identity
-      const storedIdentity = localStorage.getItem('identity');
-      if (storedIdentity) {
-        try {
-          const identity = client.getIdentity();
-          const actor = Actor.createActor(backend_idlFactory, {
-            agent: new HttpAgent({
-              identity,
-            }),
-            canisterId: backend_canisterId,
-          });
-          const principalId = identity.getPrincipal().toText();
-          setPrincipalId(principalId);
-          await handleSuccess(principalId); // Add await here
-        } catch (error) {
-          console.error("Error restoring identity:", error);
-          localStorage.removeItem('identity');
-        }
-      }
-    };
-    init();
-  }, []);
-
 
   // Create an HttpAgent and backend actor
   const agent = useMemo(() => new HttpAgent(), []);
   const backend = useMemo(() => Actor.createActor(backend_idlFactory, { agent, canisterId: backend_canisterId }), [agent]);
 
   // Handle successful authentication
-  const handleSuccess = useCallback(async (principalId: string): Promise<void> => {
-    if (!authClient) {
-      throw new Error("AuthClient not initialized");
+  const handleSuccess = useCallback(async (pId: string): Promise<void> => {
+    if (!nfid) {
+      console.error("NFID is not initialized");
+      return;
     }
 
-    const identity = authClient.getIdentity();
-    setPrincipalId(principalId);
-    localStorage.setItem('identity', JSON.stringify(identity));
+    try {
+      const expirationTime = Date.now() + 3600000; // 1 hour from now
+      const dataToEncrypt = JSON.stringify({ principalId: pId, expirationTime });
+      const { iv, encryptedData } = encrypt(dataToEncrypt);
+      localStorage.setItem('encryptedData', encryptedData);
+      localStorage.setItem('iv', iv);
 
-    // Set Usergeek Principal and track session
-    Usergeek.setPrincipal(identity.getPrincipal());
-    Usergeek.trackSession();
-
-    await mainLogic(principalId);
-  }, [authClient, backend]);
+      Usergeek.setPrincipal(Principal.fromText(pId));
+      Usergeek.trackSession();
+      await mainLogic(pId);
+    } finally {
+      setNFIDing(false); // Always hide the loading screen after handling success
+      console.log("NFID not loading");
+    }
+  }, [nfid, backend]);
 
   // Main logic of the app
-  const mainLogic = async (principalId: string) => {
-    // Check if the User is already registered
-    const existingSecs = await backend.getTotalSeconds(principalId) as unknown as BigInt;
-    console.log(existingSecs); // Get existing seconds
+  const mainLogic = async (pId: string) => {
+    const existingSecs = await backend.getTotalSeconds(pId) as unknown as BigInt;
 
     if (Number(existingSecs) === 0) { // If the user is not registered, register the user
-      await backend.addUser(principalId);
-      const baseseconds = await backend.getTotalSeconds(principalId) as unknown as BigInt; // Get the total seconds generated from the Backend
-      setSec(Number(baseseconds)); // Set the seconds to the state
-      setMessage(`Your principalId is: ${principalId}. You have got ${formatTime(Number(baseseconds))}`);
+      await backend.addUser(pId);
+      const baseseconds = await backend.getTotalSeconds(pId) as unknown as BigInt; // Get the total seconds generated from the Backend
+      setMessage(`Your principalId is: ${pId}. You have got ${formatTime(Number(baseseconds))}`);
       Usergeek.trackEvent("User Registered");
     } else { // If the user is already registered, show the existing seconds
-      setSec(Number(existingSecs)); // Set the seconds to the state
-      setMessage(`Your principalId is: ${principalId}. You already have got ${formatTime(Number(existingSecs))}`); // Set the message
+      setMessage(`Your principalId is: ${pId}. You already have got ${formatTime(Number(existingSecs))}`); // Set the message
     }
     setShowFollowButton(true);
     setShowVerifyButton(true);
@@ -124,7 +165,7 @@ function App() {
       }
 
       try {
-        const client = await initialise(iframe, {
+        await initialise(iframe, {
           targetOrigin: 'https://oc.app',
           initialPath: '/community/rfeib-riaaa-aaaar-ar3oq-cai/channel/334961401678552956581044255076222828441',
           theme: {
@@ -158,48 +199,72 @@ function App() {
     initOpenChat();
   }, []);
 
+  // Use effect to trigger handleSuccess once principalId is ready
+  useEffect(() => {
+    if (principalId) {
+      handleSuccess(principalId);
+    }
+  }, [principalId]);
+
+  const verifyTweet = () => {
+    console.log("Verify Tweet button clicked");
+    // Add your logic to verify the tweet here
+  };
+
   return (
     <main>
-      <div className="contVid">
-        <video className='videoTag' autoPlay loop muted>
-          <source src={KWA} type='video/mp4' />
-        </video>
-      </div>
-      <div className="midd">
-        <h1>Join the Konectª Army</h1>
-        <br />
-        < NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} />
-        <p>{message}</p>
-        {showFollowButton && (
-          <>
-            <br />
-            <button className="btn-grad">Follow Konecta_Dao</button>
-          </>
-        )}
-        {showVerifyButton && (
-          <>
-            <br />
-            <button className="btn-grad">Verify</button>
-          </>
-        )}
-        <br />
-        <p>Share this with friends</p>
-        <br />
-        <iframe id="openchat-iframe" title="OpenChat"></iframe>
-      </div>
-      <footer className="footer">
-        <div className="tooltip">
-          What is Konecta?
-          <span className="tooltiptext">Konecta Webapp is a Placeholder</span>
+      {decrypting || NFIDing ? (
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <p>Loading...</p>
         </div>
-        <div className="tooltip">
-          What are the seconds?
-          <span className="tooltiptext">It is a secret to be revealed soon</span>
-        </div>
-      </footer>
+      ) : (
+        <>
+          <div className="contVid">
+            <video className='videoTag' autoPlay loop muted>
+              <source src={KWA} type='video/mp4' />
+            </video>
+          </div>
+          <div className="midd">
+            {!principalId && (
+              <>
+                <h1>Join the Konectª Army</h1>
+                <br />
+                <NFIDAuth showButton={true} onSuccess={(principalId) => [setPrincipalId(principalId), setNFIDing(false)]} nfid={nfid} isInitialized={isInitialized} />
+              </>
+            )}
+            <p>{message}</p>
+            {showFollowButton && (
+              <>
+                <br />
+                <button className="btn-grad">Follow Konecta_Dao</button>
+              </>
+            )}
+            {showVerifyButton && (
+              <>
+                <br />
+                <button className="btn-grad" onClick={verifyTweet}>Verify</button>
+              </>
+            )}
+            <br />
+            <p>Share this with friends</p>
+            <br />
+            <iframe id="openchat-iframe" title="OpenChat"></iframe>
+          </div>
+          <footer className="footer">
+            <div className="tooltip">
+              What is Konecta?
+              <span className="tooltiptext">Konecta Webapp is a Placeholder</span>
+            </div>
+            <div className="tooltip">
+              What are the seconds?
+              <span className="tooltiptext">It is a secret to be revealed soon</span>
+            </div>
+          </footer>
+        </>
+      )}
     </main>
   );
-
 }
 
 export default App;

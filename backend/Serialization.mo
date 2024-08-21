@@ -19,8 +19,8 @@ module Serialization {
     {
       id = serializedUser.id;
       var seconds = serializedUser.seconds;
-      twitterid = serializedUser.twitterid;
-      twitterhandle = serializedUser.twitterhandle;
+      var twitterid = serializedUser.twitterid;
+      var twitterhandle = serializedUser.twitterhandle;
       creationTime = serializedUser.creationTime;
     };
   };
@@ -71,7 +71,7 @@ module Serialization {
       var timestamp = serializedProgress.timestamp;
       var totalearned = serializedProgress.totalearned;
       var amountOfTimes = serializedProgress.amountOfTimes;
-      usedCodes = TrieMap.fromEntries<Text, Bool>(serializedProgress.usedCodes.vals(), Text.equal, Text.hash);
+      var usedCodes = TrieMap.fromEntries<Text, Bool>(serializedProgress.usedCodes.vals(), Text.equal, Text.hash);
     };
   };
 };

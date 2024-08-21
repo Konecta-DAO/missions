@@ -5,8 +5,8 @@ module Types {
   public type User = {
     id : Text; // Principal ID
     var seconds : Nat; // Total Seconds Earned
-    twitterid : Nat; // Twitter ID
-    twitterhandle : Text; // Twitter Handle
+    var twitterid : Nat; // Twitter ID
+    var twitterhandle : Text; // Twitter Handle
     creationTime : Int; // Creation Time in Nanoseconds
   };
 
@@ -51,7 +51,7 @@ module Types {
     var timestamp : Int; // Timestamp of the last time mission was done
     var totalearned : Nat; // Total seconds earned on the mission
     var amountOfTimes : Nat; // How many times the mission has been done (for recursive missions)
-    usedCodes : TrieMap.TrieMap<Text, Bool>; // Map of secret codes the user has used (for the secret code mission)
+    var usedCodes : TrieMap.TrieMap<Text, Bool>; // Map of secret codes the user has used (for the secret code mission)
   };
 
   public type SerializedProgress = {
@@ -60,12 +60,6 @@ module Types {
     totalearned : Nat;
     amountOfTimes : Nat;
     usedCodes : [(Text, Bool)];
-  };
-
-  // Tweet Type
-  public type Tweet = {
-    userid : Text;
-    tweetid : Nat;
   };
 
   // HTTP Request Types

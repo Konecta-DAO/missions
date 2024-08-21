@@ -12,8 +12,22 @@ import Blob "mo:base/Blob";
 import Int "mo:base/Int";
 import Hash "mo:base/Hash";
 import TrieMap "mo:base/TrieMap";
+import Iter "mo:base/Iter";
 
 actor class Backend() {
+
+  // Admin IDs
+  let adminIds : [Text] = ["c2c6j-722ky-pnurz-sfhtg-p36de-3kjkr-sukce-mihdx-avf5m-k2zmh-3qe"];
+
+  // Function to check if the principalId is an admin
+  public query func isAdmin(principalId : Text) : async Bool {
+    return Array.find<Text>(
+      adminIds,
+      func(id) : Bool {
+        id == principalId;
+      },
+    ) != null;
+  };
 
   // Registered Users
   stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
@@ -73,7 +87,7 @@ actor class Backend() {
             var timestamp = 0;
             var totalearned = 0;
             var amountOfTimes = 0;
-            usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
           };
           progress;
         };
@@ -84,7 +98,7 @@ actor class Backend() {
           var timestamp = 0;
           var totalearned = 0;
           var amountOfTimes = 0;
-          usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+          var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
         };
         progress;
       };
@@ -126,7 +140,26 @@ actor class Backend() {
   };
 
   // Tweets per Users
-  stable var tweets : Vector.Vector<Types.Tweet> = Vector.new<Types.Tweet>();
+  private var tweets : TrieMap.TrieMap<Text, TrieMap.TrieMap<Nat, Nat>> = TrieMap.TrieMap<Text, TrieMap.TrieMap<Nat, Nat>>(Text.equal, Text.hash);
+
+  // Add a tweet for a user
+  public func addTweet(userId : Text, tweetId : Nat) : async () {
+    let userTweets = switch (tweets.get(userId)) {
+      case (?map) map;
+      case null TrieMap.TrieMap<Nat, Nat>(Nat.equal, Hash.hash);
+    };
+    let tweetCount = userTweets.size();
+    userTweets.put(tweetCount, tweetId);
+    tweets.put(userId, userTweets);
+  };
+
+  // Get all tweets for a user
+  public func getTweets(userId : Text) : async ?[(Nat, Nat)] {
+    switch (tweets.get(userId)) {
+      case (?userTweets) return ?Iter.toArray(userTweets.entries());
+      case null return null;
+    };
+  };
 
   // Function to add a new mission
   public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, newobj2 : Text, recursive : Bool, maxtime : Int, image : [Nat8], functionName1 : Text, newfunctionName2 : Text) : async () {
@@ -181,11 +214,20 @@ actor class Backend() {
     let newuser : Types.User = {
       id;
       var seconds;
-      twitterid;
-      twitterhandle;
+      var twitterid;
+      var twitterhandle;
       creationTime;
     };
     Vector.add(users, newuser);
+    let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+    let serializedProgress : Types.SerializedProgress = {
+      done = true;
+      timestamp = creationTime;
+      totalearned = seconds;
+      amountOfTimes = 1;
+      usedCodes = Iter.toArray(usedCodes.entries());
+    };
+    await updateProgress(id, 0, serializedProgress);
   };
 
   public func getRandomNumber() : async ?Nat {
@@ -219,12 +261,6 @@ actor class Backend() {
       ids := Array.append<Text>(ids, [user.id]);
     };
     return ids;
-  };
-
-  // Register a tweet to an user
-  public func addTweet(userid : Text, tweetid : Nat) : async () {
-    let newtweet : Types.Tweet = { userid; tweetid };
-    Vector.add(tweets, newtweet);
   };
 
   public func verifyFollow(userid : Text) : async Bool {
@@ -328,8 +364,8 @@ actor class Backend() {
                           let updatedUser : Types.User = {
                             id = user.id;
                             var seconds = user.seconds;
-                            twitterid = twitterid;
-                            twitterhandle = info.screen_name;
+                            var twitterid = twitterid;
+                            var twitterhandle = info.screen_name;
                             creationTime = user.creationTime;
                           };
 
@@ -369,8 +405,7 @@ actor class Backend() {
   public func resetall() : async () {
     Vector.clear(users);
     userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
-    Vector.clear(tweets);
-    return;
+    tweets := TrieMap.TrieMap<Text, TrieMap.TrieMap<Nat, Nat>>(Text.equal, Text.hash);
     return;
   };
 

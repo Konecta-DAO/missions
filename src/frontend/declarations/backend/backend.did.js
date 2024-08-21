@@ -47,11 +47,6 @@ export const idlFactory = ({ IDL }) => {
     usedCodes: IDL.Vec(IDL.Tuple(IDL.Text, IDL.Bool)),
   });
 
-  const Tweet = IDL.Record({
-    userid: IDL.Text,
-    tweetid: IDL.Nat,
-  });
-
   const Backend = IDL.Service({
     getIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     resetall: IDL.Func([], [], []),
@@ -71,6 +66,7 @@ export const idlFactory = ({ IDL }) => {
     getProgress: IDL.Func([IDL.Text, SerializedMission], [SerializedProgress], ['query']),
     submitSecretCode: IDL.Func([IDL.Text, SerializedMission, IDL.Text], [IDL.Bool], []),
     getTotalEarned: IDL.Func([IDL.Text, SerializedMission], [IDL.Opt(IDL.Nat)], ['query']),
+    isAdmin: IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   });
   return Backend;
 };

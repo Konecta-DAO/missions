@@ -24,42 +24,55 @@ export interface CanisterHttpResponsePayload {
   body: Uint8Array;
 }
 
-export interface User {
+export interface SerializedUser {
   id: string;
-  mission: bigint;
   seconds: bigint;
-  creationTime: bigint;
-  twitterhandle: string;
   twitterid: bigint;
+  twitterhandle: string;
+  creationTime: bigint;
 }
 
-export interface Mission {
+export interface SerializedMission {
   id: bigint;
   mode: bigint;
   description: string;
   obj1: string;
   obj2: string;
   recursive: boolean;
-  howmany: int;
+  maxtime: bigint;
+  image: Uint8Array;
+  functionName1: string;
+  functionName2: string;
+}
+
+export interface SerializedProgress {
+  done: boolean;
+  timestamp: bigint;
+  totalearned: bigint;
+  amountOfTimes: bigint;
+  usedCodes: Array<[string, boolean]>;
 }
 
 export interface Backend {
   getIds: ActorMethod<[], Array<string>>;
-  registerid: ActorMethod<[string, bigint], undefined>;
   resetall: ActorMethod<[], undefined>;
   get_trusted_origins: ActorMethod<[], Array<string>>;
-  getSeconds: ActorMethod<[string, bigint], [bigint | null]>;
   getTotalSeconds: ActorMethod<[string], bigint>;
   addTweet: ActorMethod<[string, bigint], undefined>;
   transform: ActorMethod<[TransformArgs], CanisterHttpResponsePayload>;
   availableCycles: ActorMethod<[], bigint>;
   verifyFollow: ActorMethod<[string], boolean>;
-  handleTwitterCallback: ActorMethod<[string, string, string], [User | null]>;
-  addUser: ActorMethod<[string, bigint], undefined>;
+  handleTwitterCallback: ActorMethod<[string, string, string], [SerializedUser | null]>;
+  addUser: ActorMethod<[string], undefined>;
   isMiddlemanReachable: ActorMethod<[], boolean>;
-  addMission: ActorMethod<[bigint, bigint, string, string, string, boolean], undefined>;
+  addMission: ActorMethod<[bigint, bigint, string, string, string, boolean, bigint, Uint8Array, string, string], undefined>;
   getNumberOfMissions: ActorMethod<[], bigint>;
-  getMissionById: ActorMethod<[bigint], [Mission | null]>;
+  getMissionById: ActorMethod<[bigint], [SerializedMission | null]>;
+  updateProgress: ActorMethod<[string, SerializedMission, SerializedProgress], undefined>;
+  getProgress: ActorMethod<[string, SerializedMission], SerializedProgress>;
+  submitSecretCode: ActorMethod<[string, SerializedMission, string], boolean>;
+  getTotalEarned: ActorMethod<[string, SerializedMission], [bigint | null]>;
+  isAdmin: ActorMethod<[string], boolean>;
 }
 export interface _SERVICE extends Backend {}
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

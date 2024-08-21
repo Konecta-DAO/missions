@@ -6,16 +6,17 @@ interface NFIDAuthProps {
     onSuccess: (principalId: string) => void;
     showButton: boolean;
     nfid: any;
+    isInitialized: boolean; // Add this prop
 }
 
-const NFIDAuth: React.FC<NFIDAuthProps> = ({ onSuccess, showButton, nfid }) => {
-    const [isInitialized, setIsInitialized] = useState<boolean>(false);
+const NFIDAuth: React.FC<NFIDAuthProps> = ({ onSuccess, showButton, nfid, isInitialized }) => {
+    const [isButtonEnabled, setIsButtonEnabled] = useState<boolean>(false);
 
     useEffect(() => {
-        if (nfid) {
-            setIsInitialized(true);
+        if (isInitialized) {
+            setIsButtonEnabled(true);
         }
-    }, [nfid]);
+    }, [isInitialized]);
 
     // Handle authentication
     const handleAuthenticate = useCallback(async () => {
@@ -28,21 +29,10 @@ const NFIDAuth: React.FC<NFIDAuthProps> = ({ onSuccess, showButton, nfid }) => {
         onSuccess(principalId);
     }, [nfid, onSuccess]);
 
-    /* const handleUpdateDelegation = useCallback(async () => {
-      if (!nfid) return;
-        const identity = await nfid.updateGlobalDelegation({
-        targets: targetCanisterIds,
-        maxTimeToLive: BigInt(24 * 60 * 60 * 1000000000), // Optional: Set max time to live (e.g., 24 hours)
-        derivationOrigin: NFID_PROVIDER_URL, // Optional: Set derivation origin
-      });
-      setResponse(identity);
-
-    }, [nfid]); */
-
     return (
         <div>
             {showButton && (
-                <button onClick={handleAuthenticate} disabled={!isInitialized}>Authenticate</button>
+                <button onClick={handleAuthenticate} disabled={!isButtonEnabled}>Authenticate</button>
             )}
             <br />
         </div>
