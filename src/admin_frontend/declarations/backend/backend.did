@@ -72,4 +72,7 @@ service : {
   countCompletedUsers : (nat) -> (nat) query;
   getAllMissions : () -> (vec SerializedMission) query;
   addAdminId : (text) -> ();
+  getUsers : () -> (vec SerializedUser) query;
+  getAdminIds : () -> (vec text) query;
+  removeAdminId : (text) -> ();
 };

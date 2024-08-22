@@ -70,6 +70,9 @@ export const idlFactory = ({ IDL }) => {
     countCompletedUsers: IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
     getAllMissions: IDL.Func([], [IDL.Vec(SerializedMission)], ['query']),
     addAdminId: IDL.Func([IDL.Text], [], []),
+    getUsers: IDL.Func([], [IDL.Vec(SerializedUser)], ['query']),
+    getAdminIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    removeAdminId: IDL.Func([IDL.Text], [], []),
   });
   return Backend;
 };

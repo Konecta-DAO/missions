@@ -16,15 +16,72 @@ import Iter "mo:base/Iter";
 
 actor class Backend() {
 
-  // Admin IDs
-  stable var adminIds : [Text] = [];
+  // Mission Related functions
+  type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
 
-  public func post_upgrade() : async () {
-    // Initialize adminIds after upgrade
-    if (adminIds.size() == 0) {
-      adminIds := ["c2c6j-722ky-pnurz-sfhtg-p36de-3kjkr-sukce-mihdx-avf5m-k2zmh-3qe"];
+  // Stable storage for serialized data
+  stable var serializedUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+
+  // Comparison and hash functions for Text-based UserId
+  private func compareUserId(id1 : Text, id2 : Text) : Bool {
+    id1 == id2;
+  };
+
+  private func hashUserId(id : Text) : Hash.Hash {
+    Text.hash(id);
+  };
+
+  // TrieMap to store the progress of each user's missions
+  private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+
+  public func deserializeUserProgress() : async () {
+
+  };
+
+  // Serialize the user progress before upgrading
+  system func preupgrade() {
+    let entries = Iter.toArray(userProgress.entries());
+    var serializedEntries : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+    for (entry in entries.vals()) {
+      let (userId, userMissions) = entry;
+      let serializedMissions = Iter.toArray(userMissions.entries());
+      var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
+      for (missionEntry in serializedMissions.vals()) {
+        let (missionId, progress) = missionEntry;
+        serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, { done = progress.done; timestamp = progress.timestamp; totalearned = progress.totalearned; amountOfTimes = progress.amountOfTimes; usedCodes = Iter.toArray(progress.usedCodes.entries()) })]);
+      };
+      serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
+    };
+    serializedUserProgress := serializedEntries;
+  };
+
+  // Deserialize the user progress after upgrading
+  system func postupgrade() {
+    userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+    for (entry in serializedUserProgress.vals()) {
+      let (userId, serializedMissions) = entry;
+      let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+      for (missionEntry in serializedMissions.vals()) {
+        let (missionId, serializedProgress) = missionEntry;
+        let progress = {
+          var done = serializedProgress.done;
+          var timestamp = serializedProgress.timestamp;
+          var totalearned = serializedProgress.totalearned;
+          var amountOfTimes = serializedProgress.amountOfTimes;
+          var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+        };
+        for (codeEntry in serializedProgress.usedCodes.vals()) {
+          let (code, used) = codeEntry;
+          progress.usedCodes.put(code, used);
+        };
+        userMissions.put(missionId, progress);
+      };
+      userProgress.put(userId, userMissions);
     };
   };
+
+  // Admin IDs
+  stable var adminIds : [Text] = [];
 
   // Function to check if the principalId is an admin
   public query func isAdmin(principalId : Text) : async Bool {
@@ -54,22 +111,8 @@ actor class Backend() {
   // Registered Users
   stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
 
-  // Mission Related functions
-  type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
   // Mission List
   stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
-
-  // Comparison and hash functions for Text-based UserId
-  private func compareUserId(id1 : Text, id2 : Text) : Bool {
-    id1 == id2;
-  };
-
-  private func hashUserId(id : Text) : Hash.Hash {
-    Text.hash(id);
-  };
-
-  // TrieMap to store the progress of each user's missions
-  private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
 
   // Function to record or update progress on a mission
   public func updateProgress(userId : Text, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {

@@ -76,6 +76,9 @@ export interface Backend {
   countCompletedUsers: ActorMethod<[bigint], bigint>;
   getAllMissions: ActorMethod<[], Array<SerializedMission>>;
   addAdminId: ActorMethod<[string], undefined>;
+  getUsers: ActorMethod<[], Array<SerializedUser>>;
+  getAdminIds: ActorMethod<[], Array<string>>;
+  removeAdminId: ActorMethod<[string], undefined>;
 }
 export interface _SERVICE extends Backend { }
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
