@@ -3,9 +3,8 @@ import { NFID } from '@nfid/embed';
 
 const NFID_PROVIDER_URL = 'https://nfid.one'; // NFID provider URL
 
-export const useNFID = () => {
+export const useNFID = (onNfidIframeInstantiated: () => void) => {
   const [nfid, setNfid] = useState<any>(null);
-  const [isNfidIframeInstantiated, setIsNfidIframeInstantiated] = useState<boolean>(false);
 
   useEffect(() => {
     const initNFID = async () => {
@@ -17,10 +16,10 @@ export const useNFID = () => {
         },
       });
       setNfid(nfidInstance);
-      setIsNfidIframeInstantiated(true); // Set the iframe instantiation status
+      onNfidIframeInstantiated(); // Call the callback function
     };
     initNFID();
-  }, []);
+  }, [onNfidIframeInstantiated]);
 
-  return { nfid, isNfidIframeInstantiated };
+  return { nfid };
 };

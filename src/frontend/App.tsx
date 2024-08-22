@@ -90,7 +90,7 @@ function App() {
   // Initialize Usergeek
   useEffect(() => {
     Usergeek.init({
-      apiKey: "<01430201F8439A7B36CA9DD48F411A95>",
+      apiKey: "01430201F8439A7B36CA9DD48F411A95",
     });
   }, []);
 

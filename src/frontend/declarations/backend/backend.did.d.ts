@@ -68,11 +68,17 @@ export interface Backend {
   addMission: ActorMethod<[bigint, bigint, string, string, string, boolean, bigint, Uint8Array, string, string], undefined>;
   getNumberOfMissions: ActorMethod<[], bigint>;
   getMissionById: ActorMethod<[bigint], [SerializedMission | null]>;
-  updateProgress: ActorMethod<[string, SerializedMission, SerializedProgress], undefined>;
-  getProgress: ActorMethod<[string, SerializedMission], SerializedProgress>;
-  submitSecretCode: ActorMethod<[string, SerializedMission, string], boolean>;
-  getTotalEarned: ActorMethod<[string, SerializedMission], [bigint | null]>;
+  updateProgress: ActorMethod<[string, bigint, SerializedProgress], undefined>;
+  getProgress: ActorMethod<[string, bigint], [SerializedProgress | null]>;
+  submitSecretCode: ActorMethod<[string, string], boolean>;
+  getTotalEarned: ActorMethod<[string, bigint], [bigint | null]>;
   isAdmin: ActorMethod<[string], boolean>;
+  countCompletedUsers: ActorMethod<[bigint], bigint>;
+  getAllMissions: ActorMethod<[], Array<SerializedMission>>;
+  addAdminId: ActorMethod<[string], undefined>;
+  getUsers: ActorMethod<[], Array<SerializedUser>>;
+  getAdminIds: ActorMethod<[], Array<string>>;
+  removeAdminId: ActorMethod<[string], undefined>;
 }
-export interface _SERVICE extends Backend {}
+export interface _SERVICE extends Backend { }
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

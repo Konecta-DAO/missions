@@ -2,7 +2,7 @@
 
 body,
 html {
-  font-family: 'Inter';
+  font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
   width: 100%;
@@ -94,39 +94,99 @@ img {
   border: 1px solid #333;
   background-color: #2e2e2e;
   width: 100%;
+  display: flex;
+  justify-content: space-around;
 }
 
 .tab button {
-  background-color: darkgray;
-  float: left;
+  background-color: #444;
+  color: #e0e0e0;
   border: none;
   outline: none;
   cursor: pointer;
   padding: 14px 16px;
   transition: 0.3s;
   font-size: 17px;
-  width: 50%;
+  flex: 1;
 }
 
 .tab button:hover {
-  background-color: #444;
+  background-color: #666;
 }
 
 .tab button.active {
-  background-color: black;
-  color: white;
+  background-color: #000;
+  color: #fff;
 }
 
 .tabcontent {
   display: none;
-  padding: 6px 12px;
+  padding: 20px;
   border: 1px solid #333;
   border-top: none;
   background-color: #1e1e1e;
+  width: 100%;
 }
 
 .tabcontent.active {
   display: block;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+table th,
+table td {
+  border: 1px solid #444;
+  padding: 10px;
+  text-align: left;
+}
+
+table th {
+  cursor: pointer;
+  background-color: #333;
+}
+
+table th:hover {
+  background-color: #555;
+}
+
+input[type="text"],
+button {
+  background-color: #444;
+  color: #e0e0e0;
+  border: none;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+}
+
+button {
+  cursor: pointer;
+}
+
+.date-picker {
+  background-color: #444;
+  color: #e0e0e0;
+  border: none;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+}
+
+.date-picker input {
+  background-color: #444;
+  color: #e0e0e0;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.date-picker input:focus {
+  outline: none;
 }
 
 @media screen and (min-width: 1200px) {

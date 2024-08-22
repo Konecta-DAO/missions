@@ -13,9 +13,6 @@
     "build:admin": "BUILD_TARGET=admin vite build --config vite.config.ts --mode admin",
     "build": "tsc && npm run build:frontend && npm run build:admin && npm run copy-well-known",
     "copy-well-known": "copyfiles -u 1 src/.well-known/**/* dist/",
-    "test": "run-s test:backend test:frontend",
-    "test:frontend": "vitest run",
-    "test:backend": "mo-test",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\" \"backend/**/*.mo\"",
     "sources": "mops sources",
     "postinstall": "mops install"
@@ -28,8 +25,11 @@
     "@ic-reactor/react": "^1.8.2",
     "@nfid/embed": "^0.10.3",
     "@open-ic/openchat-xframe": "^1.0.6",
+    "chart.js": "^4.4.4",
     "crypto-js": "^4.2.0",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
+    "react-datepicker": "^7.3.0",
     "react-dom": "^18.3.1",
     "rollup-plugin-polyfill-node": "^0.13.0",
     "usergeek-ic-js": "^1.0.6"

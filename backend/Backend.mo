@@ -17,7 +17,14 @@ import Iter "mo:base/Iter";
 actor class Backend() {
 
   // Admin IDs
-  let adminIds : [Text] = ["c2c6j-722ky-pnurz-sfhtg-p36de-3kjkr-sukce-mihdx-avf5m-k2zmh-3qe"];
+  stable var adminIds : [Text] = [];
+
+  public func post_upgrade() : async () {
+    // Initialize adminIds after upgrade
+    if (adminIds.size() == 0) {
+      adminIds := ["c2c6j-722ky-pnurz-sfhtg-p36de-3kjkr-sukce-mihdx-avf5m-k2zmh-3qe"];
+    };
+  };
 
   // Function to check if the principalId is an admin
   public query func isAdmin(principalId : Text) : async Bool {
@@ -27,6 +34,21 @@ actor class Backend() {
         id == principalId;
       },
     ) != null;
+  };
+
+  // Function to add a new admin ID
+  public func addAdminId(newAdminId : Text) : async () {
+    adminIds := Array.append<Text>(adminIds, [newAdminId]);
+  };
+
+  // Function to get all admin IDs
+  public query func getAdminIds() : async [Text] {
+    return adminIds;
+  };
+
+  // Function to remove an admin ID
+  public func removeAdminId(adminId : Text) : async () {
+    adminIds := Array.filter<Text>(adminIds, func(id) : Bool { id != adminId });
   };
 
   // Registered Users
@@ -191,7 +213,15 @@ actor class Backend() {
     return Vector.size(missions);
   };
 
-  // Function to get a missions by ID
+  // Function to get all missions (serialized)
+  public query func getAllMissions() : async [Types.SerializedMission] {
+    return Array.map<Types.Mission, Types.SerializedMission>(
+      Vector.toArray(missions),
+      Serialization.serializeMission,
+    );
+  };
+
+  // Function to get a mission by ID
   public query func getMissionById(id : Nat) : async ?Types.SerializedMission {
     for (mission in Vector.vals(missions)) {
       if (mission.id == id) {
@@ -199,6 +229,21 @@ actor class Backend() {
       };
     };
     return null;
+  };
+
+  public query func countCompletedUsers(missionId : Nat) : async Nat {
+    var count : Nat = 0;
+    for ((userId, missions) in userProgress.entries()) {
+      switch (missions.get(missionId)) {
+        case (?progress) {
+          if (progress.done) {
+            count += 1;
+          };
+        };
+        case null {};
+      };
+    };
+    return count;
   };
 
   // Register an user by Principalid
@@ -230,6 +275,15 @@ actor class Backend() {
     await updateProgress(id, 0, serializedProgress);
   };
 
+  // Function to get all registered users
+  public query func getUsers() : async [Types.SerializedUser] {
+    return Array.map<Types.User, Types.SerializedUser>(
+      Vector.toArray(users),
+      Serialization.serializeUser,
+    );
+  };
+
+  // Function to generate a random number between 3600 and 21600
   public func getRandomNumber() : async ?Nat {
     let random = Random.Finite(await Random.blob());
     let range : Nat = 21600 - 3600 + 1;

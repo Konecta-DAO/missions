@@ -62,11 +62,17 @@ export const idlFactory = ({ IDL }) => {
     addMission: IDL.Func([IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Int, IDL.Vec(IDL.Nat8), IDL.Text, IDL.Text], [], []),
     getNumberOfMissions: IDL.Func([], [IDL.Nat], ['query']),
     getMissionById: IDL.Func([IDL.Nat], [IDL.Opt(SerializedMission)], ['query']),
-    updateProgress: IDL.Func([IDL.Text, SerializedMission, SerializedProgress], [], []),
-    getProgress: IDL.Func([IDL.Text, SerializedMission], [SerializedProgress], ['query']),
-    submitSecretCode: IDL.Func([IDL.Text, SerializedMission, IDL.Text], [IDL.Bool], []),
-    getTotalEarned: IDL.Func([IDL.Text, SerializedMission], [IDL.Opt(IDL.Nat)], ['query']),
+    updateProgress: IDL.Func([IDL.Text, IDL.Nat, SerializedProgress], [], []),
+    getProgress: IDL.Func([IDL.Text, IDL.Nat], [IDL.Opt(SerializedProgress)], ['query']),
+    submitSecretCode: IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+    getTotalEarned: IDL.Func([IDL.Text, IDL.Nat], [IDL.Opt(IDL.Nat)], ['query']),
     isAdmin: IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+    countCompletedUsers: IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
+    getAllMissions: IDL.Func([], [IDL.Vec(SerializedMission)], ['query']),
+    addAdminId: IDL.Func([IDL.Text], [], []),
+    getUsers: IDL.Func([], [IDL.Vec(SerializedUser)], ['query']),
+    getAdminIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    removeAdminId: IDL.Func([IDL.Text], [], []),
   });
   return Backend;
 };
