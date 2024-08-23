@@ -76,6 +76,27 @@ actor class Backend() {
     };
   };
 
+  stable var codes : [Text] = [];
+
+  public func addAdminId(newAdminId : Text) : async () {
+    adminIds := Array.append<Text>(adminIds, [newAdminId]);
+  };
+
+  // Function to add a new Code
+  public func addCode(newCode : Text) : async () {
+    codes := Array.append<Text>(codes, [newCode]);
+  };
+
+  // Function to remove a Code 
+  public func removeCode(code : Text) : async () {
+    codes := Array.filter<Text>(codes, func(id) : Bool { id != code });
+  };
+
+  // Function to get all admin IDs
+  public query func getCodes() : async [Text] {
+    return codes;
+  };
+
   // Admin IDs
   stable var adminIds : [Text] = [];
 
@@ -87,11 +108,6 @@ actor class Backend() {
         id == principalId;
       },
     ) != null;
-  };
-
-  // Function to add a new admin ID
-  public func addAdminId(newAdminId : Text) : async () {
-    adminIds := Array.append<Text>(adminIds, [newAdminId]);
   };
 
   // Function to get all admin IDs
@@ -224,7 +240,7 @@ actor class Backend() {
     tweets.put(userId, userTweets);
   };
 
-  // Get all tweets for a user
+  // Get all tweets for a user. First Nat is the TimeStamp, second Nat is the TweetId
   public func getTweets(userId : Text) : async ?[(Nat, Nat)] {
     switch (tweets.get(userId)) {
       case (?userTweets) return ?Iter.toArray(userTweets.entries());

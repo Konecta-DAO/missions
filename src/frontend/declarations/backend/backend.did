@@ -55,6 +55,7 @@ service : {
   get_trusted_origins : () -> (vec text) query;
   getTotalSeconds : (text) -> (nat) query;
   addTweet : (text, nat) -> ();
+  getTweets : (text) -> (?vec record { nat; nat });
   transform : (TransformArgs) -> (CanisterHttpResponsePayload) query;
   availableCycles : () -> (nat) query;
   verifyFollow : (text) -> (bool);
@@ -64,7 +65,7 @@ service : {
   addMission : (nat, nat, text, text, text, bool, int, vec nat8, text, text) -> ();
   getNumberOfMissions : () -> (nat) query;
   getMissionById : (nat) -> (?SerializedMission) query;
-  updateProgress : (text, nat, SerializedProgress) -> ();
+  updateUserProgress : (text, nat, SerializedProgress) -> ();
   getProgress : (text, nat) -> (?SerializedProgress) query;
   submitSecretCode : (text, text) -> (bool);
   getTotalEarned : (text, nat) -> (?nat) query;
@@ -75,4 +76,7 @@ service : {
   getUsers : () -> (vec SerializedUser) query;
   getAdminIds : () -> (vec text) query;
   removeAdminId : (text) -> ();
+  addCode : (text) -> ();
+  removeCode : (text) -> ();
+  getCodes : () -> (vec text) query;
 };

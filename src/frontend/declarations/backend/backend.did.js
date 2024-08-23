@@ -53,6 +53,7 @@ export const idlFactory = ({ IDL }) => {
     get_trusted_origins: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     getTotalSeconds: IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     addTweet: IDL.Func([IDL.Text, IDL.Nat], [], []),
+    getTweets: IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Nat)))], []),
     transform: IDL.Func([TransformArgs], [CanisterHttpResponsePayload], ['query']),
     availableCycles: IDL.Func([], [IDL.Nat], ['query']),
     verifyFollow: IDL.Func([IDL.Text], [IDL.Bool], []),
@@ -62,7 +63,7 @@ export const idlFactory = ({ IDL }) => {
     addMission: IDL.Func([IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Int, IDL.Vec(IDL.Nat8), IDL.Text, IDL.Text], [], []),
     getNumberOfMissions: IDL.Func([], [IDL.Nat], ['query']),
     getMissionById: IDL.Func([IDL.Nat], [IDL.Opt(SerializedMission)], ['query']),
-    updateProgress: IDL.Func([IDL.Text, IDL.Nat, SerializedProgress], [], []),
+    updateUserProgress: IDL.Func([IDL.Text, IDL.Nat, SerializedProgress], [], []),
     getProgress: IDL.Func([IDL.Text, IDL.Nat], [IDL.Opt(SerializedProgress)], ['query']),
     submitSecretCode: IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
     getTotalEarned: IDL.Func([IDL.Text, IDL.Nat], [IDL.Opt(IDL.Nat)], ['query']),
@@ -73,6 +74,9 @@ export const idlFactory = ({ IDL }) => {
     getUsers: IDL.Func([], [IDL.Vec(SerializedUser)], ['query']),
     getAdminIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     removeAdminId: IDL.Func([IDL.Text], [], []),
+    addCode: IDL.Func([IDL.Text], [], []),
+    removeCode: IDL.Func([IDL.Text], [], []),
+    getCodes: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   });
   return Backend;
 };

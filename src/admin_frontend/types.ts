@@ -47,7 +47,7 @@ export interface SerializedMission {
 
 export type SerializedProgress = {
   done: boolean;
-  timestamp: number;
+  timestamp: bigint;
   totalearned: bigint;
   amountOfTimes: bigint;
   usedCodes: [string, boolean][];

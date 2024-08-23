@@ -302,6 +302,57 @@ button {
   height: 400px;
 }
 
+/* Modal styles */
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 600px;
+  background-color: #2e2e2e;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  padding: 20px;
+  background-color: #1e1e1e;
+  border-radius: 10px;
+  color: #e0e0e0;
+}
+
+.modal button {
+  margin-top: 10px;
+}
+
+.modal-close {
+  background-color: #f44336;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.modal-close:hover {
+  background-color: #d32f2f;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  position: fixed;
+  z-index: 999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+}
+
 
 @media screen and (min-width: 1200px) {
   .h1 {

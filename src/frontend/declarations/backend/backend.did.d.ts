@@ -59,6 +59,7 @@ export interface Backend {
   get_trusted_origins: ActorMethod<[], Array<string>>;
   getTotalSeconds: ActorMethod<[string], bigint>;
   addTweet: ActorMethod<[string, bigint], undefined>;
+  getTweets: ActorMethod<[string], [Array<[bigint, bigint]> | null]>;
   transform: ActorMethod<[TransformArgs], CanisterHttpResponsePayload>;
   availableCycles: ActorMethod<[], bigint>;
   verifyFollow: ActorMethod<[string], boolean>;
@@ -68,7 +69,7 @@ export interface Backend {
   addMission: ActorMethod<[bigint, bigint, string, string, string, boolean, bigint, Uint8Array, string, string], undefined>;
   getNumberOfMissions: ActorMethod<[], bigint>;
   getMissionById: ActorMethod<[bigint], [SerializedMission | null]>;
-  updateProgress: ActorMethod<[string, bigint, SerializedProgress], undefined>;
+  updateUserProgress: ActorMethod<[string, bigint, SerializedProgress], undefined>;
   getProgress: ActorMethod<[string, bigint], [SerializedProgress | null]>;
   submitSecretCode: ActorMethod<[string, string], boolean>;
   getTotalEarned: ActorMethod<[string, bigint], [bigint | null]>;
@@ -79,6 +80,9 @@ export interface Backend {
   getUsers: ActorMethod<[], Array<SerializedUser>>;
   getAdminIds: ActorMethod<[], Array<string>>;
   removeAdminId: ActorMethod<[string], undefined>;
+  addCode: ActorMethod<[string], undefined>;
+  removeCode: ActorMethod<[string], undefined>;
+  getCodes: ActorMethod<[], Array<string>>;
 }
 export interface _SERVICE extends Backend { }
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

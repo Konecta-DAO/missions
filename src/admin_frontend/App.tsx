@@ -8,7 +8,7 @@ import { Chart, registerables } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { SerializedUser, SerializedMission } from './types';
+import { SerializedUser, SerializedMission, SerializedProgress } from './types';
 
 function App() {
   const [principalId, setPrincipalId] = useState<string>('');
@@ -39,6 +39,12 @@ function App() {
   const [secondsToEarn, setSecondsToEarn] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [selectedUser, setSelectedUser] = useState<SerializedUser | null>(null);
+  const [userProgress, setUserProgress] = useState<Array<any>>([]);
+  const [userTweets, setUserTweets] = useState<Array<any>>([]);
+  const [userUsedCodes, setUserUsedCodes] = useState<Array<{ code: string; isUsed: boolean }>>([]);
+
 
   // Callback function to set NFIDing to false and isInitialized to true
   const handleNfidIframeInstantiated = useCallback(() => {
@@ -118,7 +124,75 @@ function App() {
     setMissionCounts(missionCounts);
   }, [backend]);
 
+  const fetchUserDetails = useCallback(async (user: SerializedUser) => {
+    const numberOfMissions = await backend.getNumberOfMissions() as number;
+    const progressList: Array<{
+      missionId: number;
+      done: boolean | null;
+      totalearned: bigint | null;
+      amountOfTimes: bigint | null;
+      timestamp: bigint | null;
+    }> = [];
 
+    let usedCodesMap: Record<string, boolean> = {};
+
+    for (let i = 0; i < numberOfMissions; i++) {
+      const progressArray = await backend.getProgress(user.id, BigInt(i)) as SerializedProgress[] | null;
+      console.log(`Progress for mission ${i}:`, progressArray); // Debugging output
+
+      if (progressArray && progressArray.length > 0) {
+        const progress = progressArray[0]; // Extract the first (and only) item
+        progressList.push({
+          missionId: i,
+          done: progress.done,
+          totalearned: progress.totalearned,
+          amountOfTimes: progress.amountOfTimes,
+          timestamp: progress.timestamp,
+        });
+
+        // Build the used codes map from this mission's progress
+        if (progress.usedCodes && Array.isArray(progress.usedCodes)) {
+          progress.usedCodes.forEach(([code, isUsed]) => {
+            usedCodesMap[code] = isUsed;
+          });
+        }
+      } else {
+        progressList.push({
+          missionId: i,
+          done: null,
+          totalearned: null,
+          amountOfTimes: null,
+          timestamp: null
+        });
+      }
+    }
+    console.log("Final Progress List:", progressList); // Debugging output
+    setUserProgress(progressList);
+
+    const tweets = await backend.getTweets(user.id);
+    if (tweets && Array.isArray(tweets)) {
+      setUserTweets(tweets);
+    } else {
+      setUserTweets([]);  // If tweets is not an array or is null, set to an empty array
+    }
+
+    const allCodes = await backend.getCodes() as string[];
+    const usedCodesList = allCodes.map(code => ({
+      code,
+      isUsed: usedCodesMap[code] ?? false,  // Check if the code is used; default to false
+    }));
+    setUserUsedCodes(usedCodesList);
+
+  }, [backend]);
+
+
+
+
+  const handleOpenModal = (user: SerializedUser) => {
+    setSelectedUser(user);
+    fetchUserDetails(user);
+    setShowModal(true);
+  };
 
   // Function to switch tabs
   const openTab = (tabName: string) => {
@@ -257,7 +331,6 @@ function App() {
     return Array.from(uint8Array);  // Keep the array as numbers, not BigInt
   };
 
-
   // Handle form submission
   const handleSubmit = async () => {
     // Validate inputs
@@ -381,12 +454,56 @@ function App() {
                       <td>{user.twitterid.toString()}</td>
                       <td>{user.twitterhandle}</td>
                       <td>{new Date(Number(user.creationTime) / 1_000_000).toLocaleString()}</td>
+                      <td><button onClick={() => handleOpenModal(user)}>In Detail</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <br />
-              <p>Total Amount of Missions Completed: {missionsCompleted}</p>
+              <p>Total Amount of Missions Completed by All Users: {missionsCompleted}</p>
+
+              {showModal && (
+                <div className="modal">
+                  <div className="modal-content">
+                    <h3>User Details for {selectedUser?.id}</h3>
+                    <h4>Mission Progress</h4>
+                    <ul>
+                      {userProgress?.map((progress, index) => (
+                        <li key={index}>
+                          Mission ID: {progress.missionId ?? "N/A"},
+                          Done: {progress.done !== null && progress.done !== undefined ? progress.done.toString() : "N/A"},
+                          Total Earned: {progress.totalearned !== null && progress.totalearned !== undefined ? progress.totalearned.toString() : "N/A"},
+                          Times Completed: {progress.amountOfTimes !== null && progress.amountOfTimes !== undefined ? progress.amountOfTimes.toString() : "N/A"},
+                          Timestamp: {progress.timestamp !== null && progress.timestamp !== undefined ? new Date(Number(progress.timestamp) / 1_000_000).toLocaleString() : "N/A"}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <h4>Tweets</h4>
+                    <ul>
+                      {userTweets.map((tweet, index) => (
+                        <li key={index}>
+                          Tweet ID: <a href={`https://twitter.com/user/status/${tweet[1]?.toString() ?? ""}`} target="_blank" rel="noopener noreferrer">{tweet[1] !== null && tweet[1] !== undefined ? tweet[1].toString() : "Unknown"}</a>,
+                          Timestamp: {tweet[0] !== null && tweet[0] !== undefined ? new Date(Number(tweet[0]) / 1_000_000).toLocaleString() : "Unknown"}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <br />
+                    <h4>Used Codes</h4>
+                    <ul>
+                      {userUsedCodes.map((codeEntry, index) => (
+                        <li key={index} style={{ backgroundColor: codeEntry.isUsed ? 'green' : 'red', color: 'white' }}>
+                          Code: {codeEntry.code}, Used: {codeEntry.isUsed ? "True" : "False"}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button onClick={() => setShowModal(false)}>Close</button>
+                  </div>
+                </div>
+              )}
+
               <br />
               {missions.length > 0 ? (
                 <div className="chart-container">
@@ -448,12 +565,13 @@ function App() {
                   <tbody>
                     {missionDetails.map((mission) => (
                       <tr key={mission.id}>
-                        <td>{mission.id}</td>
+                        <td>{mission.id.toString()}</td>
                         <td>{formatMissionType(mission.mode)}</td>
                         <td>{mission.description}</td>
                         <td dangerouslySetInnerHTML={{ __html: mission.objectDetails }}></td>
                         <td>{mission.recursive ? 'Yes' : 'No'}</td>
                         <td>{formatTime(mission.maxtime)}</td>
+
                         <td>
                           <img src={`data:image/png;base64,${btoa(String.fromCharCode(...new Uint8Array(mission.image)))}`} alt="Mission" width="200" height="200" />
                         </td>
