@@ -34,10 +34,6 @@ actor class Backend() {
   // TrieMap to store the progress of each user's missions
   private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
 
-  public func deserializeUserProgress() : async () {
-
-  };
-
   // Serialize the user progress before upgrading
   system func preupgrade() {
     let entries = Iter.toArray(userProgress.entries());
@@ -115,14 +111,24 @@ actor class Backend() {
   stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
 
   // Function to record or update progress on a mission
-  public func updateProgress(userId : Text, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
+  public shared func updateUserProgress(
+    userId : Text,
+    missionId : Nat,
+    serializedProgress : Types.SerializedProgress,
+  ) : async () {
+    // Deserialize the progress object
     let progress = Serialization.deserializeProgress(serializedProgress);
 
+    // Retrieve the user's missions or create a new TrieMap if it doesn't exist
     let missions = switch (userProgress.get(userId)) {
       case (?map) map;
       case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
     };
+
+    // Update the mission progress
     missions.put(missionId, progress);
+
+    // Update the user's progress in the main TrieMap
     userProgress.put(userId, missions);
   };
 
@@ -315,7 +321,7 @@ actor class Backend() {
       amountOfTimes = 1;
       usedCodes = Iter.toArray(usedCodes.entries());
     };
-    await updateProgress(id, 0, serializedProgress);
+    await updateUserProgress(id, 0, serializedProgress);
   };
 
   // Function to get all registered users

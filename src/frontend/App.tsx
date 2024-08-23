@@ -129,7 +129,7 @@ function App() {
       await backend.addUser(pId);
       const baseseconds = await backend.getTotalSeconds(pId) as unknown as BigInt; // Get the total seconds generated from the Backend
       setMessage(`Your principalId is: ${pId}. You have got ${formatTime(Number(baseseconds))}`);
-      Usergeek.trackEvent("User Registered");
+      Usergeek.trackEvent("Mission 0: User Registered");
     } else { // If the user is already registered, show the existing seconds
       setMessage(`Your principalId is: ${pId}. You already have got ${formatTime(Number(existingSecs))}`); // Set the message
     }
