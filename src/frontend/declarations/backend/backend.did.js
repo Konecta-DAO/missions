@@ -34,7 +34,7 @@ export const idlFactory = ({ IDL }) => {
     obj2: IDL.Text,
     recursive: IDL.Bool,
     maxtime: IDL.Int,
-    image: IDL.Vec(IDL.Nat8),
+    image: IDL.Text,
     functionName1: IDL.Text,
     functionName2: IDL.Text,
   });
@@ -60,7 +60,7 @@ export const idlFactory = ({ IDL }) => {
     handleTwitterCallback: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Opt(SerializedUser)], []),
     addUser: IDL.Func([IDL.Text], [], []),
     isMiddlemanReachable: IDL.Func([], [IDL.Bool], []),
-    addMission: IDL.Func([IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Int, IDL.Vec(IDL.Nat8), IDL.Text, IDL.Text], [], []),
+    addMission: IDL.Func([IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Int, IDL.Text, IDL.Text, IDL.Text], [], []),
     getNumberOfMissions: IDL.Func([], [IDL.Nat], ['query']),
     getMissionById: IDL.Func([IDL.Nat], [IDL.Opt(SerializedMission)], ['query']),
     updateUserProgress: IDL.Func([IDL.Text, IDL.Nat, SerializedProgress], [], []),
@@ -77,6 +77,8 @@ export const idlFactory = ({ IDL }) => {
     addCode: IDL.Func([IDL.Text], [], []),
     removeCode: IDL.Func([IDL.Text], [], []),
     getCodes: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    uploadMissionImage: IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [IDL.Text], []),
+    getMissionImage: IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
   });
   return Backend;
 };

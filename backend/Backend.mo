@@ -13,29 +13,14 @@ import Int "mo:base/Int";
 import Hash "mo:base/Hash";
 import TrieMap "mo:base/TrieMap";
 import Iter "mo:base/Iter";
+import Nat32 "mo:base/Nat32";
 
 actor class Backend() {
 
-  // Mission Related functions
-  type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
+  // Function to log messages to the buffer
 
-  // Stable storage for serialized data
-  stable var serializedUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
-
-  // Comparison and hash functions for Text-based UserId
-  private func compareUserId(id1 : Text, id2 : Text) : Bool {
-    id1 == id2;
-  };
-
-  private func hashUserId(id : Text) : Hash.Hash {
-    Text.hash(id);
-  };
-
-  // TrieMap to store the progress of each user's missions
-  private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
-
-  // Serialize the user progress before upgrading
   system func preupgrade() {
+    // Serialize user progress
     let entries = Iter.toArray(userProgress.entries());
     var serializedEntries : [(Text, [(Nat, Types.SerializedProgress)])] = [];
     for (entry in entries.vals()) {
@@ -49,10 +34,13 @@ actor class Backend() {
       serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
     };
     serializedUserProgress := serializedEntries;
+
+    // Serialize missionAssets
+    serializedMissionAssets := Iter.toArray(missionAssets.entries());
   };
 
-  // Deserialize the user progress after upgrading
   system func postupgrade() {
+    // Deserialize user progress
     userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
     for (entry in serializedUserProgress.vals()) {
       let (userId, serializedMissions) = entry;
@@ -74,6 +62,62 @@ actor class Backend() {
       };
       userProgress.put(userId, userMissions);
     };
+
+    // Deserialize missionAssets
+    missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
+    for (entry in serializedMissionAssets.vals()) {
+      let (fileName, fileBlob) = entry;
+      missionAssets.put(fileName, fileBlob);
+    };
+  };
+
+  // Mission Related functions
+  type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
+
+  // Stable storage for serialized data
+  stable var serializedUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+  stable var serializedMissionAssets : [(Text, Blob)] = [];
+
+  // Mission Assets
+  var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
+
+  // Comparison and hash functions for Text-based UserId
+  private func compareUserId(id1 : Text, id2 : Text) : Bool {
+    id1 == id2;
+  };
+
+  private func hashUserId(id : Text) : Hash.Hash {
+    Text.hash(id);
+  };
+
+  // TrieMap to store the progress of each user's missions
+  private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+
+  public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
+
+    let path = req.url;
+
+    // Check if the path is directly in missionAssets (which includes the full path)
+    switch (missionAssets.get(path)) {
+      case (?fileBlob) {
+        return {
+          status_code = 200;
+          headers = [("Content-Type", "image/png")]; // Ensure the content type matches the file type
+          body = fileBlob;
+        };
+      };
+      case null {
+        return {
+          status_code = 404;
+          headers = [("Content-Type", "text/plain")];
+          body = Text.encodeUtf8("File not found");
+        };
+      };
+    };
+  };
+
+  public query func logMissionAssets() : async [Text] {
+    return Iter.toArray(missionAssets.keys());
   };
 
   stable var codes : [Text] = [];
@@ -87,7 +131,7 @@ actor class Backend() {
     codes := Array.append<Text>(codes, [newCode]);
   };
 
-  // Function to remove a Code 
+  // Function to remove a Code
   public func removeCode(code : Text) : async () {
     codes := Array.filter<Text>(codes, func(id) : Bool { id != code });
   };
@@ -248,8 +292,44 @@ actor class Backend() {
     };
   };
 
-  // Function to add a new mission
-  public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, newobj2 : Text, recursive : Bool, maxtime : Int, image : [Nat8], functionName1 : Text, newfunctionName2 : Text) : async () {
+  // Generate a unique image identifier using a combination of timestamp and hash
+  func generateUniqueIdentifier(imageName : Text) : Text {
+    let timestamp = Int.toText(Time.now());
+    let hash = Text.hash(imageName);
+
+    // Find the last occurrence of '.' to get the file extension
+    let partsIter = Text.split(imageName, #char '.');
+    let parts = Iter.toArray(partsIter);
+
+    let extension = switch (Array.size(parts) > 1) {
+      case true parts[Array.size(parts) - 1]; // Get the last part as the extension
+      case false ""; // No extension found
+    };
+
+    return timestamp # "_" # Nat32.toText(hash) # "." # extension;
+  };
+
+  // Function to upload a mission image and return the URL
+  public shared (msg) func uploadMissionImage(imageName : Text, imageContent : Blob) : async Text {
+    let directory = "/missionassets/";
+
+    // Generate a unique image name using the timestamp and hash
+    let uniqueImageName = generateUniqueIdentifier(imageName);
+    let url = directory # uniqueImageName;
+
+    // Store the image content associated with the unique URL
+    missionAssets.put(url, imageContent);
+
+    return url;
+  };
+
+  // Function to retrieve mission image by URL
+  public query func getMissionImage(url : Text) : async ?Blob {
+    return missionAssets.get(url);
+  };
+  
+  // Function to add or update a mission
+  public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, newobj2 : Text, recursive : Bool, maxtime : Int, image : Text, functionName1 : Text, newfunctionName2 : Text) : async () {
 
     var obj2 : Text = "";
     var functionName2 : Text = "";
@@ -258,19 +338,52 @@ actor class Backend() {
       functionName2 := newfunctionName2;
     };
 
-    let newMission : Types.Mission = {
-      id;
-      var mode;
-      var description;
-      var obj1;
-      var obj2;
-      var recursive;
-      var maxtime;
-      var image;
-      var functionName1;
-      var functionName2;
+    // Manually search for the existing mission by its ID
+    var existingMissionIndex : ?Nat = null;
+    var i : Nat = 0;
+
+    // Loop through the missions to find the one with the matching id
+    for (mission in Vector.vals(missions)) {
+      if (mission.id == id) {
+        existingMissionIndex := ?i;
+      };
+      i += 1;
     };
-    Vector.add(missions, newMission);
+    // Use pattern matching to check if the mission exists
+    switch (existingMissionIndex) {
+      case (?index) {
+        // Update the existing mission
+        let updatedMission : Types.Mission = {
+          id = id;
+          var mode = mode;
+          var description = description;
+          var obj1 = obj1;
+          var obj2 = obj2;
+          var recursive = recursive;
+          var maxtime = maxtime;
+          var image = image;
+          var functionName1 = functionName1;
+          var functionName2 = functionName2;
+        };
+        Vector.put(missions, index, updatedMission); // Replace the existing mission
+      };
+      case null {
+        // Add a new mission if it doesn't exist
+        let newMission : Types.Mission = {
+          id = id;
+          var mode = mode;
+          var description = description;
+          var obj1 = obj1;
+          var obj2 = obj2;
+          var recursive = recursive;
+          var maxtime = maxtime;
+          var image = image;
+          var functionName1 = functionName1;
+          var functionName2 = functionName2;
+        };
+        Vector.add(missions, newMission); // Add the new mission
+      };
+    };
   };
 
   // Function to get the number of missions available
@@ -294,6 +407,12 @@ actor class Backend() {
       };
     };
     return null;
+  };
+
+  // Function to reset all missions
+  public func resetMissions() : async () {
+    Vector.clear(missions); // Clear all missions
+    missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
   };
 
   public query func countCompletedUsers(missionId : Nat) : async Nat {

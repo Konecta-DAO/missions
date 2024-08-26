@@ -36,7 +36,7 @@ type SerializedMission = record {
   obj2 : text;
   recursive : bool;
   maxtime : int;
-  image : vec nat8;
+  image : text;
   functionName1 : text;
   functionName2 : text;
 };
@@ -62,7 +62,7 @@ service : {
   handleTwitterCallback : (text, text, text) -> (?SerializedUser);
   addUser : (text) -> ();
   isMiddlemanReachable : () -> (bool);
-  addMission : (nat, nat, text, text, text, bool, int, vec nat8, text, text) -> ();
+  addMission : (nat, nat, text, text, text, bool, int, text, text, text) -> ();
   getNumberOfMissions : () -> (nat) query;
   getMissionById : (nat) -> (?SerializedMission) query;
   updateUserProgress : (text, nat, SerializedProgress) -> ();
@@ -79,4 +79,6 @@ service : {
   addCode : (text) -> ();
   removeCode : (text) -> ();
   getCodes : () -> (vec text) query;
+  uploadMissionImage : (text, blob) -> (text);
+  getMissionImage : (text) -> (?blob);
 };

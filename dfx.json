@@ -5,9 +5,6 @@
       "main": "backend/Backend.mo",
       "declarations": {
         "node_compatibility": true
-      },
-      "settings": {
-        "network": ["http_request"]
       }
     },
     "frontend": {
@@ -19,7 +16,7 @@
         "dist/frontend"
       ]
     },
-    "admin_frontend": { 
+    "admin_frontend": {
       "dependencies": [
         "backend"
       ],

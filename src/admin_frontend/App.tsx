@@ -12,7 +12,6 @@ import { SerializedUser, SerializedMission, SerializedProgress } from './types';
 
 function App() {
   const [principalId, setPrincipalId] = useState<string>('');
-  const [message, setMessage] = useState<string>('');
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('Statistics');
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
@@ -28,25 +27,165 @@ function App() {
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [missionDetails, setMissionDetails] = useState<Array<any>>([]);
   const [selectedMissionType, setSelectedMissionType] = useState<string>('Single Button Mission');
-  const [missionTitle, setMissionTitle] = useState<string>('');
-  const [missionDescription, setMissionDescription] = useState<string>('');
-  const [buttonText, setButtonText] = useState<string>('');
-  const [buttonFunctionName, setButtonFunctionName] = useState<string>('');
-  const [buttonText2, setButtonText2] = useState<string>('');
-  const [buttonFunctionName2, setButtonFunctionName2] = useState<string>('');
-  const [inputText, setInputText] = useState<string>('');
-  const [isRecursive, setIsRecursive] = useState<boolean>(false);
-  const [secondsToEarn, setSecondsToEarn] = useState<string>('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // State for Add Mission form
+  const [missionTitle, setMissionTitle] = useState('');
+  const [missionDescription, setMissionDescription] = useState('');
+  const [buttonText, setButtonText] = useState('');
+  const [buttonFunctionName, setButtonFunctionName] = useState('');
+  const [buttonText2, setButtonText2] = useState('');
+  const [buttonFunctionName2, setButtonFunctionName2] = useState('');
+  const [inputText, setInputText] = useState('');
+  const [isRecursive, setIsRecursive] = useState(false);
+  const [secondsToEarn, setSecondsToEarn] = useState('');
+
+  const [formattedTime, setFormattedTime] = useState("");
+  const [imageFile, setImageFile] = useState<string | null>(null);
+  const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState<boolean>(false);
+  const [showMissionModal, setShowMissionModal] = useState<boolean>(false);
+  const [showUserModal, setShowUserModal] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<SerializedUser | null>(null);
   const [userProgress, setUserProgress] = useState<Array<any>>([]);
   const [userTweets, setUserTweets] = useState<Array<any>>([]);
   const [userUsedCodes, setUserUsedCodes] = useState<Array<{ code: string; isUsed: boolean }>>([]);
+  const [uploadProgress, setUploadProgress] = useState(0); // Track upload progress
+
+  const [editMissionFields, setEditMissionFields] = useState({
+    title: '',
+    description: '',
+    obj1: '',
+    obj2: '',
+    functionName1: '',
+    functionName2: '',
+    maxtime: '',
+    recursive: false,
+  });
+
+  const [missionToEdit, setMissionToEdit] = useState<SerializedMission | null>(null);
+
+  const memoizedMissionToEdit = useMemo(() => missionToEdit, [missionToEdit]);
+
+  const validateMissionForm = (mission: {
+    mode: bigint;
+    title: string;
+    description: string;
+    obj1: string;
+    obj2: string;
+    functionName1: string;
+    functionName2: string;
+    maxtime: bigint;
+    recursive: boolean;
+  }) => {
+
+    // Validate title
+    if (!mission.title || mission.title.trim() === '') {
+      return { isValid: false, message: "Mission title is required." };
+    }
+
+    // Validate description
+    if (!mission.description || mission.description.trim() === '') {
+      return { isValid: false, message: "Mission description is required." };
+    }
+
+    // Validate different mission modes (Single Button, Double Button, Input + Button)
+    if (mission.mode === 0n) { // Single Button Mission
+      if (!mission.obj1 || !mission.functionName1) {
+        return { isValid: false, message: "Button text and function name are required for Single Button Mission." };
+      }
+    } else if (mission.mode === 1n) { // Double Button Mission
+      if (!mission.obj1 || !mission.obj2 || !mission.functionName1 || !mission.functionName2) {
+        return { isValid: false, message: "Both button texts and function names are required for Double Button Mission." };
+      }
+    } else if (mission.mode === 2n) { // Input + Button Mission
+      if (!mission.obj1 || !mission.obj2 || !mission.functionName2) {
+        return { isValid: false, message: "Input text, button text, and function name are required for Input + Button Mission." };
+      }
+    }
+
+    // Validate max time
+    if (!mission.maxtime || isNaN(Number(mission.maxtime)) || Number(mission.maxtime) <= 0) {
+      return { isValid: false, message: "Max time must be a positive number." };
+    }
+
+    return { isValid: true, message: "" };
+  };
 
 
-  // Callback function to set NFIDing to false and isInitialized to true
+  // Handle form submission
+  const handleUpdateMission = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent default form behavior
+
+    const formData = new FormData(e.target as HTMLFormElement);
+
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+
+    const updatedMission = {
+      id: memoizedMissionToEdit?.id ?? 0n, 
+      mode: memoizedMissionToEdit?.mode ?? 0n, 
+      title,
+      description,
+      obj1: formData.get("obj1") as string,
+      obj2: formData.get("obj2") as string,
+      functionName1: formData.get("functionName1") as string,
+      functionName2: formData.get("functionName2") as string,
+      maxtime: BigInt(formData.get("maxtime") as string), 
+      recursive: formData.get("recursive") === "on", 
+    };
+
+    // Validate the mission data
+    const validationResult = validateMissionForm(updatedMission);
+    if (!validationResult.isValid) {
+      alert(validationResult.message); 
+      return;
+    }
+
+    try {
+      // Concatenate title and description for backend submission
+      const combinedDescription = `${updatedMission.title}\0${updatedMission.description}`;
+
+      await backend.addMission(
+        updatedMission.id,
+        updatedMission.mode,
+        combinedDescription, 
+        updatedMission.obj1,
+        updatedMission.obj2,
+        updatedMission.recursive,
+        Number(updatedMission.maxtime),
+        memoizedMissionToEdit?.image ?? "", 
+        updatedMission.functionName1,
+        updatedMission.functionName2
+      );
+
+      setShowMissionModal(false);
+      fetchData(); // Refresh the mission list
+      alert('Mission updated successfully!');
+    } catch (error) {
+      console.error('Error updating mission:', error);
+      alert('Failed to update mission.');
+    }
+  };
+
+  const Modal = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => {
+    const handleClickOutside = (event: React.MouseEvent<HTMLDivElement>) => {
+      if ((event.target as HTMLElement).classList.contains('modal-backdrop')) {
+        onClose();
+      }
+    };
+
+    return (
+      <div className="modal-backdrop" onClick={handleClickOutside}>
+        <div className="modal">
+          <div className="modal-content">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // NFID iFrame Instantiated
   const handleNfidIframeInstantiated = useCallback(() => {
     setIsInitialized(true);
   }, []);
@@ -138,7 +277,6 @@ function App() {
 
     for (let i = 0; i < numberOfMissions; i++) {
       const progressArray = await backend.getProgress(user.id, BigInt(i)) as SerializedProgress[] | null;
-      console.log(`Progress for mission ${i}:`, progressArray); // Debugging output
 
       if (progressArray && progressArray.length > 0) {
         const progress = progressArray[0]; // Extract the first (and only) item
@@ -166,7 +304,6 @@ function App() {
         });
       }
     }
-    console.log("Final Progress List:", progressList); // Debugging output
     setUserProgress(progressList);
 
     const tweets = await backend.getTweets(user.id);
@@ -185,18 +322,23 @@ function App() {
 
   }, [backend]);
 
+  const parseMissionTitleAndDescription = (description: string) => {
+    const parts = description.split('\0');
+    return {
+      title: parts[0] || '',
+      description: parts[1] || ''
+    };
+  };
 
-
+   // Function to switch tabs
+  const openTab = (tabName: string) => {
+    setActiveTab(tabName);
+  };
 
   const handleOpenModal = (user: SerializedUser) => {
     setSelectedUser(user);
     fetchUserDetails(user);
-    setShowModal(true);
-  };
-
-  // Function to switch tabs
-  const openTab = (tabName: string) => {
-    setActiveTab(tabName);
+    setShowUserModal(true); // Open User Details Modal
   };
 
   // Function to handle sorting
@@ -230,6 +372,24 @@ function App() {
     return matchesHandle && matchesDate;
   });
 
+  const handleOpenModifyModal = (mission: SerializedMission) => {
+    const { title, description } = parseMissionTitleAndDescription(mission.description);
+
+    setMissionToEdit(mission);
+    setEditMissionFields({
+      title,
+      description,
+      obj1: mission.obj1,
+      obj2: mission.obj2,
+      functionName1: mission.functionName1,
+      functionName2: mission.functionName2,
+      maxtime: mission.maxtime.toString(),
+      recursive: mission.recursive,
+    });
+
+    setShowMissionModal(true);
+  };
+
   // Function to handle adding a new admin
   const handleAddAdmin = async (newAdminId: string) => {
     const confirmed = window.confirm(`Are you sure that you want to give Administrative Rights to ${newAdminId}?`);
@@ -250,9 +410,9 @@ function App() {
 
   // Function to format seconds into hours, minutes, and seconds
   const formatTime = (seconds: bigint) => {
-    const hours = Math.floor(Number(seconds) / 3600);
-    const minutes = Math.floor((Number(seconds) % 3600) / 60);
-    const remainingSeconds = Number(seconds) % 60;
+    const hours = Number(seconds / 3600n);
+    const minutes = Number((seconds % 3600n) / 60n);
+    const remainingSeconds = Number(seconds % 60n);
     return `${hours} hour${hours !== 1 ? 's' : ''}, ${minutes} minute${minutes !== 1 ? 's' : ''}, and ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
   };
 
@@ -285,25 +445,8 @@ function App() {
     }
   };
 
-  // Handling the mission type selection
-  const handleMissionTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedMissionType(e.target.value);
-    // Reset the form fields when changing mission types
-    setMissionTitle('');
-    setMissionDescription('');
-    setButtonText('');
-    setButtonFunctionName('');
-    setButtonText2('');
-    setButtonFunctionName2('');
-    setInputText('');
-    setIsRecursive(false);
-    setSecondsToEarn('');
-    setImageFile(null);
-    setImageError(null);
-  };
-
-  // Handling image upload and validation
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle image upload and get the image URL
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -314,26 +457,59 @@ function App() {
       return;
     }
 
-    if (file.size > 1.5 * 1024 * 1024) { // 1.5MB
+    if (file.size > 1.5 * 1024 * 1024) {
       setImageError('Image size must be less than 1.5MB.');
       setImageFile(null);
       return;
     }
 
-    setImageFile(file);
-    setImageError(null);
+    setIsImageUploading(true);  // Start image upload
+    setUploadProgress(0);       // Reset progress bar
+
+    try {
+      const imageContent = new Uint8Array(await file.arrayBuffer());
+      const imageName = file.name;
+
+      // Simulating progress
+      setUploadProgress(30);
+      const imageUrl = await backend.uploadMissionImage(imageName, Array.from(imageContent)) as string;
+      setUploadProgress(100);  // Upload completed
+
+      setImageFile(imageUrl);  // Set uploaded image URL
+      setImageError(null);     // Clear error state
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      setImageError("Image upload failed. Please try again.");
+    } finally {
+      setIsImageUploading(false);  // End image upload
+    }
   };
 
-  // Encode image to Nat8 array
-  const encodeImageToNat8 = async (file: File): Promise<number[]> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    return Array.from(uint8Array);  // Keep the array as numbers, not BigInt
+  const handleDeleteMission = async (missionId: bigint) => {
+    if (missionId >= 0n) {
+      const confirmed = window.confirm("Are you sure you want to delete this mission?");
+      if (confirmed) {
+        try {
+          await backend.deleteMission(missionId);  // Delete the mission using the passed missionId
+          fetchData();  // Re-fetch the data to update the mission list
+          alert('Mission deleted successfully!');
+        } catch (error) {
+          console.error("Failed to delete mission:", error);
+        }
+      }
+    }
   };
 
   // Handle form submission
-  const handleSubmit = async () => {
-    // Validate inputs
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Check if the image is still uploading
+    if (isImageUploading) {
+      alert("Image is still uploading. Please wait until the upload is complete.");
+      return;
+    }
+
+    // Ensure all inputs are valid
     if (!missionTitle || !missionDescription || !secondsToEarn ||
       (selectedMissionType === 'Single Button Mission' && (!buttonText || !buttonFunctionName)) ||
       (selectedMissionType === 'Double Button Mission' && (!buttonText || !buttonFunctionName || !buttonText2 || !buttonFunctionName2)) ||
@@ -347,70 +523,76 @@ function App() {
       return;
     }
 
+    // Ensure imageFile is correctly set
     if (!imageFile) {
       alert('Please upload a valid image.');
       return;
     }
 
-    // Encode the image
-    const encodedImage = await encodeImageToNat8(imageFile);
+    try {
+      // Use image URL from backend
+      const imageUrl = imageFile;
 
-    // Determine the ID for the new mission
-    const newMissionId = missions.length > 0 ? BigInt(missions[missions.length - 1].id) + 1n : 0n;
+      // Determine the ID for the new mission
+      const newMissionId = missions.length > 0 ? BigInt(missions[missions.length - 1].id) + 1n : 0n;
 
-    // Concatenate mission title and description with \0 separator
-    const missionDescriptionFormatted = `${missionTitle}\0${missionDescription}`;
+      // Concatenate mission title and description with \0 separator
+      const missionDescriptionFormatted = `${missionTitle}\0${missionDescription.trim()}`;
 
-    // Construct the parameters based on the selected mission type
-    let mode: bigint;
-    let obj1: string;
-    let obj2: string = '';
-    let functionName1: string;
-    let functionName2: string = '';
+      // Construct the parameters based on the selected mission type
+      let mode: bigint;
+      let obj1: string;
+      let obj2: string = '';
+      let functionName1: string;
+      let functionName2: string = '';
 
-    switch (selectedMissionType) {
-      case 'Single Button Mission':
-        mode = 0n;
-        obj1 = buttonText;
-        functionName1 = buttonFunctionName;
-        break;
-      case 'Double Button Mission':
-        mode = 1n;
-        obj1 = buttonText;
-        obj2 = buttonText2;
-        functionName1 = buttonFunctionName;
-        functionName2 = buttonFunctionName2;
-        break;
-      case 'Input + Button Mission':
-        mode = 2n;
-        obj1 = inputText;
-        obj2 = buttonText;
-        functionName1 = '';
-        functionName2 = buttonFunctionName;
-        break;
-      default:
-        return;
+      switch (selectedMissionType) {
+        case 'Single Button Mission':
+          mode = 0n;
+          obj1 = buttonText;
+          functionName1 = buttonFunctionName;
+          break;
+        case 'Double Button Mission':
+          mode = 1n;
+          obj1 = buttonText;
+          obj2 = buttonText2;
+          functionName1 = buttonFunctionName;
+          functionName2 = buttonFunctionName2;
+          break;
+        case 'Input + Button Mission':
+          mode = 2n;
+          obj1 = inputText;
+          obj2 = buttonText;
+          functionName1 = '';
+          functionName2 = buttonFunctionName;
+          break;
+        default:
+          return;
+      }
+
+      // Call the backend function to add the mission
+      await backend.addMission(newMissionId, mode, missionDescriptionFormatted, obj1, obj2, isRecursive, BigInt(secondsToEarn), imageUrl, functionName1, functionName2);
+
+      // Refresh the mission list
+      fetchData();
+      alert('Mission added successfully!');
+    } catch (error) {
+      console.error("Mission submission failed:", error);
+      alert('Mission submission failed. Please try again.');
     }
-
-    // Call the backend function to add the mission
-    await backend.addMission(newMissionId, mode, missionDescriptionFormatted, obj1, obj2, isRecursive, BigInt(secondsToEarn), encodedImage, functionName1, functionName2);
-
-    // Refresh the mission list
-    fetchData();
-  };
+  }, [editMissionFields]);
 
   return (
     <main>
       <div className="container">
-        {!isAuthorized && <h1>Login to access to the Konectª Admin Module</h1>}
+        {!isAuthorized && <h1>Login to access the Konecta Admin Module</h1>}
         <br />
         {!isAuthorized && <NFIDAuth showButton={true} onSuccess={(principalId) => handleSuccess(principalId)} nfid={nfid} isInitialized={isInitialized} />}
-        <p>{message}</p>
         {isAuthorized && (
           <div>
             <div className="tab">
               <button className={`tablinks ${activeTab === 'Statistics' ? 'active' : ''}`} onClick={() => openTab('Statistics')}>User Statistics</button>
-              <button className={`tablinks ${activeTab === 'Administer' ? 'active' : ''}`} onClick={() => openTab('Administer')}>Admin Privileges</button>
+              <button className={`tablinks ${activeTab === 'Administer' ? 'active' : ''}`} onClick={() => openTab('Administer')}>Administer WebApp</button>
             </div>
 
             <div id="Statistics" className={`tabcontent ${activeTab === 'Statistics' ? 'active' : ''}`}>
@@ -436,6 +618,7 @@ function App() {
                   <button onClick={() => { setStartDate(null); setEndDate(null); }}>Reset</button>
                 </div>
               </div>
+
               <table>
                 <thead>
                   <tr>
@@ -459,10 +642,11 @@ function App() {
                   ))}
                 </tbody>
               </table>
+
               <br />
               <p>Total Amount of Missions Completed by All Users: {missionsCompleted}</p>
 
-              {showModal && (
+              {showUserModal && (
                 <div className="modal">
                   <div className="modal-content">
                     <h3>User Details for {selectedUser?.id}</h3>
@@ -499,12 +683,11 @@ function App() {
                       ))}
                     </ul>
 
-                    <button onClick={() => setShowModal(false)}>Close</button>
+                    <button onClick={() => setShowUserModal(false)}>Close</button> {/* Close User Modal */}
                   </div>
                 </div>
               )}
 
-              <br />
               {missions.length > 0 ? (
                 <div className="chart-container">
                   <Bar
@@ -535,7 +718,6 @@ function App() {
             <div id="Administer" className={`tabcontent ${activeTab === 'Administer' ? 'active' : ''}`}>
               <h3>Admin Privileges</h3>
               <p className="left-align">Principal IDs with Admin privileges:</p>
-              <br />
               <ul className="admin-list">
                 {adminIds.map((id, index) => (
                   <li key={id}>
@@ -543,121 +725,233 @@ function App() {
                   </li>
                 ))}
               </ul>
-              <br />
+
               <p className="left-align">Add a new Admin ID:</p>
               <input type="text" placeholder="New Admin ID" value={newAdminId} onChange={(e) => setNewAdminId(e.target.value)} />
               <button className="small-button" onClick={() => handleAddAdmin(newAdminId)}>Add</button>
-              <br />
+
               <h3>Missions</h3>
               {missionDetails.length > 0 ? (
                 <table>
                   <thead>
                     <tr>
                       <th>ID</th>
+                      <th>Title</th>
                       <th>Mission Type</th>
                       <th>Description</th>
                       <th>Object Details</th>
                       <th>Recursive</th>
                       <th>Max Time</th>
                       <th>Image</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {missionDetails.map((mission) => (
-                      <tr key={mission.id}>
-                        <td>{mission.id.toString()}</td>
-                        <td>{formatMissionType(mission.mode)}</td>
-                        <td>{mission.description}</td>
-                        <td dangerouslySetInnerHTML={{ __html: mission.objectDetails }}></td>
-                        <td>{mission.recursive ? 'Yes' : 'No'}</td>
-                        <td>{formatTime(mission.maxtime)}</td>
-
-                        <td>
-                          <img src={`data:image/png;base64,${btoa(String.fromCharCode(...new Uint8Array(mission.image)))}`} alt="Mission" width="200" height="200" />
-                        </td>
-                      </tr>
-                    ))}
+                    {missionDetails.map((mission, index) => {
+                      const { title, description } = parseMissionTitleAndDescription(mission.description);
+                      return (
+                        <tr key={mission.id.toString()}>
+                          <td>{mission.id.toString()}</td>
+                          <td>{title}</td>
+                          <td>{formatMissionType(mission.mode)}</td>
+                          <td>{description}</td>
+                          <td dangerouslySetInnerHTML={{ __html: mission.objectDetails }}></td>
+                          <td>{mission.recursive ? 'Yes' : 'No'}</td>
+                          <td>{formatTime(mission.maxtime)}</td>
+                          <td>
+                            <img src={`https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io${mission.image}`} alt="Mission" width="200" height="200" />
+                          </td>
+                          <td>
+                            <button onClick={() => handleOpenModifyModal(mission)}>Modify</button> {/* Modify button */}
+                            {mission.id >= 0n && (
+                              <button onClick={() => handleDeleteMission(mission.id)}>Delete</button>
+                            )} {/* Delete button */}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
                 <p>There are no missions</p>
               )}
 
-              {/* New Mission Module */}
               <br />
               <p>Add a new mission</p>
               <br />
 
-              <div className="mission-form">
-                <div>
-                  <label htmlFor="missionType">Mission Type: </label>
-                  <select id="missionType" value={selectedMissionType} onChange={handleMissionTypeChange}>
-                    <option>Single Button Mission</option>
-                    <option>Double Button Mission</option>
-                    <option>Input + Button Mission</option>
-                  </select>
+              <form onSubmit={handleSubmit}>
+                <div className="mission-form">
+                  <div>
+                    <label htmlFor="missionType">Mission Type: </label>
+                    <select
+                      id="missionType"
+                      value={selectedMissionType}
+                      onChange={(e) => setSelectedMissionType(e.target.value)}
+                    >
+                      <option>Single Button Mission</option>
+                      <option>Double Button Mission</option>
+                      <option>Input + Button Mission</option>
+                    </select>
+                  </div>
+                  <br />
+
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Mission Title"
+                      value={missionTitle}
+                      onChange={(e) => setMissionTitle(e.target.value)}
+                    />
+                  </div>
+                  <br />
+
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Mission Description"
+                      value={missionDescription}
+                      onChange={(e) => setMissionDescription(e.target.value)}
+                    />
+                  </div>
+                  <br />
+
+                  {selectedMissionType === 'Single Button Mission' && (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Button Text"
+                        value={buttonText}
+                        onChange={(e) => setButtonText(e.target.value)}
+                      />
+                      <br />
+                      <input
+                        type="text"
+                        placeholder="Button Function Name"
+                        value={buttonFunctionName}
+                        onChange={(e) => setButtonFunctionName(e.target.value)}
+                      />
+                      <br />
+                    </>
+                  )}
+
+                  {selectedMissionType === 'Double Button Mission' && (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Button 1 Text"
+                        value={buttonText}
+                        onChange={(e) => setButtonText(e.target.value)}
+                      />
+                      <br />
+                      <input
+                        type="text"
+                        placeholder="Button 1 Function Name"
+                        value={buttonFunctionName}
+                        onChange={(e) => setButtonFunctionName(e.target.value)}
+                      />
+                      <br />
+                      <input
+                        type="text"
+                        placeholder="Button 2 Text"
+                        value={buttonText2}
+                        onChange={(e) => setButtonText2(e.target.value)}
+                      />
+                      <br />
+                      <input
+                        type="text"
+                        placeholder="Button 2 Function Name"
+                        value={buttonFunctionName2}
+                        onChange={(e) => setButtonFunctionName2(e.target.value)}
+                      />
+                      <br />
+                    </>
+                  )}
+
+                  {selectedMissionType === 'Input + Button Mission' && (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Input Text"
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                      />
+                      <br />
+                      <input
+                        type="text"
+                        placeholder="Button Text"
+                        value={buttonText}
+                        onChange={(e) => setButtonText(e.target.value)}
+                      />
+                      <br />
+                      <input
+                        type="text"
+                        placeholder="Button Function Name"
+                        value={buttonFunctionName}
+                        onChange={(e) => setButtonFunctionName(e.target.value)}
+                      />
+                      <br />
+                    </>
+                  )}
+
+                  <input
+                    type="checkbox"
+                    checked={isRecursive}
+                    onChange={(e) => setIsRecursive(e.target.checked)}
+                  />{" "}
+                  Is recursive
+                  <br />
+
+                  <input
+                    type="text"
+                    placeholder="Seconds to earn"
+                    value={secondsToEarn}
+                    onChange={(e) => setSecondsToEarn(e.target.value)}
+                  />
+                  <br />
+
+                  <input type="file" accept=".png,.jpg" onChange={handleImageUpload} />
+                  {imageError && <p style={{ color: "red" }}>{imageError}</p>}
+                  <br />
+
+                  <button className="small-button" type="submit">
+                    Submit
+                  </button>
                 </div>
-                <br />
+              </form>
 
-                <div>
-                  <input type="text" placeholder="Mission Title" value={missionTitle} onChange={(e) => setMissionTitle(e.target.value)} />
-                </div>
-                <br />
-
-                <div>
-                  <input type="text" placeholder="Mission Description" value={missionDescription} onChange={(e) => setMissionDescription(e.target.value)} />
-                </div>
-                <br />
-
-                {selectedMissionType === 'Single Button Mission' && (
-                  <>
-                    <input type="text" placeholder="Button Text" value={buttonText} onChange={(e) => setButtonText(e.target.value)} />
-                    <br />
-                    <input type="text" placeholder="Button Function Name" value={buttonFunctionName} onChange={(e) => setButtonFunctionName(e.target.value)} />
-                    <br />
-                  </>
-                )}
-
-                {selectedMissionType === 'Double Button Mission' && (
-                  <>
-                    <input type="text" placeholder="Button 1 Text" value={buttonText} onChange={(e) => setButtonText(e.target.value)} />
-                    <br />
-                    <input type="text" placeholder="Button 1 Function Name" value={buttonFunctionName} onChange={(e) => setButtonFunctionName(e.target.value)} />
-                    <br />
-                    <input type="text" placeholder="Button 2 Text" value={buttonText2} onChange={(e) => setButtonText2(e.target.value)} />
-                    <br />
-                    <input type="text" placeholder="Button 2 Function Name" value={buttonFunctionName2} onChange={(e) => setButtonFunctionName2(e.target.value)} />
-                    <br />
-                  </>
-                )}
-
-                {selectedMissionType === 'Input + Button Mission' && (
-                  <>
-                    <input type="text" placeholder="Input Text" value={inputText} onChange={(e) => setInputText(e.target.value)} />
-                    <br />
-                    <input type="text" placeholder="Button Text" value={buttonText} onChange={(e) => setButtonText(e.target.value)} />
-                    <br />
-                    <input type="text" placeholder="Button Function Name" value={buttonFunctionName} onChange={(e) => setButtonFunctionName(e.target.value)} />
-                    <br />
-                  </>
-                )}
-
-                <input type="checkbox" checked={isRecursive} onChange={(e) => setIsRecursive(e.target.checked)} /> Is recursive
-                <br />
-                <input type="text" placeholder="Seconds to earn" value={secondsToEarn} onChange={(e) => setSecondsToEarn(e.target.value)} />
-                <br />
-
-                <input type="file" accept=".png,.jpg" onChange={handleImageUpload} />
-                {imageError && <p style={{ color: 'red' }}>{imageError}</p>}
-                <br />
-
-                <button className="small-button" onClick={() => {
-                  if (window.confirm("Are you sure you want to submit this mission?")) {
-                    handleSubmit();
-                  }
-                }}>Submit</button>
-              </div>
             </div>
+
+            {/* Modal for editing mission */}
+            {showMissionModal && (
+              <Modal key={missionToEdit?.id} onClose={() => setShowMissionModal(false)}>
+                <h2>Edit Mission</h2>
+                <form onSubmit={handleUpdateMission}>
+                  <label>Title</label>
+                  <input name="title" type="text" defaultValue={editMissionFields.title} />
+
+                  <label>Description</label>
+                  <textarea name="description" defaultValue={editMissionFields.description} />
+
+                  <label>Button Text 1</label>
+                  <input name="obj1" type="text" defaultValue={editMissionFields.obj1} />
+
+                  <label>Button Text 2</label>
+                  <input name="obj2" type="text" defaultValue={editMissionFields.obj2} />
+
+                  <label>Function Name 1</label>
+                  <input name="functionName1" type="text" defaultValue={editMissionFields.functionName1} />
+
+                  <label>Function Name 2</label>
+                  <input name="functionName2" type="text" defaultValue={editMissionFields.functionName2} />
+
+                  <label>Max Time (Seconds)</label>
+                  <input name="maxtime" type="text" defaultValue={editMissionFields.maxtime} />
+
+                  <button type="submit">Update Mission</button>
+                </form>
+              </Modal>
+            )}
           </div>
         )}
       </div>

@@ -27,7 +27,7 @@ module Types {
     var obj2 : Text; // Text for Second Button
     var recursive : Bool; // If the mission is recursive
     var maxtime : Int; // Maximum time to earn on the mission
-    var image : [Nat8]; // Image for the mission
+    var image : Text; // Image for the mission
     var functionName1 : Text; // Function Name to call on First Button
     var functionName2 : Text; // Function Name to call on Second Button
   };
@@ -40,7 +40,7 @@ module Types {
     obj2 : Text;
     recursive : Bool;
     maxtime : Int;
-    image : [Nat8];
+    image : Text;
     functionName1 : Text;
     functionName2 : Text;
   };
@@ -114,16 +114,17 @@ module Types {
     http_request : HttpRequestArgs -> async HttpResponsePayload;
   };
 
-  public type HttpRequest = {
-    method : Text;
+public type HttpRequest = {
     url : Text;
+    method : Text;
     headers : [(Text, Text)];
-    body : [Nat8];
-  };
+    body : Blob;
+    certificate : ?Blob;
+};
 
   public type HttpResponse = {
-    status_code : Nat;
+    status_code : Nat16;
     headers : [(Text, Text)];
-    body : [Nat8];
+    body : Blob;
   };
 };

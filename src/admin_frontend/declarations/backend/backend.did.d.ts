@@ -40,7 +40,7 @@ export interface SerializedMission {
   obj2: string;
   recursive: boolean;
   maxtime: bigint;
-  image: Uint8Array;
+  image: string;
   functionName1: string;
   functionName2: string;
 }
@@ -66,7 +66,7 @@ export interface Backend {
   handleTwitterCallback: ActorMethod<[string, string, string], [SerializedUser | null]>;
   addUser: ActorMethod<[string], undefined>;
   isMiddlemanReachable: ActorMethod<[], boolean>;
-  addMission: ActorMethod<[bigint, bigint, string, string, string, boolean, bigint, Uint8Array, string, string], undefined>;
+  addMission: ActorMethod<[bigint, bigint, string, string, string, boolean, bigint, string, string], undefined>;
   getNumberOfMissions: ActorMethod<[], bigint>;
   getMissionById: ActorMethod<[bigint], [SerializedMission | null]>;
   updateUserProgress: ActorMethod<[string, bigint, SerializedProgress], undefined>;
@@ -83,6 +83,8 @@ export interface Backend {
   addCode: ActorMethod<[string], undefined>;
   removeCode: ActorMethod<[string], undefined>;
   getCodes: ActorMethod<[], Array<string>>;
+  uploadMissionImage: ActorMethod<[string, Uint8Array], string>;
+  getMissionImage: ActorMethod<[string], [Uint8Array | null]>;
 }
 export interface _SERVICE extends Backend { }
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

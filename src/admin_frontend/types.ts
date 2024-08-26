@@ -22,6 +22,10 @@ export type Mission = {
   obj1: string;
   obj2: string;
   recursive: boolean;
+  maxtime: bigint;
+  image: string;
+  functionName1: string;
+  functionName2: string;
 };
 
 export type Progress = {
@@ -40,7 +44,7 @@ export interface SerializedMission {
   obj2: string;
   recursive: boolean;
   maxtime: bigint;
-  image: Uint8Array;
+  image: string;
   functionName1: string;
   functionName2: string;
 }
