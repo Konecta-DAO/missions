@@ -327,7 +327,7 @@ actor class Backend() {
   public query func getMissionImage(url : Text) : async ?Blob {
     return missionAssets.get(url);
   };
-  
+
   // Function to add or update a mission
   public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, newobj2 : Text, recursive : Bool, maxtime : Int, image : Text, functionName1 : Text, newfunctionName2 : Text) : async () {
 
@@ -501,6 +501,29 @@ actor class Backend() {
     return ids;
   };
 
+  public shared func addTwitterInfo(principalId : Text, twitterId : Nat, twitterHandle : Text) : async () {
+    var i = 0;
+    while (i < Vector.size(users)) {
+      switch (Vector.getOpt(users, i)) {
+        case (?user) {
+          if (user.id == principalId) {
+            let updatedUser : Types.User = {
+              id = user.id;
+              var seconds = user.seconds;
+              var twitterid = twitterId;
+              var twitterhandle = twitterHandle;
+              creationTime = user.creationTime;
+            };
+            Vector.put(users, i, updatedUser);
+            return;
+          };
+        };
+        case _ {};
+      };
+      i += 1;
+    };
+  };
+
   public func verifyFollow(userid : Text) : async Bool {
     let ic : Types.IC = actor ("aaaaa-aa");
     let host : Text = "do.konecta.one";
@@ -648,14 +671,14 @@ actor class Backend() {
   };
 
   // Function to get trusted origins for NFID authentication
-  public shared query func get_trusted_origins() : async [Text] {
+  public shared query func icrc28_trusted_origins() : async Types.Icrc28TrustedOriginsResponse {
     let trustedOrigins = [
       "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", // Frontend Canister to auth NFID
       "https://pre.konecta.one", // Domain
       "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io", // Admin Frontend Canister to auth NFID
       "https://adminpre.konecta.one", // Admin Domain
     ];
-    return trustedOrigins;
+    return { trusted_origins = trustedOrigins };
   };
 
   // Security function to transform the response

@@ -24,6 +24,15 @@
       "source": [
         "dist/admin"
       ]
+    },
+    "stats_frontend": {
+      "dependencies": [
+        "backend"
+      ],
+      "type": "assets",
+      "source": [
+        "dist/stats"
+      ]
     }
   },
   "defaults": {

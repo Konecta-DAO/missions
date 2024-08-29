@@ -3,6 +3,18 @@ type HttpHeader = record {
   value : text;
 };
 
+type HttpRequestArgs = record {
+  url : text;
+  max_response_bytes : opt nat64;
+  headers : vec HttpHeader;
+  body : opt vec nat8;
+  method : variant { get; post; head };
+  transform : opt record {
+    function : principal;
+    context : blob;
+  };
+};
+
 type HttpResponsePayload = record {
   status : nat;
   headers : vec HttpHeader;
@@ -52,7 +64,7 @@ type SerializedProgress = record {
 service : {
   getIds : () -> (vec text) query;
   resetall : () -> ();
-  get_trusted_origins : () -> (vec text) query;
+  icrc28_trusted_origins : () -> (vec text) query;
   getTotalSeconds : (text) -> (nat) query;
   addTweet : (text, nat) -> ();
   getTweets : (text) -> (?vec record { nat; nat });
@@ -62,7 +74,7 @@ service : {
   handleTwitterCallback : (text, text, text) -> (?SerializedUser);
   addUser : (text) -> ();
   isMiddlemanReachable : () -> (bool);
-  addMission : (nat, nat, text, text, text, bool, int, text, text, text) -> ();
+  addMission : (nat, nat, text, text, text, bool, int, text, text) -> ();
   getNumberOfMissions : () -> (nat) query;
   getMissionById : (nat) -> (?SerializedMission) query;
   updateUserProgress : (text, nat, SerializedProgress) -> ();
@@ -81,4 +93,5 @@ service : {
   getCodes : () -> (vec text) query;
   uploadMissionImage : (text, blob) -> (text);
   getMissionImage : (text) -> (?blob);
+  addTwitterInfo : (text, nat, text) -> ();
 };

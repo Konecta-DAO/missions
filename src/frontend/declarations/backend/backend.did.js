@@ -7,6 +7,20 @@ export const idlFactory = ({ IDL }) => {
     body: IDL.Vec(IDL.Nat8),
   });
 
+  const HttpRequestArgs = IDL.Record({
+    url: IDL.Text,
+    max_response_bytes: IDL.Opt(IDL.Nat64),
+    headers: IDL.Vec(HttpHeader),
+    body: IDL.Opt(IDL.Vec(IDL.Nat8)),
+    method: IDL.Variant({ get: IDL.Null, post: IDL.Null, head: IDL.Null }),
+    transform: IDL.Opt(
+      IDL.Record({
+        function: IDL.Principal,
+        context: IDL.Vec(IDL.Nat8),
+      })
+    ),
+  });
+
   const CanisterHttpResponsePayload = IDL.Record({
     status: IDL.Nat,
     headers: IDL.Vec(HttpHeader),
@@ -50,7 +64,7 @@ export const idlFactory = ({ IDL }) => {
   const Backend = IDL.Service({
     getIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     resetall: IDL.Func([], [], []),
-    get_trusted_origins: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    icrc28_trusted_origins: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     getTotalSeconds: IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     addTweet: IDL.Func([IDL.Text, IDL.Nat], [], []),
     getTweets: IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Nat)))], []),
@@ -79,6 +93,7 @@ export const idlFactory = ({ IDL }) => {
     getCodes: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     uploadMissionImage: IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [IDL.Text], []),
     getMissionImage: IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
+    addTwitterInfo: IDL.Func([IDL.Text, IDL.Nat, IDL.Text], [], []),
   });
   return Backend;
 };

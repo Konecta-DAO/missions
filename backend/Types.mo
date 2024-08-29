@@ -1,6 +1,11 @@
 import TrieMap "mo:base/TrieMap";
 
 module Types {
+
+  public type Icrc28TrustedOriginsResponse = {
+    trusted_origins : [Text];
+  };
+
   // User Types
   public type User = {
     id : Text; // Principal ID
@@ -114,13 +119,13 @@ module Types {
     http_request : HttpRequestArgs -> async HttpResponsePayload;
   };
 
-public type HttpRequest = {
+  public type HttpRequest = {
     url : Text;
     method : Text;
     headers : [(Text, Text)];
     body : Blob;
     certificate : ?Blob;
-};
+  };
 
   public type HttpResponse = {
     status_code : Nat16;

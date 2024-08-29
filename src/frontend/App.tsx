@@ -9,6 +9,8 @@ import { useNFID } from './useNFID';
 import { Usergeek } from "usergeek-ic-js";
 import CryptoJS from 'crypto-js';
 import { Principal } from '@dfinity/principal';
+import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 function App() {
   const [principalId, setPrincipalId] = useState<string>('');
@@ -18,6 +20,10 @@ function App() {
   const [NFIDing, setNFIDing] = useState<boolean>(true);
   const [decrypting, setDecrypting] = useState<boolean>(true);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [twitterAuthURL, setTwitterAuthURL] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const location = useLocation();
+
 
   // Callback function to set NFIDing to false and isInitialized to true
   const handleNfidIframeInstantiated = useCallback(() => {
@@ -61,18 +67,25 @@ function App() {
   }
 
   useEffect(() => {
+    if (!nfid) {
+      console.log('Waiting for NFID to initialize before decrypting principalId');
+      return;
+    }
+
     const encryptedData = localStorage.getItem('encryptedData');
     const iv = localStorage.getItem('iv');
+
     if (encryptedData && iv) {
       try {
         const decryptedData = decrypt(encryptedData, iv);
+        console.log('Decrypted Data:', decryptedData);
         if (decryptedData) {
           const parsedData = JSON.parse(decryptedData);
           const { principalId, expirationTime } = parsedData;
 
           if (Date.now() < expirationTime) {
-            handleSuccess(principalId);
-            return;
+            console.log("Calling handleSuccess to set principalId");
+            setPrincipalId(principalId); // Set principalId
           }
         }
       } catch (error) {
@@ -81,11 +94,12 @@ function App() {
         localStorage.removeItem('iv');
       } finally {
         setDecrypting(false);
-        console.log("Decrypt not loading");
       }
+    } else {
+      setDecrypting(false);
     }
+  }, [nfid]);
 
-  }, []);
 
   // Initialize Usergeek
   useEffect(() => {
@@ -109,6 +123,10 @@ function App() {
       const expirationTime = Date.now() + 3600000; // 1 hour from now
       const dataToEncrypt = JSON.stringify({ principalId: pId, expirationTime });
       const { iv, encryptedData } = encrypt(dataToEncrypt);
+
+      console.log('Storing Encrypted Data:', encryptedData); // Debug
+      console.log('Storing IV:', iv); // Debug
+
       localStorage.setItem('encryptedData', encryptedData);
       localStorage.setItem('iv', iv);
 
@@ -116,7 +134,7 @@ function App() {
       Usergeek.trackSession();
       await mainLogic(pId);
     } finally {
-      setNFIDing(false); // Always hide the loading screen after handling success
+      setNFIDing(false);
       console.log("NFID not loading");
     }
   }, [nfid, backend]);
@@ -158,9 +176,28 @@ function App() {
   // Initialize OpenChat iframe
   useEffect(() => {
     const initOpenChat = async () => {
-      const iframe = document.getElementById('openchat-iframe') as HTMLIFrameElement;
+      let attempts = 0;
+      const maxAttempts = 10; // Increase the number of retries
+
+      const checkIframeExists = () => {
+        return new Promise<HTMLIFrameElement | null>((resolve) => {
+          const iframe = document.getElementById('openchat-iframe') as HTMLIFrameElement;
+          if (iframe) {
+            resolve(iframe);
+          } else if (attempts < maxAttempts) {
+            setTimeout(() => {
+              attempts += 1;
+              resolve(checkIframeExists());
+            }, 300); // Increase the delay between retries
+          } else {
+            resolve(null);
+          }
+        });
+      };
+
+      const iframe = await checkIframeExists();
       if (!iframe) {
-        console.error('Iframe element not found');
+        console.error('Iframe element not found after retries');
         return;
       }
 
@@ -190,7 +227,6 @@ function App() {
             disableLeftNav: true
           }
         });
-
       } catch (error) {
         console.error('Error initializing OpenChat:', error);
       }
@@ -199,17 +235,116 @@ function App() {
     initOpenChat();
   }, []);
 
-  // Use effect to trigger handleSuccess once principalId is ready
+
+  // Once principalId is set, call handleSuccess
   useEffect(() => {
     if (principalId) {
       handleSuccess(principalId);
     }
   }, [principalId]);
 
-  const verifyTweet = () => {
-    console.log("Verify Tweet button clicked");
-    // Add your logic to verify the tweet here
+  const startTwitterAuth = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('https://do.konecta.one/requestTwitterAuth');
+      console.log('Twitter Auth Response:', response);
+
+      if (response.data && response.data.authURL) {
+        console.log('Redirecting to:', response.data.authURL);
+        window.location.href = response.data.authURL;
+      } else {
+        console.error('Twitter Auth URL is missing');
+      }
+    } catch (error) {
+      console.error('Error starting Twitter OAuth:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleFollowClick = async () => {
+    await startTwitterAuth();
+  };
+
+  // Function to extract query parameters from the URL
+  const getQueryParams = () => {
+    const params = new URLSearchParams(location.search);
+    const oauthToken = params.get('oauth_token');
+    const oauthVerifier = params.get('oauth_verifier');
+    console.log('OAuth Token:', oauthToken);
+    console.log('OAuth Verifier:', oauthVerifier);
+    return { oauthToken, oauthVerifier };
+  };
+
+  // Function to handle the Twitter callback (after user authenticates)
+  const handleTwitterCallback = async (oauthToken: string, oauthVerifier: string) => {
+    if (!principalId) {
+      console.error('Principal ID is missing.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Sending OAuth Token and Verifier to Middleman:', oauthToken, oauthVerifier);
+
+      const response = await axios.post('https://do.konecta.one/getTwitterUser', {
+        oauthToken,
+        oauthVerifier,
+      });
+
+      // Log the full response for debugging
+      console.log('Twitter user info response:', response);
+
+      if (response.data && response.data.id_str && response.data.screen_name) {
+        console.log('Twitter user info:', response.data);
+
+        // Store Twitter info in the backend
+        await backend.addTwitterInfo(principalId, BigInt(response.data.id_str), response.data.screen_name);
+
+        // Redirect user to follow the Twitter account
+        window.location.href = `https://twitter.com/intent/follow?screen_name=konecta_Dao`;
+      } else {
+        console.error('Twitter user information is missing');
+      }
+    } catch (error) {
+      console.error('Error handling Twitter callback:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  // Extract OAuth tokens and store them
+  useEffect(() => {
+    const { oauthToken, oauthVerifier } = getQueryParams();
+
+    if (oauthToken && oauthVerifier) {
+      console.log('OAuth Token:', oauthToken);
+      console.log('OAuth Verifier:', oauthVerifier);
+
+      // Store OAuth tokens temporarily
+      localStorage.setItem('oauth_token', oauthToken);
+      localStorage.setItem('oauth_verifier', oauthVerifier);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (principalId) {
+      const storedToken = localStorage.getItem('oauth_token');
+      const storedVerifier = localStorage.getItem('oauth_verifier');
+
+      if (storedToken && storedVerifier) {
+        console.log('PrincipalId:', principalId);
+        console.log('Calling handleTwitterCallback with stored token and verifier');
+
+        handleTwitterCallback(storedToken, storedVerifier);
+
+        // Clear OAuth tokens after they are processed
+        localStorage.removeItem('oauth_token');
+        localStorage.removeItem('oauth_verifier');
+      }
+    }
+  }, [principalId, location.search]);
 
   return (
     <main>
@@ -237,13 +372,15 @@ function App() {
             {showFollowButton && (
               <>
                 <br />
-                <button className="btn-grad">Follow Konecta_Dao</button>
+                <button className="btn-grad" onClick={handleFollowClick} disabled={loading}>
+                  {loading ? 'Redirecting to Twitter...' : 'Follow Konecta_Dao'}
+                </button>
               </>
             )}
             {showVerifyButton && (
               <>
                 <br />
-                <button className="btn-grad" onClick={verifyTweet}>Verify</button>
+                <button className="btn-grad" >Verify</button>
               </>
             )}
             <br />

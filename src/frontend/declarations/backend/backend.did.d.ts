@@ -7,6 +7,15 @@ export interface HttpHeader {
   value: string;
 }
 
+export interface HttpRequestArgs {
+  url: string;
+  max_response_bytes: bigint | null;
+  headers: HttpHeader[];
+  body: Uint8Array | null;
+  method: { get: null; post: null; head: null };
+  transform: { function: Principal; context: Uint8Array } | null;
+}
+
 export interface HttpResponsePayload {
   status: bigint;
   headers: HttpHeader[];
@@ -56,7 +65,7 @@ export interface SerializedProgress {
 export interface Backend {
   getIds: ActorMethod<[], Array<string>>;
   resetall: ActorMethod<[], undefined>;
-  get_trusted_origins: ActorMethod<[], Array<string>>;
+  icrc28_trusted_origins: ActorMethod<[], Array<string>>;
   getTotalSeconds: ActorMethod<[string], bigint>;
   addTweet: ActorMethod<[string, bigint], undefined>;
   getTweets: ActorMethod<[string], [Array<[bigint, bigint]> | null]>;
@@ -85,6 +94,9 @@ export interface Backend {
   getCodes: ActorMethod<[], Array<string>>;
   uploadMissionImage: ActorMethod<[string, Uint8Array], string>;
   getMissionImage: ActorMethod<[string], [Uint8Array | null]>;
+  addTwitterInfo: ActorMethod<[string, bigint, string], undefined>;
 }
-export interface _SERVICE extends Backend { }
+
+export interface _SERVICE extends Backend {}
+
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

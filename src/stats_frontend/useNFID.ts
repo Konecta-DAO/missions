@@ -6,9 +6,8 @@ const NFID_PROVIDER_URL = 'https://nfid.one'; // NFID provider URL
 export const useNFID = (onNfidIframeInstantiated: () => void) => {
   const [nfid, setNfid] = useState<any>(null);
 
-useEffect(() => {
-  const initNFID = async () => {
-    try {
+  useEffect(() => {
+    const initNFID = async () => {
       const nfidInstance = await NFID.init({
         origin: NFID_PROVIDER_URL,
         application: {
@@ -16,16 +15,11 @@ useEffect(() => {
           logo: 'https://dev.nfid.one/static/media/id.300eb72f3335b50f5653a7d6ad5467b3.svg',
         },
       });
-      console.log('NFID Initialized:', nfidInstance); 
       setNfid(nfidInstance);
-      onNfidIframeInstantiated(); 
-    } catch (error) {
-      console.error('Error initializing NFID:', error);
-    }
-  };
-  initNFID();
-}, [onNfidIframeInstantiated]);
-
+      onNfidIframeInstantiated(); // Call the callback function
+    };
+    initNFID();
+  }, [onNfidIframeInstantiated]);
 
   return { nfid };
 };

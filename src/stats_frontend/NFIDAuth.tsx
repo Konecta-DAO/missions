@@ -13,11 +13,10 @@ const NFIDAuth: React.FC<NFIDAuthProps> = ({ onSuccess, showButton, nfid, isInit
     const [isButtonEnabled, setIsButtonEnabled] = useState<boolean>(false);
 
     useEffect(() => {
-        if (isInitialized && nfid) {
+        if (isInitialized) {
             setIsButtonEnabled(true);
         }
-    }, [isInitialized, nfid]); 
-
+    }, [isInitialized]);
 
     // Handle authentication
     const handleAuthenticate = useCallback(async () => {

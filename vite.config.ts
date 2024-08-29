@@ -8,18 +8,26 @@ import polyfillNode from 'rollup-plugin-polyfill-node';
 
 dotenv.config();
 
-const isAdmin = process.env.BUILD_TARGET === 'admin';
+const buildTarget = process.env.BUILD_TARGET;
+const isAdmin = buildTarget === 'admin';
+const isStats = buildTarget === 'stats';  
 
 export default defineConfig({
-  root: isAdmin ? path.resolve(__dirname, 'src/admin_frontend') : path.resolve(__dirname, 'src/frontend'),
+  root: isAdmin ? path.resolve(__dirname, 'src/admin_frontend')
+    : isStats ? path.resolve(__dirname, 'src/stats_frontend') 
+      : path.resolve(__dirname, 'src/frontend'),
   build: {
     rollupOptions: {
-      input: isAdmin ? path.resolve(__dirname, 'src/admin_frontend/index.html') : path.resolve(__dirname, 'src/frontend/index.html'),
+      input: isAdmin ? path.resolve(__dirname, 'src/admin_frontend/index.html')
+        : isStats ? path.resolve(__dirname, 'src/stats_frontend/index.html') 
+          : path.resolve(__dirname, 'src/frontend/index.html'),
       plugins: [
         polyfillNode()
       ]
     },
-    outDir: isAdmin ? path.resolve(__dirname, 'dist/admin') : path.resolve(__dirname, 'dist/frontend'),
+    outDir: isAdmin ? path.resolve(__dirname, 'dist/admin')
+      : isStats ? path.resolve(__dirname, 'dist/stats') 
+        : path.resolve(__dirname, 'dist/frontend'),
     emptyOutDir: true,
   },
   optimizeDeps: {
@@ -33,6 +41,7 @@ export default defineConfig({
           CANISTER_ID_FRONTEND: process.env.CANISTER_ID_FRONTEND,
           CANISTER_ID_BACKEND: process.env.CANISTER_ID_BACKEND,
           CANISTER_ID_ADMIN_FRONTEND: process.env.CANISTER_ID_ADMIN_FRONTEND,
+          CANISTER_ID_STATS_FRONTEND: process.env.CANISTER_ID_STATS_FRONTEND,
           CANISTER_ID: process.env.CANISTER_ID,
           CANISTER_CANDID_PATH: process.env.CANISTER_CANDID_PATH,
         })
@@ -54,7 +63,9 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known' : 'src/frontend/.well-known'),
+          src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known'
+            : isStats ? 'src/stats_frontend/.well-known'
+              : 'src/frontend/.well-known'),
           dest: '.'
         }
       ]
