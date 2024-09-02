@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import environment from 'vite-plugin-environment';
 import dotenv from 'dotenv';
 import path from 'path';
+import svgr from 'vite-plugin-svgr';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import polyfillNode from 'rollup-plugin-polyfill-node';
 
@@ -10,23 +11,23 @@ dotenv.config();
 
 const buildTarget = process.env.BUILD_TARGET;
 const isAdmin = buildTarget === 'admin';
-const isStats = buildTarget === 'stats';  
+const isStats = buildTarget === 'stats';
 
 export default defineConfig({
   root: isAdmin ? path.resolve(__dirname, 'src/admin_frontend')
-    : isStats ? path.resolve(__dirname, 'src/stats_frontend') 
+    : isStats ? path.resolve(__dirname, 'src/stats_frontend')
       : path.resolve(__dirname, 'src/frontend'),
   build: {
     rollupOptions: {
       input: isAdmin ? path.resolve(__dirname, 'src/admin_frontend/index.html')
-        : isStats ? path.resolve(__dirname, 'src/stats_frontend/index.html') 
+        : isStats ? path.resolve(__dirname, 'src/stats_frontend/index.html')
           : path.resolve(__dirname, 'src/frontend/index.html'),
       plugins: [
         polyfillNode()
       ]
     },
     outDir: isAdmin ? path.resolve(__dirname, 'dist/admin')
-      : isStats ? path.resolve(__dirname, 'dist/stats') 
+      : isStats ? path.resolve(__dirname, 'dist/stats')
         : path.resolve(__dirname, 'dist/frontend'),
     emptyOutDir: true,
   },
@@ -62,6 +63,10 @@ export default defineConfig({
     environment('all', { prefix: 'DFX_' }),
     viteStaticCopy({
       targets: [
+        {
+          src: path.resolve(__dirname, 'public/*'),
+          dest: '.'
+        },
         {
           src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known'
             : isStats ? 'src/stats_frontend/.well-known'

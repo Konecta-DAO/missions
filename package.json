@@ -35,7 +35,9 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1",
     "rollup-plugin-polyfill-node": "^0.13.0",
-    "usergeek-ic-js": "^1.0.6"
+    "styled-components": "^6.1.13",
+    "usergeek-ic-js": "^1.0.6",
+    "vite-plugin-svgr": "^4.2.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.8",

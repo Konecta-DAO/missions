@@ -1,0 +1,73 @@
+// Home.module.scss
+
+$animation-duration: 4s;
+$animation-timing-function: ease-in-out;
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes floatOpposite {
+  0% { transform: translateY(-20px); }
+  50% { transform: translateY(0); }
+  100% { transform: translateY(-20px); }
+}
+
+.HomeContainer {
+  text-align: center;
+  color: white;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+
+  &.mobile {
+    padding: 10px;
+  }
+}
+
+.OverlayWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.SvgWrapper {
+  position: fixed;
+  left: -5%;
+  top: 58%;
+  transform: translateY(-50%);
+  width: 20vw;
+  animation: float $animation-duration $animation-timing-function infinite;
+  z-index: 2;
+}
+
+.KamiWrapper {
+  position: relative;
+  left: 9%;
+  top: -50%;
+  transform: translateY(-100%) scale(0.67);
+}
+
+.BottomPlataformaWrapper {
+  position: fixed;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 15%;
+  width: 100%;
+  transform: translateY(50%);
+  z-index: 2;
+}
+
+.PlataformaContainer {
+  width: 100%;
+  max-width: 50vw;
+  height: auto;
+  animation: floatOpposite $animation-duration $animation-timing-function infinite;
+}
