@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
 import { Actor, HttpAgent } from "@dfinity/agent";
 import KWA from './assets/KWAF LT.mp4';
-import { initialise } from '@open-ic/openchat-xframe';
 import NFIDAuth from './NFIDAuth';
 import { useNFID } from './useNFID';
 import { Usergeek } from "usergeek-ic-js";
@@ -11,6 +10,7 @@ import CryptoJS from 'crypto-js';
 import { Principal } from '@dfinity/principal';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import OpenChat from '../components/OpenChatComponent';
 
 function App() {
   const [principalId, setPrincipalId] = useState<string>('');
@@ -173,70 +173,7 @@ function App() {
     return timeArray[0];
   }
 
-  // Initialize OpenChat iframe
-  useEffect(() => {
-    const initOpenChat = async () => {
-      let attempts = 0;
-      const maxAttempts = 10; // Increase the number of retries
-
-      const checkIframeExists = () => {
-        return new Promise<HTMLIFrameElement | null>((resolve) => {
-          const iframe = document.getElementById('openchat-iframe') as HTMLIFrameElement;
-          if (iframe) {
-            resolve(iframe);
-          } else if (attempts < maxAttempts) {
-            setTimeout(() => {
-              attempts += 1;
-              resolve(checkIframeExists());
-            }, 300); // Increase the delay between retries
-          } else {
-            resolve(null);
-          }
-        });
-      };
-
-      const iframe = await checkIframeExists();
-      if (!iframe) {
-        console.error('Iframe element not found after retries');
-        return;
-      }
-
-      try {
-        await initialise(iframe, {
-          targetOrigin: 'https://oc.app',
-          initialPath: '/community/rfeib-riaaa-aaaar-ar3oq-cai/channel/334961401678552956581044255076222828441',
-          theme: {
-            name: 'my-app-theme',
-            base: 'dark',
-            overrides: {
-              primary: "green",
-              bd: 'rgb(91, 243, 190)',
-              bg: 'transparent',
-              txt: "black",
-              placeholder: "green",
-              'txt-light': '#75c8af',
-              timeline: {
-                txt: "yellow"
-              }
-            }
-          },
-          onUserIdentified: (userId: string) => {
-            console.log(`User identified: ${userId}`);
-          },
-          settings: {
-            disableLeftNav: true
-          }
-        });
-      } catch (error) {
-        console.error('Error initializing OpenChat:', error);
-      }
-    };
-
-    initOpenChat();
-  }, []);
-
-
-  // Once principalId is set, call handleSuccess
+    // Once principalId is set, call handleSuccess
   useEffect(() => {
     if (principalId) {
       handleSuccess(principalId);
@@ -386,7 +323,7 @@ function App() {
             <br />
             <p>Share this with friends</p>
             <br />
-            <iframe id="openchat-iframe" title="OpenChat"></iframe>
+            <OpenChat />
           </div>
           <footer className="footer">
             <div className="tooltip">

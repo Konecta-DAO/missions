@@ -9,61 +9,79 @@ module Types {
   // User Types
   public type User = {
     id : Text; // Principal ID
-    var seconds : Nat; // Total Seconds Earned
-    var twitterid : Nat; // Twitter ID
-    var twitterhandle : Text; // Twitter Handle
+    var twitterid : ?Nat; // Twitter ID
+    var twitterhandle : ?Text; // Twitter Handle
     creationTime : Int; // Creation Time in Nanoseconds
   };
 
   public type SerializedUser = {
     id : Text;
-    seconds : Nat;
-    twitterid : Nat;
-    twitterhandle : Text;
+    twitterid : ?Nat;
+    twitterhandle : ?Text;
     creationTime : Int;
   };
 
   // Mission Types
   public type Mission = {
-    id : Nat; // Mission Number
-    var mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    var id : Nat; // Mission Number
+    var title : Text; // Title of the Mission
     var description : Text; // Description of the Mission
-    var obj1 : Text; // Text for First Button or Input
-    var obj2 : Text; // Text for Second Button
+    var obj1 : ?Text; // Text for First Button or Input (optional)
+    var obj2 : Text; // Text for Second Button (optional)
+    var inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
+    var startDate : Int; // Start date of the mission (Unix timestamp)
+    var endDate : Int; // End date of the mission (Unix timestamp)
     var recursive : Bool; // If the mission is recursive
+    var mintime : Int; // Minimum time to earn on the mission
     var maxtime : Int; // Maximum time to earn on the mission
+    var functionName1 : ?Text; // Function Name to call on First Button (optional)
+    var functionName2 : Text; // Function Name to call on Second Button (optional)
     var image : Text; // Image for the mission
-    var functionName1 : Text; // Function Name to call on First Button
-    var functionName2 : Text; // Function Name to call on Second Button
+    var secretCodes : ?Text; // List of secret codes for the mission (optional)
+    var mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    var requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
   };
 
   public type SerializedMission = {
-    id : Nat;
-    mode : Nat;
-    description : Text;
-    obj1 : Text;
-    obj2 : Text;
-    recursive : Bool;
-    maxtime : Int;
-    image : Text;
-    functionName1 : Text;
-    functionName2 : Text;
+    id : Nat; // Mission Number
+    title : Text; // Title of the Mission
+    description : Text; // Description of the Mission
+    obj1 : ?Text; // Text for First Button or Input (optional)
+    obj2 : Text; // Text for Second Button (optional)
+    inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
+    startDate : Int; // Start date of the mission (Unix timestamp)
+    endDate : Int; // End date of the mission (Unix timestamp)
+    recursive : Bool; // If the mission is recursive
+    mintime : Int; // Minimum time to earn on the mission
+    maxtime : Int; // Maximum time to earn on the mission
+    functionName1 : ?Text; // Function Name to call on First Button (optional)
+    functionName2 : Text; // Function Name to call on Second Button (optional)
+    image : Text; // Image for the mission
+    secretCodes : ?Text; // List of secret codes for the mission (optional)
+    mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
   };
 
   // Progress Types
   public type Progress = {
-    var done : Bool; // If the mission is done
-    var timestamp : Int; // Timestamp of the last time mission was done
-    var totalearned : Nat; // Total seconds earned on the mission
-    var amountOfTimes : Nat; // How many times the mission has been done (for recursive missions)
+    var completionHistory : [MissionRecord]; // Array of records for each time the mission was completed
     var usedCodes : TrieMap.TrieMap<Text, Bool>; // Map of secret codes the user has used (for the secret code mission)
   };
 
-  public type SerializedProgress = {
-    done : Bool;
+  public type MissionRecord = {
+    var timestamp : Int; // Timestamp when the mission was completed
+    var pointsEarned : Nat; // Points earned in this completion
+    var tweetId : ?Text; // Tweet ID for the completion
+  };
+
+  public type SerializedMissionRecord = {
     timestamp : Int;
-    totalearned : Nat;
-    amountOfTimes : Nat;
+    pointsEarned : Nat;
+    tweetId : ?Text;
+  };
+
+  public type SerializedProgress = {
+    completionHistory : [SerializedMissionRecord];
     usedCodes : [(Text, Bool)];
   };
 

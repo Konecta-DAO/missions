@@ -1,9 +1,10 @@
 import React from 'react';
-import styles from './Home.module.scss'; // Import the styles
+import styles from './Home.module.scss';
 import HomeBackgroundOverlay from './HomeBackgroundOverlay';
 import useIsMobile from '../../hooks/useIsMobile';
 import Plataforma from '../../components/Plataforma';
 import Kami from '../../../../public/assets/Kami.svg';
+import OpenChat from '../../../components/OpenChatComponent';
 
 const Home: React.FC = () => {
   const isMobile = useIsMobile();
@@ -16,19 +17,23 @@ const Home: React.FC = () => {
       {!isMobile && (
         <>
           <div className={styles.SvgWrapper}>
-            <Plataforma />
+            <Plataforma animationDelay="0s" />
             <div className={styles.KamiWrapper}>
               <img src={Kami} alt="Kami" />
             </div>
           </div>
           <div className={styles.BottomPlataformaWrapper}>
             <div className={styles.PlataformaContainer}>
-              <Plataforma />
+              <Plataforma animationDelay="0.5s" />
             </div>
+          </div>
+          <div className={styles.OpenChatWrapper}>
+            <OpenChat />
           </div>
         </>
       )}
       <h1>{isMobile ? 'HOME (Mobile)' : 'HOME'}</h1>
+
     </div>
   );
 };

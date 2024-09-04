@@ -20,46 +20,65 @@ actor class Backend() {
   // Function to log messages to the buffer
 
   system func preupgrade() {
+
     // Serialize user progress
     let entries = Iter.toArray(userProgress.entries());
     var serializedEntries : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+
     for (entry in entries.vals()) {
       let (userId, userMissions) = entry;
       let serializedMissions = Iter.toArray(userMissions.entries());
       var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
+
       for (missionEntry in serializedMissions.vals()) {
         let (missionId, progress) = missionEntry;
-        serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, { done = progress.done; timestamp = progress.timestamp; totalearned = progress.totalearned; amountOfTimes = progress.amountOfTimes; usedCodes = Iter.toArray(progress.usedCodes.entries()) })]);
+
+        let serializedProgress = {
+          completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(progress.completionHistory, func(record : Types.MissionRecord) : Types.SerializedMissionRecord { { timestamp = record.timestamp; pointsEarned = record.pointsEarned; tweetId = record.tweetId } });
+          usedCodes = Iter.toArray(progress.usedCodes.entries());
+        };
+
+        serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, serializedProgress)]);
       };
+
       serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
     };
-    serializedUserProgress := serializedEntries;
 
-    // Serialize missionAssets
-    serializedMissionAssets := Iter.toArray(missionAssets.entries());
+    // Store the serialized progress data for use during post-upgrade
+    serializedUserProgress := serializedEntries;
   };
 
   system func postupgrade() {
-    // Deserialize user progress
+
+    // Initialize the new userProgress TrieMap
     userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+
+    // Iterate over the serialized user progress data
     for (entry in serializedUserProgress.vals()) {
       let (userId, serializedMissions) = entry;
       let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+
+      // Iterate over each serialized mission progress
       for (missionEntry in serializedMissions.vals()) {
         let (missionId, serializedProgress) = missionEntry;
+
+        // Deserialize the Progress object
         let progress = {
-          var done = serializedProgress.done;
-          var timestamp = serializedProgress.timestamp;
-          var totalearned = serializedProgress.totalearned;
-          var amountOfTimes = serializedProgress.amountOfTimes;
+          var completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(serializedProgress.completionHistory, func(record : Types.SerializedMissionRecord) : Types.MissionRecord { { var timestamp = record.timestamp; var pointsEarned = record.pointsEarned; var tweetId = record.tweetId } });
           var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
         };
+
+        // Deserialize the usedCodes
         for (codeEntry in serializedProgress.usedCodes.vals()) {
           let (code, used) = codeEntry;
           progress.usedCodes.put(code, used);
         };
+
+        // Put the deserialized progress into the userMissions TrieMap
         userMissions.put(missionId, progress);
       };
+
+      // Put the deserialized userMissions into the main userProgress TrieMap
       userProgress.put(userId, userMissions);
     };
 
@@ -206,68 +225,96 @@ actor class Backend() {
   };
 
   // Function to add a secret code to a user's progress for the mission
-  public func submitSecretCode(userId : Text, code : Text) : async Bool {
-    let missionId : Nat = 5; // Fixed missionId
+  public shared func submitCode(userId : Text, missionId : Nat, code : Text) : async Bool {
+    // Retrieve user's missions progress
+    let userMissions = switch (userProgress.get(userId)) {
+      case (?progress) progress;
+      case null return false; // User progress not found
+    };
 
-    var progress : Types.Progress = switch (userProgress.get(userId)) {
-      case (?missions) switch (missions.get(missionId)) {
-        case (?prog) prog;
-        case null {
-          var progress : Types.Progress = {
-            var done = false;
-            var timestamp = 0;
-            var totalearned = 0;
-            var amountOfTimes = 0;
-            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-          };
-          progress;
+    // Retrieve the mission progress
+    let missionProgress = switch (userMissions.get(missionId)) {
+      case (?progress) progress;
+      case null return false; // Mission progress not found
+    };
+
+    // Retrieve the mission details from the missions vector
+    let missionOpt = Vector.get(missions, missionId);
+    let mission = switch (missionOpt) {
+      case (m) m;
+    };
+
+    // Ensure the mission has a secret code enabled
+    switch (mission.secretCodes) {
+      case (?secretCode) {
+        // Ensure the code matches
+        if (secretCode != code) {
+          return false; // Invalid code
         };
       };
       case null {
-        var progress : Types.Progress = {
-          var done = false;
-          var timestamp = 0;
-          var totalearned = 0;
-          var amountOfTimes = 0;
-          var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-        };
-        progress;
+        return false; // This mission doesn't accept codes
       };
     };
 
-    // Check if the code has already been used
-    if (progress.usedCodes.get(code) != null) {
-      return false; // Code has already been used
-    } else {
-      // Update progress
-      progress.usedCodes.put(code, true);
-      progress.amountOfTimes += 1;
-      progress.timestamp := Time.now(); // Update the timestamp
-      progress.totalearned += 100; // Example: Earn 100 seconds or points for each code
-
-      // Save updated progress
-      var missions = switch (userProgress.get(userId)) {
-        case (?map) map;
-        case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
-      };
-      missions.put(missionId, progress);
-      userProgress.put(userId, missions);
-
-      return true;
+    // Check if the code has already been used by this user
+    if (missionProgress.usedCodes.get(code) == ?true) {
+      return false; // Code already used
     };
+
+    // Generate a random number of points between mintime and maxtime using the utility function
+    let pointsEarnedOpt = await getRandomNumberBetween(mission.mintime, mission.maxtime);
+
+    // Unwrap the optional pointsEarned
+    let pointsEarned = switch (pointsEarnedOpt) {
+      case null return false;
+      case (?points) points; // Successfully unwrapped the optional
+    };
+
+    // Convert the Int points to Nat using Int.abs
+    let pointsEarnedNat : Nat = Int.abs(pointsEarned);
+
+    // Mark the code as used
+    missionProgress.usedCodes.put(code, true);
+
+    // Update the mission progress with the earned points
+    let newRecord : Types.MissionRecord = {
+      var timestamp = Time.now();
+      var pointsEarned = pointsEarnedNat;
+      var tweetId = null;
+    };
+
+    // Append the new record to the mission's completion history
+    missionProgress.completionHistory := Array.append(missionProgress.completionHistory, [newRecord]);
+
+    // Save the updated mission progress
+    userMissions.put(missionId, missionProgress);
+    userProgress.put(userId, userMissions);
+
+    return true; // Code submission successful
   };
 
   // Function to get the total earned seconds on a specific mission for a user
   public query func getTotalEarned(userId : Text, missionId : Nat) : async ?Nat {
-    switch (userProgress.get(userId)) {
-      case (?missions) {
-        switch (missions.get(missionId)) {
-          case (?progress) return ?progress.totalearned;
-          case null return null;
-        };
-      };
-      case null return null;
+    // Retrieve the user's mission progress
+    let userMissions = switch (userProgress.get(userId)) {
+      case (?progress) progress;
+      case null return null; // User not found
     };
+
+    // Retrieve the specific mission's progress
+    let missionProgress = switch (userMissions.get(missionId)) {
+      case (?progress) progress;
+      case null return null; // Mission not found for this user
+    };
+
+    // Sum up the total points from the completion history
+    var totalPoints : Nat = 0;
+    for (record in missionProgress.completionHistory.vals()) {
+      totalPoints += record.pointsEarned;
+    };
+
+    return ?totalPoints;
   };
 
   // Tweets per Users
@@ -310,7 +357,7 @@ actor class Backend() {
   };
 
   // Function to upload a mission image and return the URL
-  public shared (msg) func uploadMissionImage(imageName : Text, imageContent : Blob) : async Text {
+  public shared func uploadMissionImage(imageName : Text, imageContent : Blob) : async Text {
     let directory = "/missionassets/";
 
     // Generate a unique image name using the timestamp and hash
@@ -329,61 +376,36 @@ actor class Backend() {
   };
 
   // Function to add or update a mission
-  public func addMission(id : Nat, mode : Nat, description : Text, obj1 : Text, newobj2 : Text, recursive : Bool, maxtime : Int, image : Text, functionName1 : Text, newfunctionName2 : Text) : async () {
+  public shared func addOrUpdateMission(newMission : Types.SerializedMission) : async Bool {
+    // Convert SerializedMission to a mutable Mission
+    let newDeserializedMission = Serialization.deserializeMission(newMission);
 
-    var obj2 : Text = "";
-    var functionName2 : Text = "";
-    if (mode != 0) {
-      obj2 := newobj2;
-      functionName2 := newfunctionName2;
-    };
+    // Check if the mission already exists in the vector
+    var missionFound = false;
 
-    // Manually search for the existing mission by its ID
-    var existingMissionIndex : ?Nat = null;
-    var i : Nat = 0;
+    let size = Vector.size(missions);
+    for (i in Iter.range(0, size - 1)) {
+      let existingMissionOpt = Vector.get(missions, i); // This returns ?Mission
 
-    // Loop through the missions to find the one with the matching id
-    for (mission in Vector.vals(missions)) {
-      if (mission.id == id) {
-        existingMissionIndex := ?i;
-      };
-      i += 1;
-    };
-    // Use pattern matching to check if the mission exists
-    switch (existingMissionIndex) {
-      case (?index) {
-        // Update the existing mission
-        let updatedMission : Types.Mission = {
-          id = id;
-          var mode = mode;
-          var description = description;
-          var obj1 = obj1;
-          var obj2 = obj2;
-          var recursive = recursive;
-          var maxtime = maxtime;
-          var image = image;
-          var functionName1 = functionName1;
-          var functionName2 = functionName2;
+      // Properly handle the optional ?Mission value
+      switch (existingMissionOpt) {
+        case (mission) {
+          // Unwrap the Mission
+          if (mission.id == newMission.id) {
+            // Update the existing mission using Vector.put
+            Vector.put(missions, i, newDeserializedMission);
+            missionFound := true;
+          };
         };
-        Vector.put(missions, index, updatedMission); // Replace the existing mission
-      };
-      case null {
-        // Add a new mission if it doesn't exist
-        let newMission : Types.Mission = {
-          id = id;
-          var mode = mode;
-          var description = description;
-          var obj1 = obj1;
-          var obj2 = obj2;
-          var recursive = recursive;
-          var maxtime = maxtime;
-          var image = image;
-          var functionName1 = functionName1;
-          var functionName2 = functionName2;
-        };
-        Vector.add(missions, newMission); // Add the new mission
       };
     };
+
+    // If the mission was not found, add a new one
+    if (not missionFound) {
+      Vector.add<Types.Mission>(missions, newDeserializedMission);
+    };
+
+    return true;
   };
 
   // Function to get the number of missions available
@@ -415,48 +437,72 @@ actor class Backend() {
     missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
   };
 
-  public query func countCompletedUsers(missionId : Nat) : async Nat {
+  public func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
     var count : Nat = 0;
-    for ((userId, missions) in userProgress.entries()) {
-      switch (missions.get(missionId)) {
+
+    // Iterate through all users in userProgress
+    for ((userId, userMissions) in userProgress.entries()) {
+      // Check if the user has progress for the specific mission
+      switch (userMissions.get(missionId)) {
         case (?progress) {
-          if (progress.done) {
+          // If there is a completion history, check if the user has completed the mission at least once
+          if (Array.size(progress.completionHistory) > 0) {
             count += 1;
           };
         };
-        case null {};
+        case null {
+          // The user hasn't started this mission
+        };
       };
     };
+
     return count;
   };
 
   // Register an user by Principalid
   public func addUser(id : Text) : async () {
-    let twitterid : Nat = 0;
-    let twitterhandle : Text = "";
-    let creationTime = Time.now();
-    let randomNumberOpt = await getRandomNumber();
-    let seconds : Nat = switch (randomNumberOpt) {
-      case (?value) value;
-      case null 3600; // Default value if random number generation fails
+
+    // Initialize new user's mission progress
+    var newUserMissions : UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+
+    // Complete the first mission automatically
+    let missionId : Nat = 0; // Assuming 0 is the first mission ID
+
+    // Generate random points between 3600 and 21600
+    let pointsEarnedOpt = await getRandomNumberBetween(3600, 21600);
+    let pointsEarned = switch (pointsEarnedOpt) {
+      case (?points) points;
+      case null {
+        return;
+      };
     };
-    let newuser : Types.User = {
-      id;
-      var seconds;
-      var twitterid;
-      var twitterhandle;
-      creationTime;
+    // Create a completion record for the first mission
+    let firstMissionRecord : Types.MissionRecord = {
+      var timestamp = Time.now();
+      var pointsEarned = Int.abs(pointsEarned); // Convert to Nat using Int.abs
+      var tweetId = null; // No tweet associated with this mission
     };
-    Vector.add(users, newuser);
-    let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-    let serializedProgress : Types.SerializedProgress = {
-      done = true;
-      timestamp = creationTime;
-      totalearned = seconds;
-      amountOfTimes = 1;
-      usedCodes = Iter.toArray(usedCodes.entries());
+
+    // Create progress for the first mission
+    let firstMissionProgress : Types.Progress = {
+      var completionHistory = [firstMissionRecord];
+      var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
     };
-    await updateUserProgress(id, 0, serializedProgress);
+
+    // Add the first mission progress to the user's missions
+    newUserMissions.put(missionId, firstMissionProgress);
+
+    // Add the user's progress to the global userProgress
+    userProgress.put(id, newUserMissions);
+
+    // Add the user to the users vector
+    let newUser : Types.User = {
+      id = id;
+      var twitterid = null;
+      var twitterhandle = null;
+      creationTime = Time.now();
+    };
+    Vector.add<Types.User>(users, newUser);
   };
 
   // Function to get all registered users
@@ -467,41 +513,51 @@ actor class Backend() {
     );
   };
 
-  // Function to generate a random number between 3600 and 21600
-  public func getRandomNumber() : async ?Nat {
+  // Utility function to generate a random number between min and max (inclusive)
+  public func getRandomNumberBetween(min : Int, max : Int) : async ?Int {
+    assert (max >= min); // Ensure that max is greater than or equal to min
+
     let random = Random.Finite(await Random.blob());
-    let range : Nat = 21600 - 3600 + 1;
-    let randomValue = random.range(32); // Adjust the range as needed
+    let range = max - min + 1; // Calculate the range as an Int
+    let randomValue = random.range(32); // Generate a random value
+
     switch (randomValue) {
       case (?value) {
-        return ?(value % range + 3600);
+        let result = min + (Int.abs(value % Int.abs(range))); // Adjust the random value within the range
+        return ?result;
       };
       case null {
-        return null;
+        return null; // Handle the case where random generation failed
       };
     };
   };
 
   // Get the total seconds of an user by Principalid
-  public query func getTotalSeconds(id : Text) : async Nat {
-    for (user in Vector.vals(users)) {
-      if (user.id == id) {
-        return user.seconds;
+  public query func getTotalSecondsForUser(userId : Text) : async ?Nat {
+    // Retrieve the user's mission progress from userProgress
+    let userMissionsOpt = userProgress.get(userId);
+
+    // If the user does not exist, return null
+    let userMissions = switch (userMissionsOpt) {
+      case null return null; // User not found
+      case (?missions) missions; // User found, continue
+    };
+
+    // Initialize a variable to keep track of total seconds
+    var totalSeconds : Nat = 0;
+
+    // Iterate through all missions for the user
+    for ((missionId, progress) in userMissions.entries()) {
+      // Iterate through the completion history of the mission
+      for (record in progress.completionHistory.vals()) {
+        totalSeconds += record.pointsEarned;
       };
     };
-    return 0;
+
+    return ?totalSeconds; // Return the total seconds
   };
 
-  // Function to get all registered Principal IDs
-  public query func getIds() : async [Text] {
-    var ids : [Text] = [];
-    for (user in Vector.vals(users)) {
-      ids := Array.append<Text>(ids, [user.id]);
-    };
-    return ids;
-  };
-
-  public shared func addTwitterInfo(principalId : Text, twitterId : Nat, twitterHandle : Text) : async () {
+  public shared func addTwitterInfo(principalId : Text, twitterId : ?Nat, twitterHandle : ?Text) : async () {
     var i = 0;
     while (i < Vector.size(users)) {
       switch (Vector.getOpt(users, i)) {
@@ -509,7 +565,6 @@ actor class Backend() {
           if (user.id == principalId) {
             let updatedUser : Types.User = {
               id = user.id;
-              var seconds = user.seconds;
               var twitterid = twitterId;
               var twitterhandle = twitterHandle;
               creationTime = user.creationTime;
@@ -624,9 +679,8 @@ actor class Backend() {
 
                           let updatedUser : Types.User = {
                             id = user.id;
-                            var seconds = user.seconds;
-                            var twitterid = twitterid;
-                            var twitterhandle = info.screen_name;
+                            var twitterid = ?twitterid;
+                            var twitterhandle = ?info.screen_name;
                             creationTime = user.creationTime;
                           };
 

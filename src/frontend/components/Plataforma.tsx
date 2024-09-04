@@ -15,7 +15,7 @@ const createOpacityKeyframes = (index: number) => {
     `;
 };
 
-const SvgContainer = styled.div`
+const SvgContainer = styled.div<{ animationDelay: string }>`
   width: 100%;
   height: auto;
 
@@ -25,18 +25,22 @@ const SvgContainer = styled.div`
   }
 
   // Linea animation
-  #Linea1 { animation: ${createOpacityKeyframes(1)} 7s linear infinite; }
-  #Linea2 { animation: ${createOpacityKeyframes(2)} 7s linear infinite; }
-  #Linea3 { animation: ${createOpacityKeyframes(3)} 7s linear infinite; }
-  #Linea4 { animation: ${createOpacityKeyframes(4)} 7s linear infinite; }
-  #Linea5 { animation: ${createOpacityKeyframes(5)} 7s linear infinite; }
-  #Linea6 { animation: ${createOpacityKeyframes(6)} 7s linear infinite; }
-  #Linea7 { animation: ${createOpacityKeyframes(7)} 7s linear infinite; }
+  #Linea1 { animation: ${createOpacityKeyframes(1)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
+  #Linea2 { animation: ${createOpacityKeyframes(2)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
+  #Linea3 { animation: ${createOpacityKeyframes(3)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
+  #Linea4 { animation: ${createOpacityKeyframes(4)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
+  #Linea5 { animation: ${createOpacityKeyframes(5)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
+  #Linea6 { animation: ${createOpacityKeyframes(6)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
+  #Linea7 { animation: ${createOpacityKeyframes(7)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
 `;
 
-const Plataforma: React.FC = () => {
+interface PlataformaProps {
+    animationDelay?: string;
+}
+
+const Plataforma: React.FC<PlataformaProps> = ({ animationDelay = '0s' }) => {
     return (
-        <SvgContainer>
+        <SvgContainer animationDelay={animationDelay}>
             <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
                 viewBox="0 0 921.4 616.8" enableBackground="new 0 0 921.4 616.8" xmlSpace="preserve">
 
