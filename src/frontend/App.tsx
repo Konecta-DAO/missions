@@ -10,14 +10,12 @@ const App: React.FC = () => {
   return (
     <div>
       {isMobile ? (
-        // Render different RadialBackground for mobile
         <RadialBackground mobile={true}>
           <Routes>
             <Route path="/" element={<Home />} />
           </Routes>
         </RadialBackground>
       ) : (
-        // Render default RadialBackground for desktop
         <RadialBackground mobile={false}>
           <Routes>
             <Route path="/" element={<Home />} />

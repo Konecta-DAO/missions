@@ -14,6 +14,7 @@ import Hash "mo:base/Hash";
 import TrieMap "mo:base/TrieMap";
 import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
+import Principal "mo:base/Principal";
 
 actor class Backend() {
 
@@ -21,7 +22,7 @@ actor class Backend() {
 
     // Serialize user progress
     let entries = Iter.toArray(userProgress.entries());
-    var serializedEntries : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+    var serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
     for (entry in entries.vals()) {
       let (userId, userMissions) = entry;
@@ -49,7 +50,7 @@ actor class Backend() {
   system func postupgrade() {
 
     // Initialize the new userProgress TrieMap
-    userProgress := TrieMap.TrieMap<Text, Types.UserMissions>(compareUserId, hashUserId);
+    userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
 
     // Iterate over the serialized user progress data
     for (entry in serializedUserProgress.vals()) {
@@ -89,23 +90,14 @@ actor class Backend() {
   };
 
   // Stable storage for serialized data
-  stable var serializedUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
   stable var serializedMissionAssets : [(Text, Blob)] = [];
 
   // Mission Assets
   var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
 
-  // Comparison and hash functions for Text-based UserId
-  private func compareUserId(id1 : Text, id2 : Text) : Bool {
-    id1 == id2;
-  };
-
-  private func hashUserId(id : Text) : Hash.Hash {
-    Text.hash(id);
-  };
-
   // TrieMap to store the progress of each user's missions
-  private var userProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(compareUserId, hashUserId);
+  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
 
   public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
 
@@ -165,7 +157,7 @@ actor class Backend() {
 
   // Function to record or update progress on a mission
   public shared func updateUserProgress(
-    userId : Text,
+    userId : Principal,
     missionId : Nat,
     serializedProgress : Types.SerializedProgress,
   ) : async () {
@@ -186,7 +178,7 @@ actor class Backend() {
   };
 
   // Function to get the progress of a specific mission for a user
-  public query func getProgress(userId : Text, missionId : Nat) : async ?Types.SerializedProgress {
+  public query func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
     switch (userProgress.get(userId)) {
       case (?missions) {
         switch (missions.get(missionId)) {
@@ -199,7 +191,7 @@ actor class Backend() {
   };
 
   // Function to add a secret code to a user's progress for the mission
-  public shared func submitCode(userId : Text, missionId : Nat, code : Text) : async Bool {
+  public shared func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
     // Retrieve user's missions progress
     let userMissions = switch (userProgress.get(userId)) {
       case (?progress) progress;
@@ -269,7 +261,7 @@ actor class Backend() {
   };
 
   // Function to get the total earned seconds on a specific mission for a user
-  public query func getTotalEarned(userId : Text, missionId : Nat) : async ?Nat {
+  public query func getTotalEarned(userId : Principal, missionId : Nat) : async ?Nat {
     // Retrieve the user's mission progress
     let userMissions = switch (userProgress.get(userId)) {
       case (?progress) progress;
@@ -407,7 +399,7 @@ actor class Backend() {
   };
 
   // Register an user by Principalid
-  public func addUser(id : Text) : async () {
+  public func addUser(id : Principal) : async () {
 
     // Initialize new user's mission progress
     var newUserMissions : Types.UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
@@ -480,7 +472,7 @@ actor class Backend() {
   };
 
   // Get the total seconds of an user by Principalid
-  public query func getTotalSecondsForUser(userId : Text) : async ?Nat {
+  public query func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     // Retrieve the user's mission progress from userProgress
     let userMissionsOpt = userProgress.get(userId);
 
@@ -504,7 +496,7 @@ actor class Backend() {
     return ?totalSeconds; // Return the total seconds
   };
 
-  public shared func addTwitterInfo(principalId : Text, twitterId : ?Nat, twitterHandle : ?Text) : async () {
+  public shared func addTwitterInfo(principalId : Principal, twitterId : ?Nat, twitterHandle : ?Text) : async () {
     var i = 0;
     while (i < Vector.size(users)) {
       switch (Vector.getOpt(users, i)) {
@@ -574,7 +566,7 @@ actor class Backend() {
     return follows;
   };
 
-  public shared func handleTwitterCallback(principalId : Text, oauthToken : Text, oauthVerifier : Text) : async ?Types.SerializedUser {
+  public shared func handleTwitterCallback(principalId : Principal, oauthToken : Text, oauthVerifier : Text) : async ?Types.SerializedUser {
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
@@ -666,7 +658,7 @@ actor class Backend() {
   // Function to reset all data Structures
   public func resetall() : async () {
     Vector.clear(users);
-    userProgress := TrieMap.TrieMap<Text, Types.UserMissions>(compareUserId, hashUserId);
+    userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
     return;
   };
 

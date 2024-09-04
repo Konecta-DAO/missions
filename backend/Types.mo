@@ -8,14 +8,14 @@ module Types {
 
   // User Types
   public type User = {
-    id : Text; // Principal ID
+    id : Principal; // Principal ID
     var twitterid : ?Nat; // Twitter ID
     var twitterhandle : ?Text; // Twitter Handle
     creationTime : Int; // Creation Time in Nanoseconds
   };
 
   public type SerializedUser = {
-    id : Text;
+    id : Principal;
     twitterid : ?Nat;
     twitterhandle : ?Text;
     creationTime : Int;

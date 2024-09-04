@@ -29,6 +29,38 @@ $animation-timing-function: ease-in-out;
   }
 }
 
+@keyframes capsuleFloat {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-25px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes loadingText {
+  0% {
+    content: "0%";
+  }
+
+  33% {
+    content: "33%";
+  }
+
+  66% {
+    content: "66%";
+  }
+
+  100% {
+    content: "100%";
+  }
+}
+
 .HomeContainer {
   text-align: center;
   color: white;
@@ -60,6 +92,21 @@ $animation-timing-function: ease-in-out;
   animation: float $animation-duration $animation-timing-function infinite;
   z-index: 2;
 }
+
+.HelpButtons {
+  position: relative;
+  z-index: 5;
+}
+
+.TextWrapper {
+  position: fixed;
+  left: 10%;
+  top: 24%;
+  transform: translateY(-50%);
+  animation: float $animation-duration $animation-timing-function infinite;
+  z-index: 3;
+}
+
 
 .KamiWrapper {
   position: relative;
@@ -95,4 +142,58 @@ $animation-timing-function: ease-in-out;
   max-width: 50vw;
   height: auto;
   animation: floatOpposite $animation-duration $animation-timing-function infinite;
+  top: -15vw;
+  position: relative;
+}
+
+.Casco {
+  position: relative;
+  top: 19.5vw;
+}
+
+.LoadingOverlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10000;
+}
+
+.TimeCapsuleWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  animation: capsuleFloat 2s infinite ease-in-out;
+  font-weight: bold;
+  /* Moves both the text and SVG */
+}
+
+.TimeCapsule {
+  width: 300px;
+  height: auto;
+}
+
+.LoadingText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 2rem;
+  pointer-events: none;
+}
+
+.KonectaLogoWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.KonectaLogo {
+  width: 300px;
+  height: auto;
 }

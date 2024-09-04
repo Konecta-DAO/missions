@@ -1,0 +1,59 @@
+.SpeechBubble {
+    --r: 1.5em;
+    /* Radius for the speech bubble */
+    --t: 2em;
+    /* Tail size */
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    width: auto;
+    max-width: 900px;
+    min-width: 600px;
+    padding: 1.5em;
+    border-radius: 1.5em 1.5em 1.5em 0;
+    /* Remove bottom-left rounded corner */
+    background: linear-gradient(-135deg, #8849EB, #FF6392 95%);
+    color: #fff;
+    opacity: 0;
+    transform-origin: bottom;
+    transform: scaleY(0);
+    transition: transform 0.5s ease, opacity 0.5s ease;
+
+    &::before {
+        content: "";
+        width: 30px;
+        height: 30px;
+        position: absolute;
+        background-color: #FF6392;
+        /* Set to left color only */
+        clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+        /* Tail triangle */
+        left: -29px;
+        /* Attach the tail to the left */
+        bottom: -0.5px;
+        /* Position at the bottom */
+    }
+
+    &.visible {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+
+    &.hidden {
+        opacity: 0;
+        transform: scaleY(0);
+    }
+
+    .bubbleText {
+        font-family: 'Courier New', monospace;
+        font-size: 1.5rem;
+        text-align: left;
+        white-space: normal;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    }
+
+    .bubbleText.hideText {
+        opacity: 0;
+    }
+}
