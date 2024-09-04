@@ -17,8 +17,6 @@ import Nat32 "mo:base/Nat32";
 
 actor class Backend() {
 
-  // Function to log messages to the buffer
-
   system func preupgrade() {
 
     // Serialize user progress
@@ -51,7 +49,7 @@ actor class Backend() {
   system func postupgrade() {
 
     // Initialize the new userProgress TrieMap
-    userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+    userProgress := TrieMap.TrieMap<Text, Types.UserMissions>(compareUserId, hashUserId);
 
     // Iterate over the serialized user progress data
     for (entry in serializedUserProgress.vals()) {
@@ -90,9 +88,6 @@ actor class Backend() {
     };
   };
 
-  // Mission Related functions
-  type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
-
   // Stable storage for serialized data
   stable var serializedUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
   stable var serializedMissionAssets : [(Text, Blob)] = [];
@@ -110,7 +105,7 @@ actor class Backend() {
   };
 
   // TrieMap to store the progress of each user's missions
-  private var userProgress : TrieMap.TrieMap<Text, UserMissions> = TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
+  private var userProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(compareUserId, hashUserId);
 
   public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
 
@@ -121,7 +116,7 @@ actor class Backend() {
       case (?fileBlob) {
         return {
           status_code = 200;
-          headers = [("Content-Type", "image/png")]; // Ensure the content type matches the file type
+          headers = [("Content-Type", "image/png")];
           body = fileBlob;
         };
       };
@@ -135,29 +130,8 @@ actor class Backend() {
     };
   };
 
-  public query func logMissionAssets() : async [Text] {
-    return Iter.toArray(missionAssets.keys());
-  };
-
-  stable var codes : [Text] = [];
-
   public func addAdminId(newAdminId : Text) : async () {
     adminIds := Array.append<Text>(adminIds, [newAdminId]);
-  };
-
-  // Function to add a new Code
-  public func addCode(newCode : Text) : async () {
-    codes := Array.append<Text>(codes, [newCode]);
-  };
-
-  // Function to remove a Code
-  public func removeCode(code : Text) : async () {
-    codes := Array.filter<Text>(codes, func(id) : Bool { id != code });
-  };
-
-  // Function to get all admin IDs
-  public query func getCodes() : async [Text] {
-    return codes;
   };
 
   // Admin IDs
@@ -268,7 +242,7 @@ actor class Backend() {
     // Unwrap the optional pointsEarned
     let pointsEarned = switch (pointsEarnedOpt) {
       case null return false;
-      case (?points) points; // Successfully unwrapped the optional
+      case (?points) points;
     };
 
     // Convert the Int points to Nat using Int.abs
@@ -315,28 +289,6 @@ actor class Backend() {
     };
 
     return ?totalPoints;
-  };
-
-  // Tweets per Users
-  private var tweets : TrieMap.TrieMap<Text, TrieMap.TrieMap<Nat, Nat>> = TrieMap.TrieMap<Text, TrieMap.TrieMap<Nat, Nat>>(Text.equal, Text.hash);
-
-  // Add a tweet for a user
-  public func addTweet(userId : Text, tweetId : Nat) : async () {
-    let userTweets = switch (tweets.get(userId)) {
-      case (?map) map;
-      case null TrieMap.TrieMap<Nat, Nat>(Nat.equal, Hash.hash);
-    };
-    let tweetCount = userTweets.size();
-    userTweets.put(tweetCount, tweetId);
-    tweets.put(userId, userTweets);
-  };
-
-  // Get all tweets for a user. First Nat is the TimeStamp, second Nat is the TweetId
-  public func getTweets(userId : Text) : async ?[(Nat, Nat)] {
-    switch (tweets.get(userId)) {
-      case (?userTweets) return ?Iter.toArray(userTweets.entries());
-      case null return null;
-    };
   };
 
   // Generate a unique image identifier using a combination of timestamp and hash
@@ -408,11 +360,6 @@ actor class Backend() {
     return true;
   };
 
-  // Function to get the number of missions available
-  public query func getNumberOfMissions() : async Nat {
-    return Vector.size(missions);
-  };
-
   // Function to get all missions (serialized)
   public query func getAllMissions() : async [Types.SerializedMission] {
     return Array.map<Types.Mission, Types.SerializedMission>(
@@ -437,7 +384,7 @@ actor class Backend() {
     missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
   };
 
-  public func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
+  public query func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
     var count : Nat = 0;
 
     // Iterate through all users in userProgress
@@ -463,7 +410,7 @@ actor class Backend() {
   public func addUser(id : Text) : async () {
 
     // Initialize new user's mission progress
-    var newUserMissions : UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+    var newUserMissions : Types.UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
 
     // Complete the first mission automatically
     let missionId : Nat = 0; // Assuming 0 is the first mission ID
@@ -514,7 +461,7 @@ actor class Backend() {
   };
 
   // Utility function to generate a random number between min and max (inclusive)
-  public func getRandomNumberBetween(min : Int, max : Int) : async ?Int {
+  private func getRandomNumberBetween(min : Int, max : Int) : async ?Int {
     assert (max >= min); // Ensure that max is greater than or equal to min
 
     let random = Random.Finite(await Random.blob());
@@ -719,8 +666,7 @@ actor class Backend() {
   // Function to reset all data Structures
   public func resetall() : async () {
     Vector.clear(users);
-    userProgress := TrieMap.TrieMap<Text, UserMissions>(compareUserId, hashUserId);
-    tweets := TrieMap.TrieMap<Text, TrieMap.TrieMap<Nat, Nat>>(Text.equal, Text.hash);
+    userProgress := TrieMap.TrieMap<Text, Types.UserMissions>(compareUserId, hashUserId);
     return;
   };
 

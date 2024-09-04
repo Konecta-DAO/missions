@@ -85,6 +85,9 @@ module Types {
     usedCodes : [(Text, Bool)];
   };
 
+  // Mission Related functions
+  public type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
+
   // HTTP Request Types
   public type HttpRequestArgs = {
     url : Text;
