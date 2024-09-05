@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NFID } from '@nfid/embed';
 import Casco from './Casco';
+import { Principal } from '@dfinity/principal';
 
 interface CascoNFIDProps {
     onIframeReady: () => void; // Callback to notify Home.tsx when the iframe is ready
-    onPrincipalId: (principalId: string) => void; // Callback to pass the principalId to Home.tsx
+    onPrincipalId: (principalId: Principal) => void; // Callback to pass the principalId to Home.tsx
 }
 
 const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) => {
     const [nfid, setNfid] = useState<any>(null);
-    const [isButtonEnabled, setIsButtonEnabled] = useState<boolean>(false);
 
     // Initialize NFID
     useEffect(() => {
@@ -30,7 +30,6 @@ const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) =
                 const checkIframeReady = setInterval(() => {
                     if (NFID.isIframeInstantiated) {
                         clearInterval(checkIframeReady);
-                        setIsButtonEnabled(true);
                         onIframeReady();
                     }
                 }, 100); // Polling every 100ms until iframe is ready
@@ -51,8 +50,8 @@ const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) =
             const identity = await nfid.getDelegation({
                 targets: ['onpqf-diaaa-aaaag-qkeda-cai'], // Backend Canister ID
             });
-            const principalId = identity.getPrincipal().toText();
-            console.log('Authenticated with principalId:', principalId);
+            const principalId = identity.getPrincipal();
+            console.log('Authenticated with principalId:', principalId.toText());
             onPrincipalId(principalId);
             // Handle success (e.g., save or display principalId)
         } catch (error) {

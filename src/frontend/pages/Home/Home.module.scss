@@ -115,16 +115,7 @@ $animation-timing-function: ease-in-out;
   transform: translateY(-100%) scale(0.67);
 }
 
-.OpenChatWrapper {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 300px;
-  height: 400px;
-  z-index: 9999;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
+
 
 .BottomPlataformaWrapper {
   position: fixed;
@@ -148,7 +139,8 @@ $animation-timing-function: ease-in-out;
 
 .Casco {
   position: relative;
-  top: 19.5vw;
+  top: 20.5vw;
+  scale: 0.9;
 }
 
 .LoadingOverlay {

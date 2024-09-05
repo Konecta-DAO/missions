@@ -33,65 +33,85 @@ type CanisterHttpResponsePayload = record {
 };
 
 type SerializedUser = record {
-  id : text;
-  seconds : nat;
-  twitterid : nat;
-  twitterhandle : text;
+  id : principal;
+  twitterid : opt nat;
+  twitterhandle : opt text;
   creationTime : int;
 };
 
 type SerializedMission = record {
   id : nat;
-  mode : nat;
+  title : text;
   description : text;
-  obj1 : text;
+  obj1 : opt text;
   obj2 : text;
+  inputPlaceholder : opt text;
+  startDate : int;
+  endDate : int;
   recursive : bool;
+  mintime : int;
   maxtime : int;
-  image : text;
-  functionName1 : text;
+  functionName1 : opt text;
   functionName2 : text;
+  image : text;
+  secretCodes : opt text;
+  mode : nat;
+  requiredPreviousMissionId : opt nat;
 };
 
 type SerializedProgress = record {
-  done : bool;
-  timestamp : int;
-  totalearned : nat;
-  amountOfTimes : nat;
+  completionHistory : vec record {
+    timestamp : int;
+    pointsEarned : nat;
+    tweetId : opt text;
+  };
   usedCodes : vec record { text; bool };
 };
 
 service : {
+  // General and utility functions
   getIds : () -> (vec text) query;
   resetall : () -> ();
   icrc28_trusted_origins : () -> (vec text) query;
-  getTotalSeconds : (text) -> (nat) query;
-  addTweet : (text, nat) -> ();
-  getTweets : (text) -> (?vec record { nat; nat });
-  transform : (TransformArgs) -> (CanisterHttpResponsePayload) query;
   availableCycles : () -> (nat) query;
-  verifyFollow : (text) -> (bool);
-  handleTwitterCallback : (text, text, text) -> (?SerializedUser);
-  addUser : (text) -> ();
   isMiddlemanReachable : () -> (bool);
-  addMission : (nat, nat, text, text, text, bool, int, text, text) -> ();
-  getNumberOfMissions : () -> (nat) query;
-  getMissionById : (nat) -> (?SerializedMission) query;
-  updateUserProgress : (text, nat, SerializedProgress) -> ();
-  getProgress : (text, nat) -> (?SerializedProgress) query;
-  submitSecretCode : (text, text) -> (bool);
-  getTotalEarned : (text, nat) -> (?nat) query;
-  isAdmin : (text) -> (bool) query;
-  countCompletedUsers : (nat) -> (nat) query;
-  getAllMissions : () -> (vec SerializedMission) query;
-  addAdminId : (text) -> ();
+
+  // Twitter and social interaction
+  addTweet : (text, nat) -> ();
+  getTweets : (text) -> (opt vec record { nat; nat });
+  verifyFollow : (text) -> (bool);
+  handleTwitterCallback : (principal, text, text) -> (opt SerializedUser);
+  addTwitterInfo : (principal, opt nat, opt text) -> ();
+
+  // User management
+  addUser : (principal) -> ();
   getUsers : () -> (vec SerializedUser) query;
+
+  // Admin management
+  addAdminId : (text) -> ();
   getAdminIds : () -> (vec text) query;
   removeAdminId : (text) -> ();
-  addCode : (text) -> ();
-  removeCode : (text) -> ();
-  getCodes : () -> (vec text) query;
+  isAdmin : (principal) -> (bool) query; // Reinstated isAdmin function
+
+  // Mission management
+  addMission : (SerializedMission) -> ();
+  getNumberOfMissions : () -> (nat) query;
+  getMissionById : (nat) -> (opt SerializedMission) query;
+  getAllMissions : () -> (vec SerializedMission) query;
+  countUsersWhoCompletedMission : (nat) -> (nat) query;
+
+  // Progress and secret code handling
+  updateUserProgress : (principal, nat, SerializedProgress) -> ();
+  getProgress : (principal, nat) -> (opt SerializedProgress) query;
+  submitSecretCode : (principal, nat, text) -> (bool);
+  getEarnedForMission : (principal, nat) -> (opt nat) query;
+
+  // New function
+  getTotalSecondsForUser : (principal) -> (?nat) query;
+
+  // HTTP and transformation
+  transform : (TransformArgs) -> (CanisterHttpResponsePayload) query;
+
+  // Media upload (image upload)
   uploadMissionImage : (text, blob) -> (text);
-  getMissionImage : (text) -> (?blob);
-  addTwitterInfo : (text, nat, text) -> ();
 };

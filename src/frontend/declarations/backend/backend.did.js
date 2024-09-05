@@ -33,70 +33,90 @@ export const idlFactory = ({ IDL }) => {
   });
 
   const SerializedUser = IDL.Record({
-    id: IDL.Text,
-    seconds: IDL.Nat,
-    twitterid: IDL.Nat,
-    twitterhandle: IDL.Text,
+    id: IDL.Principal,
+    twitterid: IDL.Opt(IDL.Nat),
+    twitterhandle: IDL.Opt(IDL.Text),
     creationTime: IDL.Int,
   });
 
   const SerializedMission = IDL.Record({
     id: IDL.Nat,
-    mode: IDL.Nat,
+    title: IDL.Text,
     description: IDL.Text,
-    obj1: IDL.Text,
+    obj1: IDL.Opt(IDL.Text),
     obj2: IDL.Text,
+    inputPlaceholder: IDL.Opt(IDL.Text),
+    startDate: IDL.Int,
+    endDate: IDL.Int,
     recursive: IDL.Bool,
+    mintime: IDL.Int,
     maxtime: IDL.Int,
-    image: IDL.Text,
-    functionName1: IDL.Text,
+    functionName1: IDL.Opt(IDL.Text),
     functionName2: IDL.Text,
+    image: IDL.Text,
+    secretCodes: IDL.Opt(IDL.Text),
+    mode: IDL.Nat,
+    requiredPreviousMissionId: IDL.Opt(IDL.Nat),
   });
 
   const SerializedProgress = IDL.Record({
-    done: IDL.Bool,
-    timestamp: IDL.Int,
-    totalearned: IDL.Nat,
-    amountOfTimes: IDL.Nat,
+    completionHistory: IDL.Vec(
+      IDL.Record({ timestamp: IDL.Int, pointsEarned: IDL.Nat, tweetId: IDL.Opt(IDL.Text) })
+    ),
     usedCodes: IDL.Vec(IDL.Tuple(IDL.Text, IDL.Bool)),
   });
 
   const Backend = IDL.Service({
+    // General and utility functions
     getIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     resetall: IDL.Func([], [], []),
     icrc28_trusted_origins: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
-    getTotalSeconds: IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+    availableCycles: IDL.Func([], [IDL.Nat], ['query']),
+    isMiddlemanReachable: IDL.Func([], [IDL.Bool], []),
+
+    // Twitter and social interaction
     addTweet: IDL.Func([IDL.Text, IDL.Nat], [], []),
     getTweets: IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Nat)))], []),
-    transform: IDL.Func([TransformArgs], [CanisterHttpResponsePayload], ['query']),
-    availableCycles: IDL.Func([], [IDL.Nat], ['query']),
     verifyFollow: IDL.Func([IDL.Text], [IDL.Bool], []),
-    handleTwitterCallback: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Opt(SerializedUser)], []),
-    addUser: IDL.Func([IDL.Text], [], []),
-    isMiddlemanReachable: IDL.Func([], [IDL.Bool], []),
-    addMission: IDL.Func([IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Int, IDL.Text, IDL.Text, IDL.Text], [], []),
-    getNumberOfMissions: IDL.Func([], [IDL.Nat], ['query']),
-    getMissionById: IDL.Func([IDL.Nat], [IDL.Opt(SerializedMission)], ['query']),
-    updateUserProgress: IDL.Func([IDL.Text, IDL.Nat, SerializedProgress], [], []),
-    getProgress: IDL.Func([IDL.Text, IDL.Nat], [IDL.Opt(SerializedProgress)], ['query']),
-    submitSecretCode: IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
-    getTotalEarned: IDL.Func([IDL.Text, IDL.Nat], [IDL.Opt(IDL.Nat)], ['query']),
-    isAdmin: IDL.Func([IDL.Text], [IDL.Bool], ['query']),
-    countCompletedUsers: IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
-    getAllMissions: IDL.Func([], [IDL.Vec(SerializedMission)], ['query']),
-    addAdminId: IDL.Func([IDL.Text], [], []),
+    handleTwitterCallback: IDL.Func([IDL.Principal, IDL.Text, IDL.Text], [IDL.Opt(SerializedUser)], []),
+    addTwitterInfo: IDL.Func([IDL.Principal, IDL.Opt(IDL.Nat), IDL.Opt(IDL.Text)], [], []),
+
+    // User management
+    addUser: IDL.Func([IDL.Principal], [], []),
     getUsers: IDL.Func([], [IDL.Vec(SerializedUser)], ['query']),
+
+    // Admin management
+    addAdminId: IDL.Func([IDL.Text], [], []),
     getAdminIds: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     removeAdminId: IDL.Func([IDL.Text], [], []),
-    addCode: IDL.Func([IDL.Text], [], []),
-    removeCode: IDL.Func([IDL.Text], [], []),
-    getCodes: IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    isAdmin: IDL.Func([IDL.Principal], [IDL.Bool], ['query']), // Updated parameter to Principal
+
+    // Mission management
+    addMission: IDL.Func([SerializedMission], [], []),
+    getNumberOfMissions: IDL.Func([], [IDL.Nat], ['query']),
+    getMissionById: IDL.Func([IDL.Nat], [IDL.Opt(SerializedMission)], ['query']),
+    getAllMissions: IDL.Func([], [IDL.Vec(SerializedMission)], ['query']),
+    countUsersWhoCompletedMission: IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
+
+    // Progress and secret code handling
+    updateUserProgress: IDL.Func([IDL.Principal, IDL.Nat, SerializedProgress], [], []),
+    getProgress: IDL.Func([IDL.Principal, IDL.Nat], [IDL.Opt(SerializedProgress)], ['query']),
+    submitSecretCode: IDL.Func([IDL.Principal, IDL.Nat, IDL.Text], [IDL.Bool], []),
+    getEarnedForMission: IDL.Func([IDL.Principal, IDL.Nat], [IDL.Opt(IDL.Nat)], ['query']), // Updated function
+
+    // Time tracking
+    getTotalSecondsForUser: IDL.Func([IDL.Principal], [IDL.Opt(IDL.Nat)], ['query']), // New function
+
+    // HTTP and transformation
+    transform: IDL.Func([TransformArgs], [CanisterHttpResponsePayload], ['query']),
+
+    // Media upload (image upload)
     uploadMissionImage: IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [IDL.Text], []),
-    getMissionImage: IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
-    addTwitterInfo: IDL.Func([IDL.Text, IDL.Nat, IDL.Text], [], []),
   });
+
   return Backend;
 };
+
 export const init = ({ IDL }) => {
   return [];
 };

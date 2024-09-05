@@ -18,6 +18,14 @@ import Principal "mo:base/Principal";
 
 actor class Backend() {
 
+  //
+
+  // Upgrade Functions
+
+  //
+
+  // Pre-upgrade function to serialize the user progress
+
   system func preupgrade() {
 
     // Serialize user progress
@@ -46,6 +54,8 @@ actor class Backend() {
     // Store the serialized progress data for use during post-upgrade
     serializedUserProgress := serializedEntries;
   };
+
+  // Post-upgrade function to deserialize the user progress
 
   system func postupgrade() {
 
@@ -89,49 +99,26 @@ actor class Backend() {
     };
   };
 
-  // Stable storage for serialized data
-  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
-  stable var serializedMissionAssets : [(Text, Blob)] = [];
+  //
 
-  // Mission Assets
-  var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
+  // Admin Management
 
-  // TrieMap to store the progress of each user's missions
-  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-
-  public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
-
-    let path = req.url;
-
-    // Check if the path is directly in missionAssets (which includes the full path)
-    switch (missionAssets.get(path)) {
-      case (?fileBlob) {
-        return {
-          status_code = 200;
-          headers = [("Content-Type", "image/png")];
-          body = fileBlob;
-        };
-      };
-      case null {
-        return {
-          status_code = 404;
-          headers = [("Content-Type", "text/plain")];
-          body = Text.encodeUtf8("File not found");
-        };
-      };
-    };
-  };
-
-  public func addAdminId(newAdminId : Text) : async () {
-    adminIds := Array.append<Text>(adminIds, [newAdminId]);
-  };
+  //
 
   // Admin IDs
-  stable var adminIds : [Text] = [];
 
-  // Function to check if the principalId is an admin
-  public query func isAdmin(principalId : Text) : async Bool {
-    return Array.find<Text>(
+  stable var adminIds : [Principal] = [];
+
+  // Function to add an admin ID
+
+  public func addAdminId(newAdminId : Principal) : async () {
+    adminIds := Array.append<Principal>(adminIds, [newAdminId]);
+  };
+
+  // Function to check if the principal is an admin
+
+  public query func isAdmin(principalId : Principal) : async Bool {
+    return Array.find<Principal>(
       adminIds,
       func(id) : Bool {
         id == principalId;
@@ -140,27 +127,34 @@ actor class Backend() {
   };
 
   // Function to get all admin IDs
-  public query func getAdminIds() : async [Text] {
+
+  public query func getAdminIds() : async [Principal] {
     return adminIds;
   };
 
   // Function to remove an admin ID
-  public func removeAdminId(adminId : Text) : async () {
-    adminIds := Array.filter<Text>(adminIds, func(id) : Bool { id != adminId });
+
+  public func removeAdminId(adminId : Principal) : async () {
+    adminIds := Array.filter<Principal>(adminIds, func(id) : Bool { id != adminId });
   };
 
-  // Registered Users
-  stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
+  //
 
-  // Mission List
-  stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
+  // User Progress & Code Submission
+
+  //
+
+  // TrieMap to store the progress of each user's missions
+
+  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+
+  // Stable storage for serialized data
+
+  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
   // Function to record or update progress on a mission
-  public shared func updateUserProgress(
-    userId : Principal,
-    missionId : Nat,
-    serializedProgress : Types.SerializedProgress,
-  ) : async () {
+
+  public shared func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
     // Deserialize the progress object
     let progress = Serialization.deserializeProgress(serializedProgress);
 
@@ -178,6 +172,7 @@ actor class Backend() {
   };
 
   // Function to get the progress of a specific mission for a user
+
   public query func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
     switch (userProgress.get(userId)) {
       case (?missions) {
@@ -191,7 +186,9 @@ actor class Backend() {
   };
 
   // Function to add a secret code to a user's progress for the mission
+
   public shared func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
+
     // Retrieve user's missions progress
     let userMissions = switch (userProgress.get(userId)) {
       case (?progress) progress;
@@ -237,7 +234,7 @@ actor class Backend() {
       case (?points) points;
     };
 
-    // Convert the Int points to Nat using Int.abs
+    // Convert the Int points to Nat
     let pointsEarnedNat : Nat = Int.abs(pointsEarned);
 
     // Mark the code as used
@@ -257,33 +254,51 @@ actor class Backend() {
     userMissions.put(missionId, missionProgress);
     userProgress.put(userId, userMissions);
 
-    return true; // Code submission successful
+    return true;
   };
 
-  // Function to get the total earned seconds on a specific mission for a user
-  public query func getTotalEarned(userId : Principal, missionId : Nat) : async ?Nat {
-    // Retrieve the user's mission progress
-    let userMissions = switch (userProgress.get(userId)) {
-      case (?progress) progress;
+  // Get the total seconds of an user by Principal
+
+  public query func getTotalSecondsForUser(userId : Principal) : async ?Nat {
+    // Retrieve the user's mission progress from userProgress
+    let userMissionsOpt = userProgress.get(userId);
+
+    // If the user does not exist, return null
+    let userMissions = switch (userMissionsOpt) {
       case null return null; // User not found
+      case (?missions) missions; // User found, continue
     };
 
-    // Retrieve the specific mission's progress
-    let missionProgress = switch (userMissions.get(missionId)) {
-      case (?progress) progress;
-      case null return null; // Mission not found for this user
+    // Initialize a variable to keep track of total seconds
+    var totalSeconds : Nat = 0;
+
+    // Iterate through all missions for the user
+    for ((missionId, progress) in userMissions.entries()) {
+      // Iterate through the completion history of the mission
+      for (record in progress.completionHistory.vals()) {
+        totalSeconds += record.pointsEarned;
+      };
     };
 
-    // Sum up the total points from the completion history
-    var totalPoints : Nat = 0;
-    for (record in missionProgress.completionHistory.vals()) {
-      totalPoints += record.pointsEarned;
-    };
-
-    return ?totalPoints;
+    return ?totalSeconds; // Return the total seconds
   };
+
+  //
+
+  // Image & Media Handling
+
+  //
+
+  // Mission Assets
+
+  var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
+
+  // Stable storage for serialized mission assets
+
+  stable var serializedMissionAssets : [(Text, Blob)] = [];
 
   // Generate a unique image identifier using a combination of timestamp and hash
+
   func generateUniqueIdentifier(imageName : Text) : Text {
     let timestamp = Int.toText(Time.now());
     let hash = Text.hash(imageName);
@@ -301,6 +316,7 @@ actor class Backend() {
   };
 
   // Function to upload a mission image and return the URL
+
   public shared func uploadMissionImage(imageName : Text, imageContent : Blob) : async Text {
     let directory = "/missionassets/";
 
@@ -314,12 +330,18 @@ actor class Backend() {
     return url;
   };
 
-  // Function to retrieve mission image by URL
-  public query func getMissionImage(url : Text) : async ?Blob {
-    return missionAssets.get(url);
-  };
+  //
+
+  // Mission Management
+
+  //
+
+  // Mission List
+
+  stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
 
   // Function to add or update a mission
+
   public shared func addOrUpdateMission(newMission : Types.SerializedMission) : async Bool {
     // Convert SerializedMission to a mutable Mission
     let newDeserializedMission = Serialization.deserializeMission(newMission);
@@ -353,6 +375,7 @@ actor class Backend() {
   };
 
   // Function to get all missions (serialized)
+
   public query func getAllMissions() : async [Types.SerializedMission] {
     return Array.map<Types.Mission, Types.SerializedMission>(
       Vector.toArray(missions),
@@ -361,6 +384,7 @@ actor class Backend() {
   };
 
   // Function to get a mission by ID
+
   public query func getMissionById(id : Nat) : async ?Types.SerializedMission {
     for (mission in Vector.vals(missions)) {
       if (mission.id == id) {
@@ -371,10 +395,13 @@ actor class Backend() {
   };
 
   // Function to reset all missions
+
   public func resetMissions() : async () {
     Vector.clear(missions); // Clear all missions
     missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
   };
+
+  // Function to count the number of users who have completed a specific mission
 
   public query func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
     var count : Nat = 0;
@@ -398,7 +425,18 @@ actor class Backend() {
     return count;
   };
 
-  // Register an user by Principalid
+  //
+
+  // User Management
+
+  //
+
+  // Registered Users
+
+  stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
+
+  // Register an user by Principal
+
   public func addUser(id : Principal) : async () {
 
     // Initialize new user's mission progress
@@ -445,6 +483,7 @@ actor class Backend() {
   };
 
   // Function to get all registered users
+
   public query func getUsers() : async [Types.SerializedUser] {
     return Array.map<Types.User, Types.SerializedUser>(
       Vector.toArray(users),
@@ -452,49 +491,7 @@ actor class Backend() {
     );
   };
 
-  // Utility function to generate a random number between min and max (inclusive)
-  private func getRandomNumberBetween(min : Int, max : Int) : async ?Int {
-    assert (max >= min); // Ensure that max is greater than or equal to min
-
-    let random = Random.Finite(await Random.blob());
-    let range = max - min + 1; // Calculate the range as an Int
-    let randomValue = random.range(32); // Generate a random value
-
-    switch (randomValue) {
-      case (?value) {
-        let result = min + (Int.abs(value % Int.abs(range))); // Adjust the random value within the range
-        return ?result;
-      };
-      case null {
-        return null; // Handle the case where random generation failed
-      };
-    };
-  };
-
-  // Get the total seconds of an user by Principalid
-  public query func getTotalSecondsForUser(userId : Principal) : async ?Nat {
-    // Retrieve the user's mission progress from userProgress
-    let userMissionsOpt = userProgress.get(userId);
-
-    // If the user does not exist, return null
-    let userMissions = switch (userMissionsOpt) {
-      case null return null; // User not found
-      case (?missions) missions; // User found, continue
-    };
-
-    // Initialize a variable to keep track of total seconds
-    var totalSeconds : Nat = 0;
-
-    // Iterate through all missions for the user
-    for ((missionId, progress) in userMissions.entries()) {
-      // Iterate through the completion history of the mission
-      for (record in progress.completionHistory.vals()) {
-        totalSeconds += record.pointsEarned;
-      };
-    };
-
-    return ?totalSeconds; // Return the total seconds
-  };
+  // Function to add Twitter information to a user
 
   public shared func addTwitterInfo(principalId : Principal, twitterId : ?Nat, twitterHandle : ?Text) : async () {
     var i = 0;
@@ -517,6 +514,8 @@ actor class Backend() {
       i += 1;
     };
   };
+
+  // Function to Verify if a user follows a @KonectA_Dao Twitter account
 
   public func verifyFollow(userid : Text) : async Bool {
     let ic : Types.IC = actor ("aaaaa-aa");
@@ -565,6 +564,8 @@ actor class Backend() {
     };
     return follows;
   };
+
+  // Function to handle the Twitter callback
 
   public shared func handleTwitterCallback(principalId : Principal, oauthToken : Text, oauthVerifier : Text) : async ?Types.SerializedUser {
     // 1. DECLARE IC MANAGEMENT CANISTER
@@ -655,7 +656,71 @@ actor class Backend() {
     };
   };
 
+  //
+
+  // Http Request and Cycles
+
+  //
+
+  // Http Request Function
+
+  public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
+
+    let path = req.url;
+
+    // Check if the path is directly in missionAssets (which includes the full path)
+    switch (missionAssets.get(path)) {
+      case (?fileBlob) {
+        return {
+          status_code = 200;
+          headers = [("Content-Type", "image/png")];
+          body = fileBlob;
+        };
+      };
+      case null {
+        return {
+          status_code = 404;
+          headers = [("Content-Type", "text/plain")];
+          body = Text.encodeUtf8("File not found");
+        };
+      };
+    };
+  };
+
+  // Function to get canister cycles balance
+
+  public query func availableCycles() : async Nat {
+    return Cycles.balance();
+  };
+
+  //
+
+  // Utility Functions
+
+  //
+
+  // Utility function to generate a random number between min and max (inclusive)
+
+  private func getRandomNumberBetween(min : Int, max : Int) : async ?Int {
+    assert (max >= min); // Ensure that max is greater than or equal to min
+
+    let random = Random.Finite(await Random.blob());
+    let range = max - min + 1; // Calculate the range as an Int
+    let randomValue = random.range(32); // Generate a random value
+
+    switch (randomValue) {
+      case (?value) {
+        let result = min + (Int.abs(value % Int.abs(range))); // Adjust the random value within the range
+        return ?result;
+      };
+      case null {
+        return null; // Handle the case where random generation failed
+      };
+    };
+  };
+
   // Function to reset all data Structures
+
   public func resetall() : async () {
     Vector.clear(users);
     userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
@@ -663,6 +728,7 @@ actor class Backend() {
   };
 
   // Function to get trusted origins for NFID authentication
+
   public shared query func icrc28_trusted_origins() : async Types.Icrc28TrustedOriginsResponse {
     let trustedOrigins = [
       "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", // Frontend Canister to auth NFID
@@ -674,6 +740,7 @@ actor class Backend() {
   };
 
   // Security function to transform the response
+
   public query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
     let transformed : Types.CanisterHttpResponsePayload = {
       status = raw.response.status;
@@ -696,10 +763,7 @@ actor class Backend() {
     transformed;
   };
 
-  // Function to get canister cycles balance
-  public query func availableCycles() : async Nat {
-    return Cycles.balance();
-  };
+  // Function to check if the middleman server is reachable
 
   public func isMiddlemanReachable() : async Bool {
     // 1. DECLARE IC MANAGEMENT CANISTER

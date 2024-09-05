@@ -1,6 +1,5 @@
 import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
-import type { IDL } from '@dfinity/candid';
 
 export interface HttpHeader {
   name: string;
@@ -34,69 +33,83 @@ export interface CanisterHttpResponsePayload {
 }
 
 export interface SerializedUser {
-  id: string;
-  seconds: bigint;
-  twitterid: bigint;
-  twitterhandle: string;
+  id: Principal;
+  twitterid: bigint | null;
+  twitterhandle: string | null;
   creationTime: bigint;
 }
 
 export interface SerializedMission {
   id: bigint;
-  mode: bigint;
+  title: string;
   description: string;
-  obj1: string;
+  obj1: string | null;
   obj2: string;
+  inputPlaceholder: string | null;
+  startDate: bigint;
+  endDate: bigint;
   recursive: boolean;
+  mintime: bigint;
   maxtime: bigint;
-  image: string;
-  functionName1: string;
+  functionName1: string | null;
   functionName2: string;
+  image: string;
+  secretCodes: string | null;
+  mode: bigint;
+  requiredPreviousMissionId: bigint | null;
 }
 
 export interface SerializedProgress {
-  done: boolean;
-  timestamp: bigint;
-  totalearned: bigint;
-  amountOfTimes: bigint;
+  completionHistory: Array<{ timestamp: bigint; pointsEarned: bigint; tweetId: string | null }>;
   usedCodes: Array<[string, boolean]>;
 }
 
 export interface Backend {
+  // General and utility functions
   getIds: ActorMethod<[], Array<string>>;
   resetall: ActorMethod<[], undefined>;
   icrc28_trusted_origins: ActorMethod<[], Array<string>>;
-  getTotalSeconds: ActorMethod<[string], bigint>;
-  addTweet: ActorMethod<[string, bigint], undefined>;
-  getTweets: ActorMethod<[string], [Array<[bigint, bigint]> | null]>;
-  transform: ActorMethod<[TransformArgs], CanisterHttpResponsePayload>;
   availableCycles: ActorMethod<[], bigint>;
-  verifyFollow: ActorMethod<[string], boolean>;
-  handleTwitterCallback: ActorMethod<[string, string, string], [SerializedUser | null]>;
-  addUser: ActorMethod<[string], undefined>;
   isMiddlemanReachable: ActorMethod<[], boolean>;
-  addMission: ActorMethod<[bigint, bigint, string, string, string, boolean, bigint, string, string], undefined>;
-  getNumberOfMissions: ActorMethod<[], bigint>;
-  getMissionById: ActorMethod<[bigint], [SerializedMission | null]>;
-  updateUserProgress: ActorMethod<[string, bigint, SerializedProgress], undefined>;
-  getProgress: ActorMethod<[string, bigint], [SerializedProgress | null]>;
-  submitSecretCode: ActorMethod<[string, string], boolean>;
-  getTotalEarned: ActorMethod<[string, bigint], [bigint | null]>;
-  isAdmin: ActorMethod<[string], boolean>;
-  countCompletedUsers: ActorMethod<[bigint], bigint>;
-  getAllMissions: ActorMethod<[], Array<SerializedMission>>;
-  addAdminId: ActorMethod<[string], undefined>;
+
+  // Twitter and social interaction
+  addTweet: ActorMethod<[string, bigint], undefined>;
+  getTweets: ActorMethod<[string], Array<[bigint, bigint]> | null>;
+  verifyFollow: ActorMethod<[string], boolean>;
+  handleTwitterCallback: ActorMethod<[Principal, string, string], SerializedUser | null>;
+  addTwitterInfo: ActorMethod<[Principal, bigint | null, string | null], undefined>;
+
+  // User management
+  addUser: ActorMethod<[Principal], undefined>;
   getUsers: ActorMethod<[], Array<SerializedUser>>;
+
+  // Admin management
+  addAdminId: ActorMethod<[string], undefined>;
   getAdminIds: ActorMethod<[], Array<string>>;
   removeAdminId: ActorMethod<[string], undefined>;
-  addCode: ActorMethod<[string], undefined>;
-  removeCode: ActorMethod<[string], undefined>;
-  getCodes: ActorMethod<[], Array<string>>;
+  isAdmin: ActorMethod<[Principal], boolean>;
+
+  // Mission management
+  addMission: ActorMethod<[SerializedMission], undefined>;
+  getNumberOfMissions: ActorMethod<[], bigint>;
+  getMissionById: ActorMethod<[bigint], SerializedMission | null>;
+  getAllMissions: ActorMethod<[], Array<SerializedMission>>;
+  countUsersWhoCompletedMission: ActorMethod<[bigint], bigint>;
+
+  // Progress and secret code handling
+  updateUserProgress: ActorMethod<[Principal, bigint, SerializedProgress], undefined>;
+  getProgress: ActorMethod<[Principal, bigint], SerializedProgress | null>;
+  submitSecretCode: ActorMethod<[Principal, bigint, string], boolean>;
+  getEarnedForMission: ActorMethod<[Principal, bigint], bigint | null>;
+
+  // New function
+  getTotalSecondsForUser: ActorMethod<[Principal], bigint | null>;
+
+  // HTTP and transformation
+  transform: ActorMethod<[TransformArgs], CanisterHttpResponsePayload>;
+
+  // Media upload (image upload)
   uploadMissionImage: ActorMethod<[string, Uint8Array], string>;
-  getMissionImage: ActorMethod<[string], [Uint8Array | null]>;
-  addTwitterInfo: ActorMethod<[string, bigint, string], undefined>;
 }
 
-export interface _SERVICE extends Backend {}
-
-export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
+export interface _SERVICE extends Backend { }
