@@ -9,41 +9,55 @@ interface UserData {
 }
 
 const MissionFunctionsComponent = {
-    handleTwitterAuth: (principalId: Principal | null, backendActor: any) => {
-        // 1. Fetch the Twitter OAuth URL from the backend
-        fetch('https://do.konecta.one/requestTwitterAuth', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        })
-            .then(response => response.json())
-            .then(data => {
-                const authURL = data.authURL;
-                // 2. Open the Twitter OAuth URL in a new popup window
-                const popup = window.open(authURL, 'TwitterLogin', 'width=500,height=600');
+    handleTwitterAuth: async (principalId: Principal | null, backendActor: any) => {
+        let accessToken = localStorage.getItem('accessToken');
+        let refreshToken = localStorage.getItem('refreshToken');
 
-                // 3. Listen for the message from the popup after the user has followed @konecta_dao
-                window.addEventListener('message', (event: MessageEvent) => {
-                    if (event.origin !== 'https://do.konecta.one') return; // Ensure the message is from the backend domain
 
-                    const { userId, userHandle } = event.data;
+        console.log('Access Token Retrieved:', accessToken);
+        console.log('Refresh Token Retrieved:', refreshToken);
 
-                    if (userId && userHandle) {
-                        // Log the user details in the console
-                        console.log(`Twitter User ID: ${userId}, Handle: ${userHandle}`);
+        if (!accessToken || !refreshToken) {
+            console.error('Access token or refresh token is missing.');
+            return;
+        }
 
-                        backendActor.addTwitterInfo(principalId, BigInt(userId), userHandle)
-                    }
-
-                    // Cleanup the event listener after the message is received
-                    window.removeEventListener('message', () => { });
-                });
-            })
-            .catch(error => {
-                console.error('Error during Twitter login initiation:', error);
+        // Check if the access token is valid
+        try {
+            const response = await fetch('https://do.konecta.one/get-twitter-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessToken, refreshToken }),
             });
+
+            if (response.status === 401) {
+                // Access token expired, refresh it
+                const newTokens = await refreshDToken(refreshToken); // Call the function correctly
+                accessToken = newTokens.accessToken;
+                refreshToken = newTokens.refreshToken;
+
+                // Save new tokens
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
+            }
+
+            // Now you can use the access token to follow @konecta_dao
+            const followResponse = await fetch('https://do.konecta.one/follow-konecta', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ userId: 'YOUR_USER_ID' }), // Replace with the authenticated user ID
+            });
+
+            const followData = await followResponse.json();
+            console.log('Follow response:', followData);
+        } catch (error) {
+            console.error('Error following @konecta_dao:', error);
+        }
     },
     verifyFollowing: async (principalId: Principal | null, backendActor: any) => {
         try {
@@ -62,10 +76,14 @@ const MissionFunctionsComponent = {
                     return;
                 }
 
-                const { userId, userHandle } = event.data as UserData;
+                const { userId, userHandle, accessToken, refreshToken } = event.data as UserData;
 
                 console.log('User ID:', userId);
                 console.log('User Handle:', userHandle);
+                console.log('Access Token:', accessToken);
+                console.log('Refresh Token:', refreshToken);
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
 
                 popup?.close();
             });
@@ -73,7 +91,24 @@ const MissionFunctionsComponent = {
             console.error('Error fetching Twitter auth URL:', error);
         }
     },
-
 };
+
+async function refreshDToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    try {
+        const response = await fetch('https://do.konecta.one/refresh-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error refreshing token:', error);
+        throw error;
+    }
+}
 
 export default MissionFunctionsComponent;
