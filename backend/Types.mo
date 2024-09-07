@@ -40,6 +40,7 @@ module Types {
     var secretCodes : ?Text; // List of secret codes for the mission (optional)
     var mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
     var requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
+    var iconUrl : Text;
   };
 
   public type SerializedMission = {
@@ -60,6 +61,7 @@ module Types {
     secretCodes : ?Text; // List of secret codes for the mission (optional)
     mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
     requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
+    iconUrl : Text;
   };
 
   // Progress Types

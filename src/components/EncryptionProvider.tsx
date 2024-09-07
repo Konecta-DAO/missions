@@ -1,15 +1,16 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import CryptoJS from 'crypto-js';
+import { Principal } from '@dfinity/principal'; // Import the Principal type from the module
 
 // Encryption key
 const phrase = 'Awesome-Ultra-Secret-Key';
 const key = CryptoJS.enc.Utf8.parse(phrase.padEnd(32));
 
 interface EncryptionContextProps {
-    principalId: string | null;
-    saveSession: (principalId: string) => void;
+    principalId: Principal | null;
+    saveSession: (principalId: Principal) => void;
     clearSession: () => void;
-    decryptSession: () => { principalId: string, expirationTime: number } | null;
+    decryptSession: () => { principalId: Principal, expirationTime: number } | null;
     decrypting: boolean;
 }
 
@@ -52,7 +53,7 @@ function decrypt(encryptedText: string, iv: string): string {
 }
 
 export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children }) => {
-    const [principalId, setPrincipalId] = useState<string | null>(null);
+    const [principalId, setPrincipalId] = useState<Principal | null>(null);
     const [decrypting, setDecrypting] = useState<boolean>(true);
 
     useEffect(() => {
@@ -65,9 +66,9 @@ export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children
     }, []);
 
     // Save the principalId and session expiration in localStorage
-    const saveSession = (principalId: string) => {
+    const saveSession = (principalId: Principal) => {
         const expirationTime = Date.now() + 3600000; // 1 hour from now
-        const dataToEncrypt = JSON.stringify({ principalId, expirationTime });
+        const dataToEncrypt = JSON.stringify({ pId: principalId.toText(), expirationTime });
         const { iv, encryptedData } = encrypt(dataToEncrypt);
 
         localStorage.setItem('encryptedData', encryptedData);
@@ -83,7 +84,7 @@ export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children
     };
 
     // Decrypt the session manually (can be reused in components)
-    const decryptSession = (): { principalId: string, expirationTime: number } | null => {
+    const decryptSession = (): { principalId: Principal, expirationTime: number } | null => {
         const encryptedData = localStorage.getItem('encryptedData');
         const iv = localStorage.getItem('iv');
 
@@ -91,10 +92,11 @@ export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children
             try {
                 const decryptedData = decrypt(encryptedData, iv);
                 const parsedData = JSON.parse(decryptedData);
-                const { principalId, expirationTime } = parsedData;
+                const { pId, expirationTime } = parsedData;
 
                 if (Date.now() < expirationTime) {
-                    return parsedData; // Return session if not expired
+                    const principalId = Principal.fromText(pId);
+                    return { principalId, expirationTime }; // Return session if not expired
                 } else {
                     clearSession(); // Clear session if expired
                 }

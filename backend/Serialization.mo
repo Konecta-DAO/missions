@@ -43,6 +43,7 @@ module Serialization {
       mintime = mission.mintime;
       secretCodes = mission.secretCodes;
       requiredPreviousMissionId = mission.requiredPreviousMissionId;
+      iconUrl = mission.iconUrl;
     };
   };
 
@@ -65,12 +66,13 @@ module Serialization {
       var mintime = serializedMission.mintime;
       var secretCodes = serializedMission.secretCodes;
       var requiredPreviousMissionId = serializedMission.requiredPreviousMissionId;
+      var iconUrl = serializedMission.iconUrl;
     };
   };
 
   public func serializeProgress(progress : Types.Progress) : Types.SerializedProgress {
     {
-      completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(progress.completionHistory, func(record : Types.MissionRecord) : Types.SerializedMissionRecord { { timestamp = record.timestamp; pointsEarned = record.pointsEarned; tweetId = record.tweetId; } });
+      completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(progress.completionHistory, func(record : Types.MissionRecord) : Types.SerializedMissionRecord { { timestamp = record.timestamp; pointsEarned = record.pointsEarned; tweetId = record.tweetId } });
       usedCodes = Iter.toArray(progress.usedCodes.entries());
     };
   };
@@ -81,4 +83,21 @@ module Serialization {
       var usedCodes = TrieMap.fromEntries<Text, Bool>(serializedProgress.usedCodes.vals(), Text.equal, Text.hash);
     };
   };
+
+  public func serializeUserMissions(missions : Types.UserMissions) : [(Nat, Types.SerializedProgress)] {
+    var serializedMissions : [(Nat, Types.SerializedProgress)] = [];
+
+    let missionsIter = missions.entries();
+
+    for (entry in missionsIter) {
+      let missionId = entry.0;
+      let progress = entry.1;
+      let serializedProgress = serializeProgress(progress);
+
+      serializedMissions := Array.append(serializedMissions, [(missionId, serializedProgress)]);
+    };
+
+    return serializedMissions;
+  };
+
 };

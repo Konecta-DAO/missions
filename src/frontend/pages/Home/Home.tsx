@@ -7,14 +7,16 @@ import Plataforma from '../../components/Plataforma';
 import CascoNFID from '../../components/CascoNFID';
 import Kami from '../../../../public/assets/Kami.svg';
 import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
-import TimeCapsule from '../../../../public/assets/Time Capsule.svg';
+import useLoadingProgress from '../../../utils/useLoadingProgress';
+import LoadingOverlay from '../../../components/LoadingOverlay';
 import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton';
 import HelpButton from '../../components/HelpButton/HelpButton';
 import SpeechBubble from '../../components/SpeechBubble/SpeechBubble';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../../declarations/backend';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../../../declarations/backend';
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { Principal } from '@dfinity/principal';
 import { useEncryption } from '../../../components/EncryptionProvider';
+import { Usergeek } from 'usergeek-ic-js';
 
 const Home: React.FC = () => {
   const isMobile = useIsMobile();
@@ -22,7 +24,7 @@ const Home: React.FC = () => {
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
   const [iframeReady, setIframeReady] = useState(false);
-  const [loadingPercentage, setLoadingPercentage] = useState(0);
+  const { loadingPercentage } = useLoadingProgress();
   const { decryptSession, saveSession } = useEncryption();
 
   const agent = new HttpAgent();
@@ -39,20 +41,6 @@ const Home: React.FC = () => {
       navigate('/Missions');
     }
 
-    let interval: NodeJS.Timeout;
-
-    if (!iframeReady) {
-      let percentage = 0;
-      interval = setInterval(() => {
-        percentage += 1;
-        setLoadingPercentage(percentage);
-        if (percentage >= 100) {
-          clearInterval(interval); // Stop once it reaches 100%
-        }
-      }, 40); // Loading Speed (1 second per 10ms)
-    }
-
-    return () => clearInterval(interval);
   }, [iframeReady]);
 
   // NFID Handlers
@@ -62,24 +50,20 @@ const Home: React.FC = () => {
   };
 
   const handlePrincipalId = async (principalId: Principal) => {
-    saveSession(principalId.toText());
+    saveSession(principalId);
 
-    try {
-      // Fetch progress for the user
-      const progress = await backendActor.getProgress(principalId, 0n);
+    // Fetch progress for the user
+    const progress = await backendActor.getProgress(principalId, 0n);
 
-      if (progress === null || (Array.isArray(progress) && progress.length === 0)) {
-        // If user is not registered, add them
-        await backendActor.addUser(principalId);
-        console.log('User registered');
-      } else {
-        console.log('User already registered');
-      }
-    } catch (error) {
-      console.error('Error calling with backend:', error);
-    } finally {
-      navigate('/Missions');
+    if (progress === null || (Array.isArray(progress) && progress.length === 0)) {
+      // If user is not registered, add them
+      Usergeek.trackEvent('Mission 0: User Registered');
+      await backendActor.addUser(principalId);
+
     }
+
+    navigate('/Missions');
+
   };
 
   // Bubble Content Handlers
@@ -95,22 +79,17 @@ const Home: React.FC = () => {
   const handleHelpClick = () => {
     setShowBubble(false); // Bubble Restart
     setTimeout(() => {
-      setBubbleContent("Help mode activated! Here’s where you can find all the tips and tricks you need to navigate and use Konecta effectively. Let’s get you sorted!");
+      setBubbleContent("The adventure begins here, brave traveler! To unlock your first precious seconds, you must log in using your NFID. It’s your key to the Konecta Realm. Time waits for no one!");
       setShowBubble(true); // Show the new content
     }, 0);
   };
 
   return (
-    <div className={`${styles.HomeContainer} ${isMobile ? styles.mobile : ''}`}>
+    <div className={styles.HomeContainer}>
 
       {/* Loading Screen - Visible until the iFrame is ready */}
       {!iframeReady && (
-        <div className={styles.LoadingOverlay}>
-          <div className={styles.TimeCapsuleWrapper}>
-            <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
-            <div className={styles.LoadingText}>{loadingPercentage}%</div>
-          </div>
-        </div>
+        <LoadingOverlay loadingPercentage={loadingPercentage} />
       )}
 
       {/* Page Content */}

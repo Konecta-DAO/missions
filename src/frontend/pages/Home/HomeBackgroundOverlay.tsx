@@ -20,13 +20,12 @@ const SvgWithAnimation = styled.svg<{ mobile: boolean }>`
   position: absolute;
   top: 0;
   left: 50%;
-  width: ${({ mobile }) => (mobile ? '100%' : 'auto')};
+  width: auto;
   height: auto;
   transform: translateX(-50%);
-  min-width: ${({ mobile }) => (mobile ? 'none' : '100%')};
-  min-height: ${({ mobile }) => (mobile ? 'none' : '100%')};
+  min-width: 100%;
+  min-height: 100%;
   object-fit: cover;
-  object-position: ${({ mobile }) => (mobile ? 'top' : 'initial')};
 
   .st1 {
     fill: #A88CED;

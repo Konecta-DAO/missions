@@ -1,10 +1,9 @@
 import './App.css';
 import { useEffect, useState, useMemo } from 'react';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend';
 import { Actor, HttpAgent } from "@dfinity/agent";
 import UserList from './components/UserList';
 import UserDetailsModal from './components/UserDetailsModal';
-import MissionList from './components/MissionList';
 import MissionChart from './components/MissionChart';
 import { useFetchData } from './hooks/useFetchData';
 import { useFetchUserDetails } from './hooks/useFetchUserDetails';

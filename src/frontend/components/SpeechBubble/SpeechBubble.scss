@@ -7,8 +7,7 @@
     bottom: 0;
     left: 10%;
     width: auto;
-    max-width: 900px;
-    min-width: 600px;
+    min-width: 27vw;
     padding: 1.5em;
     border-radius: 1.5em 1.5em 1.5em 0;
     /* Remove bottom-left rounded corner */
@@ -46,7 +45,7 @@
 
     .bubbleText {
         font-family: 'Courier New', monospace;
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         text-align: left;
         white-space: normal;
         opacity: 1;

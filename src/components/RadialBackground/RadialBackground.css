@@ -1,0 +1,67 @@
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  
+  .background-mobile {
+    background: radial-gradient(
+      circle at center -15%, 
+      #AF63C7 0%, 
+      #9556B5 11%, 
+      #6E429A 31%, 
+      #553589 47%, 
+      #4D3183 57%, 
+      #412C6E 63%, 
+      #2A2347 76%, 
+      #222038 83%, 
+      #0F0026 100%
+    );
+  }
+  
+  .background-desktop {
+    background: radial-gradient(
+      circle at center -67%, 
+      #AF63C7 0%, 
+      #9556B5 11%, 
+      #6E429A 31%, 
+      #553589 47%, 
+      #4D3183 57%, 
+      #412C6E 63%, 
+      #2A2347 76%, 
+      #222038 83%, 
+      #0F0026 100%
+    );
+  }
+  
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100vh;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  
+  .overlay-mobile {
+    background-image: url('../../../public/assets/BG2ndLinesMobile.svg');
+    opacity: 0.8;
+  }
+  
+  .overlay-desktop {
+    background-image: url('../../../public/assets/BG2ndLines.svg');
+    opacity: 0.67;
+  }
+  

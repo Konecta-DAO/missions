@@ -1,10 +1,8 @@
 import './App.css';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from './declarations/backend';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend';
 import { Actor, HttpAgent } from "@dfinity/agent";
 import KWA from './assets/KWAF LT.mp4';
-import NFIDAuth from './NFIDAuth';
-import { useNFID } from './useNFID';
 import { Usergeek } from "usergeek-ic-js";
 import CryptoJS from 'crypto-js';
 import { Principal } from '@dfinity/principal';
@@ -30,8 +28,6 @@ function App() {
     setNFIDing(false);
     setIsInitialized(true);
   }, []);
-
-  const { nfid } = useNFID(handleNfidIframeInstantiated);
 
   // Encryption and Decryption functions
   const phrase = 'Awesome-Ultra-Secret-Key-That-Definitely-Should-Not-Be-Here';
@@ -67,10 +63,6 @@ function App() {
   }
 
   useEffect(() => {
-    if (!nfid) {
-      console.log('Waiting for NFID to initialize before decrypting principalId');
-      return;
-    }
 
     const encryptedData = localStorage.getItem('encryptedData');
     const iv = localStorage.getItem('iv');
@@ -98,7 +90,7 @@ function App() {
     } else {
       setDecrypting(false);
     }
-  }, [nfid]);
+  },);
 
 
   // Initialize Usergeek
@@ -114,10 +106,6 @@ function App() {
 
   // Handle successful authentication
   const handleSuccess = useCallback(async (pId: string): Promise<void> => {
-    if (!nfid) {
-      console.error("NFID is not initialized");
-      return;
-    }
 
     try {
       const expirationTime = Date.now() + 3600000; // 1 hour from now
@@ -137,7 +125,7 @@ function App() {
       setNFIDing(false);
       console.log("NFID not loading");
     }
-  }, [nfid, backend]);
+  }, [backend]);
 
   // Main logic of the app
   const mainLogic = async (pId: string) => {
@@ -302,7 +290,6 @@ function App() {
               <>
                 <h1>Join the Konectª Army</h1>
                 <br />
-                <NFIDAuth showButton={true} onSuccess={(principalId) => [setPrincipalId(principalId), setNFIDing(false)]} nfid={nfid} isInitialized={isInitialized} />
               </>
             )}
             <p>{message}</p>

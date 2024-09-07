@@ -1,14 +1,7 @@
 .MissionsContainer {
-    text-align: center;
-    color: white;
     position: relative;
     width: 100%;
     height: 100%;
-    padding: 20px;
-
-    &.mobile {
-        padding: 10px;
-    }
 }
 
 .TimeCapsuleWrapper {
@@ -23,11 +16,11 @@
 
 .OpenChatWrapper {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 300px;
-    height: 400px;
-    z-index: 9999;
+    bottom: 50px;
+    right: 50px;
+    width: 23vw;
+    height: 77vh;
+    z-index: 99;
     border: 1px solid #ccc;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
@@ -39,7 +32,7 @@
 
 .TimerText {
     color: black;
-    font-size: 1.5rem;
+    font-size: 1vw;
     pointer-events: none;
     position: absolute;
     font-weight: bold;
@@ -49,10 +42,229 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 35px;
+    margin-top: 60px;
 }
 
 .KonectaLogo {
     width: 300px;
     height: auto;
+}
+
+.MissionGrid {
+    position: absolute;
+    top: 18%;
+    left: 3vw;
+    width: 67vw;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: auto;
+    gap: 1.5rem;
+    padding: 1rem;
+    overflow-y: auto;
+    background-color: transparent;
+    align-items: start;
+}
+
+
+.MissionCard {
+    background-size: cover;
+    background-position: top;
+    /* Align the image to the top */
+    height: 25vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    position: relative;
+    padding: 0;
+}
+
+.IncompleteMission::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    /* 85% black overlay */
+    z-index: 1;
+    pointer-events: none;
+}
+
+.Tooltip {
+    position: fixed;
+    background-color: rgba(96, 56, 188, 0.85);
+    /* Light purple background */
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    z-index: 10000;
+    pointer-events: none;
+    max-width: 300px;
+    word-wrap: break-word;
+    white-space: normal;
+    opacity: 1;
+    box-sizing: border-box;
+}
+
+
+/* Tooltip styling */
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 100%;
+    /* Adjust this value to be right below the element */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #6C63FF;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    width: 15vw;
+    border-radius: 5px;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 10000;
+    /* Ensure tooltip is on top */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Show tooltip on hover */
+[data-tooltip]:hover::after {
+    visibility: visible;
+    opacity: 1;
+}
+
+.CompletedMission::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.15);
+    /* 15% black overlay */
+    z-index: 1;
+    pointer-events: none;
+}
+
+.MissionTitleWrapper {
+    background-color: rgba(21, 19, 32, 0.85);
+    /* Background color for title section */
+    width: 100%;
+    padding: 0.67rem;
+    position: absolute;
+    top: 0;
+    z-index: 2;
+}
+
+
+.MissionImage {
+    background-size: cover;
+    background-position: center;
+    height: 150px;
+    /* Set the height for the image part */
+    width: 100%;
+}
+
+.MissionContent {
+    padding: 1rem;
+}
+
+.MissionTitle {
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    margin: 0;
+    font-size: 1.75rem;
+    transform: translateX(5%);
+    width:80%;
+    line-height:1.1em;
+}
+
+.MissionLine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.MissionCircle {
+    position: absolute;
+    top: -6%;
+    right: -3%;
+    width: 18%;
+    height: auto;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.MissionIcon {
+    position: absolute;
+    top: 7%;
+    right: 2.25%;
+    width: 9%;
+    height: auto;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.SmallMissionCircle {
+    display: none;
+    position: absolute;
+    bottom: 1%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8%;
+    height: auto;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.SmallWhiteCircle {
+    position: absolute;
+    bottom: 4%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6%;
+    height: auto;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.CompletedMission .SmallMissionCircle,
+.IncompleteMission .SmallMissionCircle {
+    display: block;
+}
+
+.Checkmark {
+    position: absolute;
+    bottom: 4%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6%;
+    height: auto;
+    z-index: 3;
+    pointer-events: none;
+}
+
+
+@media (max-width: 1280px) {
+    .MissionGrid {
+        grid-template-columns: 1fr;
+    }
 }

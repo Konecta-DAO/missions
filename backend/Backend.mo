@@ -51,8 +51,11 @@ actor class Backend() {
       serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
     };
 
-    // Store the serialized progress data for use during post-upgrade
-    serializedUserProgress := serializedEntries;
+    // Serialize mission assets
+    let missionAssetsEntries = Iter.toArray(missionAssets.entries());
+
+    // Assign directly to the stable variable serializedMissionAssets
+    serializedMissionAssets := missionAssetsEntries;
   };
 
   // Post-upgrade function to deserialize the user progress
@@ -91,11 +94,12 @@ actor class Backend() {
       userProgress.put(userId, userMissions);
     };
 
-    // Deserialize missionAssets
+    // Deserialize the mission assets
     missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
-    for (entry in serializedMissionAssets.vals()) {
-      let (fileName, fileBlob) = entry;
-      missionAssets.put(fileName, fileBlob);
+
+    for (assetEntry in serializedMissionAssets.vals()) {
+      let (missionId, asset) = assetEntry;
+      missionAssets.put(missionId, asset);
     };
   };
 
@@ -182,6 +186,32 @@ actor class Backend() {
         };
       };
       case null return null;
+    };
+  };
+
+  public shared func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
+    let userMissionsOpt = userProgress.get(userId);
+
+    switch (userMissionsOpt) {
+      case (null) {
+        return null;
+      };
+      case (?userMissions) {
+        var serializedMissions : [(Nat, Types.SerializedProgress)] = [];
+
+        // Get an iterator for the mission entries
+        let missionsIter = userMissions.entries();
+
+        // Loop over the entries in the TrieMap
+        for (entry in missionsIter) {
+          let missionId = entry.0;
+          let progress = entry.1;
+          let serializedProgress = Serialization.serializeProgress(progress);
+          serializedMissions := Array.append(serializedMissions, [(missionId, serializedProgress)]);
+        };
+
+        return ?serializedMissions;
+      };
     };
   };
 
@@ -491,9 +521,18 @@ actor class Backend() {
     );
   };
 
+  public query func getUser(id : Principal) : async ?Types.SerializedUser {
+    for (user in Vector.vals(users)) {
+      if (user.id == id) {
+        return ?Serialization.serializeUser(user);
+      };
+    };
+    return null;
+  };
+
   // Function to add Twitter information to a user
 
-  public shared func addTwitterInfo(principalId : Principal, twitterId : ?Nat, twitterHandle : ?Text) : async () {
+  public shared func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
     var i = 0;
     while (i < Vector.size(users)) {
       switch (Vector.getOpt(users, i)) {
@@ -501,8 +540,8 @@ actor class Backend() {
           if (user.id == principalId) {
             let updatedUser : Types.User = {
               id = user.id;
-              var twitterid = twitterId;
-              var twitterhandle = twitterHandle;
+              var twitterid = ?twitterId;
+              var twitterhandle = ?twitterHandle;
               creationTime = user.creationTime;
             };
             Vector.put(users, i, updatedUser);
@@ -512,147 +551,6 @@ actor class Backend() {
         case _ {};
       };
       i += 1;
-    };
-  };
-
-  // Function to Verify if a user follows a @KonectA_Dao Twitter account
-
-  public func verifyFollow(userid : Text) : async Bool {
-    let ic : Types.IC = actor ("aaaaa-aa");
-    let host : Text = "do.konecta.one";
-    let url = "https://" # host # "/verifyFollow?userid=" # userid;
-
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = [
-        { name = "Host"; value = host },
-      ];
-      body = null;
-      method = #get;
-      transform = null;
-    };
-
-    Cycles.add<system>(22_935_266_640);
-
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-
-    let follows = switch (http_response.status) {
-      case (200) {
-        let body = Blob.fromArray(http_response.body);
-        let decodedBody = Text.decodeUtf8(body);
-
-        switch (decodedBody) {
-          case (?text) {
-            // Handle the result from JSON parsing
-            switch (Serde.JSON.fromText(text, null)) {
-              case (#ok(blob)) {
-                let followInfo : ?{ follows : Bool } = from_candid (blob);
-
-                switch (followInfo) {
-                  case (?{ follows = true }) true;
-                  case _ false;
-                };
-              };
-              case (#err(_)) false; // Handle JSON parsing error by returning false
-            };
-          };
-          case null false; // Handle case where the body is not valid UTF-8
-        };
-      };
-      case _ false; // Handle non-200 status codes
-    };
-    return follows;
-  };
-
-  // Function to handle the Twitter callback
-
-  public shared func handleTwitterCallback(principalId : Principal, oauthToken : Text, oauthVerifier : Text) : async ?Types.SerializedUser {
-    // 1. DECLARE IC MANAGEMENT CANISTER
-    let ic : Types.IC = actor ("aaaaa-aa");
-
-    // 2. SETUP ARGUMENTS FOR HTTP POST request to get Twitter user info
-    let host : Text = "do.konecta.one";
-    let url = "https://" # host # "/getTwitterUser";
-
-    let body = Text.concat("{\"oauthToken\": \"", Text.concat(oauthToken, Text.concat("\", \"oauthVerifier\": \"", Text.concat(oauthVerifier, "\"}"))));
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = [
-        { name = "Host"; value = host },
-        { name = "Content-Type"; value = "application/json" },
-      ];
-      body = ?Blob.toArray(Text.encodeUtf8(body));
-      method = #post;
-      transform = null;
-    };
-
-    // Add sufficient cycles for the HTTP request
-    Cycles.add<system>(22_935_266_640);
-
-    // Make the HTTP request and wait for the response
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-
-    // Check if the response status is 200 (OK) and parse the response body
-    if (http_response.status == 200) {
-      let body = Blob.fromArray(http_response.body);
-      let decodedBody = Text.decodeUtf8(body);
-
-      switch (decodedBody) {
-        case (?responseBody) {
-          switch (Serde.JSON.fromText(responseBody, null)) {
-            case (#ok(blob)) {
-              let userInfo : ?{ id_str : Text; screen_name : Text } = from_candid (blob);
-
-              switch (userInfo) {
-                case (?info) {
-                  var i = 0;
-                  while (i < Vector.size(users)) {
-                    switch (Vector.getOpt(users, i)) {
-                      case (?user) {
-                        if (user.id == principalId) {
-                          let twitterid : Nat = switch (Nat.fromText(info.id_str)) {
-                            case (?nat) nat;
-                            case null 0;
-                          };
-
-                          let updatedUser : Types.User = {
-                            id = user.id;
-                            var twitterid = ?twitterid;
-                            var twitterhandle = ?info.screen_name;
-                            creationTime = user.creationTime;
-                          };
-
-                          // Update the user in the vector
-                          Vector.put(users, i, updatedUser);
-                          return ?Serialization.serializeUser(updatedUser);
-                        };
-                      };
-                      case _ {};
-                    };
-                    i += 1;
-                  };
-                  return null;
-                };
-                case _ {
-                  return null;
-                };
-              };
-            };
-            case (#err(_)) {
-              // Handle JSON parsing error
-              return null;
-            };
-          };
-        };
-        case null {
-          // Handle decoding error
-          return null;
-        };
-      };
-    } else {
-      return null;
     };
   };
 
@@ -724,6 +622,26 @@ actor class Backend() {
   public func resetall() : async () {
     Vector.clear(users);
     userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+    return;
+  };
+
+  // Function to reset an user Progress
+
+  public func resetUserProgress(userId : Principal) : async () {
+    userProgress.delete(userId);
+    return;
+  };
+
+  // Function to reset a specific Mission Progress for an user
+
+  public func resetUserMissionProgress(userId : Principal, missionId : Nat) : async () {
+    let userMissions = switch (userProgress.get(userId)) {
+      case (?progress) progress;
+      case null return;
+    };
+
+    userMissions.delete(missionId);
+    userProgress.put(userId, userMissions);
     return;
   };
 

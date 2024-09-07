@@ -1,0 +1,20 @@
+.Modal {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 500px;
+    margin: auto;
+  }
+  
+  .Overlay {
+    background: rgba(0, 0, 0, 0.6);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  

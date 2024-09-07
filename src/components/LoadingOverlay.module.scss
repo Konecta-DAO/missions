@@ -1,0 +1,61 @@
+/* src/components/LoadingOverlay.module.scss */
+
+.LoadingOverlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .TimeCapsuleWrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    animation: capsuleFloat 2s infinite ease-in-out;
+    font-weight: bold;
+    /* Moves both the text and SVG */
+  }
+  
+  .TimeCapsule {
+    width: 300px;
+    height: auto;
+  }
+  
+  .LoadingText {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 2rem;
+    pointer-events: none;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+  
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes capsuleFloat {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+  

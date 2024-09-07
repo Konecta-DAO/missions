@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NFID } from '@nfid/embed';
-import Casco from './Casco';
 import { Principal } from '@dfinity/principal';
 
-interface CascoNFIDProps {
+interface BotonNFIDProps {
     onIframeReady: () => void; // Callback to notify Home.tsx when the iframe is ready
     onPrincipalId: (principalId: Principal) => void; // Callback to pass the principalId to Home.tsx
 }
 
-const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) => {
+const BotonNFID: React.FC<BotonNFIDProps> = ({ onIframeReady, onPrincipalId }) => {
     const [nfid, setNfid] = useState<any>(null);
 
     // Initialize NFID
@@ -58,9 +57,9 @@ const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) =
 
     return (
         <div>
-            <Casco onClick={handleAuthenticate} />
+            <button onClick={handleAuthenticate} style={{ fontSize: '20px', width: '200px', height: '50px' }}>Authenticate</button>
         </div>
     );
 };
 
-export default CascoNFID;
+export default BotonNFID;

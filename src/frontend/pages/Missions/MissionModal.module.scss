@@ -1,0 +1,170 @@
+.ModalBackground {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.5s forwards;
+}
+
+.MissionModal {
+    position: relative;
+    width: 28%;
+    height: 75%;
+    background-color: #151320;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    transform: translateY(100vh);
+    animation: slideUp 0.5s forwards;
+}
+
+.MissionImageWrapper {
+    position: relative;
+    width: 100%;
+    height: 50%;
+    /* Image takes 50% of the height */
+}
+
+.MissionImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Ensure the image covers the whole area */
+}
+
+.GradientOverlay {
+    position: relative;
+    bottom: 7px;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background: linear-gradient(to bottom, transparent, #151320);
+}
+
+.MissionContent {
+    padding: 20px;
+    flex: 1;
+    width: 83%;
+    transform: translateX(6.4%);
+    font-size: 0.93vw;
+    line-height: 1.25em;
+    font-weight: 500;
+}
+
+.ButtonInputs {
+    padding: 20px;
+    flex: 1;
+    width: 80%;
+    transform: translateX(7%);
+}
+
+.MissionTitleWrapper {
+    background-color: rgba(21, 19, 32, 0.85);
+    /* Background color for title section */
+    width: 100%;
+    padding: 0.67rem;
+    position: absolute;
+    top: 0;
+    z-index: 2;
+}
+
+.MissionTitle {
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    margin: 0;
+    font-size: 1.25vw;
+    line-height: 1.15em;
+    transform: translate(15.25%);
+    width: 75%;
+}
+
+.MissionLine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.MissionLine2 {
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.MissionActions {
+    margin-top: 0.25vw;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5em;
+}
+
+.InputButtonWrapper {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+button {
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1.1vw;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+button:hover {
+    background-color: #5746d6;
+}
+
+.CompletedText {
+    font-size: 1vw;
+    color: white;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Fade in the background */
+@keyframes fadeIn {
+    from {
+        background-color: rgba(0, 0, 0, 0);
+        /* Transparent */
+    }
+
+    to {
+        background-color: rgba(0, 0, 0, 0.75);
+        /* Full dark background */
+    }
+}
+
+/* Slide up the modal */
+@keyframes slideUp {
+    from {
+        transform: translateY(100vh);
+        /* Start from the bottom */
+    }
+
+    to {
+        transform: translateY(0);
+        /* End at the middle */
+    }
+}

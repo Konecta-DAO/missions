@@ -1,38 +1,5 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
-
-// Keyframes for the opacity transition of Linea elements
-const createOpacityKeyframes = (index: number) => {
-    const start = `${index * 10}%`;
-    const end = `${index * 10 + 10}%`;
-
-    return keyframes`
-      0% { opacity: 0; }
-      ${start} { opacity: 0; }
-      ${end} { opacity: 1; }
-      90% { opacity: 1; } 
-      100% { opacity: 0; }
-    `;
-};
-
-const SvgContainer = styled.div<{ animationDelay: string }>`
-  width: 100%;
-  height: auto;
-
-  svg {
-    width: 100%;
-    height: auto;
-  }
-
-  // Linea animation
-  #Linea1 { animation: ${createOpacityKeyframes(1)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-  #Linea2 { animation: ${createOpacityKeyframes(2)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-  #Linea3 { animation: ${createOpacityKeyframes(3)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-  #Linea4 { animation: ${createOpacityKeyframes(4)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-  #Linea5 { animation: ${createOpacityKeyframes(5)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-  #Linea6 { animation: ${createOpacityKeyframes(6)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-  #Linea7 { animation: ${createOpacityKeyframes(7)} 7s linear infinite; animation-delay: ${({ animationDelay }) => animationDelay}; }
-`;
+import './Plataforma.css';
 
 interface PlataformaProps {
     animationDelay?: string;
@@ -40,7 +7,7 @@ interface PlataformaProps {
 
 const Plataforma: React.FC<PlataformaProps> = ({ animationDelay = '0s' }) => {
     return (
-        <SvgContainer animationDelay={animationDelay}>
+        <div className="svg-container">
             <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
                 viewBox="0 0 921.4 616.8" enableBackground="new 0 0 921.4 616.8" xmlSpace="preserve">
 
@@ -132,7 +99,7 @@ const Plataforma: React.FC<PlataformaProps> = ({ animationDelay = '0s' }) => {
                 </g>
 
             </svg>
-        </SvgContainer>
+        </div>
     );
 };
 
