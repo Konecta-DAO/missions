@@ -1,11 +1,9 @@
 import { Principal } from "@dfinity/principal";
-import { SerializedUser } from "../../../declarations/backend/backend.did";
-import React, { useState } from 'react';
 import axios from 'axios';
 
 interface UserData {
     accessToken: string;
-    accessSecret: string;
+    refreshToken: string;
     userId: string;
     userHandle: string;
 }
@@ -48,51 +46,34 @@ const MissionFunctionsComponent = {
             });
     },
     verifyFollowing: async (principalId: Principal | null, backendActor: any) => {
-        // Fetch the Twitter OAuth URL from the backend
-        fetch('https://do.konecta.one/requestTwitterAuth-v2', {
-            method: 'GET',
-            credentials: 'include',
-        })
-            .then(response => response.json())
-            .then(data => {
-                const authURL = data.authURL;
-
-                // Open Twitter OAuth flow in a new popup window with the correct authURL
-                const popup = window.open(authURL, 'TwitterAuth', 'width=600,height=400');
-
-                // Listen for the postMessage event from the popup window
-                window.addEventListener('message', async (event) => {
-                    if (event.origin !== 'https://do.konecta.one') {
-                        return;
-                    }
-
-                    const { accessToken, accessSecret, userId } = event.data as UserData;
-
-                    // Call the verifyFollow function with the returned tokens and userId
-                    const result = await verifyFollow(accessToken, accessSecret, userId);
-                    console.log('Is following:', result);
-
-                    // Close the popup once we have the necessary data
-                    popup?.close();
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching Twitter auth URL:', error);
+        try {
+            const response = await fetch('https://do.konecta.one/requestTwitterAuth-v2', {
+                method: 'GET',
+                credentials: 'include',
             });
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, 'TwitterAuth', 'width=600,height=400');
+
+            window.addEventListener('message', async (event) => {
+                if (event.origin !== 'https://do.konecta.one') {
+                    return;
+                }
+
+                const { userId, userHandle } = event.data as UserData;
+
+                console.log('User ID:', userId);
+                console.log('User Handle:', userHandle);
+
+                popup?.close();
+            });
+        } catch (error) {
+            console.error('Error fetching Twitter auth URL:', error);
+        }
     },
 
 };
-
-async function verifyFollow(accessToken: string, accessSecret: string, userId: string): Promise<boolean> {
-    try {
-        const response = await axios.get('https://do.konecta.one/check-following', {
-            params: { accessToken, accessSecret, userId },
-        });
-        return response.data.isFollowing;
-    } catch (error) {
-        console.error('Error checking follow status:', error);
-        return false;
-    }
-}
 
 export default MissionFunctionsComponent;
