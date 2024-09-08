@@ -79,6 +79,7 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
     position: relative;
     padding: 0;
+    cursor: default;
 }
 
 .IncompleteMission::before {
@@ -92,6 +93,11 @@
     /* 85% black overlay */
     z-index: 1;
     pointer-events: none;
+}
+
+.AvailableMission {
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 .Tooltip {
@@ -155,7 +161,12 @@
     background-color: rgba(0, 0, 0, 0.15);
     /* 15% black overlay */
     z-index: 1;
-    pointer-events: none;
+    pointer-events: auto;
+}
+
+.CompletedMission {
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 .MissionTitleWrapper {
@@ -187,10 +198,10 @@
     text-align: center;
     text-transform: uppercase;
     margin: 0;
-    font-size: 1.75rem;
+    font-size: 1.08vw;
     transform: translateX(5%);
-    width:80%;
-    line-height:1.1em;
+    width: 80%;
+    line-height: 1.1em;
 }
 
 .MissionLine {
@@ -228,7 +239,7 @@
     position: absolute;
     bottom: 1%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50.1%);
     width: 8%;
     height: auto;
     z-index: 3;
@@ -240,7 +251,7 @@
     bottom: 4%;
     left: 50%;
     transform: translateX(-50%);
-    width: 6%;
+    width: 9%;
     height: auto;
     z-index: 4;
     pointer-events: none;

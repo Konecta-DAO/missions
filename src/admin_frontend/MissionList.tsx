@@ -3,6 +3,7 @@ import styles from './MissionsPanel.module.scss';
 import ModifyMissionModal from './ModifyMissionModal';
 import { SerializedMission } from '../declarations/backend/backend.did';
 
+
 interface MissionListProps {
   missions: SerializedMission[];
   onUpdateMission: (mission: SerializedMission) => void;

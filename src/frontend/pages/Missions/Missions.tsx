@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { convertSecondsToHMS } from '../../../components/Utilities';
+import { convertSecondsToHMS, formatTimeRemaining, isMissionAvailable } from '../../../components/Utilities';
 import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent';
 import { useEncryption } from '../../../components/EncryptionProvider';
@@ -14,7 +14,7 @@ import useLoadingProgress from '../../../utils/useLoadingProgress';
 import LoadingOverlay from '../../../components/LoadingOverlay';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../../../declarations/backend';
 import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did';
-import MissionModal from './MissionModal';  // Import the modal
+import MissionModal from './MissionModal';
 
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
@@ -32,7 +32,7 @@ const Missions: React.FC = () => {
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [hovering, setHovering] = useState<boolean>(false);
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const agent = new HttpAgent();
     const backendActor = Actor.createActor(backend_idlFactory, {
@@ -46,62 +46,61 @@ const Missions: React.FC = () => {
             const userPrincipal = session.principalId;
             setPrincipalId(userPrincipal);
 
-            // Call the backend function getTotalSecondsForUser
-            backendActor.getTotalSecondsForUser(userPrincipal)
-                .then((result: unknown) => {
-                    const typedResult = result as [bigint] | null;
-                    if (typedResult && typedResult.length > 0) {
-                        const totalSeconds = Number(typedResult[0]);
-                        setTimerText(convertSecondsToHMS(totalSeconds));
-                    } else {
-                        setTimerText('00:00:00');
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching total seconds:", error);
-                });
+            const fetchData = async () => {
+                try {
+                    // Fetch total seconds for user
+                    const totalSecondsResult = await backendActor.getTotalSecondsForUser(userPrincipal);
+                    const totalSeconds = totalSecondsResult ? Number((totalSecondsResult as number[])[0]) : 0;
+                    setTimerText(convertSecondsToHMS(totalSeconds));
 
-            // Fetch all missions after getting total seconds
-            backendActor.getAllMissions()
-                .then((missionsData: SerializedMission[] | unknown) => {
+                    // Fetch all missions
+                    const missionsData = await backendActor.getAllMissions();
                     if (Array.isArray(missionsData)) {
                         setMissions(missionsData);
                     } else {
                         console.error("Error fetching missions: Invalid data format");
                     }
-                })
-                .catch(error => {
-                    console.error("Error fetching missions:", error);
-                });
 
-            // Fetch user progress
-            backendActor.getUserProgress(userPrincipal)
-                .then((progressData) => {
-                    if (Array.isArray(progressData)) {
-                        const validUserProgress: Array<[bigint, SerializedProgress]> = progressData
-                            .map((entry) => {
-                                if (Array.isArray(entry) && entry.length === 1) {
-                                    const [innerEntry] = entry;
-                                    const [missionId, progress] = innerEntry;
+                    // Fetch user progress
+                    backendActor.getUserProgress(userPrincipal)
+                        .then((progressData) => {
 
-                                    if (typeof missionId === 'bigint' && typeof progress === 'object') {
-                                        return [missionId, progress];
+                            if (Array.isArray(progressData)) {
+                                // Handle nested arrays within each progressData entry
+                                const validUserProgress: Array<[bigint, SerializedProgress]> = progressData.flatMap((entry) => {
+                                    // Entry is expected to be a nested array: [ [missionId, progress], [missionId, progress] ]
+                                    if (Array.isArray(entry)) {
+                                        return entry.map((innerEntry) => {
+                                            if (Array.isArray(innerEntry) && innerEntry.length === 2) {
+                                                const missionId = innerEntry[0];  // Extract missionId
+                                                const progress = innerEntry[1];   // Extract progress
+
+                                                if (typeof missionId === 'bigint' && typeof progress === 'object') {
+                                                    return [missionId, progress];
+                                                }
+                                            }
+                                            return null;
+                                        });
                                     }
-                                }
-                                return null;
-                            })
-                            .filter((item): item is [bigint, SerializedProgress] => item !== null);
+                                }).filter((item): item is [bigint, SerializedProgress] => item !== null); // Filter out invalid entries
 
-                        setUserProgress(validUserProgress);
-                    } else {
-                        setUserProgress([]);  // Set empty array if no progress is returned
-                    }
-                })
-                .catch(() => {
-                    setUserProgress([]);  // Handle error by setting empty array
-                })
-                .finally(() => setLoading(false));
+                                setUserProgress(validUserProgress);
+                            } else {
+                                setUserProgress([]); // Set empty array if no progress is returned
+                            }
+                        })
+                        .catch(() => {
+                            setUserProgress([]); // Handle error by setting empty array
+                            console.error("Error fetching user progress.");
+                        });
 
+
+                } finally {
+                    setLoading(false); // Set loading to false once all data is fetched
+                }
+            };
+
+            fetchData();
         } else {
             navigate('/');
         }
@@ -143,10 +142,8 @@ const Missions: React.FC = () => {
     };
 
     // Click handler for mission cards
-    const handleCardClick = (missionId: string, shouldDarken: boolean) => {
-        if (!shouldDarken) {
-            navigate(`/Missions/${missionId}`);
-        }
+    const handleCardClick = (missionId: string) => {
+        navigate(`/Missions/${missionId}`);
     };
 
     // Close modal handler
@@ -155,7 +152,7 @@ const Missions: React.FC = () => {
     };
 
 
-    if (!loadingComplete) {
+    if (!loadingComplete || loading) {
         return <LoadingOverlay loadingPercentage={loadingPercentage} />;
     }
 
@@ -177,37 +174,73 @@ const Missions: React.FC = () => {
                     </div>
                 </>
             ) : (
-                <OpenChat />
+                <div style={{ display: 'none' }}>
+                    <OpenChat />
+                </div>
             )}
 
             <div className={styles.MissionGrid}>
-                {missions.map((mission) => {
-                    const missionId = BigInt(mission.id);
-                    const missionCompleted = userProgress?.some(([id]) => id === missionId) ?? false;
 
-                    let requiredMissionCompleted = true;
+                {missions.sort((a, b) => Number(a.id) - Number(b.id)).map((mission) => {
+                    const missionId = BigInt(mission.id);
+
+                    // Check if the current mission has been completed
+                    const missionCompleted = userProgress?.some(([id]) => {
+                        return BigInt(id) === missionId;
+                    }) ?? false;
+
+                    let requiredMissionCompleted = true; // Assume no required mission or it's completed
                     let requiredMissionTitle = '';
 
-                    if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
-                        const requiredMissionId = mission.requiredPreviousMissionId[0];
-                        const requiredMission = missions.find(m => BigInt(m.id) === requiredMissionId);
-                        requiredMissionTitle = requiredMission?.title ?? '';
-                        requiredMissionCompleted = userProgress?.some(([id]) => id === requiredMissionId) ?? false;
+                    // Check if there's a required previous mission
+                    const requiredMissionId = mission.requiredPreviousMissionId?.[0]; // Safely get required previous mission ID if it exists
+
+                    if (requiredMissionId !== undefined) {
+                        const requiredMissionBigInt = BigInt(requiredMissionId); // Convert to BigInt if defined
+                        const requiredMission = missions.find(m => BigInt(m.id) === requiredMissionBigInt); // Find required mission
+                        requiredMissionTitle = requiredMission?.title ?? ''; // Get the title of the required mission
+
+                        // Check if the required mission is completed
+                        requiredMissionCompleted = userProgress?.some(([id]) => {
+                            return BigInt(id) === requiredMissionBigInt;
+                        }) ?? false;
                     }
 
-                    const shouldDarken = !missionCompleted && !requiredMissionCompleted;
-                    const formattedRequiredTitle = requiredMissionTitle.split(":")[1]?.trim() ?? '';
+                    const isAvailable = isMissionAvailable(mission.startDate, mission.endDate);
 
-                    const tooltipText = shouldDarken
+
+
+                    let isRecursiveMissionDarkened = false;
+                    let countdownText = '';
+
+                    if (mission.recursive && missionCompleted && BigInt(mission.endDate) !== BigInt(0)) {
+                        isRecursiveMissionDarkened = true;
+                        countdownText = `This Mission will reset at ${formatTimeRemaining(mission.endDate)}`;
+                    }
+
+                    const isAvailableMission = !missionCompleted && requiredMissionCompleted;
+
+                    const displayTooltip = !requiredMissionCompleted && !missionCompleted;
+
+                    const formattedRequiredTitle = requiredMissionTitle.split(":")[1]?.trim() ?? '';
+                    const tooltipText = displayTooltip
                         ? `You Must Complete the "${formattedRequiredTitle}" Mission before being able to complete this one`
                         : null;
+
+                    const missionClass = missionCompleted
+                        ? styles.CompletedMission
+                        : (!requiredMissionCompleted ? styles.IncompleteMission : styles.AvailableMission);
 
                     return (
                         <div
                             key={mission.id.toString()}
-                            className={`${styles.MissionCard} ${missionCompleted ? styles.CompletedMission : ''} ${shouldDarken ? styles.IncompleteMission : ''}`}
+                            className={`${styles.MissionCard} ${missionClass}`}
                             style={{ backgroundImage: `url(${BASE_URL}${mission.image})` }}
-                            onClick={() => handleCardClick(mission.id.toString(), shouldDarken)} // Prevent click if mission is locked
+                            onClick={() => {
+                                if (missionCompleted || isAvailableMission) {
+                                    handleCardClick(mission.id.toString());
+                                }
+                            }}
                             onMouseMove={(e) => handleMouseEnter(e, tooltipText)}
                             onMouseLeave={handleMouseLeave}
                         >
@@ -225,8 +258,16 @@ const Missions: React.FC = () => {
                                 <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
                             </svg>
 
+
+                            {/* Darken Recursive Completed Missions */}
+                            {isRecursiveMissionDarkened && (
+                                <div className={styles.RecursiveMissionOverlay}>
+                                    {countdownText}
+                                </div>
+                            )}
+
                             {/* Smaller Circle */}
-                            {missionCompleted || (!missionCompleted && shouldDarken) ? (
+                            {missionCompleted || (!missionCompleted && !requiredMissionCompleted) ? (
                                 <svg className={styles.SmallMissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
                                     <defs>
                                         <linearGradient id={`smallCircleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -238,15 +279,22 @@ const Missions: React.FC = () => {
                                 </svg>
                             ) : null}
 
-                            {/* White Circle for Incomplete Missions */}
-                            {!missionCompleted && shouldDarken && (
-                                <svg className={styles.SmallWhiteCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
-                                    <circle cx="50" cy="50" r="50" fill="#ffffff" />
+                            {/* Lock for Locked Missions */}
+                            {!missionCompleted && !requiredMissionCompleted && (
+                                <svg className={styles.SmallWhiteCircle} viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
+                                    <g id="BLUR_LOCKED" transform="scale(0.0667)">
+                                        <g>
+                                            <path fill="#FFFFFF" d="M1120.4,1048.3h-8.1C1084,944.9,1000.1,870,901.1,870H598.9c-99,0-182.9,74.9-211.2,178.3h-8.1 c-21,0-37.9,17-37.9,37.9v78.3c0,21,17,37.9,37.9,37.9h8.1c28.4,103.4,112.2,178.3,211.2,178.3h302.2c99,0,182.9-74.9,211.2-178.3 h8.1c21,0,37.9-17,37.9-37.9v-78.3C1158.4,1065.3,1141.4,1048.3,1120.4,1048.3z M901.1,1247.8H598.9 c-58.5,0-106.1-54.9-106.1-122.4c0-67.5,47.6-122.4,106.1-122.4h302.2c58.5,0,106.2,54.9,106.2,122.4S959.6,1247.8,901.1,1247.8z" />
+                                            <path fill="#FFFFFF" d="M970.2,751.4V835c0,0.6,0,1.2,0,1.9h-63.8v-85.5c0-37.7-30.7-68.4-68.4-68.4h-53v153.9h-69.5V683H662 c-37.7,0-68.4,30.7-68.4,68.4v85.5h-63.8c0-0.6,0-1.2,0-1.9v-83.6c0-73.1,59.2-132.2,132.2-132.2h176 C911,619.2,970.2,678.4,970.2,751.4L970.2,751.4z" />
+                                            <path fill="#FFFFFF" d="M805,1090.1c0,18.8-9.5,35.5-24,45.4v62.4c0,9.9-8,17.9-18,17.9h-26.2c-9.9,0-18-8-18-17.9v-62.4 c-14.5-9.9-24-26.5-24-45.4c0-30.4,24.6-55,55-55S805,1059.7,805,1090.1L805,1090.1z" />
+                                        </g>
+                                    </g>
                                 </svg>
+
                             )}
 
                             {/* Checkmark for Completed Missions */}
-                            {missionCompleted && (
+                            {missionCompleted && !isRecursiveMissionDarkened && (
                                 <svg className={styles.Checkmark} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M5 13l4 4L19 7" />
                                 </svg>

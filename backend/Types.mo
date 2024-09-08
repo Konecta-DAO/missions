@@ -155,4 +155,10 @@ module Types {
     headers : [(Text, Text)];
     body : Blob;
   };
+  
+  public type UserResponse = {
+    following : Bool;
+    id : Nat;
+    username : Text;
+  };
 };

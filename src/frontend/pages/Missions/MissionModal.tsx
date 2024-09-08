@@ -5,6 +5,7 @@ import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../
 import MissionFunctionsComponent from './MissionFunctionsComponent';
 import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did';
 import { Principal } from '@dfinity/principal';
+import usePTWData from '../../hooks/usePTWData';
 
 interface MissionModalProps {
     missions: SerializedMission[];           // Array of SerializedMission
@@ -20,10 +21,14 @@ const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
 const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId, userProgress, closeModal, loading, principalId, backendActor }) => {
 
+
+
     const mission = missions.find(m => m.id === selectedMissionId);
     if (!mission) return null;
     const navigate = useNavigate();
     let requiredMissionCompleted = true;
+
+    const { renderPTWContent } = usePTWData(Number(selectedMissionId));
 
     if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
         const requiredMissionId = mission.requiredPreviousMissionId[0];
@@ -63,9 +68,9 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
             : undefined;
         const functionName2 = typeof mission.functionName2 === 'string' ? mission.functionName2 : undefined;
 
-        const executeFunction = (functionName: string | undefined) => {
+        const executeFunction = (functionName: string | undefined, navigate: (path: string) => void) => {
             if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
-                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](principalId, backendActor);
+                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](principalId, backendActor, missions, navigate);
             } else {
                 console.error(`Function ${functionName} not found`);
             }
@@ -81,7 +86,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
         if (missionMode === 0) {
             // One line for mode 0
             svgLines = (
-                <svg className={styles.MissionLine2} viewBox="0 0 20 100" preserveAspectRatio="none">
+                <svg className={styles.MissionLine2} viewBox="0 0 1000 100" preserveAspectRatio="none">
                     <defs>
                         <linearGradient id={`lineGradient${mission.id}-small`} x1="0%" y1="0%" x2="100%">
                             <stop offset="0%" stopColor={gradientStartColor} />
@@ -111,7 +116,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
             return (
                 <>
                     {svgLines}
-                    <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
+                    <button onClick={() => executeFunction(functionName2, navigate)} style={buttonGradientStyle}>
                         {mission.obj2}
                     </button>
                 </>
@@ -122,10 +127,10 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
             return (
                 <>
                     {svgLines}
-                    <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle}>
+                    <button onClick={() => executeFunction(functionName1, navigate)} style={buttonGradientStyle}>
                         {mission.obj1}
                     </button>
-                    <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
+                    <button onClick={() => executeFunction(functionName2, navigate)} style={buttonGradientStyle}>
                         {mission.obj2}
                     </button>
                 </>
@@ -138,7 +143,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
                     {svgLines}
                     <div className={styles.InputButtonWrapper}>
                         <input type="text" placeholder="Enter Code" />
-                        <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
+                        <button onClick={() => executeFunction(functionName2, navigate)} style={buttonGradientStyle}>
                             {mission.obj2}
                         </button>
                     </div>
@@ -186,6 +191,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
+                    {Number(selectedMissionId) === 4 && renderPTWContent()}
                 </div>
 
                 <div className={styles.ButtonInputs}>

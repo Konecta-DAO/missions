@@ -7,7 +7,6 @@ import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Random "mo:base/Random";
 import Vector "mo:vector";
-import Serde "mo:serde";
 import Blob "mo:base/Blob";
 import Int "mo:base/Int";
 import Hash "mo:base/Hash";
@@ -15,8 +14,29 @@ import TrieMap "mo:base/TrieMap";
 import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
+import Bool "mo:base/Bool";
+import Http "mo:certified-cache/Http";
 
 actor class Backend() {
+
+  type ICManagement = actor {
+    http_request : (
+      request : {
+        url : Text;
+        method : Text;
+        headers : [(Text, Text)];
+        body : ?Blob;
+        max_response_bytes : ?Nat;
+      }
+    ) -> async {
+      status : Nat;
+      headers : [(Text, Text)];
+      body : Blob;
+    };
+  };
+
+  // Declare the IC Management Canister variable
+  let icManagement = actor ("aaaaa-aa") : ICManagement;
 
   //
 
@@ -53,9 +73,11 @@ actor class Backend() {
 
     // Serialize mission assets
     let missionAssetsEntries = Iter.toArray(missionAssets.entries());
-
-    // Assign directly to the stable variable serializedMissionAssets
     serializedMissionAssets := missionAssetsEntries;
+
+    // Serialize user pictures
+    let userPicturesEntries = Iter.toArray(userPictures.entries());
+    serializedUserPictures := userPicturesEntries;
   };
 
   // Post-upgrade function to deserialize the user progress
@@ -101,6 +123,33 @@ actor class Backend() {
       let (missionId, asset) = assetEntry;
       missionAssets.put(missionId, asset);
     };
+
+    // Deserialize the user pictures
+    userPictures := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+
+    for (pictureEntry in serializedUserPictures.vals()) {
+      let (userId, hasPicture) = pictureEntry;
+      userPictures.put(userId, hasPicture);
+    };
+  };
+
+  //
+
+  // Twitter related functions
+
+  //
+
+  // Twitter Stuff
+  stable var twitterStuff : [Text] = ["#Konecta"];
+
+  // Function to get the Twitter Stuff
+  public func getTwitterStuff() : async [Text] {
+    return twitterStuff;
+  };
+
+  // Function to add Twitter Stuff
+  public func addTwitterStuff(newStuff : Text) : async () {
+    twitterStuff := Array.append(twitterStuff, [newStuff]);
   };
 
   //
@@ -158,7 +207,7 @@ actor class Backend() {
 
   // Function to record or update progress on a mission
 
-  public shared func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
+  public shared func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async (Bool) {
     // Deserialize the progress object
     let progress = Serialization.deserializeProgress(serializedProgress);
 
@@ -173,6 +222,8 @@ actor class Backend() {
 
     // Update the user's progress in the main TrieMap
     userProgress.put(userId, missions);
+
+    return true;
   };
 
   // Function to get the progress of a specific mission for a user
@@ -327,6 +378,29 @@ actor class Backend() {
 
   stable var serializedMissionAssets : [(Text, Blob)] = [];
 
+  // TrieMap for checking if an user did the picture mission
+
+  var userPictures : TrieMap.TrieMap<Principal, Bool> = TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+
+  // Stable storage for serialized user pictures
+
+  stable var serializedUserPictures : [(Principal, Bool)] = [];
+
+  // Function to check if an user has done the picture mission
+
+  public query func getUserPicture(userId : Principal) : async Bool {
+    return switch (userPictures.get(userId)) {
+      case (?didthem) didthem;
+      case null false;
+    };
+  };
+
+  // Function to set the user picture mission as done
+
+  public func setUserPicture(userId : Principal, didthem : Bool) : async () {
+    userPictures.put(userId, didthem);
+  };
+
   // Generate a unique image identifier using a combination of timestamp and hash
 
   func generateUniqueIdentifier(imageName : Text) : Text {
@@ -422,6 +496,17 @@ actor class Backend() {
       };
     };
     return null;
+  };
+
+  // Function to get the max and min seconds a Mission can give
+
+  public query func getMaxMinSecs(id : Nat) : async (Int, Int) {
+    for (mission in Vector.vals(missions)) {
+      if (mission.id == id) {
+        return ((mission.mintime, mission.maxtime));
+      };
+    };
+    return (0, 0); // Default return value if mission not found
   };
 
   // Function to reset all missions
@@ -581,6 +666,159 @@ actor class Backend() {
           headers = [("Content-Type", "text/plain")];
           body = Text.encodeUtf8("File not found");
         };
+      };
+    };
+  };
+
+  // Helper function to serialize an array of Texts into a JSON array
+
+  private func serializeTextArrayToJson(arr : [Text]) : Text {
+
+    var jsonText = "[";
+    var isFirst = true;
+    for (text in arr.vals()) {
+      if (not isFirst) {
+        jsonText #= ",";
+      };
+      jsonText #= "\"" # text # "\"";
+      isFirst := false;
+    };
+    jsonText #= "]";
+    return jsonText;
+  };
+
+  //Function to upload Tweet Post Parameters
+
+  public shared func setPTW(payloadArray : [Text]) : async Text {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. Add cycles for the HTTP request
+    Cycles.add<system>(22_935_266_640);
+
+    // 3. Serialize the array into a JSON array
+    let payloadJson = serializeTextArrayToJson(payloadArray);
+
+    // 4. Prepare the headers for the request
+    let host : Text = "do.konecta.one";
+    let url = "https://" # host # "/twitterstuff";
+
+    // 5. Prepare the body for the POST request (the JSON-serialized array)
+    let body : Blob = Text.encodeUtf8(payloadJson);
+    let bodyAsNat8 : [Nat8] = Blob.toArray(body);
+
+    // 6. Define the HTTP request
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [
+        { name = "Content-Type"; value = "application/json" },
+
+      ];
+      body = ?bodyAsNat8; // Ensure body is an optional Blob
+      method = #post; // Use variant for POST method
+      transform = null;
+    };
+
+    Cycles.add<system>(22_935_266_640);
+
+    // 7. Make the HTTP outcall
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+
+    // 8. Handle the response
+    if (http_response.status == 200) {
+      if (http_response.body.size() > 0) {
+        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+          case (?decodedBody) {
+            return "POST request successful: " # decodedBody;
+          };
+          case (null) {
+            return "POST request successful but failed to decode body";
+          };
+        };
+      } else {
+        return "POST request successful but no body in response";
+      };
+    } else {
+      if (http_response.body.size() > 0) {
+        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+          case (?decodedBody) {
+            return "POST request failed: " # decodedBody;
+          };
+          case (null) {
+            return "POST request failed and failed to decode body";
+          };
+        };
+      } else {
+        return "POST request failed and no body in response";
+      };
+    };
+  };
+
+  // Function to upload Retweet Id
+
+    public shared func postRT(payloadArray : [Text]) : async Text {
+    // 1. DECLARE IC MANAGEMENT CANISTER
+    let ic : Types.IC = actor ("aaaaa-aa");
+
+    // 2. Add cycles for the HTTP request
+    Cycles.add<system>(22_935_266_640);
+
+    // 3. Serialize the array into a JSON array
+    let payloadJson = serializeTextArrayToJson(payloadArray);
+
+    // 4. Prepare the headers for the request
+    let host : Text = "do.konecta.one";
+    let url = "https://" # host # "/storeRetweetId";
+
+    // 5. Prepare the body for the POST request (the JSON-serialized array)
+    let body : Blob = Text.encodeUtf8(payloadJson);
+    let bodyAsNat8 : [Nat8] = Blob.toArray(body);
+
+    // 6. Define the HTTP request
+    let http_request : Types.HttpRequestArgs = {
+      url = url;
+      max_response_bytes = null;
+      headers = [
+        { name = "Content-Type"; value = "application/json" },
+
+      ];
+      body = ?bodyAsNat8; // Ensure body is an optional Blob
+      method = #post; // Use variant for POST method
+      transform = null;
+    };
+
+    Cycles.add<system>(22_935_266_640);
+
+    // 7. Make the HTTP outcall
+    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+
+    // 8. Handle the response
+    if (http_response.status == 200) {
+      if (http_response.body.size() > 0) {
+        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+          case (?decodedBody) {
+            return "POST request successful: " # decodedBody;
+          };
+          case (null) {
+            return "POST request successful but failed to decode body";
+          };
+        };
+      } else {
+        return "POST request successful but no body in response";
+      };
+    } else {
+      if (http_response.body.size() > 0) {
+        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+          case (?decodedBody) {
+            return "POST request failed: " # decodedBody;
+          };
+          case (null) {
+            return "POST request failed and failed to decode body";
+          };
+        };
+      } else {
+        return "POST request failed and no body in response";
       };
     };
   };
