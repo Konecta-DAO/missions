@@ -6,6 +6,7 @@ import MissionFunctionsComponent from './MissionFunctionsComponent';
 import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did';
 import { Principal } from '@dfinity/principal';
 import usePTWData from '../../hooks/usePTWData';
+import useTWtoRT from '../../hooks/useTWtoRT';
 
 interface MissionModalProps {
     missions: SerializedMission[];           // Array of SerializedMission
@@ -25,10 +26,12 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
 
     const mission = missions.find(m => m.id === selectedMissionId);
     if (!mission) return null;
+
     const navigate = useNavigate();
     let requiredMissionCompleted = true;
 
     const { renderPTWContent } = usePTWData(Number(selectedMissionId));
+    const { tweetId, loading: tweetLoading, error: tweetError } = useTWtoRT();
 
     if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
         const requiredMissionId = mission.requiredPreviousMissionId[0];
@@ -155,6 +158,21 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
     };
 
 
+    // Embed the tweet iframe
+    const renderTweetEmbed = () => {
+        if (loading || !tweetId) return null;
+        if (tweetError) return <div>Error loading tweet</div>;
+
+        return (
+            <div className={styles.TweetEmbedWrapper}>
+                <blockquote className="twitter-tweet">
+                    <a href={`https://twitter.com/i/web/status/${tweetId}`}></a>
+                </blockquote>
+                <script async src="https://platform.twitter.com/widgets.js" charSet="utf-8"></script>
+            </div>
+        );
+    };
+
 
     return (
         <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
@@ -192,6 +210,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
                     {Number(selectedMissionId) === 4 && renderPTWContent()}
+                    {Number(selectedMissionId) === 5 && renderTweetEmbed()}
                 </div>
 
                 <div className={styles.ButtonInputs}>
