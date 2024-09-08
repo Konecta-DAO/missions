@@ -15,28 +15,8 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
-import Http "mo:certified-cache/Http";
 
 actor class Backend() {
-
-  type ICManagement = actor {
-    http_request : (
-      request : {
-        url : Text;
-        method : Text;
-        headers : [(Text, Text)];
-        body : ?Blob;
-        max_response_bytes : ?Nat;
-      }
-    ) -> async {
-      status : Nat;
-      headers : [(Text, Text)];
-      body : Blob;
-    };
-  };
-
-  // Declare the IC Management Canister variable
-  let icManagement = actor ("aaaaa-aa") : ICManagement;
 
   //
 
@@ -68,7 +48,7 @@ actor class Backend() {
         serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, serializedProgress)]);
       };
 
-      serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
+      serializedUserProgress := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
     };
 
     // Serialize mission assets
@@ -307,16 +287,10 @@ actor class Backend() {
     };
 
     // Generate a random number of points between mintime and maxtime using the utility function
-    let pointsEarnedOpt = await getRandomNumberBetween(mission.mintime, mission.maxtime);
-
-    // Unwrap the optional pointsEarned
-    let pointsEarned = switch (pointsEarnedOpt) {
-      case null return false;
-      case (?points) points;
-    };
+    let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
 
     // Convert the Int points to Nat
-    let pointsEarnedNat : Nat = Int.abs(pointsEarned);
+    let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
 
     // Mark the code as used
     missionProgress.usedCodes.put(code, true);
@@ -561,17 +535,12 @@ actor class Backend() {
     let missionId : Nat = 0; // Assuming 0 is the first mission ID
 
     // Generate random points between 3600 and 21600
-    let pointsEarnedOpt = await getRandomNumberBetween(3600, 21600);
-    let pointsEarned = switch (pointsEarnedOpt) {
-      case (?points) points;
-      case null {
-        return;
-      };
-    };
+    let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 1).mintime, Vector.get(missions, 1).maxtime);
+
     // Create a completion record for the first mission
     let firstMissionRecord : Types.MissionRecord = {
       var timestamp = Time.now();
-      var pointsEarned = Int.abs(pointsEarned); // Convert to Nat using Int.abs
+      var pointsEarned = Int.abs(pointsEarnedOpt); // Convert to Nat using Int.abs
       var tweetId = null; // No tweet associated with this mission
     };
 
@@ -757,7 +726,7 @@ actor class Backend() {
 
   // Function to upload Retweet Id
 
-    public shared func postRT(payloadArray : [Text]) : async Text {
+  public shared func postRT(payload : Text) : async Text {
     // 1. DECLARE IC MANAGEMENT CANISTER
     let ic : Types.IC = actor ("aaaaa-aa");
 
@@ -765,7 +734,7 @@ actor class Backend() {
     Cycles.add<system>(22_935_266_640);
 
     // 3. Serialize the array into a JSON array
-    let payloadJson = serializeTextArrayToJson(payloadArray);
+    let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
 
     // 4. Prepare the headers for the request
     let host : Text = "do.konecta.one";
@@ -837,20 +806,20 @@ actor class Backend() {
 
   // Utility function to generate a random number between min and max (inclusive)
 
-  private func getRandomNumberBetween(min : Int, max : Int) : async ?Int {
+  private func getRandomNumberBetween(min : Int, max : Int) : Int {
     assert (max >= min); // Ensure that max is greater than or equal to min
 
-    let random = Random.Finite(await Random.blob());
+    let random = Random.Finite("\e2\8f\3b\5d\99\c1\0a\4f\76\ad\12\34\fe");
     let range = max - min + 1; // Calculate the range as an Int
     let randomValue = random.range(32); // Generate a random value
 
     switch (randomValue) {
       case (?value) {
         let result = min + (Int.abs(value % Int.abs(range))); // Adjust the random value within the range
-        return ?result;
+        return result;
       };
-      case null {
-        return null; // Handle the case where random generation failed
+      case (null) {
+        return 18745;
       };
     };
   };

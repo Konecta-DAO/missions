@@ -3,7 +3,7 @@ import { SerializedProgress, SerializedMissionRecord, SerializedMission } from "
 import { randomBetween, getCurrentTimestampInNanoSeconds } from "../../../components/Utilities";
 import { Usergeek } from "usergeek-ic-js";
 import { Button, Modal } from "react-bootstrap";
-import React, { useState } from "react";
+import { useState } from "react";
 
 interface UserData {
     accessToken: string;
@@ -19,6 +19,14 @@ interface UserData2 {
     userHandle: string;
     hasTweeted: boolean;
     tweetId: string;
+}
+
+interface UserData3 {
+    accessToken: string;
+    refreshToken: string;
+    userId: string;
+    userHandle: string;
+    retweeted: boolean; 
 }
 
 const MissionFunctionsComponent = {
@@ -139,52 +147,197 @@ const MissionFunctionsComponent = {
                     return;
                 }
 
-                const { userId, userHandle, accessToken, refreshToken, hasTweeted } = event.data as UserData2;
+                const { accessToken, refreshToken, hasTweeted, tweetId } = event.data as UserData2;
 
-                    if (hasTweeted) {
+                if (hasTweeted) {
 
-                        const missionRecord: SerializedMissionRecord = {
-                            pointsEarned: randomBetween(Number(missions[3].mintime), Number(missions[3].maxtime)),
-                            timestamp: getCurrentTimestampInNanoSeconds(),
-                            tweetId: [userId],
-                        };
+                    const missionRecord: SerializedMissionRecord = {
+                        pointsEarned: randomBetween(Number(missions[3].mintime), Number(missions[3].maxtime)),
+                        timestamp: getCurrentTimestampInNanoSeconds(),
+                        tweetId: [tweetId],
+                    };
 
-                        const serializedProgress: SerializedProgress = {
-                            usedCodes: [],
-                            completionHistory: [missionRecord],
-                        };
+                    const serializedProgress: SerializedProgress = {
+                        usedCodes: [],
+                        completionHistory: [missionRecord],
+                    };
 
-                        Usergeek.trackEvent("Mission 3: PFP Verified (Twitter)");
-                        await backendActor.updateUserProgress(principalId, 3n, serializedProgress);
+                    Usergeek.trackEvent("Mission 3: PFP Verified (Twitter)");
+                    await backendActor.updateUserProgress(principalId, 3n, serializedProgress);
 
-                        localStorage.setItem("accessToken", accessToken);
-                        localStorage.setItem("refreshToken", refreshToken);
+                    localStorage.setItem("accessToken", accessToken);
+                    localStorage.setItem("refreshToken", refreshToken);
 
-                        popup?.close();
-                        navigate('/Missions');
-                    }else{
-                        const [showModal, setShowModal] = useState(true);
+                    popup?.close();
+                    navigate('/Missions');
+                } else {
+                    const [showModal, setShowModal] = useState(true);
 
-                        const handleClose = () => setShowModal(false);
+                    const handleClose = () => setShowModal(false);
 
-                        return (
-                            <>
-                                <Modal show={showModal} onHide={handleClose}>
-                                    <Modal.Header closeButton>
-                                        <Modal.Title>No tweet!</Modal.Title>
-                                    </Modal.Header>
-                                    <Modal.Body>
-                                        You have not tweeted the message yet.
-                                    </Modal.Body>
-                                    <Modal.Footer>
-                                        <Button variant="secondary" onClick={handleClose}>
-                                            Close
-                                        </Button>
-                                    </Modal.Footer>
-                                </Modal>
-                            </>
-                        );
-                    }
+                    return (
+                        <>
+                            <Modal show={showModal} onHide={handleClose}>
+                                <Modal.Header closeButton>
+                                    <Modal.Title>No tweet!</Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body>
+                                    You have not tweeted the message yet.
+                                </Modal.Body>
+                                <Modal.Footer>
+                                    <Button variant="secondary" onClick={handleClose}>
+                                        Close
+                                    </Button>
+                                </Modal.Footer>
+                            </Modal>
+                        </>
+                    );
+                }
+
+            });
+        } catch (error) {
+            console.error("Error fetching Twitter auth URL:", error);
+        }
+    },
+    vfTweet: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+        try {
+            const response = await fetch(
+                "https://do.konecta.one/requestTwitterAuth-v2-vft",
+                {
+                    method: "GET",
+                    credentials: "include",
+                }
+            );
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
+            window.addEventListener("message", async (event) => {
+                if (event.origin !== "https://do.konecta.one") {
+                    return;
+                }
+
+                const { accessToken, refreshToken, hasTweeted, tweetId } = event.data as UserData2;
+
+                if (hasTweeted) {
+
+                    const missionRecord: SerializedMissionRecord = {
+                        pointsEarned: randomBetween(Number(missions[4].mintime), Number(missions[4].maxtime)),
+                        timestamp: getCurrentTimestampInNanoSeconds(),
+                        tweetId: [tweetId],
+                    };
+
+                    const serializedProgress: SerializedProgress = {
+                        usedCodes: [],
+                        completionHistory: [missionRecord],
+                    };
+
+                    Usergeek.trackEvent("Mission 4: PFP Verified (Twitter)");
+                    await backendActor.updateUserProgress(principalId, 4n, serializedProgress);
+
+                    localStorage.setItem("accessToken", accessToken);
+                    localStorage.setItem("refreshToken", refreshToken);
+
+                    popup?.close();
+                    navigate('/Missions');
+                } else {
+                    const [showModal, setShowModal] = useState(true);
+
+                    const handleClose = () => setShowModal(false);
+
+                    return (
+                        <>
+                            <Modal show={showModal} onHide={handleClose}>
+                                <Modal.Header closeButton>
+                                    <Modal.Title>No tweet!</Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body>
+                                    You have not tweeted the message yet.
+                                </Modal.Body>
+                                <Modal.Footer>
+                                    <Button variant="secondary" onClick={handleClose}>
+                                        Close
+                                    </Button>
+                                </Modal.Footer>
+                            </Modal>
+                        </>
+                    );
+                }
+
+            });
+        } catch (error) {
+            console.error("Error fetching Twitter auth URL:", error);
+        }
+    },
+
+    verRT: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+        try {
+            const response = await fetch(
+                "https://do.konecta.one/requestTwitterAuth-v2-trt",
+                {
+                    method: "GET",
+                    credentials: "include",
+                }
+            );
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
+            window.addEventListener("message", async (event) => {
+                if (event.origin !== "https://do.konecta.one") {
+                    return;
+                }
+
+                const { accessToken, refreshToken, hasTweeted, tweetId } = event.data as UserData2;
+
+                if (hasTweeted) {
+
+                    const missionRecord: SerializedMissionRecord = {
+                        pointsEarned: randomBetween(Number(missions[5].mintime), Number(missions[5].maxtime)),
+                        timestamp: getCurrentTimestampInNanoSeconds(),
+                        tweetId: [tweetId],
+                    };
+
+                    const serializedProgress: SerializedProgress = {
+                        usedCodes: [],
+                        completionHistory: [missionRecord],
+                    };
+
+                    Usergeek.trackEvent("Mission 5: PFP Verified (Twitter)");
+                    await backendActor.updateUserProgress(principalId, 5n, serializedProgress);
+
+                    localStorage.setItem("accessToken", accessToken);
+                    localStorage.setItem("refreshToken", refreshToken);
+
+                    popup?.close();
+                    navigate('/Missions');
+                } else {
+                    const [showModal, setShowModal] = useState(true);
+
+                    const handleClose = () => setShowModal(false);
+
+                    return (
+                        <>
+                            <Modal show={showModal} onHide={handleClose}>
+                                <Modal.Header closeButton>
+                                    <Modal.Title>No tweet!</Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body>
+                                    You have not tweeted the message yet.
+                                </Modal.Body>
+                                <Modal.Footer>
+                                    <Button variant="secondary" onClick={handleClose}>
+                                        Close
+                                    </Button>
+                                </Modal.Footer>
+                            </Modal>
+                        </>
+                    );
+                }
 
             });
         } catch (error) {

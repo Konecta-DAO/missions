@@ -31,21 +31,21 @@ const usePTWData = (missionId: number) => {
     const renderPTWContent = () => {
         const { words, mentions, hashtags, cashtags } = ptwData;
 
-        let ptwContent = "Make sure to use:";
+        let ptwContent = "Make sure to use";
 
         if (words.length > 0) {
-            ptwContent += ` The words: ${words.join(", ")}`;
+            ptwContent += ` the words: ${words.join(", ")},`;
         }
 
         if (mentions.length > 0) {
-            ptwContent += ` The mentions: ${mentions.join(", ")}`;
+            ptwContent += ` the mentions: ${mentions.join(", ")},`;
         }
 
         if (hashtags.length > 0 || cashtags.length > 0) {
-            ptwContent += ` The tags: ${[...hashtags, ...cashtags].join(", ")}`;
+            ptwContent += ` and the tags: ${[...hashtags, ...cashtags].join(", ")}`;
         }
 
-        return ptwContent !== "Make sure to use:" ? <p>{ptwContent}</p> : null;
+        return ptwContent !== "Make sure to use" ? <p>{ptwContent}</p> : null;
     };
 
     return { ptwData, renderPTWContent };
