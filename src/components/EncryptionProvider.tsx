@@ -68,8 +68,11 @@ export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children
 
     // Save the principalId and session expiration in localStorage
     const saveSession = (identity: Ed25519KeyIdentity) => {
+        console.log('Saving session:', identity);
         const expirationTime = Date.now() + 3600000; // 1 hour from now
+        console.log('Type of:', typeof identity.toJSON());
         const dataToEncrypt = JSON.stringify({ identity: identity.toJSON(), expirationTime });
+        console.log('Saving session2');
         const { iv, encryptedData } = encrypt(dataToEncrypt);
 
         localStorage.setItem('encryptedData', encryptedData);

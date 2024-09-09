@@ -22,12 +22,8 @@ interface UserData2 {
 }
 
 interface UserData3 {
-    accessToken: string;
-    refreshToken: string;
-    userId: string;
-    userHandle: string;
-    retweeted: boolean;
-    tweetId: string;
+
+    result: boolean;
 }
 
 const MissionFunctionsComponent = {
@@ -92,20 +88,10 @@ const MissionFunctionsComponent = {
     verifyPFP: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
         const didhe = await backendActor.getUserPicture(principalId, true) as Boolean;
         if (didhe) {
-            console.log("")
-            const missionRecord: SerializedMissionRecord = {
-                pointsEarned: randomBetween(Number(missions[2].mintime), Number(missions[2].maxtime)),
-                timestamp: getCurrentTimestampInNanoSeconds(),
-                tweetId: [], // Empty tweet ID
-            };
-
-            const serializedProgress: SerializedProgress = {
-                usedCodes: [],
-                completionHistory: [missionRecord],
-            };
+            alert("Success");
 
             Usergeek.trackEvent("Mission 2: PFP Verified");
-            await backendActor.updateUserProgress(principalId, 2n, serializedProgress);
+
             setDecryptedSession(false);
             navigate('/');
         } else {
@@ -152,26 +138,11 @@ const MissionFunctionsComponent = {
                     return;
                 }
 
-                const { accessToken, refreshToken, hasTweeted, tweetId } = event.data as UserData2;
+                const { result } = event.data as UserData3;
 
-                if (hasTweeted) {
-
-                    const missionRecord: SerializedMissionRecord = {
-                        pointsEarned: randomBetween(Number(missions[3].mintime), Number(missions[3].maxtime)),
-                        timestamp: getCurrentTimestampInNanoSeconds(),
-                        tweetId: [tweetId],
-                    };
-
-                    const serializedProgress: SerializedProgress = {
-                        usedCodes: [],
-                        completionHistory: [missionRecord],
-                    };
-
+                if (result) {
+                  
                     Usergeek.trackEvent("Mission 3: PFP Verified (Twitter)");
-                    await backendActor.updateUserProgress(principalId, 3n, serializedProgress);
-
-                    localStorage.setItem("accessToken", accessToken);
-                    localStorage.setItem("refreshToken", refreshToken);
 
                     popup?.close();
                     setDecryptedSession(false);
@@ -225,26 +196,11 @@ const MissionFunctionsComponent = {
                     return;
                 }
 
-                const { accessToken, refreshToken, hasTweeted, tweetId } = event.data as UserData2;
+                const { result } = event.data as UserData3;
 
-                if (hasTweeted) {
-
-                    const missionRecord: SerializedMissionRecord = {
-                        pointsEarned: randomBetween(Number(missions[4].mintime), Number(missions[4].maxtime)),
-                        timestamp: getCurrentTimestampInNanoSeconds(),
-                        tweetId: [tweetId],
-                    };
-
-                    const serializedProgress: SerializedProgress = {
-                        usedCodes: [],
-                        completionHistory: [missionRecord],
-                    };
+                if (result) {
 
                     Usergeek.trackEvent("Mission 4: PFP Verified (Twitter)");
-                    await backendActor.updateUserProgress(principalId, 4n, serializedProgress);
-
-                    localStorage.setItem("accessToken", accessToken);
-                    localStorage.setItem("refreshToken", refreshToken);
 
                     popup?.close();
                     setDecryptedSession(false);
@@ -299,27 +255,11 @@ const MissionFunctionsComponent = {
                     return;
                 }
 
-                const { accessToken, refreshToken, retweeted, tweetId } = event.data as UserData3;
+                const { result } = event.data as UserData3;
 
-                if (retweeted) {
-
-                    const missionRecord: SerializedMissionRecord = {
-                        pointsEarned: randomBetween(Number(missions[5].mintime), Number(missions[5].maxtime)),
-                        timestamp: getCurrentTimestampInNanoSeconds(),
-                        tweetId: [tweetId],
-                    };
-
-                    const serializedProgress: SerializedProgress = {
-                        usedCodes: [],
-                        completionHistory: [missionRecord],
-                    };
+                if (result) {
 
                     Usergeek.trackEvent("Mission 5: PFP Verified (Twitter)");
-                    await backendActor.updateUserProgress(principalId, 5n, serializedProgress);
-
-                    localStorage.setItem("accessToken", accessToken);
-                    localStorage.setItem("refreshToken", refreshToken);
-
                     popup?.close();
                     setDecryptedSession(false);
                     navigate('/');

@@ -188,7 +188,7 @@ actor class Backend() {
 
   public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
 
-    if (isAdmin(msg.caller)) {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller) and missionId == 1)) {
       // Deserialize the progress object
       let progress = Serialization.deserializeProgress(serializedProgress);
 
@@ -605,6 +605,27 @@ actor class Backend() {
       };
       Vector.add<Types.User>(users, newUser);
     };
+  };
+
+  // Function to find a user by Twitter ID
+  public shared query (msg) func findUserByTwitterId(twitterId : Nat) : async ?Principal {
+    if (isAdmin(msg.caller)) {
+      var i = 0;
+      let len = Vector.size(users);
+      while (i < len) {
+        let user = Vector.get(users, i);
+        switch (user.twitterid) {
+          case (?id) {
+            if (id == twitterId) {
+              return ?user.id;
+            };
+          };
+          case null {};
+        };
+        i += 1;
+      };
+    };
+    return null;
   };
 
   // Function to get all registered users

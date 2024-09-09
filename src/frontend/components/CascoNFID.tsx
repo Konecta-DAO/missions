@@ -6,7 +6,7 @@ import { HttpAgent, Actor } from '@dfinity/agent';
 
 interface CascoNFIDProps {
     onIframeReady: () => void; // Callback to notify Home.tsx when the iframe is ready
-    onPrincipalId: (principalId: Principal, agent: HttpAgent) => void; // Callback to pass the principalId to Home.tsx
+    onPrincipalId: (principalId: Principal, agent: HttpAgent, nfid: any) => void; // Callback to pass the principalId to Home.tsx
     agent: HttpAgent;
 }
 
@@ -52,7 +52,7 @@ const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) =
             });
             const principalId = identity.getPrincipal();
             console.log('Authenticated with principalId:', principalId.toText());
-            onPrincipalId(principalId, identity);
+            onPrincipalId(principalId, identity, nfid);
         } catch (error) {
             console.error('Authentication failed:', error);
         }

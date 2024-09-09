@@ -15,8 +15,8 @@ import SpeechBubble from '../../components/SpeechBubble/SpeechBubble';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../../../declarations/backend';
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { Principal } from '@dfinity/principal';
-import { useEncryption } from '../../../components/EncryptionProvider';
 import { Usergeek } from 'usergeek-ic-js';
+import { NFID } from '@nfid/embed';
 
 const Home: React.FC = () => {
   const isMobile = useIsMobile();
@@ -25,18 +25,25 @@ const Home: React.FC = () => {
   const [bubbleContent, setBubbleContent] = useState('');
   const [iframeReady, setIframeReady] = useState(false);
   const { loadingPercentage } = useLoadingProgress();
-  const { decryptSession, saveSession } = useEncryption();
-
   const agent = new HttpAgent();
 
   // Simulate loading text from 0% to 100% over 4 seconds
-  useEffect(() => {
-
-    const session = decryptSession();
-    if (session?.identity) {
+  const fetchData = async () => {
+    const nfidInstance = NFID.init({
+      origin: 'https://nfid.one',
+      application: {
+        name: 'Konectª Pre-Register',
+        logo: 'https://dev.nfid.one/static/media/id.300eb72f3335b50f5653a7d6ad5467b3.svg',
+      },
+    });
+  
+    if ((await nfidInstance).getIdentity() !== null) {
       navigate('/Missions');
     }
-
+  };
+  
+  useEffect(() => {
+    fetchData();
   }, [iframeReady]);
 
   // NFID Handlers
@@ -46,10 +53,8 @@ const Home: React.FC = () => {
   };
 
   const handlePrincipalId = async (principalId: Principal, identity: any) => {
-    saveSession(identity);
 
     const agent = new HttpAgent({ identity: identity });
-
     const backendActor = Actor.createActor(backend_idlFactory, {
       agent,
       canisterId: backend_canisterId,
