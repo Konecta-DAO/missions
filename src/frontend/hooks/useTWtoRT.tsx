@@ -17,6 +17,7 @@ const useTWtoRT = () => {
                     throw new Error("Failed to fetch tweet ID");
                 }
 
+                console.log(response);
                 const data = await response.json();
                 setTweetId(data.id);
             } catch (error) {

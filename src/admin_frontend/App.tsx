@@ -32,9 +32,16 @@ function App() {
     setIframeReady(true);
   };
 
-  const handlePrincipalId = async (principalId: Principal) => {
-    saveSession(principalId);
+  const handlePrincipalId = async (principalId: Principal, identity: any) => {
+    saveSession(identity);
     setPrincipalId(principalId); // Save the principal ID
+
+    const agent = new HttpAgent({ identity: identity });
+
+    const backendActor = Actor.createActor(backend_idlFactory, {
+      agent,
+      canisterId: backend_canisterId,
+    });
 
     // Check if the user is an admin
     try {

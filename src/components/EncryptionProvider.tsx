@@ -1,16 +1,17 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import CryptoJS from 'crypto-js';
-import { Principal } from '@dfinity/principal'; // Import the Principal type from the module
+import { Principal } from '@dfinity/principal';
+import { Ed25519KeyIdentity } from '@dfinity/identity';
 
 // Encryption key
 const phrase = 'Awesome-Ultra-Secret-Key';
 const key = CryptoJS.enc.Utf8.parse(phrase.padEnd(32));
 
 interface EncryptionContextProps {
-    principalId: Principal | null;
-    saveSession: (principalId: Principal) => void;
+    identity: Ed25519KeyIdentity | null;
+    saveSession: (identity: Ed25519KeyIdentity) => void;
     clearSession: () => void;
-    decryptSession: () => { principalId: Principal, expirationTime: number } | null;
+    decryptSession: () => { identity: Ed25519KeyIdentity, expirationTime: number } | null;
     decrypting: boolean;
 }
 
@@ -20,7 +21,7 @@ interface EncryptionProviderProps {
 
 // Create the Encryption Context
 const EncryptionContext = createContext<EncryptionContextProps>({
-    principalId: null,
+    identity: null,
     saveSession: () => { },
     clearSession: () => { },
     decryptSession: () => null,
@@ -53,38 +54,38 @@ function decrypt(encryptedText: string, iv: string): string {
 }
 
 export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children }) => {
-    const [principalId, setPrincipalId] = useState<Principal | null>(null);
+    const [identity, setIdentity] = useState<Ed25519KeyIdentity | null>(null);
     const [decrypting, setDecrypting] = useState<boolean>(true);
 
     useEffect(() => {
         // Decrypt session on initial load
         const session = decryptSession();
         if (session) {
-            setPrincipalId(session.principalId);
+            setIdentity(session.identity);
         }
         setDecrypting(false); // End decrypting state after check
     }, []);
 
     // Save the principalId and session expiration in localStorage
-    const saveSession = (principalId: Principal) => {
+    const saveSession = (identity: Ed25519KeyIdentity) => {
         const expirationTime = Date.now() + 3600000; // 1 hour from now
-        const dataToEncrypt = JSON.stringify({ pId: principalId.toText(), expirationTime });
+        const dataToEncrypt = JSON.stringify({ identity: identity.toJSON(), expirationTime });
         const { iv, encryptedData } = encrypt(dataToEncrypt);
 
         localStorage.setItem('encryptedData', encryptedData);
         localStorage.setItem('iv', iv);
-        setPrincipalId(principalId);
+        setIdentity(identity);
     };
 
     // Clear the session
     const clearSession = () => {
         localStorage.removeItem('encryptedData');
         localStorage.removeItem('iv');
-        setPrincipalId(null);
+        setIdentity(null);
     };
 
     // Decrypt the session manually (can be reused in components)
-    const decryptSession = (): { principalId: Principal, expirationTime: number } | null => {
+    const decryptSession = (): { identity: Ed25519KeyIdentity, expirationTime: number } | null => {
         const encryptedData = localStorage.getItem('encryptedData');
         const iv = localStorage.getItem('iv');
 
@@ -92,11 +93,11 @@ export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children
             try {
                 const decryptedData = decrypt(encryptedData, iv);
                 const parsedData = JSON.parse(decryptedData);
-                const { pId, expirationTime } = parsedData;
+                const { identity: identityData, expirationTime } = parsedData;
 
                 if (Date.now() < expirationTime) {
-                    const principalId = Principal.fromText(pId);
-                    return { principalId, expirationTime }; // Return session if not expired
+                    const identity = Ed25519KeyIdentity.fromParsedJson(identityData);
+                    return { identity, expirationTime }; // Return session if not expired
                 } else {
                     clearSession(); // Clear session if expired
                 }
@@ -110,7 +111,7 @@ export const EncryptionProvider: React.FC<EncryptionProviderProps> = ({ children
     };
 
     return (
-        <EncryptionContext.Provider value={{ principalId, saveSession, clearSession, decryptSession, decrypting }}>
+        <EncryptionContext.Provider value={{ identity, saveSession, clearSession, decryptSession, decrypting }}>
             {!decrypting && children} {/* Only render children after decryption */}
         </EncryptionContext.Provider>
     );

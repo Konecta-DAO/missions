@@ -115,25 +115,6 @@ actor class Backend() {
 
   //
 
-  // Twitter related functions
-
-  //
-
-  // Twitter Stuff
-  stable var twitterStuff : [Text] = ["#Konecta"];
-
-  // Function to get the Twitter Stuff
-  public func getTwitterStuff() : async [Text] {
-    return twitterStuff;
-  };
-
-  // Function to add Twitter Stuff
-  public func addTwitterStuff(newStuff : Text) : async () {
-    twitterStuff := Array.append(twitterStuff, [newStuff]);
-  };
-
-  //
-
   // Admin Management
 
   //
@@ -144,13 +125,25 @@ actor class Backend() {
 
   // Function to add an admin ID
 
-  public func addAdminId(newAdminId : Principal) : async () {
-    adminIds := Array.append<Principal>(adminIds, [newAdminId]);
+  public shared (msg) func addAdminId(newAdminId : Principal) : async () {
+    if (isAdmin(msg.caller)) {
+      if (Array.find<Principal>(adminIds, func(id) { id == msg.caller }) != null) adminIds := Array.append<Principal>(adminIds, [newAdminId]);
+    };
+  };
+
+  // Function to login as an admin
+
+  public shared query (msg) func loginAdmin() : async Bool {
+    if (isAdmin(msg.caller)) {
+      return true;
+    };
+    return false;
   };
 
   // Function to check if the principal is an admin
 
-  public query func isAdmin(principalId : Principal) : async Bool {
+  private func isAdmin(principalId : Principal) : Bool {
+
     return Array.find<Principal>(
       adminIds,
       func(id) : Bool {
@@ -161,14 +154,20 @@ actor class Backend() {
 
   // Function to get all admin IDs
 
-  public query func getAdminIds() : async [Principal] {
-    return adminIds;
+  public shared query (msg) func getAdminIds() : async [Principal] {
+    if (isAdmin(msg.caller)) {
+      return adminIds;
+    };
+    return [];
   };
 
   // Function to remove an admin ID
 
-  public func removeAdminId(adminId : Principal) : async () {
-    adminIds := Array.filter<Principal>(adminIds, func(id) : Bool { id != adminId });
+  public shared (msg) func removeAdminId(adminId : Principal) : async () {
+    if (isAdmin(msg.caller)) {
+      adminIds := Array.filter<Principal>(adminIds, func(id) : Bool { id != adminId });
+    };
+
   };
 
   //
@@ -187,155 +186,173 @@ actor class Backend() {
 
   // Function to record or update progress on a mission
 
-  public shared func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async (Bool) {
-    // Deserialize the progress object
-    let progress = Serialization.deserializeProgress(serializedProgress);
+  public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
 
-    // Retrieve the user's missions or create a new TrieMap if it doesn't exist
-    let missions = switch (userProgress.get(userId)) {
-      case (?map) map;
-      case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+    if (isAdmin(msg.caller)) {
+      // Deserialize the progress object
+      let progress = Serialization.deserializeProgress(serializedProgress);
+
+      // Retrieve the user's missions or create a new TrieMap if it doesn't exist
+      let missions = switch (userProgress.get(userId)) {
+        case (?map) map;
+        case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+      };
+
+      // Update the mission progress
+      missions.put(missionId, progress);
+
+      // Update the user's progress in the main TrieMap
+      userProgress.put(userId, missions);
     };
-
-    // Update the mission progress
-    missions.put(missionId, progress);
-
-    // Update the user's progress in the main TrieMap
-    userProgress.put(userId, missions);
-
-    return true;
   };
 
   // Function to get the progress of a specific mission for a user
 
-  public query func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
-    switch (userProgress.get(userId)) {
-      case (?missions) {
-        switch (missions.get(missionId)) {
-          case (?progress) return ?Serialization.serializeProgress(progress);
-          case null return null;
+  public shared query (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
+
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      switch (userProgress.get(userId)) {
+        case (?missions) {
+          switch (missions.get(missionId)) {
+            case (?progress) return ?Serialization.serializeProgress(progress);
+            case null return null;
+          };
         };
+        case null return null;
       };
-      case null return null;
     };
+
+    return null;
   };
 
-  public shared func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
-    let userMissionsOpt = userProgress.get(userId);
+  // Function to get the progress of all missions for a user
 
-    switch (userMissionsOpt) {
-      case (null) {
-        return null;
-      };
-      case (?userMissions) {
-        var serializedMissions : [(Nat, Types.SerializedProgress)] = [];
+  public shared query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-        // Get an iterator for the mission entries
-        let missionsIter = userMissions.entries();
+      let userMissionsOpt = userProgress.get(userId);
 
-        // Loop over the entries in the TrieMap
-        for (entry in missionsIter) {
-          let missionId = entry.0;
-          let progress = entry.1;
-          let serializedProgress = Serialization.serializeProgress(progress);
-          serializedMissions := Array.append(serializedMissions, [(missionId, serializedProgress)]);
+      switch (userMissionsOpt) {
+        case (null) {
+          return null;
         };
+        case (?userMissions) {
+          var serializedMissions : [(Nat, Types.SerializedProgress)] = [];
 
-        return ?serializedMissions;
+          // Get an iterator for the mission entries
+          let missionsIter = userMissions.entries();
+
+          // Loop over the entries in the TrieMap
+          for (entry in missionsIter) {
+            let missionId = entry.0;
+            let progress = entry.1;
+            let serializedProgress = Serialization.serializeProgress(progress);
+            serializedMissions := Array.append(serializedMissions, [(missionId, serializedProgress)]);
+          };
+
+          return ?serializedMissions;
+        };
       };
     };
+
+    return null;
   };
 
   // Function to add a secret code to a user's progress for the mission
 
-  public shared func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
+  public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async () {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      // Retrieve user's missions progress
+      let userMissions = switch (userProgress.get(userId)) {
+        case (?progress) progress;
+        case null return; // User progress not found
+      };
 
-    // Retrieve user's missions progress
-    let userMissions = switch (userProgress.get(userId)) {
-      case (?progress) progress;
-      case null return false; // User progress not found
-    };
+      // Retrieve the mission progress
+      let missionProgress = switch (userMissions.get(missionId)) {
+        case (?progress) progress;
+        case null return; // Mission progress not found
+      };
 
-    // Retrieve the mission progress
-    let missionProgress = switch (userMissions.get(missionId)) {
-      case (?progress) progress;
-      case null return false; // Mission progress not found
-    };
+      // Retrieve the mission details from the missions vector
+      let missionOpt = Vector.get(missions, missionId);
+      let mission = switch (missionOpt) {
+        case (m) m;
+      };
 
-    // Retrieve the mission details from the missions vector
-    let missionOpt = Vector.get(missions, missionId);
-    let mission = switch (missionOpt) {
-      case (m) m;
-    };
-
-    // Ensure the mission has a secret code enabled
-    switch (mission.secretCodes) {
-      case (?secretCode) {
-        // Ensure the code matches
-        if (secretCode != code) {
-          return false; // Invalid code
+      // Ensure the mission has a secret code enabled
+      switch (mission.secretCodes) {
+        case (?secretCode) {
+          // Ensure the code matches
+          if (secretCode != code) {
+            return; // Invalid code
+          };
+        };
+        case null {
+          return; // This mission doesn't accept codes
         };
       };
-      case null {
-        return false; // This mission doesn't accept codes
+
+      // Check if the code has already been used by this user
+      if (missionProgress.usedCodes.get(code) == ?true) {
+        return; // Code already used
       };
+
+      // Generate a random number of points between mintime and maxtime using the utility function
+      let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
+
+      // Convert the Int points to Nat
+      let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
+
+      // Mark the code as used
+      missionProgress.usedCodes.put(code, true);
+
+      // Update the mission progress with the earned points
+      let newRecord : Types.MissionRecord = {
+        var timestamp = Time.now();
+        var pointsEarned = pointsEarnedNat;
+        var tweetId = null;
+      };
+
+      // Append the new record to the mission's completion history
+      missionProgress.completionHistory := Array.append(missionProgress.completionHistory, [newRecord]);
+
+      // Save the updated mission progress
+      userMissions.put(missionId, missionProgress);
+      userProgress.put(userId, userMissions);
     };
 
-    // Check if the code has already been used by this user
-    if (missionProgress.usedCodes.get(code) == ?true) {
-      return false; // Code already used
-    };
-
-    // Generate a random number of points between mintime and maxtime using the utility function
-    let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
-
-    // Convert the Int points to Nat
-    let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
-
-    // Mark the code as used
-    missionProgress.usedCodes.put(code, true);
-
-    // Update the mission progress with the earned points
-    let newRecord : Types.MissionRecord = {
-      var timestamp = Time.now();
-      var pointsEarned = pointsEarnedNat;
-      var tweetId = null;
-    };
-
-    // Append the new record to the mission's completion history
-    missionProgress.completionHistory := Array.append(missionProgress.completionHistory, [newRecord]);
-
-    // Save the updated mission progress
-    userMissions.put(missionId, missionProgress);
-    userProgress.put(userId, userMissions);
-
-    return true;
+    return;
   };
 
   // Get the total seconds of an user by Principal
 
-  public query func getTotalSecondsForUser(userId : Principal) : async ?Nat {
-    // Retrieve the user's mission progress from userProgress
-    let userMissionsOpt = userProgress.get(userId);
+  public shared query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      // Retrieve the user's mission progress from userProgress
+      let userMissionsOpt = userProgress.get(userId);
 
-    // If the user does not exist, return null
-    let userMissions = switch (userMissionsOpt) {
-      case null return null; // User not found
-      case (?missions) missions; // User found, continue
-    };
-
-    // Initialize a variable to keep track of total seconds
-    var totalSeconds : Nat = 0;
-
-    // Iterate through all missions for the user
-    for ((missionId, progress) in userMissions.entries()) {
-      // Iterate through the completion history of the mission
-      for (record in progress.completionHistory.vals()) {
-        totalSeconds += record.pointsEarned;
+      // If the user does not exist, return null
+      let userMissions = switch (userMissionsOpt) {
+        case null return null; // User not found
+        case (?missions) missions; // User found, continue
       };
+
+      // Initialize a variable to keep track of total seconds
+      var totalSeconds : Nat = 0;
+
+      // Iterate through all missions for the user
+      for ((missionId, progress) in userMissions.entries()) {
+        // Iterate through the completion history of the mission
+        for (record in progress.completionHistory.vals()) {
+          totalSeconds += record.pointsEarned;
+        };
+      };
+
+      return ?totalSeconds; // Return the total seconds
     };
 
-    return ?totalSeconds; // Return the total seconds
+    return ?0;
   };
 
   //
@@ -362,22 +379,28 @@ actor class Backend() {
 
   // Function to check if an user has done the picture mission
 
-  public query func getUserPicture(userId : Principal) : async Bool {
-    return switch (userPictures.get(userId)) {
-      case (?didthem) didthem;
-      case null false;
+  public shared query (msg) func getUserPicture(userId : Principal) : async Bool {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      return switch (userPictures.get(userId)) {
+        case (?didthem) didthem;
+        case null false;
+      };
     };
+    return false;
   };
 
   // Function to set the user picture mission as done
 
-  public func setUserPicture(userId : Principal, didthem : Bool) : async () {
-    userPictures.put(userId, didthem);
+  public shared (msg) func setUserPicture(userId : Principal, didthem : Bool) : async () {
+    if (isAdmin(msg.caller)) {
+      userPictures.put(userId, didthem);
+    };
+    return;
   };
 
   // Generate a unique image identifier using a combination of timestamp and hash
 
-  func generateUniqueIdentifier(imageName : Text) : Text {
+  private func generateUniqueIdentifier(imageName : Text) : Text {
     let timestamp = Int.toText(Time.now());
     let hash = Text.hash(imageName);
 
@@ -395,17 +418,20 @@ actor class Backend() {
 
   // Function to upload a mission image and return the URL
 
-  public shared func uploadMissionImage(imageName : Text, imageContent : Blob) : async Text {
-    let directory = "/missionassets/";
+  public shared (msg) func uploadMissionImage(imageName : Text, imageContent : Blob) : async Text {
+    if (isAdmin(msg.caller)) {
+      let directory = "/missionassets/";
 
-    // Generate a unique image name using the timestamp and hash
-    let uniqueImageName = generateUniqueIdentifier(imageName);
-    let url = directory # uniqueImageName;
+      // Generate a unique image name using the timestamp and hash
+      let uniqueImageName = generateUniqueIdentifier(imageName);
+      let url = directory # uniqueImageName;
 
-    // Store the image content associated with the unique URL
-    missionAssets.put(url, imageContent);
+      // Store the image content associated with the unique URL
+      missionAssets.put(url, imageContent);
 
-    return url;
+      return url;
+    };
+    return "Nice try lmao";
   };
 
   //
@@ -420,98 +446,112 @@ actor class Backend() {
 
   // Function to add or update a mission
 
-  public shared func addOrUpdateMission(newMission : Types.SerializedMission) : async Bool {
-    // Convert SerializedMission to a mutable Mission
-    let newDeserializedMission = Serialization.deserializeMission(newMission);
+  public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMission) : async () {
+    if (isAdmin(msg.caller)) {
+      // Convert SerializedMission to a mutable Mission
+      let newDeserializedMission = Serialization.deserializeMission(newMission);
 
-    // Check if the mission already exists in the vector
-    var missionFound = false;
+      // Check if the mission already exists in the vector
+      var missionFound = false;
 
-    let size = Vector.size(missions);
-    for (i in Iter.range(0, size - 1)) {
-      let existingMissionOpt = Vector.get(missions, i); // This returns ?Mission
+      let size = Vector.size(missions);
+      for (i in Iter.range(0, size - 1)) {
+        let existingMissionOpt = Vector.get(missions, i); // This returns ?Mission
 
-      // Properly handle the optional ?Mission value
-      switch (existingMissionOpt) {
-        case (mission) {
-          // Unwrap the Mission
-          if (mission.id == newMission.id) {
-            // Update the existing mission using Vector.put
-            Vector.put(missions, i, newDeserializedMission);
-            missionFound := true;
+        // Properly handle the optional ?Mission value
+        switch (existingMissionOpt) {
+          case (mission) {
+            // Unwrap the Mission
+            if (mission.id == newMission.id) {
+              // Update the existing mission using Vector.put
+              Vector.put(missions, i, newDeserializedMission);
+              missionFound := true;
+            };
           };
         };
       };
+
+      // If the mission was not found, add a new one
+      if (not missionFound) {
+        Vector.add<Types.Mission>(missions, newDeserializedMission);
+      };
     };
 
-    // If the mission was not found, add a new one
-    if (not missionFound) {
-      Vector.add<Types.Mission>(missions, newDeserializedMission);
-    };
-
-    return true;
+    return;
   };
 
   // Function to get all missions (serialized)
 
-  public query func getAllMissions() : async [Types.SerializedMission] {
-    return Array.map<Types.Mission, Types.SerializedMission>(
-      Vector.toArray(missions),
-      Serialization.serializeMission,
-    );
+  public shared query (msg) func getAllMissions() : async [Types.SerializedMission] {
+    if (isAdmin(msg.caller)) {
+      return Array.map<Types.Mission, Types.SerializedMission>(Vector.toArray(missions), Serialization.serializeMission);
+    } else {
+      return Array.map<Types.Mission, Types.SerializedMission>(
+        Array.filter<Types.Mission>(
+          Vector.toArray(missions),
+          func(mission : Types.Mission) : Bool {
+            mission.startDate <= Time.now();
+          },
+        ),
+        Serialization.serializeMission,
+      );
+    };
   };
 
   // Function to get a mission by ID
 
-  public query func getMissionById(id : Nat) : async ?Types.SerializedMission {
-    for (mission in Vector.vals(missions)) {
-      if (mission.id == id) {
-        return ?Serialization.serializeMission(mission);
+  public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMission {
+    if (isAdmin(msg.caller)) {
+      for (mission in Vector.vals(missions)) {
+        if (mission.id == id) {
+          return ?Serialization.serializeMission(mission);
+        };
+      };
+    } else {
+      for (mission in Vector.vals(missions)) {
+        if (mission.id == id and mission.startDate <= Time.now()) {
+          return ?Serialization.serializeMission(mission);
+        };
       };
     };
     return null;
   };
 
-  // Function to get the max and min seconds a Mission can give
-
-  public query func getMaxMinSecs(id : Nat) : async (Int, Int) {
-    for (mission in Vector.vals(missions)) {
-      if (mission.id == id) {
-        return ((mission.mintime, mission.maxtime));
-      };
-    };
-    return (0, 0); // Default return value if mission not found
-  };
-
   // Function to reset all missions
 
-  public func resetMissions() : async () {
-    Vector.clear(missions); // Clear all missions
-    missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
+  public shared (msg) func resetMissions() : async () {
+    if (isAdmin(msg.caller)) {
+      Vector.clear(missions); // Clear all missions
+      missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
+    };
+    return;
   };
 
   // Function to count the number of users who have completed a specific mission
 
-  public query func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
-    var count : Nat = 0;
+  public shared query (msg) func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
+    if (isAdmin(msg.caller)) {
+      var count : Nat = 0;
 
-    // Iterate through all users in userProgress
-    for ((userId, userMissions) in userProgress.entries()) {
-      // Check if the user has progress for the specific mission
-      switch (userMissions.get(missionId)) {
-        case (?progress) {
-          // If there is a completion history, check if the user has completed the mission at least once
-          if (Array.size(progress.completionHistory) > 0) {
-            count += 1;
+      // Iterate through all users in userProgress
+      for ((userId, userMissions) in userProgress.entries()) {
+        // Check if the user has progress for the specific mission
+        switch (userMissions.get(missionId)) {
+          case (?progress) {
+            // If there is a completion history, check if the user has completed the mission at least once
+            if (Array.size(progress.completionHistory) > 0) {
+              count += 1;
+            };
+          };
+          case null {
+            return 0;
           };
         };
-        case null {
-          // The user hasn't started this mission
-        };
       };
-    };
 
-    return count;
+      return count;
+    };
+    return 0;
   };
 
   //
@@ -526,59 +566,62 @@ actor class Backend() {
 
   // Register an user by Principal
 
-  public func addUser(id : Principal) : async () {
+  public shared (msg) func addUser(userId : Principal) : async () {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      // Initialize new user's mission progress
+      var newUserMissions : Types.UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
 
-    // Initialize new user's mission progress
-    var newUserMissions : Types.UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+      // Complete the first mission automatically
+      let missionId : Nat = 0; // Assuming 0 is the first mission ID
 
-    // Complete the first mission automatically
-    let missionId : Nat = 0; // Assuming 0 is the first mission ID
+      // Generate random points between 3600 and 21600
+      let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 1).mintime, Vector.get(missions, 1).maxtime);
 
-    // Generate random points between 3600 and 21600
-    let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 1).mintime, Vector.get(missions, 1).maxtime);
+      // Create a completion record for the first mission
+      let firstMissionRecord : Types.MissionRecord = {
+        var timestamp = Time.now();
+        var pointsEarned = Int.abs(pointsEarnedOpt); // Convert to Nat using Int.abs
+        var tweetId = null; // No tweet associated with this mission
+      };
 
-    // Create a completion record for the first mission
-    let firstMissionRecord : Types.MissionRecord = {
-      var timestamp = Time.now();
-      var pointsEarned = Int.abs(pointsEarnedOpt); // Convert to Nat using Int.abs
-      var tweetId = null; // No tweet associated with this mission
+      // Create progress for the first mission
+      let firstMissionProgress : Types.Progress = {
+        var completionHistory = [firstMissionRecord];
+        var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+      };
+
+      // Add the first mission progress to the user's missions
+      newUserMissions.put(missionId, firstMissionProgress);
+
+      // Add the user's progress to the global userProgress
+      userProgress.put(userId, newUserMissions);
+
+      // Add the user to the users vector
+      let newUser : Types.User = {
+        id = userId;
+        var twitterid = null;
+        var twitterhandle = null;
+        creationTime = Time.now();
+      };
+      Vector.add<Types.User>(users, newUser);
     };
-
-    // Create progress for the first mission
-    let firstMissionProgress : Types.Progress = {
-      var completionHistory = [firstMissionRecord];
-      var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-    };
-
-    // Add the first mission progress to the user's missions
-    newUserMissions.put(missionId, firstMissionProgress);
-
-    // Add the user's progress to the global userProgress
-    userProgress.put(id, newUserMissions);
-
-    // Add the user to the users vector
-    let newUser : Types.User = {
-      id = id;
-      var twitterid = null;
-      var twitterhandle = null;
-      creationTime = Time.now();
-    };
-    Vector.add<Types.User>(users, newUser);
   };
 
   // Function to get all registered users
 
-  public query func getUsers() : async [Types.SerializedUser] {
-    return Array.map<Types.User, Types.SerializedUser>(
-      Vector.toArray(users),
-      Serialization.serializeUser,
-    );
+  public shared query (msg) func getUsers() : async [Types.SerializedUser] {
+    if (isAdmin(msg.caller)) {
+      return Array.map<Types.User, Types.SerializedUser>(Vector.toArray(users), Serialization.serializeUser);
+    };
+    return [];
   };
 
-  public query func getUser(id : Principal) : async ?Types.SerializedUser {
-    for (user in Vector.vals(users)) {
-      if (user.id == id) {
-        return ?Serialization.serializeUser(user);
+  public shared query (msg) func getUser(userId : Principal) : async ?Types.SerializedUser {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      for (user in Vector.vals(users)) {
+        if (user.id == userId) {
+          return ?Serialization.serializeUser(user);
+        };
       };
     };
     return null;
@@ -586,31 +629,37 @@ actor class Backend() {
 
   // Function to add Twitter information to a user
 
-  public shared func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
-    var i = 0;
-    while (i < Vector.size(users)) {
-      switch (Vector.getOpt(users, i)) {
-        case (?user) {
-          if (user.id == principalId) {
-            let updatedUser : Types.User = {
-              id = user.id;
-              var twitterid = ?twitterId;
-              var twitterhandle = ?twitterHandle;
-              creationTime = user.creationTime;
+  public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
+    if (isAdmin(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            if (user.id == principalId) {
+              let updatedUser : Types.User = {
+                id = user.id;
+                var twitterid = ?twitterId;
+                var twitterhandle = ?twitterHandle;
+                creationTime = user.creationTime;
+              };
+              Vector.put(users, i, updatedUser);
+              return;
             };
-            Vector.put(users, i, updatedUser);
-            return;
           };
+          case _ {};
         };
-        case _ {};
+        i += 1;
       };
-      i += 1;
     };
   };
 
   //
 
   // Http Request and Cycles
+
+  public shared query (msg) func whoamI() : async Principal {
+    return msg.caller;
+  };
 
   //
 

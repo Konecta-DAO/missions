@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NFID } from '@nfid/embed';
 import Casco from './Casco';
 import { Principal } from '@dfinity/principal';
+import { HttpAgent, Actor } from '@dfinity/agent';
 
 interface CascoNFIDProps {
     onIframeReady: () => void; // Callback to notify Home.tsx when the iframe is ready
-    onPrincipalId: (principalId: Principal) => void; // Callback to pass the principalId to Home.tsx
+    onPrincipalId: (principalId: Principal, agent: HttpAgent) => void; // Callback to pass the principalId to Home.tsx
+    agent: HttpAgent;
 }
 
 const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) => {
@@ -50,7 +52,7 @@ const CascoNFID: React.FC<CascoNFIDProps> = ({ onIframeReady, onPrincipalId }) =
             });
             const principalId = identity.getPrincipal();
             console.log('Authenticated with principalId:', principalId.toText());
-            onPrincipalId(principalId);
+            onPrincipalId(principalId, identity);
         } catch (error) {
             console.error('Authentication failed:', error);
         }

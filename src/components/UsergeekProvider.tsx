@@ -7,7 +7,7 @@ interface UsergeekProviderProps {
 }
 
 const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
-    const { principalId } = useEncryption();
+    const { identity } = useEncryption();
 
     useEffect(() => {
         // Initialize Usergeek with your API key
@@ -16,18 +16,18 @@ const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
         });
 
         // Set the user's principal and track session if the user is logged in and principalId is available
-        if (principalId) {
-            Usergeek.setPrincipal(principalId);
+        if (identity) {
+            Usergeek.setPrincipal(identity.getPrincipal());
             Usergeek.trackSession();
         }
 
         // Cleanup function to unset principal on logout or app unload
         return () => {
-            if (!principalId) {
+            if (!identity) {
                 Usergeek.setPrincipal(undefined);
             }
         };
-    }, [principalId]);
+    }, [identity]);
 
     return <>{children}</>;
 };

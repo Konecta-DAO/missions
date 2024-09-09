@@ -9,7 +9,8 @@ interface KonectaInfoButtonProps {
 const KonectaInfoButton: React.FC<KonectaInfoButtonProps> = ({ onClick }) => {
     const [isPressed, setIsPressed] = useState(false);
 
-    const handleMouseDown = () => {
+    const handleMouseDown = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (event.button !== 0) return;
         setIsPressed(true);
         onClick();
     };
@@ -18,11 +19,16 @@ const KonectaInfoButton: React.FC<KonectaInfoButtonProps> = ({ onClick }) => {
         setIsPressed(false);
     };
 
+    const handleMouseLeave = () => {
+        setIsPressed(false);
+    };
+
     return (
         <div
             className={`KonectaButtonContainer ${isPressed ? 'pressed' : ''}`}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
         >
             <img src={KonectaSVG} alt="Konecta Info Button" />
         </div>

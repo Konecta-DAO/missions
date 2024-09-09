@@ -16,33 +16,55 @@ interface MissionModalProps {
     loading: boolean;
     principalId: Principal | null;
     backendActor: any;
+    setDecryptedSession: (session: any) => void;
 }
 
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
-const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId, userProgress, closeModal, loading, principalId, backendActor }) => {
-
-
+const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId, userProgress, closeModal, loading, principalId, backendActor, setDecryptedSession }) => {
 
     const mission = missions.find(m => m.id === selectedMissionId);
     if (!mission) return null;
 
     const navigate = useNavigate();
-    let requiredMissionCompleted = true;
 
-    const { renderPTWContent } = usePTWData(Number(selectedMissionId));
-    const { tweetId, loading: tweetLoading, error: tweetError } = useTWtoRT();
+    const missionId = BigInt(mission.id);
+
+    // Check if the current mission has been completed
+    const missionCompleted = userProgress?.some(([id]) => {
+        return BigInt(id) === missionId;
+    }) ?? false;
+
+    let requiredMissionCompleted = true; // Assume no required mission or it's completed
+
+    // Check if there's a required previous mission
+    const requiredMissionId = mission.requiredPreviousMissionId?.[0]; // Safely get required previous mission ID if it exists
+
+    if (requiredMissionId !== undefined) {
+        const requiredMissionBigInt = BigInt(requiredMissionId); // Convert to BigInt if defined
+
+        // Check if the required mission is completed
+        requiredMissionCompleted = userProgress?.some(([id]) => {
+            return BigInt(id) === requiredMissionBigInt;
+        }) ?? false;
+    }
+
+    const isAvailableMission = !missionCompleted && requiredMissionCompleted;
+
+    useEffect(() => {
+        if (!isAvailableMission) {
+            navigate('/Missions');
+        }
+    }, [loading, requiredMissionCompleted, navigate]);
+
 
     if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
         const requiredMissionId = mission.requiredPreviousMissionId[0];
         requiredMissionCompleted = userProgress?.some(([id]) => id === requiredMissionId) ?? false;
     }
 
-    useEffect(() => {
-        if (!loading && !requiredMissionCompleted) {
-            navigate('/Missions');
-        }
-    }, [loading, requiredMissionCompleted, navigate]);
+    const { renderPTWContent } = usePTWData(Number(selectedMissionId));
+    const { tweetId, loading: tweetLoading, error: tweetError } = useTWtoRT();
 
     // Close the modal when clicking outside
     const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -71,9 +93,9 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
             : undefined;
         const functionName2 = typeof mission.functionName2 === 'string' ? mission.functionName2 : undefined;
 
-        const executeFunction = (functionName: string | undefined, navigate: (path: string) => void) => {
+        const executeFunction = (functionName: string | undefined) => {
             if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
-                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](principalId, backendActor, missions, navigate);
+                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](principalId, backendActor, missions, navigate, setDecryptedSession);
             } else {
                 console.error(`Function ${functionName} not found`);
             }
@@ -119,7 +141,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
             return (
                 <>
                     {svgLines}
-                    <button onClick={() => executeFunction(functionName2, navigate)} style={buttonGradientStyle}>
+                    <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
                         {mission.obj2}
                     </button>
                 </>
@@ -130,10 +152,10 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
             return (
                 <>
                     {svgLines}
-                    <button onClick={() => executeFunction(functionName1, navigate)} style={buttonGradientStyle}>
+                    <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle}>
                         {mission.obj1}
                     </button>
-                    <button onClick={() => executeFunction(functionName2, navigate)} style={buttonGradientStyle}>
+                    <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
                         {mission.obj2}
                     </button>
                 </>
@@ -146,7 +168,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
                     {svgLines}
                     <div className={styles.InputButtonWrapper}>
                         <input type="text" placeholder="Enter Code" />
-                        <button onClick={() => executeFunction(functionName2, navigate)} style={buttonGradientStyle}>
+                        <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
                             {mission.obj2}
                         </button>
                     </div>

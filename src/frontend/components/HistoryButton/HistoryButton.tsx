@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import './HelpButton.scss';
-import QuestionSVG from '../../../../public/assets/Question Mark Button.svg';
+import './HistoryButton.scss';
+import KonectaSVG from '../../../../public/assets/History Button.svg';
 
-interface HelpButtonProps {
+interface HistoryButtonProps {
     onClick: () => void;
 }
 
-const HelpButton: React.FC<HelpButtonProps> = ({ onClick }) => {
+const HistoryButton: React.FC<HistoryButtonProps> = ({ onClick }) => {
     const [isPressed, setIsPressed] = useState(false);
 
     const handleMouseDown = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -25,14 +25,14 @@ const HelpButton: React.FC<HelpButtonProps> = ({ onClick }) => {
 
     return (
         <div
-            className={`HelpButtonContainer ${isPressed ? 'pressed' : ''}`}
+            className={`KonectaButtonContainer ${isPressed ? 'pressed' : ''}`}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
         >
-            <img src={QuestionSVG} alt="Help Button" />
+            <img src={KonectaSVG} alt="History Button" />
         </div>
     );
 };
 
-export default HelpButton;
+export default HistoryButton;

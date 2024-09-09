@@ -5,6 +5,12 @@ export const convertSecondsToHMS = (seconds: number): string => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+export const formatDate = (timestamp: bigint) => {
+    const date = new Date(Number(timestamp) / 1e6); // Convert nanoseconds to milliseconds
+    return date.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+
 export const generateCodeVerifier = (): string => {
     const array = new Uint32Array(56 / 2);
     window.crypto.getRandomValues(array);

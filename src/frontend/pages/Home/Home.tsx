@@ -28,16 +28,12 @@ const Home: React.FC = () => {
   const { decryptSession, saveSession } = useEncryption();
 
   const agent = new HttpAgent();
-  const backendActor = Actor.createActor(backend_idlFactory, {
-    agent,
-    canisterId: backend_canisterId,
-  });
 
   // Simulate loading text from 0% to 100% over 4 seconds
   useEffect(() => {
 
     const session = decryptSession();
-    if (session?.principalId) {
+    if (session?.identity) {
       navigate('/Missions');
     }
 
@@ -49,8 +45,15 @@ const Home: React.FC = () => {
     setIframeReady(true);
   };
 
-  const handlePrincipalId = async (principalId: Principal) => {
-    saveSession(principalId);
+  const handlePrincipalId = async (principalId: Principal, identity: any) => {
+    saveSession(identity);
+
+    const agent = new HttpAgent({ identity: identity });
+
+    const backendActor = Actor.createActor(backend_idlFactory, {
+      agent,
+      canisterId: backend_canisterId,
+    });
 
     // Fetch progress for the user
     const progress = await backendActor.getProgress(principalId, 0n);
@@ -59,10 +62,9 @@ const Home: React.FC = () => {
       // If user is not registered, add them
       Usergeek.trackEvent('Mission 0: User Registered');
       await backendActor.addUser(principalId);
-
     }
 
-    navigate('/Missions');
+    navigate('/Missions', { state: { backendActor } });
 
   };
 
@@ -71,7 +73,7 @@ const Home: React.FC = () => {
   const handleKonectaClick = () => {
     setShowBubble(false); // Bubble Restart
     setTimeout(() => {
-      setBubbleContent("Konecta is your time-bending, event-managing sidekick. It turns planning into an adventure, making sure every second counts. With Konecta, you don’t just manage events—you master time like a pro.");
+      setBubbleContent("Konecta WebApp: Konecta is a Web app for Service providers to Offer and people to Request Services, in a Calendar-focus way.\nKonecta Protocol: Event Management protocol, for users to get their events cross-dApps.");
       setShowBubble(true); // Show the new content
     }, 0);
   };
@@ -118,7 +120,7 @@ const Home: React.FC = () => {
             <div className={styles.BottomPlataformaWrapper}>
               <div className={styles.PlataformaContainer}>
                 <div className={styles.Casco}>
-                  <CascoNFID onIframeReady={handleIframeReady} onPrincipalId={handlePrincipalId} />
+                  <CascoNFID onIframeReady={handleIframeReady} onPrincipalId={handlePrincipalId} agent={agent} />
                 </div>
                 <Plataforma animationDelay="0.5s" />
               </div>

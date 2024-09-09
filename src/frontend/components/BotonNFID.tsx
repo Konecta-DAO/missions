@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NFID } from '@nfid/embed';
 import { Principal } from '@dfinity/principal';
+import { HttpAgent } from '@dfinity/agent';
 
 interface BotonNFIDProps {
     onIframeReady: () => void; // Callback to notify Home.tsx when the iframe is ready
-    onPrincipalId: (principalId: Principal) => void; // Callback to pass the principalId to Home.tsx
+    onPrincipalId: (principalId: Principal, agent: HttpAgent) => void; // Callback to pass the principalId to Home.tsx
 }
 
 const BotonNFID: React.FC<BotonNFIDProps> = ({ onIframeReady, onPrincipalId }) => {
@@ -49,7 +50,9 @@ const BotonNFID: React.FC<BotonNFIDProps> = ({ onIframeReady, onPrincipalId }) =
             });
             const principalId = identity.getPrincipal();
             console.log('Authenticated with principalId:', principalId.toText());
-            onPrincipalId(principalId);
+            const agent = new HttpAgent({ identity });
+            onPrincipalId(principalId, agent);
+
         } catch (error) {
             console.error('Authentication failed:', error);
         }

@@ -26,14 +26,15 @@ interface UserData3 {
     refreshToken: string;
     userId: string;
     userHandle: string;
-    retweeted: boolean; 
+    retweeted: boolean;
+    tweetId: string;
 }
 
 const MissionFunctionsComponent = {
-    followKonecta: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+    followKonecta: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
         try {
             const response = await fetch(
-                "https://do.konecta.one/requestTwitterAuth-v2",
+                "https://do.konecta.one/requestTwitterAuth-v2/",
                 {
                     method: "GET",
                     credentials: "include",
@@ -72,14 +73,15 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
-                navigate('/Missions');
+                setDecryptedSession(false);
+                navigate('/');
             });
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
-    sendKamiDM: (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+    sendKamiDM: (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
         backendActor.setUserPicture(principalId, false);
         const twitterUsername = "kami_kta";
         const twitterDMUrl = `https://twitter.com/intent/follow?screen_name=${twitterUsername}`;
@@ -87,8 +89,10 @@ const MissionFunctionsComponent = {
         window.open(twitterDMUrl, "_blank");
     },
 
-    verifyPFP: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
-        if (backendActor.getUserPicture(principalId, true)) {
+    verifyPFP: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
+        const didhe = await backendActor.getUserPicture(principalId, true) as Boolean;
+        if (didhe) {
+            console.log("")
             const missionRecord: SerializedMissionRecord = {
                 pointsEarned: randomBetween(Number(missions[2].mintime), Number(missions[2].maxtime)),
                 timestamp: getCurrentTimestampInNanoSeconds(),
@@ -102,7 +106,8 @@ const MissionFunctionsComponent = {
 
             Usergeek.trackEvent("Mission 2: PFP Verified");
             await backendActor.updateUserProgress(principalId, 2n, serializedProgress);
-            navigate('/Missions');
+            setDecryptedSession(false);
+            navigate('/');
         } else {
             const [showModal, setShowModal] = useState(true);
 
@@ -127,7 +132,7 @@ const MissionFunctionsComponent = {
             );
         }
     },
-    verifyPFPTW: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+    verifyPFPTW: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-pfp",
@@ -169,7 +174,8 @@ const MissionFunctionsComponent = {
                     localStorage.setItem("refreshToken", refreshToken);
 
                     popup?.close();
-                    navigate('/Missions');
+                    setDecryptedSession(false);
+                    navigate('/');
                 } else {
                     const [showModal, setShowModal] = useState(true);
 
@@ -199,7 +205,7 @@ const MissionFunctionsComponent = {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
-    vfTweet: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+    vfTweet: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-vft",
@@ -241,7 +247,8 @@ const MissionFunctionsComponent = {
                     localStorage.setItem("refreshToken", refreshToken);
 
                     popup?.close();
-                    navigate('/Missions');
+                    setDecryptedSession(false);
+                    navigate('/');
                 } else {
                     const [showModal, setShowModal] = useState(true);
 
@@ -272,7 +279,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verRT: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void) => {
+    verRT: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-trt",
@@ -292,9 +299,9 @@ const MissionFunctionsComponent = {
                     return;
                 }
 
-                const { accessToken, refreshToken, hasTweeted, tweetId } = event.data as UserData2;
+                const { accessToken, refreshToken, retweeted, tweetId } = event.data as UserData3;
 
-                if (hasTweeted) {
+                if (retweeted) {
 
                     const missionRecord: SerializedMissionRecord = {
                         pointsEarned: randomBetween(Number(missions[5].mintime), Number(missions[5].maxtime)),
@@ -314,7 +321,8 @@ const MissionFunctionsComponent = {
                     localStorage.setItem("refreshToken", refreshToken);
 
                     popup?.close();
-                    navigate('/Missions');
+                    setDecryptedSession(false);
+                    navigate('/');
                 } else {
                     const [showModal, setShowModal] = useState(true);
 

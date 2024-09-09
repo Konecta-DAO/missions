@@ -2,6 +2,7 @@
     position: relative;
     width: 100%;
     height: 100%;
+    overflow-y: auto;
 }
 
 .TimeCapsuleWrapper {
@@ -32,7 +33,7 @@
 
 .TimerText {
     color: black;
-    font-size: 1vw;
+    font-size: 1.5em;
     pointer-events: none;
     position: absolute;
     font-weight: bold;
@@ -52,7 +53,7 @@
 
 .MissionGrid {
     position: absolute;
-    top: 18%;
+    top: 0.9vw;
     left: 3vw;
     width: 67vw;
     display: grid;
@@ -69,8 +70,8 @@
 .MissionCard {
     background-size: cover;
     background-position: top;
-    /* Align the image to the top */
     height: 25vh;
+    min-height: 300px;
     border-radius: 20px;
     display: flex;
     flex-direction: column;
@@ -167,6 +168,38 @@
 .CompletedMission {
     pointer-events: auto;
     cursor: pointer;
+}
+
+.MainDiv {
+    position: absolute;
+    width: 100%;
+    top: 0;
+    z-index: 1;
+    height: 15%
+}
+
+.CustomKonectaInfoButton {
+
+    right: 10.5vw;
+    position: absolute;
+    scale: 84%;
+    top: -7.2vw;
+
+}
+
+
+.CustomHelpButton {
+    position: absolute;
+    top: -15.15vw;
+    left: 98vw;
+    scale: 88%;
+}
+
+.CustomHistoryButton {
+    right: 18vw;
+    position: absolute;
+    transform: translateX(10px);
+    top: -9.25vw;
 }
 
 .MissionTitleWrapper {
