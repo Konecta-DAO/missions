@@ -917,13 +917,28 @@ actor class Backend() {
   // Function to get trusted origins for NFID authentication
 
   public shared query func icrc28_trusted_origins() : async Types.Icrc28TrustedOriginsResponse {
-    let trustedOrigins = [
-      "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", // Frontend Canister to auth NFID
-      "https://pre.konecta.one", // Domain
-      "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io", // Admin Frontend Canister to auth NFID
-      "https://adminpre.konecta.one", // Admin Domain
+    let trusted_origins : [Text] = [
+      "https://pre.konecta.one",
+      "https://adminpre.konecta.one",
+      "https://stats.konecta.one",
+      "https://konecta.one",
+      "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io",
+      "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io",
+      "https://5bxlt-ryaaa-aaaag-qkhea-cai.icp0.io",
+      "https://apcy6-tiaaa-aaaag-qkfda-cai.raw.icp0.io",
+      "https://okowr-oqaaa-aaaag-qkedq-cai.raw.icp0.io",
+      "https://5bxlt-ryaaa-aaaag-qkhea-cai.raw.icp0.io",
+      "https://apcy6-tiaaa-aaaag-qkfda-cai.ic0.app",
+      "https://okowr-oqaaa-aaaag-qkedq-cai.ic0.app",
+      "https://5bxlt-ryaaa-aaaag-qkhea-cai.ic0.app",
+      "https://apcy6-tiaaa-aaaag-qkfda-cai.raw.ic0.app",
+      "https://okowr-oqaaa-aaaag-qkedq-cai.raw.ic0.app",
+      "https://5bxlt-ryaaa-aaaag-qkhea-cai.raw.ic0.app",
     ];
-    return { trusted_origins = trustedOrigins };
+
+    return {
+      trusted_origins;
+    };
   };
 
   // Security function to transform the response

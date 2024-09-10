@@ -11,15 +11,16 @@ interface HistoryModalProps {
 
 
 const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
+    const globalID = useGlobalID();
 
-    const constructTweetUrl = (tweetId: string) => `https://twitter.com/${useGlobalID().twitterhandle}/status/${tweetId}`;
+    const constructTweetUrl = (tweetId: string) => `https://twitter.com/${globalID.twitterhandle}/status/${tweetId}`;
 
     const renderProgress = () => {
-        const userProgress = useGlobalID().userProgress;
+        const userProgress = globalID.userProgress;
         if (!userProgress) return <p>No Progress</p>;
 
         return userProgress.map(([id, progress], idx) => {
-            const mission = useGlobalID().missions?.find(m => m.id === id);
+            const mission = globalID.missions?.find(m => m.id === id);
             const requiredMissionTitle = mission?.title || '';
             const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() ?? '';
 

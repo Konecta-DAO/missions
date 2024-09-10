@@ -12,12 +12,12 @@ interface MissionModalProps {
     selectedMissionId: bigint;
     loading: boolean;
 }
-
+const globalID = useGlobalID();
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
 const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, loading, }) => {
 
-    const missions = useGlobalID().missions;
+    const missions = globalID.missions;
     const mission = missions ? missions.find(m => m.id === selectedMissionId) : undefined;
     if (!mission) return null;
 
@@ -26,7 +26,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const missionId = BigInt(mission.id);
 
     // Check if the current mission has been completed
-    const missionCompleted = useGlobalID().userProgress?.some(([id]) => {
+    const missionCompleted = globalID.userProgress?.some(([id]) => {
         return BigInt(id) === missionId;
     }) ?? false;
 
@@ -39,7 +39,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         const requiredMissionBigInt = BigInt(requiredMissionId); // Convert to BigInt if defined
 
         // Check if the required mission is completed
-        requiredMissionCompleted = useGlobalID().userProgress?.some(([id]) => {
+        requiredMissionCompleted = globalID.userProgress?.some(([id]) => {
             return BigInt(id) === requiredMissionBigInt;
         }) ?? false;
     }
@@ -55,7 +55,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
     if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
         const requiredMissionId = mission.requiredPreviousMissionId[0];
-        requiredMissionCompleted = useGlobalID().userProgress?.some(([id]) => id === requiredMissionId) ?? false;
+        requiredMissionCompleted = globalID.userProgress?.some(([id]) => id === requiredMissionId) ?? false;
     }
 
     const { renderPTWContent } = usePTWData(Number(selectedMissionId));
@@ -76,7 +76,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const gradientEndColor = getGradientEndColor(Number(mission.mode));
 
     const renderButtons = () => {
-        const missionCompleted = useGlobalID().userProgress?.some(([id]) => id === BigInt(mission.id)) ?? false;
+        const missionCompleted = globalID.userProgress?.some(([id]) => id === BigInt(mission.id)) ?? false;
 
         if (missionCompleted) {
             return <div className={styles.CompletedText}>Already Completed</div>;

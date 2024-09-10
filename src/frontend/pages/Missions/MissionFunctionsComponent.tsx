@@ -9,7 +9,8 @@ import { useMissionAssistant } from "../../../hooks/missionAssistant.tsx";
 import { useFetchData } from "../../../hooks/fetchData.tsx";
 
 const navigate = useNavigate();
-
+const globalID = useGlobalID();
+const fetchData = useFetchData();
 interface UserData {
     userId: string;
     userHandle: string;
@@ -23,8 +24,9 @@ interface UserData3 {
 }
 
 const MissionFunctionsComponent = {
+
     followKonecta: async () => {
-        const principal = useGlobalID().principalId;
+        const principal = globalID.principalId;
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2/",
@@ -56,7 +58,7 @@ const MissionFunctionsComponent = {
                 //useMissionAssistant().addTwitterInfo(BigInt(userId), userHandle);
 
                 //const missionRecord: SerializedMissionRecord = {
-                //  pointsEarned: randomBetween(Number(useGlobalID().missions[1].mintime), Number(useGlobalID().missions[1].maxtime)),
+                //  pointsEarned: randomBetween(Number(globalID.missions[1].mintime), Number(globalID.missions[1].maxtime)),
                 //timestamp: getCurrentTimestampInNanoSeconds(),
                 //tweetId: [], // Empty tweet ID
                 //};
@@ -89,15 +91,20 @@ const MissionFunctionsComponent = {
     },
 
     verifyPFP: async () => {
-        let didhe = await useFetchData().fetchUserPFPstatus();
-        if (useGlobalID().userPFPstatus === "verified") {
+        const fetchData = await useFetchData();
+        if (!fetchData) {
+            throw new Error("Mission Assistant is undefined");
+        }
+            let didhe = await fetchData.fetchUserPFPstatus();
+
+        if (didhe === "verified") {
             alert("Success");
 
             Usergeek.trackEvent("Mission 2: PFP Verified");
 
             navigate('/');
         } else {
-            if (useGlobalID().userPFPstatus === "loading") {
+            if (globalID.userPFPstatus === "loading") {
                 alert("Loading");
             }
         }

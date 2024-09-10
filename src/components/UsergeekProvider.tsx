@@ -6,7 +6,6 @@ interface UsergeekProviderProps {
 }
 
 const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
-
     const globalID = useGlobalID();
 
     useEffect(() => {
@@ -18,7 +17,7 @@ const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
         } else {
             Usergeek.setPrincipal(undefined);
         };
-    }, [globalID.principalId]);
+    }, [globalID]);
 
     return <>{children}</>;
 };

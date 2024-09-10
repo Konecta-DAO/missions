@@ -57,6 +57,7 @@
     "copyfiles": "^2.4.1",
     "cross-fetch": "^4.0.0",
     "dotenv": "^16.4.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "ic-mops": "^0.45.3",
     "jsdom": "^24.1.1",
     "mo-dev": "^0.13.0",

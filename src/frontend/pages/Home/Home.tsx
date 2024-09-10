@@ -13,23 +13,38 @@ import SpeechBubble from '../../components/SpeechBubble/SpeechBubble.tsx';
 import "@nfid/identitykit/react/styles.css"
 import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
 import { useGlobalID } from '../../../hooks/globalID.tsx';
+import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
+import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
+import { useMissionAssistant } from '../../../hooks/missionAssistant.tsx';
 
 const Home: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { addNewUser } = useMissionAssistant();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
   const { connectedAccount, agent } = useIdentityKit();
+  const globalID = useGlobalID();
+  const { loadingPercentage, loadingComplete } = useLoadingProgress();
+
+  const setData = async () => {
+    if (agent) {
+      const a = await agent.getPrincipal();
+      globalID.setPrincipal(a);
+      await addNewUser(a);
+      console.log("agregao");
+      navigate('/Missions');
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       if (connectedAccount && agent) {
-        useGlobalID().setPrincipal(await agent.getPrincipal());
-        navigate('/Missions');
+        setData();
       }
     };
     fetchData();
-  }, []);
+  }, [connectedAccount, agent]);
 
   // Bubble Content Handlers
 
@@ -60,6 +75,10 @@ const Home: React.FC = () => {
       }
     }
   };
+
+  if (connectedAccount != undefined) {
+    return <LoadingOverlay loadingPercentage={loadingPercentage} />;
+  }
 
   return (
     <div className={styles.HomeContainer}>
@@ -96,9 +115,9 @@ const Home: React.FC = () => {
               <div className={styles.PlataformaContainer}>
                 <div className={styles.Casco}>
                   <Casco onClick={handleConnect} />
-                  <div ref={connectWalletRef}>
+                    <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
                     <ConnectWallet />
-                  </div>
+                    </div>
                 </div>
                 <Plataforma animationDelay="0.5s" />
               </div>

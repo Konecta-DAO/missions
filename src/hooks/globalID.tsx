@@ -22,7 +22,6 @@ interface GlobalIDType {
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    console.log('GlobalProvider');
     const [principalId, setPrincipal] = useState<Principal | null>(null);
     const [missions, setMissions] = useState<SerializedMission[]>([]);
     const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgress]> | null>(null);
@@ -72,7 +71,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 export const useGlobalID = () => {
 
     const context = useContext(GlobalID);
-    console.log('GlobalID Context:', context);
     if (!context) {
         throw new Error('useGlobalID must be used within a GlobalProvider');
     }
