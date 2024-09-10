@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from 'react-modal';
 import styles from './AddMissionForm.module.scss';
-import { SerializedMission } from '../declarations/backend/backend.did';
+import { SerializedMission } from '../declarations/backend/backend.did.js';
 
 interface AddMissionFormProps {
     onAddMission: (mission: SerializedMission) => void;

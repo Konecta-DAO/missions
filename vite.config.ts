@@ -72,6 +72,17 @@ export default defineConfig({
             : isStats ? 'src/stats_frontend/.well-known'
               : 'src/frontend/.well-known'),
           dest: '.'
+        },
+        {
+          src: path.resolve(__dirname, '.ic-assets.json'),
+          dest: '.'
+        },
+        // Copy .well-known/ii-alternative-origins
+        {
+          src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known/ii-alternative-origins'
+            : isStats ? 'src/stats_frontend/.well-known/ii-alternative-origins'
+              : 'src/frontend/.well-known/ii-alternative-origins'),
+          dest: '.well-known'
         }
       ]
     })

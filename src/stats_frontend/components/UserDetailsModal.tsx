@@ -1,5 +1,5 @@
 import React from 'react';
-import { SerializedUser, SerializedProgress } from '../types';
+import { SerializedUser, SerializedProgress } from '../types.ts';
 
 interface UserDetailsModalProps {
   user: SerializedUser | null;

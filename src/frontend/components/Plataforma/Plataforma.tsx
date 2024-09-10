@@ -1,5 +1,5 @@
 import React from 'react';
-import './Plataforma.css';
+import './Plataforma.scss';
 
 interface PlataformaProps {
     animationDelay?: string;

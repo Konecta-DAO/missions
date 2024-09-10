@@ -1,13 +1,13 @@
 import './App.css';
 import { useEffect, useState, useMemo } from 'react';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend/index.js';
 import { Actor, HttpAgent } from "@dfinity/agent";
-import UserList from './components/UserList';
-import UserDetailsModal from './components/UserDetailsModal';
-import MissionChart from './components/MissionChart';
-import { useFetchData } from './hooks/useFetchData';
-import { useFetchUserDetails } from './hooks/useFetchUserDetails';
-import { SerializedUser } from './types';
+import UserList from './components/UserList.tsx';
+import UserDetailsModal from './components/UserDetailsModal.tsx';
+import MissionChart from './components/MissionChart.tsx';
+import { useFetchData } from './hooks/useFetchData.ts';
+import { useFetchUserDetails } from './hooks/useFetchUserDetails.ts';
+import { SerializedUser } from './types.ts';
 
 // Import Chart.js components
 import { Chart as ChartJS, LinearScale, BarElement, CategoryScale, Title, Tooltip, Legend } from 'chart.js';

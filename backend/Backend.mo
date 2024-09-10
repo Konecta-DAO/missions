@@ -602,30 +602,10 @@ actor class Backend() {
         var twitterid = null;
         var twitterhandle = null;
         creationTime = Time.now();
+        var pfpProgress = "false";
       };
       Vector.add<Types.User>(users, newUser);
     };
-  };
-
-  // Function to find a user by Twitter ID
-  public shared query (msg) func findUserByTwitterId(twitterId : Nat) : async ?Principal {
-    if (isAdmin(msg.caller)) {
-      var i = 0;
-      let len = Vector.size(users);
-      while (i < len) {
-        let user = Vector.get(users, i);
-        switch (user.twitterid) {
-          case (?id) {
-            if (id == twitterId) {
-              return ?user.id;
-            };
-          };
-          case null {};
-        };
-        i += 1;
-      };
-    };
-    return null;
   };
 
   // Function to get all registered users
@@ -648,6 +628,19 @@ actor class Backend() {
     return null;
   };
 
+  // Function to get the Mission PFP Progress
+
+  public shared query (msg) func getPFPProgress(userId : Principal) : async ?Text {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      for (user in Vector.vals(users)) {
+        if (user.id == userId) {
+          return ?user.pfpProgress;
+        };
+      };
+    };
+    return null;
+  };
+
   // Function to add Twitter information to a user
 
   public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
@@ -662,6 +655,7 @@ actor class Backend() {
                 var twitterid = ?twitterId;
                 var twitterhandle = ?twitterHandle;
                 creationTime = user.creationTime;
+                var pfpProgress = user.pfpProgress;
               };
               Vector.put(users, i, updatedUser);
               return;
@@ -758,8 +752,6 @@ actor class Backend() {
       method = #post; // Use variant for POST method
       transform = null;
     };
-
-    Cycles.add<system>(22_935_266_640);
 
     // 7. Make the HTTP outcall
     let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);

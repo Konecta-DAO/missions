@@ -1,23 +1,16 @@
 import React from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import RadialBackground from '../components/RadialBackground/RadialBackground';
-import { EncryptionProvider } from '../components/EncryptionProvider';
-import Home from './pages/Home/Home';
-import Missions from './pages/Missions/Missions';
-import MissionModal from './pages/Missions/MissionModal'; // Import the modal component
-import useIsMobile from './hooks/useIsMobile';
-import UsergeekProvider from '../components/UsergeekProvider';
+import { Routes, Route } from 'react-router-dom';
+import RadialBackground from '../components/RadialBackground/RadialBackground.tsx';
+import Home from './pages/Home/Home.tsx';
+import Missions from './pages/Missions/Missions.tsx';
+import useIsMobile from '../hooks/useIsMobile.tsx';
+import UsergeekProvider from '../components/UsergeekProvider.tsx';
 
 const App: React.FC = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
-
-  const closeModal = () => {
-    navigate('/Missions'); // Make sure the modal actually closes
-  };
 
   return (
-    <EncryptionProvider>
+
       <UsergeekProvider>
         <RadialBackground mobile={isMobile}>
           <Routes>
@@ -27,7 +20,7 @@ const App: React.FC = () => {
           </Routes>
         </RadialBackground>
       </UsergeekProvider>
-    </EncryptionProvider>
+
   );
 };
 

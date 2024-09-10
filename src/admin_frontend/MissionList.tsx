@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from './MissionsPanel.module.scss';
-import ModifyMissionModal from './ModifyMissionModal';
-import { SerializedMission } from '../declarations/backend/backend.did';
+import ModifyMissionModal from './ModifyMissionModal.tsx';
+import { SerializedMission } from '../declarations/backend/backend.did.js';
 
 
 interface MissionListProps {

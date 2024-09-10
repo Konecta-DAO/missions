@@ -12,6 +12,7 @@ module Types {
     var twitterid : ?Nat; // Twitter ID
     var twitterhandle : ?Text; // Twitter Handle
     creationTime : Int; // Creation Time in Nanoseconds
+    var pfpProgress : Text;
   };
 
   public type SerializedUser = {
@@ -19,6 +20,7 @@ module Types {
     twitterid : ?Nat;
     twitterhandle : ?Text;
     creationTime : Int;
+    pfpProgress : Text;
   };
 
   // Mission Types

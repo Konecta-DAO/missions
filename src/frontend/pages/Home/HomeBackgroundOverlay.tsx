@@ -1,53 +1,18 @@
 import React from 'react';
-import styled from 'styled-components';
+import './HomeBackgroundOverlay.scss';
 
 interface HomeBackgroundOverlayProps {
     mobile: boolean;
 }
 
-const SvgContainer = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  pointer-events: none;
-  mix-blend-mode: overlay;
-`;
-
-const SvgWithAnimation = styled.svg<{ mobile: boolean }>`
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: auto;
-  height: auto;
-  transform: translateX(-50%);
-  min-width: 100%;
-  min-height: 100%;
-  object-fit: cover;
-
-  .st1 {
-    fill: #A88CED;
-    stroke: #FFFFFF;
-    stroke-width: 4;
-    stroke-miterlimit: 10;
-  }
-
-  .st2 {
-    fill: none;
-    stroke: transparent;
-  }
-
-  .moving-light {
-    fill: url(#lightGradient);
-  }
-`;
 
 const HomeBackgroundOverlay: React.FC<HomeBackgroundOverlayProps> = ({ mobile }) => {
     return (
-        <SvgContainer>
-            <SvgWithAnimation viewBox={mobile ? "0 0 2160 3840" : "0 0 3840 2160"} mobile={mobile}>
+        <div className="svg-container">
+            <svg
+                className={`svg-with-animation ${mobile ? 'mobile' : ''}`}
+                viewBox={mobile ? '0 0 2160 3840' : '0 0 3840 2160'}
+            >
 
                 {/* Radial gradient for the lights */}
 
@@ -222,8 +187,8 @@ const HomeBackgroundOverlay: React.FC<HomeBackgroundOverlayProps> = ({ mobile })
 
                     </>
                 )}
-            </SvgWithAnimation>
-        </SvgContainer>
+            </svg>
+        </div>
     );
 };
 

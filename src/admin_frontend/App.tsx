@@ -1,75 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './Home.module.scss';
-import BotonNFID from '../frontend/components/BotonNFID';
 import KonectaLogo from '../../public/assets/Konecta Logo.svg';
 import { Principal } from '@dfinity/principal';
-import { useEncryption } from '../components/EncryptionProvider';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend';
-import AdminPanel from './AdminPanel';
-import MissionsPanel from './MissionsPanel';
-import { Actor, HttpAgent } from "@dfinity/agent";
-import useLoadingProgress from '../utils/useLoadingProgress';
-import LoadingOverlay from '../components/LoadingOverlay';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend/index.js';
+import AdminPanel from './AdminPanel.tsx';
+import MissionsPanel from './MissionsPanel.tsx';
+import { Actor } from "@dfinity/agent";
+import { useIdentityKit } from "@nfid/identitykit/react";
+import "@nfid/identitykit/react/styles.css"
+import { ConnectWallet } from "@nfid/identitykit/react"
+
 
 function App() {
-  const [iframeReady, setIframeReady] = useState(false);
-  const { loadingPercentage } = useLoadingProgress();
-  const [principalId, setPrincipalId] = useState<Principal | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // Admin check starts as null
-  const { decryptSession, saveSession } = useEncryption();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(false); // Admin check starts as null
+  const { selectSigner, disconnect, connectedAccount, selectedSigner } = useIdentityKit(); // Get agent from IdentityKit
 
-  const agent = new HttpAgent();
-  const backendActor = Actor.createActor(backend_idlFactory, {
-    agent,
-    canisterId: backend_canisterId,
-  });
+  //const backendActor = Actor.createActor(backend_idlFactory, {
+  //agent: agent!,
+  //canisterId: backend_canisterId,
+  //});
 
-  useEffect(() => {
-    const session = decryptSession();
-  }, [iframeReady]);
+  const connectWalletRef = useRef<HTMLDivElement>(null);
 
-  const handleIframeReady = () => {
-    setIframeReady(true);
-  };
-
-  const handlePrincipalId = async (principalId: Principal, identity: any) => {
-    saveSession(identity);
-    setPrincipalId(principalId); // Save the principal ID
-
-    const agent = new HttpAgent({ identity: identity });
-
-    const backendActor = Actor.createActor(backend_idlFactory, {
-      agent,
-      canisterId: backend_canisterId,
-    });
-
-    // Check if the user is an admin
-    try {
-      const isAdminResult = await backendActor.isAdmin(principalId);
-      setIsAdmin(isAdminResult as boolean); // Update the isAdmin state
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-      setIsAdmin(false); // If there's an error, assume the user is not an admin
+  // Custom button handler to simulate ConnectWallet click
+  const handleConnect = () => {
+    if (connectWalletRef.current) {
+      // Simulate the click event on the ConnectWallet button
+      const button = connectWalletRef.current.querySelector('button');
+      if (button) {
+        button.click(); // Programmatically trigger click
+      }
     }
   };
 
+  // Check if the user is an admin
+  //const checkAdminStatus = async () => {
+  //try {
+  //const isAdminResult = await backendActor.isAdmin(agent!.getPrincipal());
+  //    setIsAdmin(isAdminResult as boolean); // Update the isAdmin state
+  //  console.log(agent!.getPrincipal());
+  //console.log("isAdmin:", isAdminResult);
+  // } catch (error) {
+  // console.error("Error checking admin status:", error);
+  // setIsAdmin(false); // If there's an error, assume the user is not an admin
+  // }
+  //};
+
+  // useEffect(() => {
+  // checkAdminStatus();
+  //}, []);
+
   return (
     <div className={`${styles.HomeContainer}`}>
-      {!iframeReady && (
-        <LoadingOverlay loadingPercentage={loadingPercentage} />
-      )}
-      <div style={{ visibility: iframeReady ? 'visible' : 'hidden' }}>
+      <div>
+
         <div className={styles.KonectaLogoWrapper}>
-          <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+          <>
+            <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+            {/*    <button onClick={checkAdminStatus}>Check Admin Status</button>*/}
+          </>
         </div>
 
         {/* Render the AdminPanel and MissionsPanel if user is authenticated and is admin */}
-        {principalId && isAdmin && <AdminPanel principalId={principalId} />}
-        {principalId && isAdmin && <MissionsPanel principalId={principalId} />}
+        {isAdmin && <AdminPanel />}
+        {isAdmin && <MissionsPanel />}
 
         {/* Show the Authenticate button if isAdmin is null (initial state) or false */}
         {(isAdmin === null || isAdmin === false) && (
-          <BotonNFID onIframeReady={handleIframeReady} onPrincipalId={handlePrincipalId} />
+          <>
+            <div ref={connectWalletRef}>
+              <ConnectWallet />
+            </div>
+            <button onClick={handleConnect}>Connect Wallet</button>
+          </>
         )}
       </div>
     </div>

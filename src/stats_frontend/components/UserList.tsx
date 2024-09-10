@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { SerializedUser } from '../types';
+import { SerializedUser } from '../types.ts';
 
 interface UserListProps {
   users: SerializedUser[];
@@ -38,17 +38,7 @@ const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
         </div>
         <div className="search-right">
           <button onClick={() => setShowCalendar(!showCalendar)}>Select Date Range</button>
-          {showCalendar && (
-            <DatePicker
-              selected={startDate ?? undefined}
-              onChange={handleDateChange}
-              startDate={startDate ?? undefined}
-              endDate={endDate ?? undefined}
-              selectsRange
-              inline
-              onClickOutside={() => setShowCalendar(false)}
-            />
-          )}
+          {showCalendar}
           <button onClick={() => { setStartDate(null); setEndDate(null); }}>Reset</button>
         </div>
       </div>

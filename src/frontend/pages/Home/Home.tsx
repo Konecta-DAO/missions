@@ -1,77 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Home.module.scss';
-import HomeBackgroundOverlay from './HomeBackgroundOverlay';
-import useIsMobile from '../../hooks/useIsMobile';
-import Plataforma from '../../components/Plataforma';
-import CascoNFID from '../../components/CascoNFID';
+import HomeBackgroundOverlay from './HomeBackgroundOverlay.tsx';
+import useIsMobile from '../../../hooks/useIsMobile.tsx';
+import Plataforma from '../../components/Plataforma/Plataforma.tsx';
+import Casco from '../../components/Casco.tsx';
 import Kami from '../../../../public/assets/Kami.svg';
 import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
-import useLoadingProgress from '../../../utils/useLoadingProgress';
-import LoadingOverlay from '../../../components/LoadingOverlay';
-import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton';
-import HelpButton from '../../components/HelpButton/HelpButton';
-import SpeechBubble from '../../components/SpeechBubble/SpeechBubble';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../../../declarations/backend';
-import { Actor, HttpAgent } from "@dfinity/agent";
-import { Principal } from '@dfinity/principal';
-import { Usergeek } from 'usergeek-ic-js';
-import { NFID } from '@nfid/embed';
+import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton.tsx';
+import HelpButton from '../../components/HelpButton/HelpButton.tsx';
+import SpeechBubble from '../../components/SpeechBubble/SpeechBubble.tsx';
+import "@nfid/identitykit/react/styles.css"
+import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
+import { useGlobalID } from '../../../hooks/globalID.tsx';
 
 const Home: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
-  const [iframeReady, setIframeReady] = useState(false);
-  const { loadingPercentage } = useLoadingProgress();
-  const agent = new HttpAgent();
+  const { connectedAccount, agent } = useIdentityKit();
 
-  // Simulate loading text from 0% to 100% over 4 seconds
-  const fetchData = async () => {
-    const nfidInstance = NFID.init({
-      origin: 'https://nfid.one',
-      application: {
-        name: 'Konectª Pre-Register',
-        logo: 'https://dev.nfid.one/static/media/id.300eb72f3335b50f5653a7d6ad5467b3.svg',
-      },
-    });
-  
-    if ((await nfidInstance).getIdentity() !== null) {
-      navigate('/Missions');
-    }
-  };
-  
   useEffect(() => {
+    const fetchData = async () => {
+      if (connectedAccount && agent) {
+        useGlobalID().setPrincipal(await agent.getPrincipal());
+        navigate('/Missions');
+      }
+    };
     fetchData();
-  }, [iframeReady]);
-
-  // NFID Handlers
-
-  const handleIframeReady = () => {
-    setIframeReady(true);
-  };
-
-  const handlePrincipalId = async (principalId: Principal, identity: any) => {
-
-    const agent = new HttpAgent({ identity: identity });
-    const backendActor = Actor.createActor(backend_idlFactory, {
-      agent,
-      canisterId: backend_canisterId,
-    });
-
-    // Fetch progress for the user
-    const progress = await backendActor.getProgress(principalId, 0n);
-
-    if (progress === null || (Array.isArray(progress) && progress.length === 0)) {
-      // If user is not registered, add them
-      Usergeek.trackEvent('Mission 0: User Registered');
-      await backendActor.addUser(principalId);
-    }
-
-    navigate('/Missions', { state: { backendActor } });
-
-  };
+  }, []);
 
   // Bubble Content Handlers
 
@@ -83,6 +41,8 @@ const Home: React.FC = () => {
     }, 0);
   };
 
+  const connectWalletRef = useRef<HTMLDivElement>(null);
+
   const handleHelpClick = () => {
     setShowBubble(false); // Bubble Restart
     setTimeout(() => {
@@ -91,16 +51,26 @@ const Home: React.FC = () => {
     }, 0);
   };
 
+  const handleConnect = () => {
+    if (connectWalletRef.current) {
+
+      const button = connectWalletRef.current.querySelector('button');
+      if (button) {
+        button.click();
+      }
+    }
+  };
+
   return (
     <div className={styles.HomeContainer}>
 
-      {/* Loading Screen - Visible until the iFrame is ready */}
+      {/* Loading Screen - Visible until the iFrame is ready
       {!iframeReady && (
         <LoadingOverlay loadingPercentage={loadingPercentage} />
-      )}
+      )} */}
 
       {/* Page Content */}
-      <div style={{ visibility: iframeReady ? 'visible' : 'hidden' }}>
+      <div>
         <div className={styles.OverlayWrapper}>
           <HomeBackgroundOverlay mobile={isMobile} />
         </div>
@@ -125,7 +95,10 @@ const Home: React.FC = () => {
             <div className={styles.BottomPlataformaWrapper}>
               <div className={styles.PlataformaContainer}>
                 <div className={styles.Casco}>
-                  <CascoNFID onIframeReady={handleIframeReady} onPrincipalId={handlePrincipalId} agent={agent} />
+                  <Casco onClick={handleConnect} />
+                  <div ref={connectWalletRef}>
+                    <ConnectWallet />
+                  </div>
                 </div>
                 <Plataforma animationDelay="0.5s" />
               </div>

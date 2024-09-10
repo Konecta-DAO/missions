@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import styles from './MissionsPanel.module.scss';
 import { Principal } from '@dfinity/principal';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend/index.js';
 import { Actor, HttpAgent } from "@dfinity/agent";
-import MissionList from './MissionList';
-import AddMissionForm from './AddMissionForm';
-import { SerializedMission } from '../declarations/backend/backend.did';
+import MissionList from './MissionList.tsx';
+import AddMissionForm from './AddMissionForm.tsx';
+import { SerializedMission } from '../declarations/backend/backend.did.js';
 
 interface MissionsPanelProps {
-    principalId: Principal;
 }
 
-const MissionsPanel: React.FC<MissionsPanelProps> = ({ principalId }) => {
+const MissionsPanel: React.FC<MissionsPanelProps> = () => {
     const [missions, setMissions] = useState<SerializedMission[]>([]);
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
@@ -20,26 +19,6 @@ const MissionsPanel: React.FC<MissionsPanelProps> = ({ principalId }) => {
         agent,
         canisterId: backend_canisterId,
     });
-
-    useEffect(() => {
-        checkIfAdmin();
-    }, []);
-
-    const checkIfAdmin = async () => {
-        try {
-            const isAdminResult = await backendActor.isAdmin(principalId);
-            if (!isAdminResult) {
-                alert('User not admin');
-                setIsAdmin(false);
-            } else {
-                setIsAdmin(true);
-                fetchMissions();
-            }
-        } catch (error) {
-            console.error('Error checking admin status:', error);
-            setIsAdmin(false);
-        }
-    };
 
     const fetchMissions = async () => {
         try {

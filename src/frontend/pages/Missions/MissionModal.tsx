@@ -1,29 +1,24 @@
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styles from './MissionModal.module.scss';
-import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../utils/colorUtils';
-import MissionFunctionsComponent from './MissionFunctionsComponent';
-import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did';
-import { Principal } from '@dfinity/principal';
-import usePTWData from '../../hooks/usePTWData';
-import useTWtoRT from '../../hooks/useTWtoRT';
+import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../utils/colorUtils.ts';
+import MissionFunctionsComponent from './MissionFunctionsComponent.tsx';
+import usePTWData from '../../../hooks/usePTWData.tsx';
+import useTWtoRT from '../../../hooks/useTWtoRT.tsx';
+import { useGlobalID } from '../../../hooks/globalID.tsx';
 
 interface MissionModalProps {
-    missions: SerializedMission[];           // Array of SerializedMission
-    closeModal: () => void;                  // Function to close the modal
-    selectedMissionId: bigint;               // The selected mission's ID
-    userProgress: Array<[bigint, SerializedProgress]> | null;
+    closeModal: () => void;
+    selectedMissionId: bigint;
     loading: boolean;
-    principalId: Principal | null;
-    backendActor: any;
-    setDecryptedSession: (session: any) => void;
 }
 
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
-const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId, userProgress, closeModal, loading, principalId, backendActor, setDecryptedSession }) => {
+const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, loading, }) => {
 
-    const mission = missions.find(m => m.id === selectedMissionId);
+    const missions = useGlobalID().missions;
+    const mission = missions ? missions.find(m => m.id === selectedMissionId) : undefined;
     if (!mission) return null;
 
     const navigate = useNavigate();
@@ -31,7 +26,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
     const missionId = BigInt(mission.id);
 
     // Check if the current mission has been completed
-    const missionCompleted = userProgress?.some(([id]) => {
+    const missionCompleted = useGlobalID().userProgress?.some(([id]) => {
         return BigInt(id) === missionId;
     }) ?? false;
 
@@ -44,7 +39,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
         const requiredMissionBigInt = BigInt(requiredMissionId); // Convert to BigInt if defined
 
         // Check if the required mission is completed
-        requiredMissionCompleted = userProgress?.some(([id]) => {
+        requiredMissionCompleted = useGlobalID().userProgress?.some(([id]) => {
             return BigInt(id) === requiredMissionBigInt;
         }) ?? false;
     }
@@ -60,7 +55,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
 
     if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
         const requiredMissionId = mission.requiredPreviousMissionId[0];
-        requiredMissionCompleted = userProgress?.some(([id]) => id === requiredMissionId) ?? false;
+        requiredMissionCompleted = useGlobalID().userProgress?.some(([id]) => id === requiredMissionId) ?? false;
     }
 
     const { renderPTWContent } = usePTWData(Number(selectedMissionId));
@@ -81,7 +76,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
     const gradientEndColor = getGradientEndColor(Number(mission.mode));
 
     const renderButtons = () => {
-        const missionCompleted = userProgress?.some(([id]) => id === BigInt(mission.id)) ?? false;
+        const missionCompleted = useGlobalID().userProgress?.some(([id]) => id === BigInt(mission.id)) ?? false;
 
         if (missionCompleted) {
             return <div className={styles.CompletedText}>Already Completed</div>;
@@ -95,7 +90,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ missions, selectedMissionId
 
         const executeFunction = (functionName: string | undefined) => {
             if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
-                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](principalId, backendActor, missions, navigate, setDecryptedSession);
+                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]();
             } else {
                 console.error(`Function ${functionName} not found`);
             }

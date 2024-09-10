@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { SerializedUser, SerializedProgress } from '../types';
+import { SerializedUser, SerializedProgress } from '../types.ts';
 import { ActorSubclass } from "@dfinity/agent";
 
 export const useFetchUserDetails = (backend: ActorSubclass<any>) => {

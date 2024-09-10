@@ -1,27 +1,25 @@
 import React from 'react';
 import styles from './HistoryModal.module.scss';
-import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did';
-import { convertSecondsToHMS, formatDate } from '../../../components/Utilities';
+import { convertSecondsToHMS, formatDate } from '../../../components/Utilities.tsx';
 import AchievementDesktop from '../../../../public/assets/Achievements_Desktop.png';;
-import { getGradientEndColor, getGradientStartColor } from '../../../utils/colorUtils';
+import { getGradientEndColor, getGradientStartColor } from '../../../utils/colorUtils.ts';
+import { useGlobalID } from '../../../hooks/globalID.tsx';
 
 interface HistoryModalProps {
-    principalId: string | null;
-    missions: SerializedMission[];
-    userProgress: Array<[bigint, SerializedProgress]> | null;
     closeModal: () => void;
-    twitterhandle: string;
 }
 
-const HistoryModal: React.FC<HistoryModalProps> = ({ principalId, missions, userProgress, closeModal, twitterhandle }) => {
 
-    const constructTweetUrl = (tweetId: string) => `https://twitter.com/${twitterhandle}/status/${tweetId}`;
+const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
+
+    const constructTweetUrl = (tweetId: string) => `https://twitter.com/${useGlobalID().twitterhandle}/status/${tweetId}`;
 
     const renderProgress = () => {
+        const userProgress = useGlobalID().userProgress;
         if (!userProgress) return <p>No Progress</p>;
 
         return userProgress.map(([id, progress], idx) => {
-            const mission = missions.find(m => m.id === id);
+            const mission = useGlobalID().missions?.find(m => m.id === id);
             const requiredMissionTitle = mission?.title || '';
             const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() ?? '';
 
@@ -71,7 +69,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ principalId, missions, user
                     height: '100%',
                     top: 0,
                     left: 0,
-                    zIndex: -1                    
+                    zIndex: -1
                 }}
                     viewBox="0 0 100 100"
                     preserveAspectRatio="none">

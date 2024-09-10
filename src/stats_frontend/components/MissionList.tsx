@@ -1,5 +1,5 @@
 import React from 'react';
-import { SerializedMission } from '../types';
+import { SerializedMission } from '../types.ts';
 
 interface MissionListProps {
     missions: SerializedMission[];

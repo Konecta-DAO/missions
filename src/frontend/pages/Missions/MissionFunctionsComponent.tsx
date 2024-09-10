@@ -1,24 +1,20 @@
-import { Principal } from "@dfinity/principal";
-import { SerializedProgress, SerializedMissionRecord, SerializedMission } from "../../../declarations/backend/backend.did";
-import { randomBetween, getCurrentTimestampInNanoSeconds } from "../../../components/Utilities";
+import { SerializedProgress, SerializedMissionRecord } from "../../../declarations/backend/backend.did.js";
+import { randomBetween, getCurrentTimestampInNanoSeconds } from "../../../components/Utilities.tsx";
 import { Usergeek } from "usergeek-ic-js";
 import { Button, Modal } from "react-bootstrap";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useGlobalID } from "../../../hooks/globalID.tsx";
+import { useMissionAssistant } from "../../../hooks/missionAssistant.tsx";
+import { useFetchData } from "../../../hooks/fetchData.tsx";
+
+const navigate = useNavigate();
 
 interface UserData {
-    accessToken: string;
-    refreshToken: string;
     userId: string;
     userHandle: string;
-}
-
-interface UserData2 {
     accessToken: string;
     refreshToken: string;
-    userId: string;
-    userHandle: string;
-    hasTweeted: boolean;
-    tweetId: string;
 }
 
 interface UserData3 {
@@ -27,13 +23,21 @@ interface UserData3 {
 }
 
 const MissionFunctionsComponent = {
-    followKonecta: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
+    followKonecta: async () => {
+        const principal = useGlobalID().principalId;
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2/",
                 {
-                    method: "GET",
+                    method: "POST",
                     credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        principal,
+                    }),
+
                 }
             );
 
@@ -49,27 +53,26 @@ const MissionFunctionsComponent = {
 
                 const { userId, userHandle, accessToken, refreshToken } = event.data as UserData;
 
-                backendActor.addTwitterInfo(principalId, BigInt(userId), userHandle);
+                //useMissionAssistant().addTwitterInfo(BigInt(userId), userHandle);
 
-                const missionRecord: SerializedMissionRecord = {
-                    pointsEarned: randomBetween(Number(missions[1].mintime), Number(missions[1].maxtime)),
-                    timestamp: getCurrentTimestampInNanoSeconds(),
-                    tweetId: [], // Empty tweet ID
-                };
+                //const missionRecord: SerializedMissionRecord = {
+                //  pointsEarned: randomBetween(Number(useGlobalID().missions[1].mintime), Number(useGlobalID().missions[1].maxtime)),
+                //timestamp: getCurrentTimestampInNanoSeconds(),
+                //tweetId: [], // Empty tweet ID
+                //};
 
-                const serializedProgress: SerializedProgress = {
-                    usedCodes: [],
-                    completionHistory: [missionRecord],
-                };
+                //const serializedProgress: SerializedProgress = {
+                //  usedCodes: [],
+                //completionHistory: [missionRecord],
+                //};
 
                 Usergeek.trackEvent("Mission 1: Konecta Followed");
-                await backendActor.updateUserProgress(principalId, 1n, serializedProgress);
+                //await backendActor.updateUserProgress(principalId, 1n, serializedProgress);
 
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
-                setDecryptedSession(false);
                 navigate('/');
             });
         } catch (error) {
@@ -77,48 +80,29 @@ const MissionFunctionsComponent = {
         }
     },
 
-    sendKamiDM: (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
-        backendActor.setUserPicture(principalId, false);
+    sendKamiDM: () => {
+        useMissionAssistant().setUserPFPLoading();
         const twitterUsername = "kami_kta";
         const twitterDMUrl = `https://twitter.com/intent/follow?screen_name=${twitterUsername}`;
 
         window.open(twitterDMUrl, "_blank");
     },
 
-    verifyPFP: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
-        const didhe = await backendActor.getUserPicture(principalId, true) as Boolean;
-        if (didhe) {
+    verifyPFP: async () => {
+        let didhe = await useFetchData().fetchUserPFPstatus();
+        if (useGlobalID().userPFPstatus === "verified") {
             alert("Success");
 
             Usergeek.trackEvent("Mission 2: PFP Verified");
 
-            setDecryptedSession(false);
             navigate('/');
         } else {
-            const [showModal, setShowModal] = useState(true);
-
-            const handleClose = () => setShowModal(false);
-
-            return (
-                <>
-                    <Modal show={showModal} onHide={handleClose}>
-                        <Modal.Header closeButton>
-                            <Modal.Title>Not verified yet!</Modal.Title>
-                        </Modal.Header>
-                        <Modal.Body>
-                            If you already did set the Profile Picture, you will be verified soon.
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button variant="secondary" onClick={handleClose}>
-                                Close
-                            </Button>
-                        </Modal.Footer>
-                    </Modal>
-                </>
-            );
+            if (useGlobalID().userPFPstatus === "loading") {
+                alert("Loading");
+            }
         }
     },
-    verifyPFPTW: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
+    verifyPFPTW: async () => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-pfp",
@@ -141,11 +125,10 @@ const MissionFunctionsComponent = {
                 const { result } = event.data as UserData3;
 
                 if (result) {
-                  
+
                     Usergeek.trackEvent("Mission 3: PFP Verified (Twitter)");
 
                     popup?.close();
-                    setDecryptedSession(false);
                     navigate('/');
                 } else {
                     const [showModal, setShowModal] = useState(true);
@@ -176,7 +159,7 @@ const MissionFunctionsComponent = {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
-    vfTweet: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
+    vfTweet: async () => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-vft",
@@ -203,7 +186,6 @@ const MissionFunctionsComponent = {
                     Usergeek.trackEvent("Mission 4: PFP Verified (Twitter)");
 
                     popup?.close();
-                    setDecryptedSession(false);
                     navigate('/');
                 } else {
                     const [showModal, setShowModal] = useState(true);
@@ -235,7 +217,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verRT: async (principalId: Principal | null, backendActor: any, missions: SerializedMission[], navigate: (path: string) => void, setDecryptedSession: (session: any) => void) => {
+    verRT: async () => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-trt",
@@ -261,7 +243,6 @@ const MissionFunctionsComponent = {
 
                     Usergeek.trackEvent("Mission 5: PFP Verified (Twitter)");
                     popup?.close();
-                    setDecryptedSession(false);
                     navigate('/');
                 } else {
                     const [showModal, setShowModal] = useState(true);

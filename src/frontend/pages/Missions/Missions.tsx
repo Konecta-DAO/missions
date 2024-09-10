@@ -1,137 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { convertSecondsToHMS, formatTimeRemaining, isMissionAvailable } from '../../../components/Utilities';
+import { formatTimeRemaining } from '../../../components/Utilities.tsx';
 import styles from './Missions.module.scss';
-import OpenChat from '../../../components/OpenChatComponent';
-import { useEncryption } from '../../../components/EncryptionProvider';
-import useIsMobile from '../../hooks/useIsMobile';
+import OpenChat from '../../../components/OpenChatComponent.tsx';
+import useIsMobile from '../../../hooks/useIsMobile.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
 import TimeCapsule from '../../../../public/assets/Time Capsule.svg';
-import { getGradientStartColor, getGradientEndColor } from '../../../utils/colorUtils';
-import { Principal } from '@dfinity/principal';
-import { Actor, HttpAgent } from "@dfinity/agent";
-import useLoadingProgress from '../../../utils/useLoadingProgress';
-import LoadingOverlay from '../../../components/LoadingOverlay';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId, backend } from '../../../declarations/backend';
-import { SerializedMission, SerializedProgress, SerializedUser } from '../../../declarations/backend/backend.did';
-import MissionModal from './MissionModal';
-import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton';
-import HelpButton from '../../components/HelpButton/HelpButton';
-import HistoryButton from '../../components/HistoryButton/HistoryButton';
-import HistoryModal from './HistoryModal';
-
+import { getGradientStartColor, getGradientEndColor } from '../../../utils/colorUtils.ts';
+import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
+import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
+import MissionModal from './MissionModal.tsx';
+import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton.tsx';
+import HelpButton from '../../components/HelpButton/HelpButton.tsx';
+import HistoryButton from '../../components/HistoryButton/HistoryButton.tsx';
+import HistoryModal from './HistoryModal.tsx';
+import { useFetchData } from '../../../hooks/fetchData.tsx';
+import { useGlobalID } from '../../../hooks/globalID.tsx';
 
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
 const Missions: React.FC = () => {
     const isMobile = useIsMobile();
     const navigate = useNavigate();
-    const { decryptSession } = useEncryption();
-    const [principalId, setPrincipalId] = useState<Principal | null>(null);
-    const [timerText, setTimerText] = useState<string>('00:00:00');
-    const [missions, setMissions] = useState<SerializedMission[]>([]);
-    const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgress]> | null>(null);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const { missionId } = useParams();
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [hovering, setHovering] = useState<boolean>(false);
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
-    const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<SerializedUser[] | null>(null);
-    const [twitterhandle, setTwitterHandle] = useState<string | null>(null);
-    const [decryptedSession, setDecryptedSession] = useState<boolean>(false);
-    const [backendActor, setBackendActor] = useState<Actor | null>(null);
-
+    const [initialized, setInitialized] = useState(false);
 
     useEffect(() => {
-        if (!decryptedSession) {
-            const session = decryptSession();
-            if (session?.identity) {
-                const userPrincipal = session.identity.getPrincipal();
-                console.log('User principal:', userPrincipal.toText());
-                setPrincipalId(userPrincipal);
-                const agent = new HttpAgent({ identity: session.identity });
-
-                const backendActor = Actor.createActor(backend_idlFactory, {
-                    agent,
-                    canisterId: backend_canisterId,
-                });
-
-                setBackendActor(backendActor);
-
-                const fetchData = async () => {
-                    try {
-                        // Fetch twitterHandle
-                        const user = await backendActor.getUser(userPrincipal) as SerializedUser[];
-
-                        setUser(user);
-
-                        if (user.length > 0) {
-                            const twitterHandle = user[0]?.twitterhandle?.[0] || '';
-                            setTwitterHandle(twitterHandle);
-                        }
-                        // Fetch total seconds for user
-                        const totalSecondsResult = await backendActor.getTotalSecondsForUser(userPrincipal);
-                        const totalSeconds = totalSecondsResult ? Number((totalSecondsResult as number[])[0]) : 0;
-                        setTimerText(convertSecondsToHMS(totalSeconds));
-
-                        // Fetch all missions
-                        const missionsData = await backendActor.getAllMissions();
-                        if (Array.isArray(missionsData)) {
-                            setMissions(missionsData);
-                        } else {
-                            console.error("Error fetching missions: Invalid data format");
-                        }
-
-                        // Fetch user progress
-                        backendActor.getUserProgress(userPrincipal)
-                            .then((progressData) => {
-
-                                if (Array.isArray(progressData)) {
-                                    // Handle nested arrays within each progressData entry
-                                    const validUserProgress: Array<[bigint, SerializedProgress]> = progressData.flatMap((entry) => {
-                                        // Entry is expected to be a nested array: [ [missionId, progress], [missionId, progress] ]
-                                        if (Array.isArray(entry)) {
-                                            return entry.map((innerEntry) => {
-                                                if (Array.isArray(innerEntry) && innerEntry.length === 2) {
-                                                    const missionId = innerEntry[0];  // Extract missionId
-                                                    const progress = innerEntry[1];   // Extract progress
-
-                                                    if (typeof missionId === 'bigint' && typeof progress === 'object') {
-                                                        return [missionId, progress];
-                                                    }
-                                                }
-                                                return null;
-                                            });
-                                        }
-                                    }).filter((item): item is [bigint, SerializedProgress] => item !== null); // Filter out invalid entries
-
-                                    setUserProgress(validUserProgress);
-                                } else {
-                                    setUserProgress([]); // Set empty array if no progress is returned
-                                }
-                            })
-                            .catch(() => {
-                                setUserProgress([]); // Handle error by setting empty array
-                                console.error("Error fetching user progress.");
-                            });
-
-
-                    } finally {
-                        setLoading(false); // Set loading to false once all data is fetched
-                        setDecryptedSession(true);
-                    }
-                };
-
-                fetchData();
-            } else {
+        if (!initialized) {
+            useFetchData().fetchall();
+            if (useGlobalID().principalId === null) {
                 navigate('/');
             }
+            setInitialized(true);
         }
-    }, [decryptSession, navigate, decryptedSession]);
+    }, [initialized]);
 
-    // Handle mouse enter and leave events for the tooltip
     const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, content: string | null) => {
         if (content) {
             setHovering(true);
@@ -181,7 +89,7 @@ const Missions: React.FC = () => {
         navigate('/Missions');
     };
 
-    if (!loadingComplete || loading) {
+    if (!loadingComplete) {
         return <LoadingOverlay loadingPercentage={loadingPercentage} />;
     }
 
@@ -201,13 +109,7 @@ const Missions: React.FC = () => {
             </div>
 
             {showHistoryModal && (
-                <HistoryModal
-                    principalId={principalId?.toString() || 'Unknown'}
-                    missions={missions}
-                    userProgress={userProgress}
-                    closeModal={toggleHistoryModal}
-                    twitterhandle={twitterhandle || ''}
-                />
+                <HistoryModal closeModal={closeModal} />
             )}
 
             <div className={styles.MissionsContainer}>
@@ -220,7 +122,7 @@ const Missions: React.FC = () => {
                     <>
                         <div className={styles.TimeCapsuleWrapper}>
                             <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
-                            <div className={styles.TimerText}>{timerText}</div>
+                            <div className={styles.TimerText}>{useGlobalID().timerText}</div>
                         </div>
                         <div className={styles.OpenChatWrapper}>
                             <OpenChat />
@@ -234,11 +136,11 @@ const Missions: React.FC = () => {
 
                 <div className={styles.MissionGrid}>
 
-                    {missions.sort((a, b) => Number(a.id) - Number(b.id)).map((mission) => {
+                    {useGlobalID()?.missions?.sort((a, b) => Number(a.id) - Number(b.id)).map((mission) => {
                         const missionId = BigInt(mission.id);
 
                         // Check if the current mission has been completed
-                        const missionCompleted = userProgress?.some(([id]) => {
+                        const missionCompleted = useGlobalID().userProgress?.some(([id]) => {
                             console.log('Checking userProgress for mission completion:', BigInt(id), '==', missionId);
                             return BigInt(id) === missionId;
                         }) ?? false;
@@ -252,11 +154,11 @@ const Missions: React.FC = () => {
                         if (requiredMissionId !== undefined) {
                             console.log('Required mission ID:', requiredMissionId);
                             const requiredMissionBigInt = BigInt(requiredMissionId); // Convert to BigInt if defined
-                            const requiredMission = missions.find(m => BigInt(m.id) === requiredMissionBigInt); // Find required mission
+                            const requiredMission = useGlobalID().missions?.find(m => BigInt(m.id) === requiredMissionBigInt);// Find required mission
                             requiredMissionTitle = requiredMission?.title ?? ''; // Get the title of the required mission
 
                             // Check if the required mission is completed
-                            requiredMissionCompleted = userProgress?.some(([id]) => {
+                            requiredMissionCompleted = useGlobalID().userProgress?.some(([id]) => {
                                 return BigInt(id) === requiredMissionBigInt;
                             }) ?? false;
                         }
@@ -281,7 +183,7 @@ const Missions: React.FC = () => {
                         const missionClass = missionCompleted
                             ? styles.CompletedMission
                             : (!requiredMissionCompleted ? styles.IncompleteMission : styles.AvailableMission);
-                        console.log('Missions to display:', missions);
+                        console.log('Missions to display:', useGlobalID().missions);
                         return (
                             <div
                                 key={mission.id.toString()}
@@ -397,14 +299,9 @@ const Missions: React.FC = () => {
                     {/* Conditionally render MissionModal */}
                     {missionId && (
                         <MissionModal
-                            missions={missions}
                             selectedMissionId={BigInt(missionId)}
-                            userProgress={userProgress}
                             closeModal={closeModal}
                             loading={loadingComplete}
-                            principalId={principalId}
-                            backendActor={backendActor}
-                            setDecryptedSession={setDecryptedSession}
                         />
                     )}
                 </div>

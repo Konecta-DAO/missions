@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.scss';
 import { Principal } from '@dfinity/principal';
-import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend';
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend/index.js';
 import { Actor, HttpAgent } from "@dfinity/agent";
 
 interface AdminPanelProps {
-    principalId: Principal;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ principalId }) => {
+const AdminPanel: React.FC<AdminPanelProps> = () => {
     const [adminList, setAdminList] = useState<string[]>([]);
     const [newAdminId, setNewAdminId] = useState<string>('');
 

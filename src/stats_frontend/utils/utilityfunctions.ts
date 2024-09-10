@@ -1,4 +1,4 @@
-import { SerializedUser, SerializedMission } from '../types';
+import { SerializedUser, SerializedMission } from '../types.ts';
 import { ActorSubclass } from "@dfinity/agent";
 
 // Function to format seconds into hours, minutes, and seconds

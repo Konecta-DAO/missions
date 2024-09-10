@@ -1,4 +1,4 @@
-/* Container styles */
+/* Container styles /
 .svg-container {
     position: absolute;
     top: 0;
@@ -10,7 +10,7 @@
     mix-blend-mode: overlay;
 }
 
-/* General SVG styling */
+/ General SVG styling /
 .svg-with-animation {
     position: absolute;
     top: 0;
@@ -33,7 +33,7 @@
     min-height: 100%;
 }
 
-/* SVG shapes styling */
+/ SVG shapes styling /
 .st1 {
     fill: #A88CED;
     stroke: #FFFFFF;
@@ -46,7 +46,7 @@
     stroke: transparent;
 }
 
-/* Moving light gradient */
+/ Moving light gradient */
 .moving-light {
     fill: url(#lightGradient);
 }

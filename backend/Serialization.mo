@@ -12,6 +12,7 @@ module Serialization {
       twitterid = user.twitterid;
       twitterhandle = user.twitterhandle;
       creationTime = user.creationTime;
+      pfpProgress = user.pfpProgress;
     };
   };
 
@@ -21,6 +22,7 @@ module Serialization {
       var twitterid = serializedUser.twitterid;
       var twitterhandle = serializedUser.twitterhandle;
       creationTime = serializedUser.creationTime;
+      var pfpProgress = serializedUser.pfpProgress;
     };
   };
 
