@@ -1,23 +1,27 @@
 import React, { useEffect } from 'react';
 import styles from './MissionModal.module.scss';
 import { useNavigate } from 'react-router-dom';
-import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../utils/colorUtils.ts';
-import usePTWData from '../../../hooks/usePTWData.tsx';
-import useTWtoRT from '../../../hooks/useTWtoRT.tsx';
-import MissionFunctionsComponent from './MissionFunctionsComponent.tsx';
-
+import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
+import usePTWData from '../../../../../hooks/usePTWData.tsx';
+import useTWtoRT from '../../../../../hooks/useTWtoRT.tsx';
+import MissionFunctionsComponent from '../MissionFunctionsComponent.tsx';
+import { FetchData } from '../../../../../hooks/fetchData.tsx';
 interface MissionModalProps {
     closeModal: () => void;
     selectedMissionId: bigint;
     globalID: any;
 }
 
-const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
+const BASE_URL = process.env.CANISTER_ID_BACKEND;
 
 const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, globalID }) => {
-    const missions = globalID.missions;
-    const mission = missions ? missions.find((m: { id: bigint; }) => m.id === selectedMissionId) : undefined;
     const navigate = useNavigate();
+    const fetchData = FetchData();
+    const missions = globalID.missions;
+
+    const mission = missions ? missions.find((m: { id: bigint; }) => m.id === selectedMissionId) : undefined;
+
+
 
     useEffect(() => {
         if (!mission) {
@@ -28,6 +32,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     if (!mission) return null;
 
     const missionId = BigInt(mission.id);
+
     const missionCompleted = globalID.userProgress?.some(([idTuple]: any) => {
         const id = Array.isArray(idTuple) ? idTuple[0] : idTuple;
         return BigInt(id) === missionId;
@@ -70,7 +75,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
         const executeFunction = (functionName: string | undefined) => {
             if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
-                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID);
+                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID, navigate, fetchData);
             } else {
                 console.error(`Function ${functionName} not found`);
             }

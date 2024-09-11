@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import styles from './Missions.module.scss';
-import { checkMissionCompletion, checkRequiredMissionCompletion, checkRecursiveMission } from './missionUtils.ts';
-import { getGradientEndColor, getGradientStartColor } from '../../../utils/colorUtils.ts';
+import styles from '../../Missions.module.scss';
+import { checkMissionCompletion, checkRequiredMissionCompletion, checkRecursiveMission } from '../../missionUtils.ts';
+import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 
 const Mission: React.FC<{
     mission: any,
@@ -11,7 +11,7 @@ const Mission: React.FC<{
     handleMouseLeave: () => void,
 
 }> = ({ mission, globalID, handleCardClick, handleMouseMove, handleMouseLeave }) => {
-    const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
+    const BASE_URL = process.env.CANISTER_ID_BACKEND;
     const missionId = BigInt(mission.id);
 
     // Check if the current mission is completed
@@ -33,7 +33,6 @@ const Mission: React.FC<{
 
     useEffect(() => {
         if (window.location.pathname === `/Missions/${mission.id}` && (missionCompleted || isAvailableMission)) {
-            console.log("wotefok");
             handleCardClick(mission.id.toString());
         }
     }, [mission.id]);

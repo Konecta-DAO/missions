@@ -6,15 +6,15 @@ import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
 import TimeCapsule from '../../../../public/assets/Time Capsule.svg';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
-import MissionModal from './MissionModal.tsx';
+import MissionModal from './Components/MissionModal/MissionModal.tsx';
 import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton.tsx';
 import HelpButton from '../../components/HelpButton/HelpButton.tsx';
 import HistoryButton from '../../components/HistoryButton/HistoryButton.tsx';
-import HistoryModal from './HistoryModal.tsx';
+import HistoryModal from './Components/HistoryModal/HistoryModal.tsx';
 import { FetchData } from '../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
-import { Actor } from '@dfinity/agent';
+import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
 import useIsMobile from '../../../hooks/useIsMobile.tsx';
 import MissionGridComponent from './MissionGrid.tsx';
@@ -23,32 +23,36 @@ const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const isMobile = useIsMobile();
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
-    const { connectedAccount, agent } = useIdentityKit();
+    const { user, identity } = useIdentityKit();
     const navigate = useNavigate();
     const fetchData = FetchData();
     const [isIdentityChecked, setIsIdentityChecked] = useState(false);
     const [dataloaded, setDataloaded] = useState(false);
-    const { missionId } = useParams()
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
+    const [agent, setAgent] = useState<HttpAgent | null>(null);
 
     useEffect(() => {
         // Wait until the identity check is complete
-        if (connectedAccount !== undefined && agent !== null) {
+        if (user?.principal !== undefined && agent !== null) {
             fetchUserData();
             setIsIdentityChecked(true); // Identity is valid and checked
-        } else if (isIdentityChecked && !connectedAccount && !agent) {
+        } else if (isIdentityChecked && !user?.principal && !agent) {
             navigate('/');
         }
-    }, [connectedAccount, agent, isIdentityChecked]);
+    }, [user?.principal, agent, isIdentityChecked]);
 
     // useEffect to simulate waiting for IdentityKit to initialize
     useEffect(() => {
-        if (connectedAccount === undefined && agent === null) {
-            setIsIdentityChecked(false);
-        } else {
-            setIsIdentityChecked(true);
-        }
-    }, [connectedAccount, agent]);
+        const checkIdentity = async () => {
+            if (user?.principal === undefined) {
+                setIsIdentityChecked(false);
+            } else {
+                setIsIdentityChecked(true);
+                setAgent(await HttpAgent.create({ identity }));
+            }
+        };
+        checkIdentity();
+    }, [user?.principal]);
 
     const fetchUserData = async () => {
         if (fetchData) {
@@ -65,7 +69,6 @@ const Missions: React.FC = () => {
 
     // Click handler for mission cards
     const handleCardClick = (missionId: string) => {
-        console.log('Mission clicked:', missionId);
         navigate(`/Missions/${missionId}`);
     };
 

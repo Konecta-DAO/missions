@@ -3,7 +3,10 @@ import { Usergeek } from 'usergeek-ic-js';
 import { useGlobalID } from '../hooks/globalID.tsx';
 interface UsergeekProviderProps {
     children: React.ReactNode;
+
 }
+const usergeekApiKey = process.env.REACT_APP_USERGEEK_API_KEY ?? '';
+
 
 const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
     const globalID = useGlobalID();
@@ -11,7 +14,7 @@ const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
     useEffect(() => {
         if (globalID.principalId != null) {
             Usergeek.init({
-                apiKey: "01430201F8439A7B36CA9DD48F411A95"
+                apiKey: usergeekApiKey,
             });
             Usergeek.trackSession();
         } else {

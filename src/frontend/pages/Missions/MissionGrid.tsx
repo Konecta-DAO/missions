@@ -1,8 +1,8 @@
 import styles from './Missions.module.scss';
 import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did.js';
-import Mission from './Mission.tsx';
+import Mission from './Components/Mission/Mission.tsx';
 import { useState } from 'react';
-import MissionModal from './MissionModal.tsx';
+import MissionModal from './Components/MissionModal/MissionModal.tsx';
 import { useNavigate } from 'react-router-dom';
 
 interface MissionGridProps {
@@ -51,6 +51,7 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ globalID, handleCard
                     handleMouseMove={handleMouseMove}
                     handleMouseLeave={handleMouseLeave}
                 />
+
             ))}
             {tooltipContent && tooltipPosition && (
                 <div className={styles.Tooltip} style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
@@ -64,6 +65,7 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ globalID, handleCard
                     closeModal={closeModal}
                     globalID={globalID}
                 />
+
             )}
         </div>
     );

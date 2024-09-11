@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import styles from './HistoryModal.module.scss';
-import { convertSecondsToHMS, formatDate } from '../../../components/Utilities.tsx';
-import AchievementDesktop from '../../../../public/assets/Achievements_Desktop.png';;
-import { getGradientEndColor, getGradientStartColor } from '../../../utils/colorUtils.ts';
-import { useGlobalID } from '../../../hooks/globalID.tsx';
+import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
+import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';;
+import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 
 interface HistoryModalProps {
     closeModal: () => void;

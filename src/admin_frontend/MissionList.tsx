@@ -21,7 +21,7 @@ const MissionList: React.FC<MissionListProps> = ({ missions, onUpdateMission, on
     setSelectedMission(null);
   };
   // Base URL for the image and icon resources
-  const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
+  const BASE_URL = process.env.CANISTER_ID_BACKEND;
 
   return (
     <div className={styles.MissionsList}>
@@ -51,7 +51,7 @@ const MissionList: React.FC<MissionListProps> = ({ missions, onUpdateMission, on
 
           {mission.iconUrl && (
             <img
-            src={`${BASE_URL}${mission.iconUrl}`}
+              src={`${BASE_URL}${mission.iconUrl}`}
               alt={mission.title}
               className={styles.IconImage}
             />

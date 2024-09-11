@@ -19,7 +19,7 @@ import { ConnectWallet } from "@nfid/identitykit/react"
 
 function App() {
   // const [isAdmin, setIsAdmin] = useState<boolean | null>(false);
-  const { connectedAccount, agent } = useIdentityKit(); // Get agent from IdentityKit
+  //const { connectedAccount, agent } = useIdentityKit(); // Get agent from IdentityKit
   // const globalID = useGlobalID();
   // const isMobile = useIsMobile();
   // const navigate = useNavigate();
@@ -33,7 +33,6 @@ function App() {
   //       try {
   //         const a = await agent.getPrincipal();
   //         globalID.setPrincipal(a);  // Use globalID within the effect
-  //         console.log(a);
   //       } catch (error) {
   //         console.error('Failed to get principal', error);
   //       }
@@ -90,12 +89,12 @@ function App() {
 
         {/* Show the Authenticate button if isAdmin is null (initial state) or false */}
         {/* {(isAdmin === null || isAdmin === false) && ( */}
-          <>
-            {/* <div ref={connectWalletRef}> */}
-              {/* <ConnectWallet /> */}
-            {/* </div> */}
-            {/* <button onClick={handleConnect}>Connect Wallet</button> */}
-          </>
+        <>
+          {/* <div ref={connectWalletRef}> */}
+          {/* <ConnectWallet /> */}
+          {/* </div> */}
+          {/* <button onClick={handleConnect}>Connect Wallet</button> */}
+        </>
         {/* )} */}
       </div>
     </div>

@@ -3,7 +3,6 @@ import { SerializedMission, SerializedProgress, SerializedUser } from '../declar
 import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
-import { useState } from 'react'; // Add this line to import useState
 
 export const FetchData = () => {
     const globalID = useGlobalID();

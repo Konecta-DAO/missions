@@ -1,11 +1,8 @@
 import { Actor } from "@dfinity/agent";
-import { idlFactory, canisterId } from "../../../declarations/backend/index.js";
-import { useNavigate } from "react-router-dom";
-import { FetchData } from "../../../hooks/fetchData.tsx";
+import { idlFactory, canisterId } from "../../../../declarations/backend/index.js";
 
 const MissionFunctionsComponent = {
-    followKonecta: async (globalID: any) => {
-        const navigate = useNavigate();
+    followKonecta: async (globalID: any, navigate: any, fetchData: any) => {
         const principal = globalID.principalId;
 
         try {
@@ -28,14 +25,11 @@ const MissionFunctionsComponent = {
 
                 const { accessToken, refreshToken } = event.data;
 
-                // Track user progress with Usergeek
-                console.log("User progress tracked.");
-
                 // Store tokens in localStorage
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
 
-                // Close popup and navigate back
+                // Close popup and navigate
                 popup?.close();
                 navigate("/");
             });
@@ -44,12 +38,11 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verifyPFP: async (globalID: any) => {
-        const fetchData = FetchData();
-        const navigate = useNavigate();
+    verifyPFP: async (globalID: any, navigate: any, fetchData: any) => {
 
         if (!fetchData) {
-            throw new Error("FetchData is not defined");
+            console.error("FetchData is not defined");
+            return;
         }
 
         const actor = Actor.createActor(idlFactory, {
@@ -63,8 +56,6 @@ const MissionFunctionsComponent = {
 
             if (pfpStatus === "verified") {
                 console.log("PFP successfully verified.");
-                // Track event with Usergeek
-                console.log("Mission 2: PFP Verified");
                 navigate("/");
             } else if (globalID.userPFPstatus === "loading") {
                 alert("PFP status is loading. Please wait.");
@@ -72,8 +63,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verifyPFPTW: async (globalID: any) => {
-        const navigate = useNavigate();
+    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any) => {
 
         try {
             const response = await fetch(
@@ -107,9 +97,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-
-    vfTweet: async (globalID: any) => {
-        const navigate = useNavigate();
+    vfTweet: async (globalID: any, navigate: any, fetchData: any) => {
 
         try {
             const response = await fetch(
@@ -142,8 +130,8 @@ const MissionFunctionsComponent = {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
-    verRT: async (globalID: any) => {
-        const navigate = useNavigate();
+
+    verRT: async (globalID: any, navigate: any, fetchData: any) => {
 
         try {
             const response = await fetch(
