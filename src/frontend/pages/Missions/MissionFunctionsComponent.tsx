@@ -1,128 +1,80 @@
-import { SerializedProgress, SerializedMissionRecord, idlFactory } from "../../../declarations/backend/backend.did.js";
-import { randomBetween, getCurrentTimestampInNanoSeconds } from "../../../components/Utilities.tsx";
-import { Usergeek } from "usergeek-ic-js";
-import { Button, Modal } from "react-bootstrap";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useGlobalID } from "../../../hooks/globalID.tsx";
-import { missionAssistant } from "../../../hooks/missionAssistant.tsx";
-import { FetchData } from "../../../hooks/fetchData.tsx";
 import { Actor } from "@dfinity/agent";
-import { useIdentityKit } from "@nfid/identitykit/react";
-import { canisterId } from "../../../declarations/backend/index.js";
-
-const navigate = useNavigate();
-const globalID = useGlobalID();
-const fetchData = FetchData();
-const { agent } = useIdentityKit();
-interface UserData {
-    userId: string;
-    userHandle: string;
-    accessToken: string;
-    refreshToken: string;
-}
-
-interface UserData3 {
-
-    result: boolean;
-}
+import { idlFactory, canisterId } from "../../../declarations/backend/index.js";
+import { useNavigate } from "react-router-dom";
+import { FetchData } from "../../../hooks/fetchData.tsx";
 
 const MissionFunctionsComponent = {
-
-    followKonecta: async () => {
+    followKonecta: async (globalID: any) => {
+        const navigate = useNavigate();
         const principal = globalID.principalId;
-        try {
-            const response = await fetch(
-                "https://do.konecta.one/requestTwitterAuth-v2/",
-                {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        principal,
-                    }),
 
-                }
-            );
+        try {
+            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2/", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ principal }),
+            });
 
             const data = await response.json();
             const authURL = data.authURL;
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", async (event) => {
-                if (event.origin !== "https://do.konecta.one") {
-                    return;
-                }
+            window.addEventListener("message", (event) => {
+                if (event.origin !== "https://do.konecta.one") return;
 
-                const { userId, userHandle, accessToken, refreshToken } = event.data as UserData;
+                const { accessToken, refreshToken } = event.data;
 
-                //useMissionAssistant().addTwitterInfo(BigInt(userId), userHandle);
+                // Track user progress with Usergeek
+                console.log("User progress tracked.");
 
-                //const missionRecord: SerializedMissionRecord = {
-                //  pointsEarned: randomBetween(Number(globalID.missions[1].mintime), Number(globalID.missions[1].maxtime)),
-                //timestamp: getCurrentTimestampInNanoSeconds(),
-                //tweetId: [], // Empty tweet ID
-                //};
-
-                //const serializedProgress: SerializedProgress = {
-                //  usedCodes: [],
-                //completionHistory: [missionRecord],
-                //};
-
-                Usergeek.trackEvent("Mission 1: Konecta Followed");
-                //await backendActor.updateUserProgress(principalId, 1n, serializedProgress);
-
+                // Store tokens in localStorage
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
 
+                // Close popup and navigate back
                 popup?.close();
-                navigate('/');
+                navigate("/");
             });
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
-    // sendKamiDM: () => {
-    //     missionAssistant().setUserPFPLoading();
-    //     const twitterUsername = "kami_kta";
-    //     const twitterDMUrl = `https://twitter.com/intent/follow?screen_name=${twitterUsername}`;
-
-    //     window.open(twitterDMUrl, "_blank");
-    // },
-
-    verifyPFP: async () => {
+    verifyPFP: async (globalID: any) => {
         const fetchData = FetchData();
+        const navigate = useNavigate();
+
         if (!fetchData) {
-            throw new Error("Mission Assistant is undefined");
+            throw new Error("FetchData is not defined");
         }
 
-
         const actor = Actor.createActor(idlFactory, {
-            agent: agent!,
+            agent: globalID.agent,
             canisterId,
-        })
-        if (agent !== null) {
-            let a = await agent.getPrincipal();
-            let didhe = await fetchData.fetchUserPFPstatus(actor, a);
+        });
 
-            if (didhe === "verified") {
-                alert("Success");
+        if (globalID.agent !== null) {
+            const principal = await globalID.agent.getPrincipal();
+            const pfpStatus = await fetchData.fetchUserPFPstatus(actor, principal);
 
-                Usergeek.trackEvent("Mission 2: PFP Verified");
-
-                navigate('/');
-            } else {
-                if (globalID.userPFPstatus === "loading") {
-                    alert("Loading");
-                }
+            if (pfpStatus === "verified") {
+                console.log("PFP successfully verified.");
+                // Track event with Usergeek
+                console.log("Mission 2: PFP Verified");
+                navigate("/");
+            } else if (globalID.userPFPstatus === "loading") {
+                alert("PFP status is loading. Please wait.");
             }
         }
     },
-    verifyPFPTW: async () => {
+
+    verifyPFPTW: async (globalID: any) => {
+        const navigate = useNavigate();
+
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-pfp",
@@ -137,49 +89,28 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", async (event) => {
-                if (event.origin !== "https://do.konecta.one") {
-                    return;
-                }
+            window.addEventListener("message", (event) => {
+                if (event.origin !== "https://do.konecta.one") return;
 
-                const { result } = event.data as UserData3;
+                const { result } = event.data;
 
                 if (result) {
-
-                    Usergeek.trackEvent("Mission 3: PFP Verified (Twitter)");
-
+                    console.log("Mission 3: PFP Verified (Twitter)");
                     popup?.close();
-                    navigate('/');
+                    navigate("/");
                 } else {
-                    const [showModal, setShowModal] = useState(true);
-
-                    const handleClose = () => setShowModal(false);
-
-                    return (
-                        <>
-                            <Modal show={showModal} onHide={handleClose}>
-                                <Modal.Header closeButton>
-                                    <Modal.Title>No tweet!</Modal.Title>
-                                </Modal.Header>
-                                <Modal.Body>
-                                    You have not tweeted the message yet.
-                                </Modal.Body>
-                                <Modal.Footer>
-                                    <Button variant="secondary" onClick={handleClose}>
-                                        Close
-                                    </Button>
-                                </Modal.Footer>
-                            </Modal>
-                        </>
-                    );
+                    alert("You have not tweeted the message yet.");
                 }
-
             });
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
-    vfTweet: async () => {
+
+
+    vfTweet: async (globalID: any) => {
+        const navigate = useNavigate();
+
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-vft",
@@ -194,50 +125,26 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", async (event) => {
-                if (event.origin !== "https://do.konecta.one") {
-                    return;
-                }
+            window.addEventListener("message", (event) => {
+                if (event.origin !== "https://do.konecta.one") return;
 
-                const { result } = event.data as UserData3;
+                const { result } = event.data;
 
                 if (result) {
-
-                    Usergeek.trackEvent("Mission 4: PFP Verified (Twitter)");
-
+                    console.log("Mission 4: Tweet Verified");
                     popup?.close();
-                    navigate('/');
+                    navigate("/");
                 } else {
-                    const [showModal, setShowModal] = useState(true);
-
-                    const handleClose = () => setShowModal(false);
-
-                    return (
-                        <>
-                            <Modal show={showModal} onHide={handleClose}>
-                                <Modal.Header closeButton>
-                                    <Modal.Title>No tweet!</Modal.Title>
-                                </Modal.Header>
-                                <Modal.Body>
-                                    You have not tweeted the message yet.
-                                </Modal.Body>
-                                <Modal.Footer>
-                                    <Button variant="secondary" onClick={handleClose}>
-                                        Close
-                                    </Button>
-                                </Modal.Footer>
-                            </Modal>
-                        </>
-                    );
+                    alert("You have not tweeted the message yet.");
                 }
-
             });
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
+    verRT: async (globalID: any) => {
+        const navigate = useNavigate();
 
-    verRT: async () => {
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-trt",
@@ -252,42 +159,18 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", async (event) => {
-                if (event.origin !== "https://do.konecta.one") {
-                    return;
-                }
+            window.addEventListener("message", (event) => {
+                if (event.origin !== "https://do.konecta.one") return;
 
-                const { result } = event.data as UserData3;
+                const { result } = event.data;
 
                 if (result) {
-
-                    Usergeek.trackEvent("Mission 5: PFP Verified (Twitter)");
+                    console.log("Mission 5: Retweet Verified");
                     popup?.close();
-                    navigate('/');
+                    navigate("/");
                 } else {
-                    const [showModal, setShowModal] = useState(true);
-
-                    const handleClose = () => setShowModal(false);
-
-                    return (
-                        <>
-                            <Modal show={showModal} onHide={handleClose}>
-                                <Modal.Header closeButton>
-                                    <Modal.Title>No tweet!</Modal.Title>
-                                </Modal.Header>
-                                <Modal.Body>
-                                    You have not tweeted the message yet.
-                                </Modal.Body>
-                                <Modal.Footer>
-                                    <Button variant="secondary" onClick={handleClose}>
-                                        Close
-                                    </Button>
-                                </Modal.Footer>
-                            </Modal>
-                        </>
-                    );
+                    alert("You have not retweeted the message yet.");
                 }
-
             });
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);

@@ -15,9 +15,8 @@ import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
-import { missionAssistant } from '../../../hooks/missionAssistant.tsx';
 import { Actor } from '@dfinity/agent';
-import { idlFactory } from '../../../declarations/backend/backend.did.js';
+import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
 import { Principal } from '@dfinity/principal';
 
@@ -39,12 +38,15 @@ const Home: React.FC = () => {
       const a = await agent.getPrincipal();
       globalID.setPrincipal(a);
 
-      const b = await actor.getUser(a) as Principal | [];
+      const b = await actor.getUser(a) as SerializedUser[];
       if (Array.isArray(b) && b.length !== 0) {
-        console.log("eaeaea", b);
+        globalID.setPrincipal(a);
+        globalID.setUser(b);
         navigate('/Missions');
       } else {
-        await actor.addUser(a);
+        const b = await actor.addUser(a) as SerializedUser[];
+        globalID.setPrincipal(a);
+        globalID.setUser(b);
         navigate('/Missions');
       }
     }

@@ -566,7 +566,7 @@ actor class Backend() {
 
   // Register an user by Principal
 
-  public shared (msg) func addUser(userId : Principal) : async () {
+  public shared (msg) func addUser(userId : Principal) : async (?Types.SerializedUser) {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       // Initialize new user's mission progress
       var newUserMissions : Types.UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
@@ -605,7 +605,9 @@ actor class Backend() {
         var pfpProgress = "false";
       };
       Vector.add<Types.User>(users, newUser);
+      return ?Serialization.serializeUser(newUser);
     };
+    return null;
   };
 
   // Function to get all registered users

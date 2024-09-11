@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { formatTimeRemaining } from '../../../components/Utilities.tsx';
 import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
 import TimeCapsule from '../../../../public/assets/Time Capsule.svg';
-import { getGradientStartColor, getGradientEndColor } from '../../../utils/colorUtils.ts';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import MissionModal from './MissionModal.tsx';
@@ -18,91 +16,67 @@ import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
-
-const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
+import useIsMobile from '../../../hooks/useIsMobile.tsx';
+import MissionGridComponent from './MissionGrid.tsx';
 
 const Missions: React.FC = () => {
+    const globalID = useGlobalID();
+    const isMobile = useIsMobile();
+    const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
     const { connectedAccount, agent } = useIdentityKit();
     const navigate = useNavigate();
     const fetchData = FetchData();
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
-    // const { missionId } = useParams();
-    const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
-    const [tooltipContent, setTooltipContent] = useState<string | null>(null);
-    const [hovering, setHovering] = useState<boolean>(false);
+    const [isIdentityChecked, setIsIdentityChecked] = useState(false);
+    const [dataloaded, setDataloaded] = useState(false);
+    const { missionId } = useParams()
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
 
     useEffect(() => {
-        if (connectedAccount != undefined && agent) {
+        // Wait until the identity check is complete
+        if (connectedAccount !== undefined && agent !== null) {
             fetchUserData();
+            setIsIdentityChecked(true); // Identity is valid and checked
+        } else if (isIdentityChecked && !connectedAccount && !agent) {
+            navigate('/');
+        }
+    }, [connectedAccount, agent, isIdentityChecked]);
+
+    // useEffect to simulate waiting for IdentityKit to initialize
+    useEffect(() => {
+        if (connectedAccount === undefined && agent === null) {
+            setIsIdentityChecked(false);
+        } else {
+            setIsIdentityChecked(true);
         }
     }, [connectedAccount, agent]);
 
     const fetchUserData = async () => {
-        console.log("1");
         if (fetchData) {
-            console.log("2");
             const actor = Actor.createActor(idlFactory, {
                 agent: agent!,
                 canisterId,
             })
-            console.log("3");
             if (agent !== null) {
                 const ae = await agent.getPrincipal();
-                console.log("4");
-                fetchData.fetchall(actor, ae);
+                await fetchData.fetchall(actor, ae, agent, setDataloaded);
             }
         }
     };
 
-
-    const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, content: string | null) => {
-        if (content) {
-            setHovering(true);
-
-            const { clientX, clientY } = e;
-
-            const tooltipWidth = 200;
-            const tooltipHeight = 50;
-            const buffer = 10;
-
-            let top = clientY + 10;
-            let left = clientX + 10;
-
-            // Prevent tooltip from overflowing the right edge of the screen
-            if (left + tooltipWidth > window.innerWidth) {
-                left = window.innerWidth - tooltipWidth - buffer;
-            }
-
-            // Prevent tooltip from overflowing the bottom of the screen
-            if (top + tooltipHeight > window.innerHeight) {
-                top = window.innerHeight - tooltipHeight - buffer;
-            }
-
-            setTooltipPosition({ top, left });
-            setTooltipContent(content);
-        }
+    // Click handler for mission cards
+    const handleCardClick = (missionId: string) => {
+        console.log('Mission clicked:', missionId);
+        navigate(`/Missions/${missionId}`);
     };
-
-    const handleMouseLeave = () => {
-        setHovering(false);
-        setTooltipPosition(null);
-        setTooltipContent(null);
-    };
-
-    const toggleHistoryModal = () => {
-        setShowHistoryModal(!showHistoryModal);
-    };
-
-    // // Click handler for mission cards
-    // const handleCardClick = (missionId: string) => {
-    //     console.log('Mission clicked:', missionId);
-    //     navigate(`/Missions/${missionId}`);
-    // };
 
     // Close modal handler
-    const closeModal = () => {
-        navigate('/Missions');
+
+    const openHistoryModal = () => {
+        setHistoryModalOpen(true);
+    };
+
+    const closeHistoryModal = () => {
+        setHistoryModalOpen(false);
     };
 
     if (!loadingComplete) {
@@ -112,28 +86,58 @@ const Missions: React.FC = () => {
     return (
 
         <>
-            <div className={styles.KonectaLogoWrapper}>
-                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-            </div>
-            <div className={styles.MainDiv}>
-                <div className={styles.CustomKonectaInfoButton}>
-                    <KonectaInfoButton onClick={() => { }} />
-                </div>
-                <div className={styles.CustomHelpButton}>
-                    <HelpButton onClick={() => { }} />
-                </div>
-                <div className={styles.CustomHistoryButton}>
-                    <HistoryButton onClick={toggleHistoryModal} />
-                </div>
-            </div>
+            {!isMobile ? (
+                <>
+                    <div className={styles.KonectaLogoWrapper}>
+                        <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+                    </div>
+                    <div className={styles.MainDiv}>
+                        <div className={styles.CustomKonectaInfoButton}>
+                            <KonectaInfoButton onClick={() => { }} />
+                        </div>
+                        <div className={styles.CustomHelpButton}>
+                            <HelpButton onClick={() => { }} />
+                        </div>
+                        <div className={styles.CustomHistoryButton}>
+                            <HistoryButton onClick={openHistoryModal} />
+                        </div>
+                    </div>
 
-            {/* {showHistoryModal && (
-                <HistoryModal closeModal={closeModal} />
-            )} */}
+                    {isHistoryModalOpen && (
+                        <HistoryModal closeModal={closeHistoryModal} />
+                    )}
 
-            <div className={styles.MissionsContainer}>
+                    <div className={styles.MissionsContainer}>
 
-            </div>
+                    </div>
+                    <div className={styles.TimeCapsuleWrapper}>
+                        <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
+                        <div className={styles.TimerText}>{globalID.timerText}</div>
+                    </div>
+                    <div className={styles.OpenChatWrapper}>
+                        <OpenChat />
+                    </div>
+                    {dataloaded ? (
+                        <MissionGridComponent
+                            globalID={globalID}
+                            handleCardClick={handleCardClick}
+                        />
+                    ) : (
+                        <div>Loading missions...</div>
+                    )}
+                </>
+            ) : (
+                <div style={{ display: 'none' }}>
+                    <div className={styles.TimeCapsuleWrapperMobile}>
+                        <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
+                        <div className={styles.TimerText}>{globalID.timerText}</div>
+                    </div>
+                    <OpenChat />
+
+                </div>
+
+            )}
+
         </>
     );
 };

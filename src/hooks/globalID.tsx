@@ -24,23 +24,11 @@ const GlobalID = createContext<GlobalIDType | undefined>(undefined);
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [principalId, setPrincipal] = useState<Principal | null>(null);
     const [missions, setMissions] = useState<SerializedMission[]>([]);
-    const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgress]> | null>(null);
-    const [user, setUser] = useState<SerializedUser[] | null>(null);
-    const [timerText, setTimerText] = useState<string>('00:00:00');
-    const [twitterhandle, setTwitterHandle] = useState<string | null>(null);
+    const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgress]> | null>([]);
+    const [user, setUser] = useState<SerializedUser[] | null>([]);
+    const [timerText, setTimerText] = useState<string>('LOADING');
+    const [twitterhandle, setTwitterHandle] = useState<string | null>('');
     const [userPFPstatus, setPFPstatus] = useState<string>('');
-
-    console.log('Providing GlobalID context:', {
-        principalId,
-        missions,
-        userProgress,
-        user,
-        timerText,
-        twitterhandle,
-        userPFPstatus,
-    });
-
-
 
     return (
         <GlobalID.Provider

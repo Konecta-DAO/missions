@@ -1,4 +1,3 @@
-import { useGlobalID } from './globalID.tsx';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import { Actor, ActorSubclass } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../declarations/backend/index.js';

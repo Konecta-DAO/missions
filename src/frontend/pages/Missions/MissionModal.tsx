@@ -1,141 +1,85 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styles from './MissionModal.module.scss';
+import { useNavigate } from 'react-router-dom';
 import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../utils/colorUtils.ts';
-import MissionFunctionsComponent from './MissionFunctionsComponent.tsx';
 import usePTWData from '../../../hooks/usePTWData.tsx';
 import useTWtoRT from '../../../hooks/useTWtoRT.tsx';
-import { useGlobalID } from '../../../hooks/globalID.tsx';
+import MissionFunctionsComponent from './MissionFunctionsComponent.tsx';
 
 interface MissionModalProps {
     closeModal: () => void;
     selectedMissionId: bigint;
-    loading: boolean;
+    globalID: any;
 }
-const globalID = useGlobalID();
+
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
-const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, loading, }) => {
-
+const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, globalID }) => {
     const missions = globalID.missions;
-    const mission = missions ? missions.find(m => m.id === selectedMissionId) : undefined;
-    if (!mission) return null;
-
+    const mission = missions ? missions.find((m: { id: bigint; }) => m.id === selectedMissionId) : undefined;
     const navigate = useNavigate();
 
-    const missionId = BigInt(mission.id);
+    useEffect(() => {
+        if (!mission) {
+            navigate('/Missions');
+        }
+    }, [mission, navigate]);
 
-    // Check if the current mission has been completed
-    const missionCompleted = globalID.userProgress?.some(([id]) => {
+    if (!mission) return null;
+
+    const missionId = BigInt(mission.id);
+    const missionCompleted = globalID.userProgress?.some(([idTuple]: any) => {
+        const id = Array.isArray(idTuple) ? idTuple[0] : idTuple;
         return BigInt(id) === missionId;
     }) ?? false;
 
-    let requiredMissionCompleted = true; // Assume no required mission or it's completed
-
-    // Check if there's a required previous mission
-    const requiredMissionId = mission.requiredPreviousMissionId?.[0]; // Safely get required previous mission ID if it exists
+    let requiredMissionCompleted = true;
+    const requiredMissionId = mission.requiredPreviousMissionId?.[0];
 
     if (requiredMissionId !== undefined) {
-        const requiredMissionBigInt = BigInt(requiredMissionId); // Convert to BigInt if defined
-
-        // Check if the required mission is completed
-        requiredMissionCompleted = globalID.userProgress?.some(([id]) => {
-            return BigInt(id) === requiredMissionBigInt;
+        requiredMissionCompleted = globalID.userProgress?.some(([idTuple]: any) => {
+            const id = Array.isArray(idTuple) ? idTuple[0] : idTuple;
+            return BigInt(id) === BigInt(requiredMissionId);
         }) ?? false;
     }
 
     const isAvailableMission = !missionCompleted && requiredMissionCompleted;
 
+    // If mission is not available, navigate away
     useEffect(() => {
         if (!isAvailableMission) {
             navigate('/Missions');
         }
-    }, [loading, requiredMissionCompleted, navigate]);
+    }, [isAvailableMission, navigate]);
 
-
-    if (Array.isArray(mission.requiredPreviousMissionId) && mission.requiredPreviousMissionId.length > 0) {
-        const requiredMissionId = mission.requiredPreviousMissionId[0];
-        requiredMissionCompleted = globalID.userProgress?.some(([id]) => id === requiredMissionId) ?? false;
-    }
-
-    const { renderPTWContent } = usePTWData(Number(selectedMissionId));
-    const { tweetId, loading: tweetLoading, error: tweetError } = useTWtoRT();
-
-    // Close the modal when clicking outside
-    const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        const target = e.target as HTMLElement; // Cast e.target to HTMLElement
-        if (target.className === styles.ModalBackground) {
-            //            navigate('/Missions');
-            closeModal();
-        }
-    };
-
-    if (!mission) return null;
 
     const gradientStartColor = getGradientStartColor(Number(mission.mode));
     const gradientEndColor = getGradientEndColor(Number(mission.mode));
 
     const renderButtons = () => {
-        const missionCompleted = globalID.userProgress?.some(([id]) => id === BigInt(mission.id)) ?? false;
-
         if (missionCompleted) {
-            return <div className={styles.CompletedText}>Already Completed</div>;
+            return <div className={styles.CompletedText}>Mission Completed!</div>;
         }
 
-        const missionMode = Number(mission.mode);
-        const functionName1 = Array.isArray(mission.functionName1) && mission.functionName1.length > 0
-            ? mission.functionName1[0]
-            : undefined;
-        const functionName2 = typeof mission.functionName2 === 'string' ? mission.functionName2 : undefined;
-
-        const executeFunction = (functionName: string | undefined) => {
-            if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
-                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]();
-            } else {
-                console.error(`Function ${functionName} not found`);
-            }
-        };
-
-        // Gradient Background
+        const functionName1 = mission.functionName1?.[0];
+        const functionName2 = mission.functionName2;
 
         const buttonGradientStyle = {
             backgroundImage: `linear-gradient(to right, ${gradientEndColor}, ${gradientStartColor})`,
         };
 
-        let svgLines = null;
-        if (missionMode === 0) {
-            // One line for mode 0
-            svgLines = (
-                <svg className={styles.MissionLine2} viewBox="0 0 1000 100" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id={`lineGradient${mission.id}-small`} x1="0%" y1="0%" x2="100%">
-                            <stop offset="0%" stopColor={gradientStartColor} />
-                            <stop offset="100%" stopColor={gradientEndColor} />
-                        </linearGradient>
-                    </defs>
-                    <rect x="0" y="72" width="55" height="6" fill="url(#lineGradient1-small)"></rect>
-                </svg>
-            );
-        } else if (missionMode === 1 || missionMode === 2 || missionMode === 3) {
-            // Two lines for modes 1, 2, 3
-            svgLines = (
-                <svg className={styles.MissionLine2} viewBox="0 0 1000 100" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id={`lineGradient${mission.id}-small`} x1="0%" y1="0%" x2="100%">
-                            <stop offset="0%" stopColor={gradientStartColor} />
-                            <stop offset="100%" stopColor={gradientEndColor} />
-                        </linearGradient>
-                    </defs>
-                    <rect x="0" y="30" width="55" height="6" fill="url(#lineGradient1-small)"></rect>
-                    <rect x="0" y="72" width="55" height="6" fill="url(#lineGradient1-small)"></rect>
-                </svg>
-            );
-        }
+        const executeFunction = (functionName: string | undefined) => {
+            if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
+                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID);
+            } else {
+                console.error(`Function ${functionName} not found`);
+            }
+        };
 
+        const missionMode = Number(mission.mode);
         if (missionMode === 0) {
             return (
                 <>
-                    {svgLines}
                     <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
                         {mission.obj2}
                     </button>
@@ -143,30 +87,19 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
             );
         }
 
-        if (missionMode === 1) {
+        if (missionMode === 1 || missionMode === 2 || missionMode === 3) {
             return (
                 <>
-                    {svgLines}
-                    <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle}>
-                        {mission.obj1}
-                    </button>
-                    <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
-                        {mission.obj2}
-                    </button>
-                </>
-            );
-        }
-
-        if (missionMode === 2 || missionMode === 3) {
-            return (
-                <>
-                    {svgLines}
-                    <div className={styles.InputButtonWrapper}>
-                        <input type="text" placeholder="Enter Code" />
+                    {functionName1 && (
+                        <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle}>
+                            {mission.obj1}
+                        </button>
+                    )}
+                    {functionName2 && (
                         <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
                             {mission.obj2}
                         </button>
-                    </div>
+                    )}
                 </>
             );
         }
@@ -174,10 +107,20 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         return null;
     };
 
-
     // Embed the tweet iframe
+
+    const renderRecursiveMissionOverlay = () => {
+        if (mission.recursive && missionCompleted && BigInt(mission.endDate) !== BigInt(0)) {
+            const countdownText = `Mission resets at ${new Date(Number(mission.endDate)).toLocaleString()}`;
+            return <div className={styles.RecursiveMissionOverlay}>{countdownText}</div>;
+        }
+        return null;
+    };
+
     const renderTweetEmbed = () => {
-        if (loading || !tweetId) return null;
+        const { tweetId, loading: tweetLoading, error: tweetError } = useTWtoRT();
+
+        if (!tweetId) return null;
         if (tweetError) return <div>Error loading tweet</div>;
 
         return (
@@ -190,10 +133,24 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         );
     };
 
+    // Render custom content for PTW (Particular to mission 4)
+    const { renderPTWContent } = usePTWData(Number(selectedMissionId));
+
+    // Handle background click (closes modal when clicking outside the modal content)
+    const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
+            closeModal(); // Close modal only if clicked outside the modal content
+        }
+    };
 
     return (
         <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
             <div className={styles.MissionModal}>
+                {/* Close Button */}
+                <button className={styles.CloseButton} onClick={closeModal}>
+                    &times;
+                </button>
+
                 {/* Mission Image */}
                 <div className={styles.MissionImageWrapper}>
                     <img src={`${BASE_URL}${mission.image}`} alt="Mission Image" className={styles.MissionImage} />
@@ -213,7 +170,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                             <stop offset="100%" stopColor={getGradientEndColor(Number(mission.mode))} />
                         </linearGradient>
                     </defs>
-                    <path d="M 5 0 L 5 96 L 74 96 L 95 80 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="10" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" fill="none" />
+                    <path d="M 5 0 L 5 96 L 74 96 L 95 80 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="10" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" fill="none" />
                 </svg>
 
                 {/* Mission Title */}
@@ -229,6 +186,8 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                     {Number(selectedMissionId) === 4 && renderPTWContent()}
                     {Number(selectedMissionId) === 5 && renderTweetEmbed()}
                 </div>
+
+                {renderRecursiveMissionOverlay()}
 
                 <div className={styles.ButtonInputs}>
                     <div className={styles.MissionActions}>{renderButtons()}</div>

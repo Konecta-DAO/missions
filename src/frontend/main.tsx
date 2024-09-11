@@ -14,7 +14,6 @@ import Missions from './pages/Missions/Missions.tsx';
 import UsergeekProvider from '../components/UsergeekProvider.tsx';
 import { IdentityKitAuthType } from "@nfid/identitykit"
 
-console.log('App is starting');
 // const isMobile = useIsMobile();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
@@ -30,7 +29,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/Missions" element={<Missions />} />
-                    {/*  <Route path="/Missions/:missionId" element={<Missions />} /> */}
+                    <Route path="/Missions/:missionId" element={<Missions />} />
                   </Routes>
                 </RadialBackground>
               </UsergeekProvider>
