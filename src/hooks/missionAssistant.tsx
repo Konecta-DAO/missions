@@ -1,55 +1,44 @@
 import { useGlobalID } from './globalID.tsx';
 import { useIdentityKit } from '@nfid/identitykit/react';
-import { Actor } from '@dfinity/agent';
+import { Actor, ActorSubclass } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../declarations/backend/index.js';
 import { useMemo } from 'react';
-import { useFetchData } from './fetchData.tsx';
+import { FetchData } from './fetchData.tsx';
 import { Principal } from '@dfinity/principal';
+// Add the missing import statement
 
-export const useMissionAssistant = () => {
-    const { agent } = useIdentityKit(); // Get the agent from IdentityKit
-    const globalID = useGlobalID();
+export const missionAssistant = () => {
 
-    const actor = useMemo(() => {
-        if (!agent) {
-            console.error('No agent available, user might not be authenticated');
-            return null; // Return null if no agent available
-        }
+    // const addTwitterInfo = async (twitterId: bigint, twitterHandle: string) => {
+    //     const actor = Actor.createActor(idlFactory, {
+    //         agent: agent!,
+    //         canisterId,
+    //     })
+    //     actor.addTwitterInfo(globalID.principalId, twitterId, twitterHandle);
+    //     globalID.setTwitterHandle(twitterHandle);
+    //     const fetchData = useFetchData();
+    //     if (fetchData && agent !== null) {
+    //         (await fetchData)?.fetchall(actor, agent);
+    //     }
+    // };
 
-        // Create the actor using the authenticated agent
-        return Actor.createActor(idlFactory, {
-            agent, // Use the authenticated agent from IdentityKit
-            canisterId,
-        });
-    }, [agent]);
-
-    const addNewUser = async (principalId: Principal) => {
-        actor?.addUser(principalId);
-    };
-
-    const addTwitterInfo = async (twitterId: bigint, twitterHandle: string) => {
-        actor?.addTwitterInfo(globalID.principalId, twitterId, twitterHandle);
-        globalID.setTwitterHandle(twitterHandle);
-        const fetchData = useFetchData();
-        if (fetchData) {
-            (await fetchData)?.fetchall();
-        }
-    };
-
-    const setUserPFPLoading = async () => {
-        actor?.setLoadingPFP();
-        const fetchData = useFetchData();
-        if (fetchData) {
-            const data = await fetchData;
-            if (data) {
-              data.fetchall();
-            }
-        }
-    };
+    // const setUserPFPLoading = async () => {
+    //     const actor = Actor.createActor(idlFactory, {
+    //         agent: agent!,
+    //         canisterId,
+    //     })
+    //     actor.setLoadingPFP();
+    //     const fetchData = useFetchData();
+    //     if (fetchData) {
+    //         const data = await fetchData;
+    //         if (data && agent !== null) {
+    //             data.fetchall(actor, agent);
+    //         }
+    //     }
+    // };
 
     return {
-        addTwitterInfo,
-        setUserPFPLoading,
-        addNewUser,
+        // addTwitterInfo,
+        // setUserPFPLoading,
     };
 };

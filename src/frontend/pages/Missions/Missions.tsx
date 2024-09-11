@@ -13,7 +13,7 @@ import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoBut
 import HelpButton from '../../components/HelpButton/HelpButton.tsx';
 import HistoryButton from '../../components/HistoryButton/HistoryButton.tsx';
 import HistoryModal from './HistoryModal.tsx';
-import { useFetchData } from '../../../hooks/fetchData.tsx';
+import { FetchData } from '../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor } from '@dfinity/agent';
@@ -22,10 +22,9 @@ import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
 const BASE_URL = "https://onpqf-diaaa-aaaag-qkeda-cai.raw.icp0.io";
 
 const Missions: React.FC = () => {
-    const { connectedAccount, agent } = useIdentityKit()
-    const globalID = useGlobalID();
+    const { connectedAccount, agent } = useIdentityKit();
     const navigate = useNavigate();
-    const fetchData = useFetchData();
+    const fetchData = FetchData();
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     // const { missionId } = useParams();
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
@@ -34,22 +33,25 @@ const Missions: React.FC = () => {
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
 
     useEffect(() => {
-        if (connectedAccount != undefined) {
+        if (connectedAccount != undefined && agent) {
             fetchUserData();
         }
-    }, [connectedAccount, globalID.principalId]);
+    }, [connectedAccount, agent]);
 
     const fetchUserData = async () => {
+        console.log("1");
         if (fetchData) {
+            console.log("2");
             const actor = Actor.createActor(idlFactory, {
                 agent: agent!,
                 canisterId,
             })
-            const data = await fetchData;
-            if (data) {
-                await data.fetchall(actor, agent);
+            console.log("3");
+            if (agent !== null) {
+                const ae = await agent.getPrincipal();
+                console.log("4");
+                fetchData.fetchall(actor, ae);
             }
-            console.log("aaaaaaaaaaaaa", globalID.principalId);
         }
     };
 

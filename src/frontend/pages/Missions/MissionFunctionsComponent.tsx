@@ -1,16 +1,20 @@
-import { SerializedProgress, SerializedMissionRecord } from "../../../declarations/backend/backend.did.js";
+import { SerializedProgress, SerializedMissionRecord, idlFactory } from "../../../declarations/backend/backend.did.js";
 import { randomBetween, getCurrentTimestampInNanoSeconds } from "../../../components/Utilities.tsx";
 import { Usergeek } from "usergeek-ic-js";
 import { Button, Modal } from "react-bootstrap";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGlobalID } from "../../../hooks/globalID.tsx";
-import { useMissionAssistant } from "../../../hooks/missionAssistant.tsx";
-import { useFetchData } from "../../../hooks/fetchData.tsx";
+import { missionAssistant } from "../../../hooks/missionAssistant.tsx";
+import { FetchData } from "../../../hooks/fetchData.tsx";
+import { Actor } from "@dfinity/agent";
+import { useIdentityKit } from "@nfid/identitykit/react";
+import { canisterId } from "../../../declarations/backend/index.js";
 
 const navigate = useNavigate();
 const globalID = useGlobalID();
-const fetchData = useFetchData();
+const fetchData = FetchData();
+const { agent } = useIdentityKit();
 interface UserData {
     userId: string;
     userHandle: string;
@@ -82,30 +86,39 @@ const MissionFunctionsComponent = {
         }
     },
 
-    sendKamiDM: () => {
-        useMissionAssistant().setUserPFPLoading();
-        const twitterUsername = "kami_kta";
-        const twitterDMUrl = `https://twitter.com/intent/follow?screen_name=${twitterUsername}`;
+    // sendKamiDM: () => {
+    //     missionAssistant().setUserPFPLoading();
+    //     const twitterUsername = "kami_kta";
+    //     const twitterDMUrl = `https://twitter.com/intent/follow?screen_name=${twitterUsername}`;
 
-        window.open(twitterDMUrl, "_blank");
-    },
+    //     window.open(twitterDMUrl, "_blank");
+    // },
 
     verifyPFP: async () => {
-        const fetchData = await useFetchData();
+        const fetchData = FetchData();
         if (!fetchData) {
             throw new Error("Mission Assistant is undefined");
         }
-            let didhe = await fetchData.fetchUserPFPstatus();
 
-        if (didhe === "verified") {
-            alert("Success");
 
-            Usergeek.trackEvent("Mission 2: PFP Verified");
+        const actor = Actor.createActor(idlFactory, {
+            agent: agent!,
+            canisterId,
+        })
+        if (agent !== null) {
+            let a = await agent.getPrincipal();
+            let didhe = await fetchData.fetchUserPFPstatus(actor, a);
 
-            navigate('/');
-        } else {
-            if (globalID.userPFPstatus === "loading") {
-                alert("Loading");
+            if (didhe === "verified") {
+                alert("Success");
+
+                Usergeek.trackEvent("Mission 2: PFP Verified");
+
+                navigate('/');
+            } else {
+                if (globalID.userPFPstatus === "loading") {
+                    alert("Loading");
+                }
             }
         }
     },

@@ -1,70 +1,58 @@
-import { useIdentityKit } from '@nfid/identitykit/react';
-import { ActorSubclass, Agent } from '@dfinity/agent';
-import { useCallback, useMemo } from 'react';
+import { ActorSubclass } from '@dfinity/agent';
 import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
-import { idlFactory, canisterId } from '../declarations/backend/index.js';
 import { useGlobalID } from './globalID.tsx';
+import { Principal } from '@dfinity/principal';
 
-export const useFetchData = async (actor: ActorSubclass) => {
+export const FetchData = () => {
     const globalID = useGlobalID();
-    // const actor = useMemo(() => {
-    //     if (!agent) {
-    //         console.error('E');
-    //         return null;
-    //     } else {
-    //         console.log("Agent is available");
-    //     }
-
-    //     return Actor.createActor(idlFactory, {
-    //         agent,
-    //         canisterId,
-    //     });
-    // }, [agent]);
 
     // Fetch missions
     const fetchMissions = async (actor: ActorSubclass) => {
+        console.log("???1");
         const missions: SerializedMission[] = await actor.getAllMissions() as SerializedMission[];
         globalID.setMissions(missions);
         console.log("missions", missions);
     };
 
     // Fetch user progress
-    const fetchUserProgress = async (actor: ActorSubclass, agent: Agent) => {
-        const userProgress: [bigint, SerializedProgress][] = await actor.getUserProgress(agent.getPrincipal()) as [bigint, SerializedProgress][];
+    const fetchUserProgress = async (actor: ActorSubclass, ae: Principal) => {
+        console.log("???2");
+        const userProgress: [bigint, SerializedProgress][] = await actor.getUserProgress(ae) as [bigint, SerializedProgress][];
         globalID.setUserProgress(userProgress);
         console.log("userProgress", userProgress);
     };
 
     // Fetch user details
-    const fetchUser = async (actor: ActorSubclass, agent: Agent) => {
-        const user: SerializedUser[] = await actor.getUser(agent?.getPrincipal()) as SerializedUser[];
-        if (agent) {
-            globalID.setPrincipal(await agent.getPrincipal());
-        }
+    const fetchUser = async (actor: ActorSubclass, ae: Principal) => {
+        console.log("???3");
+        const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
+        globalID.setPrincipal(await ae);
         globalID.setUser(user);
         console.log("user", user);
     };
 
     // Fetch user seconds
 
-    const fetchUserSeconds = async (actor: ActorSubclass, agent: Agent) => {
-        const userSeconds: bigint = await actor.getTotalSecondsForUser(agent.getPrincipal()) as bigint;
+    const fetchUserSeconds = async (actor: ActorSubclass, ae: Principal) => {
+        console.log("???4");
+        const userSeconds: bigint = await actor.getTotalSecondsForUser(ae) as bigint;
         globalID.setTimerText(userSeconds.toString());
         console.log("userSeconds", userSeconds);
     };
 
-    const fetchUserPFPstatus = async (actor: ActorSubclass, agent: Agent) => {
-        const userPFPstatus: string = await actor.getPFPProgress(agent.getPrincipal()) as string;
+    const fetchUserPFPstatus = async (actor: ActorSubclass, ae: Principal) => {
+        const userPFPstatus: string = await actor.getPFPProgress(ae) as string;
         globalID.setPFPstatus(userPFPstatus);
         return userPFPstatus;
     };
 
 
-    const fetchall = async (actor: ActorSubclass, agent: Agent) => {
-        await fetchMissions(actor);
-        await fetchUserProgress(actor, agent);
-        await fetchUser(actor, agent);
-        await fetchUserSeconds(actor, agent);
+    const fetchall = (actor: ActorSubclass, ae: Principal) => {
+        console.log("???");
+        fetchMissions(actor);
+        fetchUserProgress(actor, ae);
+        fetchUser(actor, ae);
+        fetchUserSeconds(actor, ae);
     };
 
     return {

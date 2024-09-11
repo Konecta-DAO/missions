@@ -127,7 +127,7 @@ actor class Backend() {
 
   public shared (msg) func addAdminId(newAdminId : Principal) : async () {
     if (isAdmin(msg.caller)) {
-      if (Array.find<Principal>(adminIds, func(id) { id == msg.caller }) != null) adminIds := Array.append<Principal>(adminIds, [newAdminId]);
+      adminIds := Array.append<Principal>(adminIds, [newAdminId]);
     };
   };
 

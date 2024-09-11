@@ -24,7 +24,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <BrowserRouter>
         <AgentProvider withProcessEnv>
           <ActorProvider idlFactory={idlFactory} canisterId={canisterId}>
-            <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai", "onpqf-diaaa-aaaag-qkeda-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
+            <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
               <UsergeekProvider>
                 <RadialBackground mobile={false}>
                   <Routes>

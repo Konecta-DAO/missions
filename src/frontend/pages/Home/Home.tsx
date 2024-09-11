@@ -15,12 +15,15 @@ import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
-import { useMissionAssistant } from '../../../hooks/missionAssistant.tsx';
+import { missionAssistant } from '../../../hooks/missionAssistant.tsx';
+import { Actor } from '@dfinity/agent';
+import { idlFactory } from '../../../declarations/backend/backend.did.js';
+import { canisterId } from '../../../declarations/backend/index.js';
+import { Principal } from '@dfinity/principal';
 
 const Home: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { addNewUser } = useMissionAssistant();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
   const { connectedAccount, agent } = useIdentityKit();
@@ -29,11 +32,21 @@ const Home: React.FC = () => {
 
   const setData = async () => {
     if (agent) {
+      const actor = Actor.createActor(idlFactory, {
+        agent: agent!,
+        canisterId,
+      })
       const a = await agent.getPrincipal();
       globalID.setPrincipal(a);
-      await addNewUser(a);
-      console.log("agregao");
-      navigate('/Missions');
+
+      const b = await actor.getUser(a) as Principal | [];
+      if (Array.isArray(b) && b.length !== 0) {
+        console.log("eaeaea", b);
+        navigate('/Missions');
+      } else {
+        await actor.addUser(a);
+        navigate('/Missions');
+      }
     }
   };
 
@@ -115,9 +128,9 @@ const Home: React.FC = () => {
               <div className={styles.PlataformaContainer}>
                 <div className={styles.Casco}>
                   <Casco onClick={handleConnect} />
-                    <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
+                  <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
                     <ConnectWallet />
-                    </div>
+                  </div>
                 </div>
                 <Plataforma animationDelay="0.5s" />
               </div>
