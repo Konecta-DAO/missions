@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.scss';
-import { ActorProvider, AgentProvider } from '@ic-reactor/react';
+// import { ActorProvider, AgentProvider } from '@ic-reactor/react';
 import { idlFactory, canisterId } from '../declarations/backend/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
@@ -19,9 +19,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        <AgentProvider withProcessEnv>
-          <ActorProvider idlFactory={idlFactory} canisterId={canisterId}>
-            <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
+        {/* <AgentProvider withProcessEnv>
+          <ActorProvider idlFactory={idlFactory} canisterId={canisterId}> */}
+            <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai", canisterId] }} authType={IdentityKitAuthType.DELEGATION}>
               <UsergeekProvider>
                 <RadialBackground mobile={false}>
                   <Routes>
@@ -32,8 +32,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                 </RadialBackground>
               </UsergeekProvider>
             </IdentityKitProvider>
-          </ActorProvider>
-        </AgentProvider>
+          {/* </ActorProvider>
+        </AgentProvider> */}
       </BrowserRouter>
     </GlobalProvider>
   </React.StrictMode>,

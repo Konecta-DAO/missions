@@ -21,6 +21,7 @@ import KamiButton from '../../components/KamiButton/KamiButton.tsx';
 import LogoutButton from '../../components/LogoutButton/LogoutButton.tsx';
 import KonectaModal from './Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from './Components/InfoModal/InfoModal.tsx';
+import TopBar from './Components/TopBar/TopBar.tsx';
 
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
@@ -55,8 +56,11 @@ const Missions: React.FC = () => {
                 console.log('Entró a esta vaina', identity);
                 setIsIdentityChecked(false);
             } else {
-                const a = HttpAgent.createSync({ identity });
-                globalID.setAgent(a);
+                const agent = HttpAgent.createSync({ identity });
+                if (process.env.NODE_ENV !== "production") {
+                  agent.fetchRootKey();
+                }      
+                globalID.setAgent(agent);
                 setIsIdentityChecked(true);
             }
         };
@@ -111,59 +115,23 @@ const Missions: React.FC = () => {
 
     return (
         <>
-            {!isMobile ? (
-                <>
-                    <div className={styles.KonectaLogoWrapper}>
-                        <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-                    </div>
-                    <div className={styles.MainDiv}>
-                        <div className={styles.CustomHistoryButton}>
-                            <HistoryButton onClick={openHistoryModal} />
-                        </div>
-                        <div className={styles.CustomKonectaInfoButton}>
-                            <KonectaInfoButton onClick={openKonectaModal} />
-                        </div>
-                        <div className={styles.CustomKamiButton}>
-                            <KamiButton onClick={() => { window.open('https://chatgpt.com/g/g-S0vONPiGL-kami', '_blank'); }} />
-                        </div>
-                        <div className={styles.CustomHelpButton}>
-                            <HelpButton onClick={openInfoModal} />
-                        </div>
-                        <div className={styles.CustomLogOutButton}>
-                            <LogoutButton onClick={disconnect} />
-                        </div>
-                    </div>
-
-                    {isHistoryModalOpen && (
-                        <HistoryModal closeModal={closeHistoryModal} />
-                    )}
-
-                    {isKonectaModalOpen && (
-                        <KonectaModal closeModal={closeKonectaModal} />
-                    )}
-
-                    {isInfoModalOpen && (
-                        <InfoModal closeModal={closeKonectaModal} />
-                    )}
-
-                    <div className={styles.MissionsContainer}>
-
-                    </div>
-                    <div className={styles.TimeCapsuleWrapper}>
-                        <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
-                        <div className={styles.TimerText}>{globalID.timerText}</div>
-                    </div>
-                    <div className={styles.OpenChatWrapper}>
-                        <OpenChat />
-                    </div>
-                    {dataloaded ? (
-                        <MissionGridComponent
-                            handleCardClick={handleCardClick}
-                        />
-                    ) : (
-                        <div>Loading missions...</div>
-                    )}
-                </>
+            {/* {!isMobile ? (
+                <> */}
+            <TopBar isMobile={isMobile} />
+            {
+            !isMobile &&
+                <div className={styles.OpenChatWrapper}>
+                    <OpenChat />
+                </div>
+            }
+            {dataloaded ? (
+                <MissionGridComponent
+                    handleCardClick={handleCardClick}
+                />
+            ) : (
+                <div>Loading missions...</div>
+            )}
+                {/* </>
             ) : (
                 <div style={{ display: 'none' }}>
                     <div className={styles.TimeCapsuleWrapperMobile}>
@@ -174,7 +142,7 @@ const Missions: React.FC = () => {
 
                 </div>
 
-            )}
+            )} */}
 
         </>
     );

@@ -13,7 +13,7 @@ const Mission: React.FC<{
 
 }> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave }) => {
     const globalID = useGlobalID();
-    const BASE_URL = canisterId;
+    const BASE_URL = process.env.DFX_NETWORK === "local" ? process.env.DEV_IMG_CANISTER_ID : canisterId;
     const missionId = BigInt(mission.id);
 
     // Check if the current mission is completed
@@ -56,13 +56,13 @@ const Mission: React.FC<{
             onMouseLeave={handleMouseLeave}
 
         >
+            
             {/* Mission Icon */}
             <img
                 src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
                 alt="Mission Icon"
                 className={styles.MissionIcon}
             />
-
             {/* Gradient Circle */}
             <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
                 <defs>

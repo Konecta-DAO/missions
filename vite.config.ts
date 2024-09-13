@@ -45,6 +45,8 @@ export default defineConfig({
           CANISTER_ID_STATS_FRONTEND: process.env.CANISTER_ID_STATS_FRONTEND,
           CANISTER_ID: process.env.CANISTER_ID,
           CANISTER_CANDID_PATH: process.env.CANISTER_CANDID_PATH,
+          DEV_IMG_CANISTER_ID: process.env.IMG_CANISTER_ID,
+          DEV_USERGEEK_API_KEY: process.env.DEV_USERGEEK_API_KEY,
         })
       },
     },
@@ -61,6 +63,7 @@ export default defineConfig({
     react(),
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    environment('all', { prefix: 'DEV_' }),
     viteStaticCopy({
       targets: [
         {

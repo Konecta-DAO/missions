@@ -29,16 +29,21 @@ const Home: React.FC = () => {
   const globalID = useGlobalID();
   const { loadingPercentage, loadingComplete } = useLoadingProgress();
 
-  const setData = (agent: HttpAgent) => {
+  const setData = async (agent: HttpAgent) => {
     if (agent) {
+      console.log("canisterId:", canisterId);
+      console.log("agent:", agent);
       const actor = Actor.createActor(idlFactory, {
         agent: agent!,
         canisterId,
       });
+
       agent.getPrincipal().then((a) => {
         globalID.setPrincipal(a);
+        console.log("ppal home:43 ", a.toText());
 
         (actor.getUser(a) as Promise<SerializedUser[]>).then((b) => {
+          console.log("user home:45 ", b);
           if (Array.isArray(b) && b.length !== 0) {
             globalID.setPrincipal(a);
             globalID.setUser(b);
@@ -58,6 +63,8 @@ const Home: React.FC = () => {
       }).catch((error) => {
         console.error("Error getting principal: ", error);
       });
+    } else {
+      console.log("else agent:", agent);
     }
   };
 
@@ -74,6 +81,11 @@ const Home: React.FC = () => {
       if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
         if (identity.getPrincipal().toText() !== "2vxsx-fae") {
           const agent = HttpAgent.createSync({ identity });
+
+          if (process.env.NODE_ENV !== "production") {
+            agent.fetchRootKey();
+          }
+          
           setData(agent);
         }else{
           disconnect();
