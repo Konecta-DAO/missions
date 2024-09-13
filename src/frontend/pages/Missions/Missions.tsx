@@ -143,7 +143,7 @@ const Missions: React.FC = () => {
                     )}
 
                     {isInfoModalOpen && (
-                        <InfoModal closeModal={closeKonectaModal} />
+                        <InfoModal closeModal={closeInfoModal} />
                     )}
 
                     <div className={styles.MissionsContainer}>

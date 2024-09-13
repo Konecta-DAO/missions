@@ -1,5 +1,5 @@
 import React from 'react';
-import './Plataforma.scss';
+import styles from './Plataforma.module.scss';
 
 interface PlataformaProps {
     animationDelay?: string;
@@ -7,7 +7,7 @@ interface PlataformaProps {
 
 const Plataforma: React.FC<PlataformaProps> = ({ animationDelay = '0s' }) => {
     return (
-        <div className="svg-container">
+        <div className={styles.svgContainer}>
             <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
                 viewBox="0 0 921.4 616.8" enableBackground="new 0 0 921.4 616.8" xmlSpace="preserve">
 
@@ -29,13 +29,13 @@ const Plataforma: React.FC<PlataformaProps> = ({ animationDelay = '0s' }) => {
                 </style>
 
                 {/* Lineas */}
-                <ellipse id="Linea7" className="st0" cx="460.7" cy="420.8" rx="458.7" ry="195.8" />
-                <ellipse id="Linea6" className="st1" cx="460.7" cy="373.8" rx="458.7" ry="195.8" />
-                <ellipse id="Linea5" className="st2" cx="460.7" cy="338.8" rx="458.7" ry="195.8" />
-                <ellipse id="Linea4" className="st3" cx="460.7" cy="309.8" rx="458.7" ry="195.8" />
-                <ellipse id="Linea3" className="st4" cx="460.7" cy="286.8" rx="458.7" ry="195.8" />
-                <ellipse id="Linea2" className="st5" cx="460.7" cy="266.8" rx="458.7" ry="195.8" />
-                <ellipse id="Linea1" className="st6" cx="460.7" cy="248.8" rx="458.7" ry="195.8" />
+                <ellipse id="Linea7" className="st0" cx="460.7" cy="420.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
+                <ellipse id="Linea6" className="st1" cx="460.7" cy="373.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
+                <ellipse id="Linea5" className="st2" cx="460.7" cy="338.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
+                <ellipse id="Linea4" className="st3" cx="460.7" cy="309.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
+                <ellipse id="Linea3" className="st4" cx="460.7" cy="286.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
+                <ellipse id="Linea2" className="st5" cx="460.7" cy="266.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
+                <ellipse id="Linea1" className="st6" cx="460.7" cy="248.8" rx="458.7" ry="195.8" style={{ animationDelay }} />
 
                 {/* Border */}
                 <g id="LineasBorde">

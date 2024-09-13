@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import environment from 'vite-plugin-environment';
 import dotenv from 'dotenv';
 import path from 'path';
-import svgr from 'vite-plugin-svgr';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import polyfillNode from 'rollup-plugin-polyfill-node';
 
@@ -13,22 +12,22 @@ const buildTarget = process.env.BUILD_TARGET;
 const isAdmin = buildTarget === 'admin';
 const isStats = buildTarget === 'stats';
 
+const rootDir = isAdmin
+  ? 'src/admin_frontend'
+  : isStats
+    ? 'src/stats_frontend'
+    : 'src/frontend';
+
 export default defineConfig({
-  root: isAdmin ? path.resolve(__dirname, 'src/admin_frontend')
-    : isStats ? path.resolve(__dirname, 'src/stats_frontend')
-      : path.resolve(__dirname, 'src/frontend'),
+  root: path.resolve(__dirname, rootDir),
   build: {
     rollupOptions: {
-      input: isAdmin ? path.resolve(__dirname, 'src/admin_frontend/index.html')
-        : isStats ? path.resolve(__dirname, 'src/stats_frontend/index.html')
-          : path.resolve(__dirname, 'src/frontend/index.html'),
+      input: path.resolve(__dirname, `${rootDir}/index.html`),
       plugins: [
         polyfillNode()
       ]
     },
-    outDir: isAdmin ? path.resolve(__dirname, 'dist/admin')
-      : isStats ? path.resolve(__dirname, 'dist/stats')
-        : path.resolve(__dirname, 'dist/frontend'),
+    outDir: path.resolve(__dirname, `dist/${buildTarget || 'frontend'}`),
     emptyOutDir: true,
   },
   optimizeDeps: {
@@ -45,6 +44,7 @@ export default defineConfig({
           CANISTER_ID_STATS_FRONTEND: process.env.CANISTER_ID_STATS_FRONTEND,
           CANISTER_ID: process.env.CANISTER_ID,
           CANISTER_CANDID_PATH: process.env.CANISTER_CANDID_PATH,
+          VITE_USERGEEK_API_KEY: process.env.VITE_USERGEEK_API_KEY,
         })
       },
     },
@@ -61,6 +61,7 @@ export default defineConfig({
     react(),
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    environment('all', { prefix: 'DEV_' }),
     viteStaticCopy({
       targets: [
         {
@@ -68,20 +69,15 @@ export default defineConfig({
           dest: '.'
         },
         {
-          src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known'
-            : isStats ? 'src/stats_frontend/.well-known'
-              : 'src/frontend/.well-known'),
+          src: path.resolve(__dirname, `${rootDir}/.well-known`),
           dest: '.'
         },
         {
           src: path.resolve(__dirname, '.ic-assets.json'),
           dest: '.'
         },
-        // Copy .well-known/ii-alternative-origins
         {
-          src: path.resolve(__dirname, isAdmin ? 'src/admin_frontend/.well-known/ii-alternative-origins'
-            : isStats ? 'src/stats_frontend/.well-known/ii-alternative-origins'
-              : 'src/frontend/.well-known/ii-alternative-origins'),
+          src: path.resolve(__dirname, `${rootDir}/.well-known/ii-alternative-origins`),
           dest: '.well-known'
         }
       ]

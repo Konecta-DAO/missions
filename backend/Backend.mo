@@ -40,12 +40,12 @@ actor class Backend() {
     let entries = Iter.toArray(userProgress.entries());
     var serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
-    for (entry in entries.vals()) {
+    for (entry in Iter.fromArray(entries)) {
       let (userId, userMissions) = entry;
-      let serializedMissions = Iter.toArray(userMissions.entries());
+      let missionEntries = Iter.toArray(userMissions.entries());
       var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
 
-      for (missionEntry in serializedMissions.vals()) {
+      for (missionEntry in Iter.fromArray(missionEntries)) {
         let (missionId, progress) = missionEntry;
 
         let serializedProgress = {
@@ -588,14 +588,9 @@ actor class Backend() {
 
   public shared (msg) func addUser(userId : Principal) : async (?Types.SerializedUser) {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      // Initialize new user's mission progress
-      var newUserMissions : Types.UserMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
-
-      // Complete the first mission automatically
-      let missionId : Nat = 0; // Assuming 0 is the first mission ID
 
       // Generate random points between 3600 and 21600
-      let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 1).mintime, Vector.get(missions, 1).maxtime);
+      let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 0).mintime, Vector.get(missions, 0).maxtime);
 
       // Create a completion record for the first mission
       let firstMissionRecord : Types.MissionRecord = {
@@ -610,11 +605,9 @@ actor class Backend() {
         var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
       };
 
-      // Add the first mission progress to the user's missions
-      newUserMissions.put(missionId, firstMissionProgress);
+      let tempP = Serialization.serializeProgress(firstMissionProgress);
 
-      // Add the user's progress to the global userProgress
-      userProgress.put(userId, newUserMissions);
+      let a = updateUserProgress(userId, 0, tempP);
 
       // Add the user to the users vector
       let newUser : Types.User = {
@@ -638,6 +631,85 @@ actor class Backend() {
       return Array.map<Types.User, Types.SerializedUser>(Vector.toArray(users), Serialization.serializeUser);
     };
     return [];
+  };
+
+  public shared query (msg) func getAllUsersProgress() : async [(Principal, [(Nat, Types.SerializedProgress)])] {
+    if (isAdmin(msg.caller)) {
+      let entries = Iter.toArray(userProgress.entries());
+      var serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+
+      for (entry in Iter.fromArray(entries)) {
+        let (userId, userMissions) = entry;
+        let missionEntries = Iter.toArray(userMissions.entries());
+        var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
+
+        for (missionEntry in Iter.fromArray(missionEntries)) {
+          let (missionId, progress) = missionEntry;
+
+          let serializedProgress = {
+            completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(
+              progress.completionHistory,
+              func(record : Types.MissionRecord) : Types.SerializedMissionRecord {
+                {
+                  timestamp = record.timestamp;
+                  pointsEarned = record.pointsEarned;
+                  tweetId = record.tweetId;
+                };
+              },
+            );
+            usedCodes = Iter.toArray(progress.usedCodes.entries());
+          };
+
+          serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, serializedProgress)]);
+        };
+
+        serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
+      };
+
+      return serializedEntries;
+    };
+    return [];
+  };
+
+  public shared (msg) func restoreProgress(data : [(Principal, [(Nat, Types.SerializedProgress)])]) : async () {
+    if (isAdmin(msg.caller)) {
+      for (entry in data.vals()) {
+        let (userId, serializedMissions) = entry;
+        let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+
+        // Iterate over each serialized mission progress
+        for (missionEntry in serializedMissions.vals()) {
+          let (missionId, serializedProgress) = missionEntry;
+
+          // Deserialize the Progress object
+          var progress = {
+            var completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
+              serializedProgress.completionHistory,
+              func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
+                {
+                  var timestamp = record.timestamp;
+                  var pointsEarned = record.pointsEarned;
+                  var tweetId = record.tweetId;
+                };
+              },
+            );
+            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+          };
+
+          // Deserialize the usedCodes
+          for (codeEntry in serializedProgress.usedCodes.vals()) {
+            let (code, used) = codeEntry;
+            progress.usedCodes.put(code, used);
+          };
+
+          // Put the deserialized progress into the userMissions TrieMap
+          userMissions.put(missionId, progress);
+        };
+
+        // Put the deserialized userMissions into the main userProgress TrieMap
+        userProgress.put(userId, userMissions);
+      };
+    };
   };
 
   public shared query (msg) func getUser(userId : Principal) : async ?Types.SerializedUser {
@@ -995,6 +1067,21 @@ actor class Backend() {
 
   public func resetUserProgress(userId : Principal) : async () {
     userProgress.delete(userId);
+    let newUsers = Vector.new<Types.User>();
+
+    for (index in Iter.range(0, Vector.size(users) - 1)) {
+      switch (Vector.getOpt(users, index)) {
+        case (?user) {
+          if (user.id != userId) {
+            Vector.add(newUsers, user);
+          };
+        };
+        case _ {};
+      };
+    };
+
+    // Replace the original users vector with the new one, which excludes the deleted user
+    users := newUsers;
     return;
   };
 

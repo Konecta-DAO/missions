@@ -23,7 +23,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           <ActorProvider idlFactory={idlFactory} canisterId={canisterId}>
             <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
               <UsergeekProvider>
-                <RadialBackground mobile={false}>
+                <RadialBackground>
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/Missions" element={<Missions />} />

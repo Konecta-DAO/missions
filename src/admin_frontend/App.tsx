@@ -1,101 +1,122 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from './Home.module.scss';
+import styles from './AdminPanel.module.scss';
 import KonectaLogo from '../../public/assets/Konecta Logo.svg';
 // import AdminPanel from './AdminPanel.tsx';
 // import MissionsPanel from './MissionsPanel.tsx';
-import { useIdentityKit } from "@nfid/identitykit/react";
-// import "@nfid/identitykit/react/styles.css"
-import { ConnectWallet } from "@nfid/identitykit/react"
-// import { useGlobalID } from '../hooks/globalID.tsx';
-// import { useNavigate } from 'react-router-dom';
-// import HomeBackgroundOverlay from '../../src/frontend/pages/Home/HomeBackgroundOverlay.tsx';
-// import useIsMobile from '../../src/hooks/useIsMobile.tsx';
-// import Plataforma from '../../src/frontend/components/Plataforma/Plataforma.tsx';
-// import Casco from '../../src/frontend/components/Casco.tsx';
-// import Kami from '../../../../public/assets/Kami.svg';
-// import KonectaInfoButton from '../../src/frontend/components/KonectaInfoButton/KonectaInfoButton.tsx';
-// import HelpButton from '../../src/frontend/components/HelpButton/HelpButton.tsx';
-// import SpeechBubble from '../../src/frontend/components/SpeechBubble/SpeechBubble.tsx';
+import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
+import { useGlobalID } from '../hooks/globalID.tsx';
+import { Principal } from '@dfinity/principal';
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { canisterId, idlFactory } from '../declarations/backend/index.js';
 
 function App() {
-  // const [isAdmin, setIsAdmin] = useState<boolean | null>(false);
-  //const { connectedAccount, agent } = useIdentityKit(); // Get agent from IdentityKit
-  // const globalID = useGlobalID();
-  // const isMobile = useIsMobile();
-  // const navigate = useNavigate();
-  // const [showBubble, setShowBubble] = useState(false);
-  // const [bubbleContent, setBubbleContent] = useState('');
+  const { identity, user, agent, disconnect } = useIdentityKit();
+  const globalID = useGlobalID();
+  const [uploadedData, setUploadedData] = useState<any>(null);
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log(identity?.getPrincipal())
+      if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
+        if (identity.getPrincipal().toText() !== "2vxsx-fae") {
+          const actor = Actor.createActor(idlFactory, {
+            agent: agent!,
+            canisterId,
+          });
 
+        } else {
+          disconnect();
+        }
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     if (connectedAccount && agent && globalID) {
-  //       try {
-  //         const a = await agent.getPrincipal();
-  //         globalID.setPrincipal(a);  // Use globalID within the effect
-  //       } catch (error) {
-  //         console.error('Failed to get principal', error);
-  //       }
-  //     }
-  //   };
+      }
+    };
+    fetchData();
+  }, [user?.principal, agent]);
 
-  //   fetchData();
-  // }, [connectedAccount]);
+  const getTodo = async () => {
+    const actor = Actor.createActor(idlFactory, {
+      agent: agent!,
+      canisterId,
+    });
+    const progress = await actor.getAllUsersProgress();
 
-  // const handleKonectaClick = () => {
-  //   setShowBubble(false); // Bubble Restart
-  //   setTimeout(() => {
-  //     setBubbleContent("Konecta WebApp: Konecta is a Web app for Service providers to Offer and people to Request Services, in a Calendar-focus way.\nKonecta Protocol: Event Management protocol, for users to get their events cross-dApps.");
-  //     setShowBubble(true); // Show the new content
-  //   }, 0);
-  // };
+    const jsonString = JSON.stringify(progress, (_, value) => {
+      return typeof value === 'bigint' ? value.toString() : value;
+    }, 2);
 
-  // const connectWalletRef = useRef<HTMLDivElement>(null);
+    const blob = new Blob([jsonString], { type: 'application/json' });
 
-  // // Custom button handler to simulate ConnectWallet click
+    const url = URL.createObjectURL(blob);
 
-  // const handleConnect = () => {
-  //   if (connectWalletRef.current) {
-  //     // Simulate the click event on the ConnectWallet button
-  //     const button = connectWalletRef.current.querySelector('button');
-  //     if (button) {
-  //       button.click(); // Programmatically trigger click
-  //     }
-  //   }
-  // };
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'progress.json';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-  // const handleHelpClick = () => {
-  //   setShowBubble(false); // Bubble Restart
-  //   setTimeout(() => {
-  //     setBubbleContent("The adventure begins here, brave traveler! To unlock your first precious seconds, you must log in using your NFID. It’s your key to the Konecta Realm. Time waits for no one!");
-  //     setShowBubble(true); // Show the new content
-  //   }, 0);
-  // };
+    // Clean up the URL after the download
+    URL.revokeObjectURL(url);
+  }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      const reader = new FileReader();
+
+      // When the file is successfully read
+      reader.onload = (e) => {
+        try {
+          // Parse the uploaded JSON file
+          const jsonString = e.target?.result as string;
+          const parsedData = JSON.parse(jsonString, (key, value) => {
+            // Convert stringified BigInts back to BigInt
+            if (typeof value === 'string' && /^\d+n$/.test(value)) {
+              return BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
+            }
+            return value;
+          });
+
+          // Set the processed data to the state or handle it as needed
+          setUploadedData(parsedData);
+          console.log('Parsed data:', parsedData);
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+        }
+      };
+
+      // Read the file as a text string (assuming it is a JSON file)
+      reader.readAsText(file);
+    }
+  };
+
+  const handleButtonClick = () => {
+    const input = document.getElementById('hiddenFileInput') as HTMLInputElement;
+    input.click(); // Trigger the hidden input's click event
+  };
 
   return (
     <div className={`${styles.HomeContainer}`}>
       <div>
-
         <div className={styles.KonectaLogoWrapper}>
           <>
             <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-            {/*    <button onClick={checkAdminStatus}>Check Admin Status</button>*/}
+            <button onClick={getTodo}>Guardar Progreso de todo el mundo</button>
+            <input
+              id="hiddenFileInput"
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }} // Hide the file input
+            />
+
+            <button onClick={handleButtonClick}>Upload JSON File</button>
           </>
         </div>
-
-        {/* Render the AdminPanel and MissionsPanel if user is authenticated and is admin */}
-        {/* {isAdmin && <AdminPanel />}
-        {isAdmin && <MissionsPanel />} */}
-
-        {/* Show the Authenticate button if isAdmin is null (initial state) or false */}
-        {/* {(isAdmin === null || isAdmin === false) && ( */}
-        <>
-          {/* <div ref={connectWalletRef}> */}
-          {/* <ConnectWallet /> */}
-          {/* </div> */}
-          {/* <button onClick={handleConnect}>Connect Wallet</button> */}
-        </>
-        {/* )} */}
+        <div>
+          <ConnectWallet />
+        </div>
       </div>
     </div>
   );

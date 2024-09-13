@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "setup": "npm i && dfx canister create backend && dfx generate backend && dfx deploy",
-    "start": "run-p frontend backend",
+    "start:frontend": "vite --config vite.config.ts --port 3000",
+    "start:admin_frontend": "vite --config vite.config.ts --port 3001",
+    "start:stats_frontend": "vite --config vite.config.ts --port 3002",
+    "start:backend": "mo-dev --generate --deploy -y",
+    "start": "run-p start:frontend start:admin_frontend start:stats_frontend start:backend",
     "frontend": "vite --config vite.config.ts --port 3000",
     "admin_frontend": "vite --config vite.config.ts --port 3001",
     "stats_frontend": "vite --config vite.config.ts --port 3002",

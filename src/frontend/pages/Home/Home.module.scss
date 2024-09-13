@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css?family=Inter:800&display=swap');
+
 $animation-duration: 4s;
 $animation-timing-function: ease-in-out;
 
@@ -75,7 +77,15 @@ $animation-timing-function: ease-in-out;
   z-index: 5;
   right: 0%;
   scale: 50%;
-  top: 9%
+  top: 8vh;
+}
+
+.HelpButtons2 {
+  position: absolute;
+  z-index: 5;
+  left: -5.5vh;
+  scale: 37%;
+  top: 6.25vh;
 }
 
 .TextWrapper {
@@ -117,8 +127,16 @@ $animation-timing-function: ease-in-out;
 
 .Casco {
   position: relative;
-  top: 20.5vw;
+  bottom: -21vw;
   scale: 0.9;
+}
+
+.CascoLogin {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  top: 0;
 }
 
 .LoadingOverlay {
@@ -145,14 +163,44 @@ $animation-timing-function: ease-in-out;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 4vh;
+}
+
+.KonectaLogoWrapper2 {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  margin-top: 4vh;
+  margin-left: 2vh;
+  scale: 0.95;
 }
 
 .KonectaLogo {
-  width: 300px;
+  width: 25vh;
+  max-width: 20vh;
   height: auto;
 }
 
 .HelpButtonContainer {
   transform: translateY(25%);
+}
+
+.KonecB {
+  width: 25vh;
+  max-width: 25vw;
+}
+
+.HelpB {
+  width: 25vh;
+  max-width: 25vw;
+  transform: translateY(20%);
+}
+
+.KonecB2 {
+  width: 25vh;
+}
+
+.HelpB2 {
+  width: 25vh;
+  transform: translateY(20%);
 }
