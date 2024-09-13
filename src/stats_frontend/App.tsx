@@ -7,7 +7,7 @@ import UserDetailsModal from './components/UserDetailsModal.tsx';
 import MissionChart from './components/MissionChart.tsx';
 import { useFetchData } from './hooks/useFetchData.ts';
 import { useFetchUserDetails } from './hooks/useFetchUserDetails.ts';
-import { SerializedUser } from './types.ts';
+import { SerializedUser } from '../declarations/backend/backend.did.js';
 
 // Import Chart.js components
 import { Chart as ChartJS, LinearScale, BarElement, CategoryScale, Title, Tooltip, Legend } from 'chart.js';

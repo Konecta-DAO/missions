@@ -1,5 +1,5 @@
 import React from 'react';
-import { SerializedUser, SerializedProgress } from '../types.ts';
+import { SerializedUser, SerializedProgress } from '../../declarations/backend/backend.did.js';
 
 interface UserDetailsModalProps {
   user: SerializedUser | null;
@@ -15,16 +15,13 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, progress, twe
   return (
     <div className="modal">
       <div className="modal-content">
-        <h3>User Details for {user.id}</h3>
+        <h3>User Details for {user.id.toString()}</h3>
         <h4>Mission Progress</h4>
         <ul>
           {progress.map((p, index) => (
             <li key={index}>
               Mission ID: {p.missionId.toString()},
-              Done: {p.progress.done.toString()},
-              Total Earned: {p.progress.totalearned.toString()},
-              Times Completed: {p.progress.amountOfTimes.toString()},
-              Timestamp: {new Date(Number(p.progress.timestamp) / 1_000_000).toLocaleString()}
+
             </li>
           ))}
         </ul>

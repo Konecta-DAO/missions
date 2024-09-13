@@ -1,12 +1,12 @@
 import { Actor } from "@dfinity/agent";
-import { idlFactory, canisterId } from "../../../../declarations/backend/index.js";
+import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any) => {
-        const principal = globalID.principalId;
 
+        const principal = globalID.principalId;
         try {
-            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2/", {
+            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-follow/", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -20,57 +20,57 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", (event) => {
+            const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
-                const { accessToken, refreshToken } = event.data;
+                const { accessToken, refreshToken, result } = event.data;
+                if (result) {
+                    alert("Success!")
+                } else {
+                    alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                }
 
-                // Store tokens in localStorage
+                window.removeEventListener("message", handleEvent);
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
 
-                // Close popup and navigate
                 popup?.close();
+
                 navigate("/");
-            });
+            }
+
+            window.addEventListener("message", handleEvent);
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
     verifyPFP: async (globalID: any, navigate: any, fetchData: any) => {
-
-        if (!fetchData) {
-            console.error("FetchData is not defined");
-            return;
-        }
-
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
-        });
-
-        if (globalID.agent !== null) {
-            const principal = await globalID.agent.getPrincipal();
-            const pfpStatus = await fetchData.fetchUserPFPstatus(actor, principal);
-
-            if (pfpStatus === "verified") {
-                console.log("PFP successfully verified.");
-                navigate("/");
-            } else if (globalID.userPFPstatus === "loading") {
-                alert("PFP status is loading. Please wait.");
-            }
+        })
+        if (globalID.userPFPstatus === "false") {
+            globalID.setPFPstatus = await fetchData.fetchUserPFPstatus(actor, globalID.principalId);
+            alert("PFP status not verified. Please upload your updated profile picture or wait for manual verification if you already did.");
+        } else {
+            alert("PFP status sucessfully set. You will soon be manually verified");
         }
+        navigate("/");
     },
 
     verifyPFPTW: async (globalID: any, navigate: any, fetchData: any) => {
-
+        const principal = globalID.principalId;
         try {
             const response = await fetch(
-                "https://do.konecta.one/requestTwitterAuth-v2-pfp",
+                "https://do.konecta.one/requestTwitterAuth-v2-pfp-tweet",
                 {
-                    method: "GET",
+                    method: "POST",
                     credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ principal }),
                 }
             );
 
@@ -79,19 +79,25 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", (event) => {
+            const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
-                const { result } = event.data;
-
+                const { accessToken, refreshToken, result } = event.data;
                 if (result) {
-                    console.log("Mission 3: PFP Verified (Twitter)");
-                    popup?.close();
-                    navigate("/");
+                    alert("Success!")
                 } else {
-                    alert("You have not tweeted the message yet.");
+                    alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                 }
-            });
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+
+                navigate("/");
+            }
+
+            window.addEventListener("message", handleEvent);
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
@@ -99,12 +105,17 @@ const MissionFunctionsComponent = {
 
     vfTweet: async (globalID: any, navigate: any, fetchData: any) => {
 
+        const principal = globalID.principalId;
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-vft",
                 {
-                    method: "GET",
+                    method: "POST",
                     credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ principal }),
                 }
             );
 
@@ -113,19 +124,30 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
-            window.addEventListener("message", (event) => {
+            const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
-                const { result } = event.data;
-
-                if (result) {
-                    console.log("Mission 4: Tweet Verified");
-                    popup?.close();
-                    navigate("/");
+                const { accessToken, refreshToken, result } = event.data;
+                if (result === 'true') {
+                    alert("Success!")
                 } else {
-                    alert("You have not tweeted the message yet.");
+                    if (result === 'notw') {
+                        alert("No Tweet Found!")
+                    } else {
+                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    }
                 }
-            });
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+
+                navigate("/");
+            }
+
+            window.addEventListener("message", handleEvent);
+
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
@@ -133,12 +155,18 @@ const MissionFunctionsComponent = {
 
     verRT: async (globalID: any, navigate: any, fetchData: any) => {
 
+        const principal = globalID.principalId;
+
         try {
             const response = await fetch(
                 "https://do.konecta.one/requestTwitterAuth-v2-trt",
                 {
-                    method: "GET",
+                    method: "POST",
                     credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ principal }),
                 }
             );
 
@@ -146,23 +174,33 @@ const MissionFunctionsComponent = {
             const authURL = data.authURL;
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
-
-            window.addEventListener("message", (event) => {
+            const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
-                const { result } = event.data;
-
+                const { accessToken, refreshToken, result } = event.data;
                 if (result) {
-                    console.log("Mission 5: Retweet Verified");
-                    popup?.close();
-                    navigate("/");
+                    alert("Success!")
                 } else {
-                    alert("You have not retweeted the message yet.");
+                    alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                 }
-            });
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+
+                navigate("/");
+            }
+
+            window.addEventListener("message", handleEvent);
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
+    },
+
+    sendKamiDM: async (globalID: any, navigate: any, fetchData: any) => {
+        const url = 'https://x.com/messages/compose?recipient_id=1828134613375488000&text=Kami%2C%20I%27m%20on%20a%20mission%20for%20a%20killer%20profile%20pic.%20Let%E2%80%99s%20make%20it%20happen!';
+        window.open(url, '_blank');
     },
 };
 

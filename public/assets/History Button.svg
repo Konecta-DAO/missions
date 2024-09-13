@@ -1,63 +1,77 @@
-<svg width="84" height="95" viewBox="0 0 84 95" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g filter="url(#filter0_d_315_9970)">
-        <g filter="url(#filter1_i_315_9970)">
-            <path
-                d="M42.073 5L76.7772 25.0365V65.1095L42.073 85.146L7.36876 65.1095V25.0365L42.073 5Z"
-                fill="url(#paint0_radial_315_9970)" />
-        </g>
-        <path
-            d="M7.71722 25.2377L42.073 5.40237L76.4287 25.2377V64.9083L42.073 84.7436L7.71722 64.9083V25.2377Z"
-            stroke="#201F34" stroke-width="0.696922" />
-        <path
-            d="M14.1012 28.9235L42.073 12.7739L70.0448 28.9235V61.2225L42.073 77.372L14.1012 61.2225V28.9235Z"
-            stroke="#201F34" stroke-width="1.39384" />
-        <mask id="path-4-inside-1_315_9970" fill="white">
-            <rect x="25.9712" y="30.3647" width="29.2707" height="31.3615" rx="1.39384" />
-        </mask>
-        <rect x="25.9712" y="30.3647" width="29.2707" height="31.3615" rx="1.39384" stroke="#201F34"
-            stroke-width="4.18153" mask="url(#path-4-inside-1_315_9970)" />
-        <path d="M31.895 39.0762H49.3181" stroke="#201F34" stroke-width="2.09076"
-            stroke-linecap="round" />
-        <path d="M31.895 43.6061H49.3181" stroke="#201F34" stroke-width="2.09076"
-            stroke-linecap="round" />
-        <path d="M31.895 48.1361H49.3181" stroke="#201F34" stroke-width="2.09076"
-            stroke-linecap="round" />
-        <path d="M31.895 52.6661H49.3181" stroke="#201F34" stroke-width="2.09076"
-            stroke-linecap="round" />
-        <path d="M31.5464 27.577H56.6356C57.4054 27.577 58.0294 28.201 58.0294 28.9708V53.3631"
-            stroke="#201F34" stroke-width="2.09076" stroke-linecap="round" />
-    </g>
-    <defs>
-        <filter id="filter0_d_315_9970" x="-4.96922" y="0.818471" width="94.0844" height="94.0844"
-            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-            <feFlood flood-opacity="0" result="BackgroundImageFix" />
-            <feColorMatrix in="SourceAlpha" type="matrix"
-                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
-            <feOffset dy="2.78769" />
-            <feGaussianBlur stdDeviation="3.48461" />
-            <feComposite in2="hardAlpha" operator="out" />
-            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_315_9970" />
-            <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_315_9970"
-                result="shape" />
-        </filter>
-        <filter id="filter1_i_315_9970" x="7.36865" y="5" width="69.4087" height="80.146"
-            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-            <feFlood flood-opacity="0" result="BackgroundImageFix" />
-            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-            <feColorMatrix in="SourceAlpha" type="matrix"
-                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
-            <feOffset />
-            <feGaussianBlur stdDeviation="6.96922" />
-            <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
-            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0" />
-            <feBlend mode="normal" in2="shape" result="effect1_innerShadow_315_9970" />
-        </filter>
-        <radialGradient id="paint0_radial_315_9970" cx="0" cy="0" r="1"
-            gradientUnits="userSpaceOnUse"
-            gradientTransform="translate(42.073 45.073) rotate(90) scale(40.073)">
-            <stop stop-color="#DBE02D" />
-            <stop offset="1" stop-color="#DB7A2D" />
-        </radialGradient>
-    </defs>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 28.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="HistoryButton" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+	 y="0px" viewBox="0 0 249.6 288.2" style="enable-background:new 0 0 249.6 288.2;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:url(#SVGID_1_);stroke:#201F34;stroke-width:2;stroke-miterlimit:10;}
+	.st1{fill:#201F34;}
+	.st2{filter:url(#Adobe_OpacityMaskFilter);}
+	.st3{opacity:0.75;mask:url(#SVGID_00000070797198434276626090000010745757252577074071_);}
+	.st4{fill:#27242D;stroke:#27242D;stroke-width:2;stroke-miterlimit:10;}
+	.st5{fill:#27242D;}
+	.st6{fill:#FFFFFF;filter:url(#Adobe_OpacityMaskFilter_00000015345147624854222620000001094759154430120838_);}
+	
+		.st7{mask:url(#path-4-inside-1_315_9970_00000153678485542667321100000013913442570235778239_);fill:none;stroke:#201F34;stroke-width:16.0213;}
+	.st8{fill:none;stroke:#201F34;stroke-width:8.0106;stroke-linecap:round;}
+</style>
+<g id="Button">
+	<g>
+		<g>
+			
+				<radialGradient id="SVGID_1_" cx="123.8751" cy="107.8206" r="112.979" fx="123.9214" fy="4.6956" gradientUnits="userSpaceOnUse">
+				<stop  offset="0" style="stop-color:#DBE02D"/>
+				<stop  offset="0.3925" style="stop-color:#DBB72D"/>
+				<stop  offset="1" style="stop-color:#DB7A2D"/>
+			</radialGradient>
+			<polygon class="st0" points="248.6,215.6 248.6,72.6 124.8,1.2 1,72.6 1,215.6 124.8,287.1 			"/>
+			<g>
+				<path class="st1" d="M124.8,24.2l103.8,59.9v119.9L124.8,264L21,204.1V84.2L124.8,24.2 M124.8,18.5L16,81.3v125.6l108.8,62.8
+					l108.8-62.8V81.3L124.8,18.5L124.8,18.5z"/>
+			</g>
+		</g>
+	</g>
+	<defs>
+		<filter id="Adobe_OpacityMaskFilter" filterUnits="userSpaceOnUse" x="0" y="0" width="249.6" height="288.2">
+			
+				<feColorMatrix  type="matrix" values="-1 0 0 0 1  0 -1 0 0 1  0 0 -1 0 1  0 0 0 1 0" color-interpolation-filters="sRGB" result="source"/>
+		</filter>
+	</defs>
+	
+		<mask maskUnits="userSpaceOnUse" x="0" y="0" width="249.6" height="288.2" id="SVGID_00000047020475631804608150000002498559737979953074_">
+		<g class="st2">
+			<image style="overflow:visible;" width="254" height="294" xlink:href="373914F3.jpg"  transform="matrix(1 0 0 1 -2 -2.76)">
+			</image>
+		</g>
+	</mask>
+	<g style="opacity:0.75;mask:url(#SVGID_00000047020475631804608150000002498559737979953074_);">
+		<g>
+			<polygon class="st4" points="248.6,215.6 248.6,72.6 124.8,1.2 1,72.6 1,215.6 124.8,287.1 			"/>
+			<g>
+				<path class="st5" d="M124.8,24.2l103.8,59.9v119.9L124.8,264L21,204.1V84.2L124.8,24.2 M124.8,18.5L16,81.3v125.6l108.8,62.8
+					l108.8-62.8V81.3L124.8,18.5L124.8,18.5z"/>
+			</g>
+		</g>
+	</g>
+</g>
+<g id="HistoryIcon">
+	<defs>
+		
+			<filter id="Adobe_OpacityMaskFilter_00000133503310571060508880000011531157864415589785_" filterUnits="userSpaceOnUse" x="55.4" y="81.4" width="128.2" height="136.2">
+			<feColorMatrix  type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+		</filter>
+	</defs>
+	
+		<mask maskUnits="userSpaceOnUse" x="55.4" y="81.4" width="128.2" height="136.2" id="path-4-inside-1_315_9970_00000153678485542667321100000013913442570235778239_">
+		<path style="fill:#FFFFFF;filter:url(#Adobe_OpacityMaskFilter_00000133503310571060508880000011531157864415589785_);" d="
+			M68.7,89.4h101.5c2.9,0,5.3,2.4,5.3,5.3v109.5c0,2.9-2.4,5.3-5.3,5.3H68.7c-2.9,0-5.3-2.4-5.3-5.3V94.7
+			C63.4,91.8,65.8,89.4,68.7,89.4z"/>
+	</mask>
+	<path class="st7" d="M68.7,89.4h101.5c2.9,0,5.3,2.4,5.3,5.3v109.5c0,2.9-2.4,5.3-5.3,5.3H68.7c-2.9,0-5.3-2.4-5.3-5.3V94.7
+		C63.4,91.8,65.8,89.4,68.7,89.4z"/>
+	<path class="st8" d="M86.1,122.8h66.8"/>
+	<path class="st8" d="M86.1,140.1h66.8"/>
+	<path class="st8" d="M86.1,157.5h66.8"/>
+	<path class="st8" d="M86.1,174.8h66.8"/>
+	<path class="st8" d="M84.8,78.7h96.1c2.9,0,5.3,2.4,5.3,5.3v93.5"/>
+</g>
 </svg>

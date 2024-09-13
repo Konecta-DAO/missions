@@ -14,39 +14,40 @@ export const FetchData = () => {
     };
 
     // Fetch user progress
-    const fetchUserProgress = async (actor: ActorSubclass, ae: Principal, agent: any) => {
+    const fetchUserProgress = async (actor: ActorSubclass, ae: Principal) => {
         const userProgress: [bigint, SerializedProgress][] = await actor.getUserProgress(ae) as [bigint, SerializedProgress][];
         globalID.setUserProgress(userProgress);
     };
 
     // Fetch user details
-    const fetchUser = async (actor: ActorSubclass, ae: Principal, agent: any) => {
+    const fetchUser = async (actor: ActorSubclass, ae: Principal) => {
         if (globalID.user !== null) {
             const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
             globalID.setPrincipal(ae);
             globalID.setUser(user);
+            globalID.setTwitterHandle(user[0].twitterhandle?.length ? user[0].twitterhandle[0].toString() : '');
         };
     };
 
     // Fetch user seconds
 
-    const fetchUserSeconds = async (actor: ActorSubclass, ae: Principal, agent: any) => {
+    const fetchUserSeconds = async (actor: ActorSubclass, ae: Principal) => {
         const userSeconds: bigint = await actor.getTotalSecondsForUser(ae) as bigint;
         globalID.setTimerText(convertSecondsToHMS(Number(userSeconds)));
     };
 
     const fetchUserPFPstatus = async (actor: ActorSubclass, ae: Principal) => {
-        const userPFPstatus: string = await actor.getPFPProgress(ae) as string;
+        const userPFPstatus = await actor.setPFPProgressLoading(ae) as string;
         globalID.setPFPstatus(userPFPstatus);
         return userPFPstatus;
     };
 
-    const fetchall = async (actor: ActorSubclass, ae: Principal, agent: any, setDataloaded: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const fetchall = async (actor: ActorSubclass, ae: Principal, setDataloaded: React.Dispatch<React.SetStateAction<boolean>>) => {
 
         await fetchMissions(actor);
-        await fetchUserProgress(actor, ae, agent);
-        await fetchUser(actor, ae, agent);
-        await fetchUserSeconds(actor, ae, agent)
+        await fetchUserProgress(actor, ae);
+        await fetchUser(actor, ae);
+        await fetchUserSeconds(actor, ae)
         setDataloaded(true);
 
     };

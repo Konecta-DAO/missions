@@ -6,23 +6,22 @@ import usePTWData from '../../../../../hooks/usePTWData.tsx';
 import useTWtoRT from '../../../../../hooks/useTWtoRT.tsx';
 import MissionFunctionsComponent from '../MissionFunctionsComponent.tsx';
 import { FetchData } from '../../../../../hooks/fetchData.tsx';
+import { canisterId } from '../../../../../declarations/backend/index.js';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
 interface MissionModalProps {
     closeModal: () => void;
     selectedMissionId: bigint;
-    globalID: any;
 }
 
-const BASE_URL = process.env.CANISTER_ID_BACKEND;
+const BASE_URL = canisterId;
 
-const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, globalID }) => {
+const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId }) => {
+    const globalID = useGlobalID();
     const navigate = useNavigate();
     const fetchData = FetchData();
     const missions = globalID.missions;
-
     const mission = missions ? missions.find((m: { id: bigint; }) => m.id === selectedMissionId) : undefined;
-
-
-
     useEffect(() => {
         if (!mission) {
             navigate('/Missions');
@@ -33,30 +32,16 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
     const missionId = BigInt(mission.id);
 
-    const missionCompleted = globalID.userProgress?.some(([idTuple]: any) => {
-        const id = Array.isArray(idTuple) ? idTuple[0] : idTuple;
-        return BigInt(id) === missionId;
-    }) ?? false;
+    const missionCompleted = checkMissionCompletion(globalID.userProgress, missionId);
 
-    let requiredMissionCompleted = true;
-    const requiredMissionId = mission.requiredPreviousMissionId?.[0];
-
-    if (requiredMissionId !== undefined) {
-        requiredMissionCompleted = globalID.userProgress?.some(([idTuple]: any) => {
-            const id = Array.isArray(idTuple) ? idTuple[0] : idTuple;
-            return BigInt(id) === BigInt(requiredMissionId);
-        }) ?? false;
-    }
-
-    const isAvailableMission = !missionCompleted && requiredMissionCompleted;
+    const { requiredMissionCompleted } = checkRequiredMissionCompletion(globalID, mission);
 
     // If mission is not available, navigate away
     useEffect(() => {
-        if (!isAvailableMission) {
+        if (!requiredMissionCompleted && !missionCompleted) {
             navigate('/Missions');
         }
-    }, [isAvailableMission, navigate]);
-
+    }, [requiredMissionCompleted, missionCompleted, navigate]);
 
     const gradientStartColor = getGradientStartColor(Number(mission.mode));
     const gradientEndColor = getGradientEndColor(Number(mission.mode));
@@ -151,14 +136,14 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     return (
         <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
             <div className={styles.MissionModal}>
-                {/* Close Button */}
-                <button className={styles.CloseButton} onClick={closeModal}>
-                    &times;
-                </button>
 
                 {/* Mission Image */}
                 <div className={styles.MissionImageWrapper}>
-                    <img src={`${BASE_URL}${mission.image}`} alt="Mission Image" className={styles.MissionImage} />
+                    <img
+                        src={`https://${BASE_URL}.raw.icp0.io${mission.image}`}
+                        alt="Mission Image"
+                        className={styles.MissionImage}
+                    />
                     <div
                         className={styles.GradientOverlay}
                         style={{

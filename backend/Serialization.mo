@@ -13,6 +13,7 @@ module Serialization {
       twitterhandle = user.twitterhandle;
       creationTime = user.creationTime;
       pfpProgress = user.pfpProgress;
+      totalPoints = user.totalPoints;
     };
   };
 
@@ -23,6 +24,7 @@ module Serialization {
       var twitterhandle = serializedUser.twitterhandle;
       creationTime = serializedUser.creationTime;
       var pfpProgress = serializedUser.pfpProgress;
+      var totalPoints = serializedUser.totalPoints;
     };
   };
 

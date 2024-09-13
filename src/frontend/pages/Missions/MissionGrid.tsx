@@ -4,16 +4,15 @@ import Mission from './Components/Mission/Mission.tsx';
 import { useState } from 'react';
 import MissionModal from './Components/MissionModal/MissionModal.tsx';
 import { useNavigate } from 'react-router-dom';
+import { useGlobalID } from '../../../hooks/globalID.tsx';
 
 interface MissionGridProps {
-    globalID: {
-        userProgress: Array<[bigint, SerializedProgress]> | null;
-        missions: SerializedMission[];
-    };
+
     handleCardClick: (id: string) => void;
 }
 
-const MissionGridComponent: React.FC<MissionGridProps> = ({ globalID, handleCardClick }) => {
+const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) => {
+    const globalID = useGlobalID();
     const [selectedMission, setSelectedMission] = useState<any | null>(null);
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
@@ -28,6 +27,7 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ globalID, handleCard
     const handleMissionClick = (mission: any) => {
         setSelectedMission(mission);
         handleCardClick(mission.id);
+
     };
 
     const handleMouseLeave = () => {
@@ -42,17 +42,18 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ globalID, handleCard
 
     return (
         <div className={styles.MissionGrid}>
-            {globalID.missions.map((mission: any) => (
-                <Mission
-                    key={mission.id}
-                    mission={mission}
-                    globalID={globalID}
-                    handleCardClick={() => handleMissionClick(mission)}
-                    handleMouseMove={handleMouseMove}
-                    handleMouseLeave={handleMouseLeave}
-                />
-
-            ))}
+            {globalID.missions
+                .sort((a: any, b: any) => Number(a.id) - Number(b.id))
+                .map((mission: any) => (
+                    <Mission
+                        key={mission.id}
+                        mission={mission}
+                        handleCardClick={() => handleMissionClick(mission)}
+                        handleMouseMove={handleMouseMove}
+                        handleMouseLeave={handleMouseLeave}
+                    />
+                ))
+            }
             {tooltipContent && tooltipPosition && (
                 <div className={styles.Tooltip} style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
                     {tooltipContent}
@@ -63,7 +64,6 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ globalID, handleCard
                 <MissionModal
                     selectedMissionId={BigInt(selectedMission.id)}
                     closeModal={closeModal}
-                    globalID={globalID}
                 />
 
             )}

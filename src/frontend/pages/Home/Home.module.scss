@@ -71,8 +71,11 @@ $animation-timing-function: ease-in-out;
 }
 
 .HelpButtons {
-  position: relative;
+  position: absolute;
   z-index: 5;
+  right: 0%;
+  scale: 50%;
+  top: 9%
 }
 
 .TextWrapper {
@@ -148,4 +151,8 @@ $animation-timing-function: ease-in-out;
 .KonectaLogo {
   width: 300px;
   height: auto;
+}
+
+.HelpButtonContainer {
+  transform: translateY(25%);
 }

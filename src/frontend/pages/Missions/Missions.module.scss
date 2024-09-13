@@ -59,7 +59,9 @@
 
 .MissionGrid {
     position: absolute;
-    top: 7.5vw;
+    bottom: 2vw;
+    height: 77%;
+    overflow-y: auto;
     left: 3vw;
     width: 67vw;
     display: grid;
@@ -187,28 +189,41 @@
 }
 
 .CustomKonectaInfoButton {
-
-    right: 10.5vw;
+    scale: 30%;
     position: absolute;
-    scale: 84%;
-    top: -7.2vw;
-
+    right: 12.3125%;
+    transform: translateY(-85%);
 }
 
-
 .CustomHelpButton {
+    scale: 30%;
     position: absolute;
-    top: -15.15vw;
-    left: 98vw;
-    scale: 88%;
+    right: 2.4375%;
+    transform: translateY(-85%);
+}
+
+.CustomKamiButton {
+    scale: 30%;
+    position: absolute;
+    right: 7.375%;
+    transform: translateY(-85%);
 }
 
 .CustomHistoryButton {
-    right: 18vw;
+    scale: 30%;
     position: absolute;
-    transform: translateX(10px);
-    top: -9.25vw;
+    right: 17.25%;
+    transform: translateY(-85%);
 }
+
+.CustomLogOutButton {
+    scale: 30%;
+    position: absolute;
+    right: -2%;
+    transform: translateY(-85%);
+}
+
+
 
 .MissionTitleWrapper {
     background-color: rgba(21, 19, 32, 0.85);

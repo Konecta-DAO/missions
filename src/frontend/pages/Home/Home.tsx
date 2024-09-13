@@ -25,25 +25,20 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
-  const { identity, user } = useIdentityKit();
+  const { identity, user, disconnect } = useIdentityKit();
   const globalID = useGlobalID();
   const { loadingPercentage, loadingComplete } = useLoadingProgress();
 
   const setData = (agent: HttpAgent) => {
-    console.log("final");
-    console.log("agent", agent);
     if (agent) {
       const actor = Actor.createActor(idlFactory, {
         agent: agent!,
         canisterId,
       });
-      console.log("ahora aca");
       agent.getPrincipal().then((a) => {
-        console.log("tengoprincipal" + a);
         globalID.setPrincipal(a);
 
         (actor.getUser(a) as Promise<SerializedUser[]>).then((b) => {
-          console.log("tengo user" + b);
           if (Array.isArray(b) && b.length !== 0) {
             globalID.setPrincipal(a);
             globalID.setUser(b);
@@ -69,14 +64,21 @@ const Home: React.FC = () => {
 
 
   useEffect(() => {
-    console.log("toy aqui");
+    console.log("User: ", user);
+    console.log("Identity: ", identity);
+    console.log("PRincipal", user?.principal.toText());
+    console.log("Anonimo: ", user?.principal.isAnonymous());
+    console.log("Agente: ", globalID.agent);
     const fetchData = async () => {
-      if (user?.principal) {
-        console.log("principal", user?.principal);
-        console.log("identity", identity);
-        const agent = HttpAgent.createSync({ identity });
-        console.log("preagent", agent);
-        setData(agent);
+      console.log(identity?.getPrincipal())
+      if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
+        if (identity.getPrincipal().toText() !== "2vxsx-fae") {
+          const agent = HttpAgent.createSync({ identity });
+          setData(agent);
+        }else{
+          disconnect();
+        }
+
       }
     };
     fetchData();
@@ -112,7 +114,7 @@ const Home: React.FC = () => {
     }
   };
 
-  if (user?.principal != undefined) {
+  if (user?.principal !== undefined) {
     return <LoadingOverlay loadingPercentage={loadingPercentage} />;
   }
 
@@ -159,8 +161,12 @@ const Home: React.FC = () => {
               </div>
             </div>
             <div className={styles.HelpButtons}>
-              <KonectaInfoButton onClick={handleKonectaClick} />
-              <HelpButton onClick={handleHelpClick} />
+              <div className={styles.KonecB}>
+                <KonectaInfoButton onClick={handleKonectaClick} />
+              </div>
+              <div className={styles.HelpB}>
+                <HelpButton onClick={handleHelpClick} />
+              </div>
             </div>
           </>
         )}

@@ -59,8 +59,8 @@
     position: absolute;
     top: -1%;
     left: -0.5%;
-    width: 100%;
-    height: 100%;
+    width: 101%;
+    height: 101%;
     border-radius: 50px;
     padding: 8px;
     background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF);
@@ -197,8 +197,8 @@
     border-radius: 15px;
     position: absolute;
     font-size: 14px;
-    top: 10px;
     left: 260px;
+    transform: translateY(-214%);
 }
 
 .PointsEarned {

@@ -1,6 +1,7 @@
 import { Principal } from '@dfinity/principal';
 import React, { createContext, useState, useContext } from 'react';
 import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
+import { HttpAgent } from '@dfinity/agent';
 
 interface GlobalIDType {
     principalId: Principal | null;
@@ -17,6 +18,8 @@ interface GlobalIDType {
     setTwitterHandle: (handle: string) => void;
     userPFPstatus: string;
     setPFPstatus: (status: string) => void;
+    agent: HttpAgent | null;
+    setAgent: (agent: HttpAgent) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -29,6 +32,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [timerText, setTimerText] = useState<string>('LOADING');
     const [twitterhandle, setTwitterHandle] = useState<string | null>('');
     const [userPFPstatus, setPFPstatus] = useState<string>('');
+    const [agent, setAgent] = useState<HttpAgent | null>(null);
 
     return (
         <GlobalID.Provider
@@ -47,6 +51,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setTwitterHandle,
                 userPFPstatus,
                 setPFPstatus,
+                agent,
+                setAgent,
             }}
         >
             {children}

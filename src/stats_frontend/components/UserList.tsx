@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { SerializedUser } from '../types.ts';
+import { SerializedUser } from '../../declarations/backend/backend.did.js';
 
 interface UserListProps {
   users: SerializedUser[];
@@ -25,7 +25,7 @@ const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesHandle = user.twitterhandle.toLowerCase().includes(searchHandle.toLowerCase());
+    const matchesHandle = user.twitterhandle[0]?.toLowerCase().includes(searchHandle.toLowerCase());
     const matchesDate = (!startDate || new Date(Number(user.creationTime) / 1_000_000) >= startDate) && (!endDate || new Date(Number(user.creationTime) / 1_000_000) <= endDate);
     return matchesHandle && matchesDate;
   });
@@ -56,9 +56,7 @@ const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
         </thead>
         <tbody>
           {filteredUsers.map(user => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.seconds.toString()}</td>
+            <tr key={user.id.toString()}>
               <td>{user.twitterid.toString()}</td>
               <td>{user.twitterhandle}</td>
               <td>{new Date(Number(user.creationTime) / 1_000_000).toLocaleString()}</td>

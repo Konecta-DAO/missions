@@ -1,38 +1,54 @@
+import { SerializedProgress } from "../../../declarations/backend/backend.did.js";
+
 // Utility function to check mission completion
-export const checkMissionCompletion = (userProgress: any, missionId: bigint) => {
-    return Array.isArray(userProgress)
-        ? userProgress.some((nestedEntry: any) => {
-            if (Array.isArray(nestedEntry) && Array.isArray(nestedEntry[0])) {
-                const [progressId, progress] = nestedEntry[0];
-                return BigInt(progressId) === missionId && progress.completionHistory.length > 0;
-            }
+export const checkMissionCompletion = (userProgress: any, missionId: bigint): boolean => {
+    if (!Array.isArray(userProgress)) {
+        console.error("userProgress is not an array");
+        return false;
+    }
+    const a = userProgress[0].some(([progressId, progress]: [bigint, SerializedProgress]) => {
+        if (progressId === missionId) {
+            return true;
+        } else {
             return false;
-        })
-        : false;
+        }
+    });
+    return a;
 };
+
 
 // Utility function to check required mission completion
 export const checkRequiredMissionCompletion = (globalID: any, mission: any) => {
     let requiredMissionCompleted = true; // Assume no required mission or it's completed
     let requiredMissionTitle = '';
 
-    const requiredMissionId = mission.requiredPreviousMissionId?.[0];
-    if (requiredMissionId !== undefined) {
+    const requiredMissionId = mission.requiredPreviousMissionId[0];
+    // Check if the required mission is not the same as the current mission
+    if (requiredMissionId !== undefined && BigInt(requiredMissionId) !== BigInt(mission.id)) {
         const requiredMissionBigInt = BigInt(requiredMissionId);
         const requiredMission = globalID.missions.find((m: any) => BigInt(m.id) === requiredMissionBigInt);
         requiredMissionTitle = requiredMission?.title ?? '';
-
-        requiredMissionCompleted = globalID.userProgress?.some((nestedEntry: any) => {
-            if (Array.isArray(nestedEntry) && Array.isArray(nestedEntry[0])) {
-                const [progressId, progress] = nestedEntry[0];
-                return BigInt(progressId) === requiredMissionBigInt && progress.completionHistory.length > 0;
+        const b = globalID.userProgress[0].some(([progressId, progress]: [bigint, SerializedProgress]) => {
+            if (progressId === requiredMission.id) {
+                return true;
+            } else {
+                return false;
             }
-            return false;
-        }) ?? false;
+        });
+        requiredMissionCompleted = b;
+
+        // requiredMissionCompleted = globalID.userProgress?.some((nestedEntry: any) => {
+        //     if (Array.isArray(nestedEntry) && Array.isArray(nestedEntry[0])) {
+        //         const [progressId, progress] = nestedEntry[0];
+        //         return BigInt(progressId) === requiredMissionBigInt && progress.completionHistory.length > 0;
+        //     }
+        //     return false;
+        // }) ?? false;
     }
 
     return { requiredMissionCompleted, requiredMissionTitle };
 };
+
 
 // Utility function for recursive mission
 export const checkRecursiveMission = (mission: any, missionCompleted: boolean) => {

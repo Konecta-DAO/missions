@@ -2,16 +2,18 @@ import React, { useEffect } from 'react';
 import styles from '../../Missions.module.scss';
 import { checkMissionCompletion, checkRequiredMissionCompletion, checkRecursiveMission } from '../../missionUtils.ts';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
+import { canisterId } from '../../../../../declarations/backend/index.js';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 
 const Mission: React.FC<{
     mission: any,
-    globalID: any,
     handleCardClick: (id: string) => void,
     handleMouseMove: (e: React.MouseEvent, content: string | null) => void,
     handleMouseLeave: () => void,
 
-}> = ({ mission, globalID, handleCardClick, handleMouseMove, handleMouseLeave }) => {
-    const BASE_URL = process.env.CANISTER_ID_BACKEND;
+}> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave }) => {
+    const globalID = useGlobalID();
+    const BASE_URL = canisterId;
     const missionId = BigInt(mission.id);
 
     // Check if the current mission is completed
@@ -43,18 +45,23 @@ const Mission: React.FC<{
     return (
         <div
             className={`${styles.MissionCard} ${missionClass}`}
-            style={{ backgroundImage: `url(${BASE_URL}${mission.image})` }}
+            style={{ backgroundImage: `url(https://${BASE_URL}.raw.icp0.io${mission.image})` }}
             onClick={() => {
                 if (missionCompleted || isAvailableMission) {
                     handleCardClick(mission.id.toString());
                 }
             }}
+
             onMouseMove={(e) => handleMouseMove(e, tooltipText)}
             onMouseLeave={handleMouseLeave}
 
         >
             {/* Mission Icon */}
-            <img src={`${BASE_URL}${mission.iconUrl}`} alt="Mission Icon" className={styles.MissionIcon} />
+            <img
+                src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
+                alt="Mission Icon"
+                className={styles.MissionIcon}
+            />
 
             {/* Gradient Circle */}
             <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">

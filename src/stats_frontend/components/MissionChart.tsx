@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
-import { SerializedMission } from '../types.ts';
+import { SerializedMission } from '../../declarations/backend/backend.did.js';
 
 interface MissionChartProps {
   missions: SerializedMission[];

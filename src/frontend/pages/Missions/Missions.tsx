@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
 import TimeCapsule from '../../../../public/assets/Time Capsule.svg';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
-import MissionModal from './Components/MissionModal/MissionModal.tsx';
 import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton.tsx';
 import HelpButton from '../../components/HelpButton/HelpButton.tsx';
 import HistoryButton from '../../components/HistoryButton/HistoryButton.tsx';
@@ -18,52 +17,60 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
 import useIsMobile from '../../../hooks/useIsMobile.tsx';
 import MissionGridComponent from './MissionGrid.tsx';
+import KamiButton from '../../components/KamiButton/KamiButton.tsx';
+import LogoutButton from '../../components/LogoutButton/LogoutButton.tsx';
+import KonectaModal from './Components/KonectaModal/KonectaModal.tsx';
+import InfoModal from './Components/InfoModal/InfoModal.tsx';
 
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const isMobile = useIsMobile();
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
-    const { user, identity } = useIdentityKit();
+    const [isKonectaModalOpen, setKonectaModalOpen] = useState(false);
+    const [isInfoModalOpen, setInfoModalOpen] = useState(false);
+    const { user, identity, disconnect } = useIdentityKit();
     const navigate = useNavigate();
     const fetchData = FetchData();
     const [isIdentityChecked, setIsIdentityChecked] = useState(false);
     const [dataloaded, setDataloaded] = useState(false);
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
-    const [agent, setAgent] = useState<HttpAgent | null>(null);
 
     useEffect(() => {
         // Wait until the identity check is complete
-        if (user?.principal !== undefined && agent !== null) {
-            fetchUserData();
-            setIsIdentityChecked(true); // Identity is valid and checked
-        } else if (isIdentityChecked && !user?.principal && !agent) {
-            navigate('/');
+        if (globalID.agent !== null && isIdentityChecked) {
+            if (identity === undefined) {
+                console.log('Entró a esta vaina x99', identity);
+                navigate('/');
+            } else {
+                fetchUserData(globalID.agent);
+            }
         }
-    }, [user?.principal, agent, isIdentityChecked]);
+    }, [isIdentityChecked, globalID.agent]);
 
     // useEffect to simulate waiting for IdentityKit to initialize
     useEffect(() => {
         const checkIdentity = async () => {
-            if (user?.principal === undefined) {
+            console.log('Identity pre vaina', identity);
+            if (user?.principal === undefined && identity === undefined) {
+                console.log('Entró a esta vaina', identity);
                 setIsIdentityChecked(false);
             } else {
+                const a = HttpAgent.createSync({ identity });
+                globalID.setAgent(a);
                 setIsIdentityChecked(true);
-                setAgent(await HttpAgent.create({ identity }));
             }
         };
         checkIdentity();
-    }, [user?.principal]);
+    }, [user, identity]);
 
-    const fetchUserData = async () => {
+    const fetchUserData = async (agent: HttpAgent) => {
         if (fetchData) {
             const actor = Actor.createActor(idlFactory, {
-                agent: agent!,
+                agent: agent,
                 canisterId,
             })
-            if (agent !== null) {
-                const ae = await agent.getPrincipal();
-                await fetchData.fetchall(actor, ae, agent, setDataloaded);
-            }
+            const ae = await agent.getPrincipal();
+            await fetchData.fetchall(actor, ae, setDataloaded);
         }
     };
 
@@ -82,12 +89,27 @@ const Missions: React.FC = () => {
         setHistoryModalOpen(false);
     };
 
+    const openKonectaModal = () => {
+        setKonectaModalOpen(true);
+    };
+
+    const closeKonectaModal = () => {
+        setKonectaModalOpen(false);
+    };
+
+    const openInfoModal = () => {
+        setInfoModalOpen(true);
+    };
+
+    const closeInfoModal = () => {
+        setInfoModalOpen(false);
+    };
+
     if (!loadingComplete) {
         return <LoadingOverlay loadingPercentage={loadingPercentage} />;
     }
 
     return (
-
         <>
             {!isMobile ? (
                 <>
@@ -95,19 +117,33 @@ const Missions: React.FC = () => {
                         <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
                     </div>
                     <div className={styles.MainDiv}>
-                        <div className={styles.CustomKonectaInfoButton}>
-                            <KonectaInfoButton onClick={() => { }} />
-                        </div>
-                        <div className={styles.CustomHelpButton}>
-                            <HelpButton onClick={() => { }} />
-                        </div>
                         <div className={styles.CustomHistoryButton}>
                             <HistoryButton onClick={openHistoryModal} />
+                        </div>
+                        <div className={styles.CustomKonectaInfoButton}>
+                            <KonectaInfoButton onClick={openKonectaModal} />
+                        </div>
+                        <div className={styles.CustomKamiButton}>
+                            <KamiButton onClick={() => { window.open('https://chatgpt.com/g/g-S0vONPiGL-kami', '_blank'); }} />
+                        </div>
+                        <div className={styles.CustomHelpButton}>
+                            <HelpButton onClick={openInfoModal} />
+                        </div>
+                        <div className={styles.CustomLogOutButton}>
+                            <LogoutButton onClick={disconnect} />
                         </div>
                     </div>
 
                     {isHistoryModalOpen && (
                         <HistoryModal closeModal={closeHistoryModal} />
+                    )}
+
+                    {isKonectaModalOpen && (
+                        <KonectaModal closeModal={closeKonectaModal} />
+                    )}
+
+                    {isInfoModalOpen && (
+                        <InfoModal closeModal={closeKonectaModal} />
                     )}
 
                     <div className={styles.MissionsContainer}>
@@ -122,7 +158,6 @@ const Missions: React.FC = () => {
                     </div>
                     {dataloaded ? (
                         <MissionGridComponent
-                            globalID={globalID}
                             handleCardClick={handleCardClick}
                         />
                     ) : (

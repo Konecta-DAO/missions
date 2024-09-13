@@ -13,6 +13,7 @@ module Types {
     var twitterhandle : ?Text; // Twitter Handle
     creationTime : Int; // Creation Time in Nanoseconds
     var pfpProgress : Text;
+    var totalPoints : Nat;
   };
 
   public type SerializedUser = {
@@ -21,6 +22,7 @@ module Types {
     twitterhandle : ?Text;
     creationTime : Int;
     pfpProgress : Text;
+    totalPoints : Nat;
   };
 
   // Mission Types
@@ -157,7 +159,7 @@ module Types {
     headers : [(Text, Text)];
     body : Blob;
   };
-  
+
   public type UserResponse = {
     following : Bool;
     id : Nat;

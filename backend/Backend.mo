@@ -15,10 +15,13 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
-
 actor class Backend() {
 
   //
+
+  public shared func addtoA(key : Text, value : Text) : async () {
+    a.put(key, value);
+  };
 
   // Upgrade Functions
 
@@ -26,8 +29,13 @@ actor class Backend() {
 
   // Pre-upgrade function to serialize the user progress
 
-  system func preupgrade() {
+  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
 
+  var a : TrieMap.TrieMap<Text, Text> = TrieMap.TrieMap<Text, Text>(Text.equal, Text.hash);
+
+  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+
+  system func preupgrade() {
     // Serialize user progress
     let entries = Iter.toArray(userProgress.entries());
     var serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
@@ -41,7 +49,16 @@ actor class Backend() {
         let (missionId, progress) = missionEntry;
 
         let serializedProgress = {
-          completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(progress.completionHistory, func(record : Types.MissionRecord) : Types.SerializedMissionRecord { { timestamp = record.timestamp; pointsEarned = record.pointsEarned; tweetId = record.tweetId } });
+          completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(
+            progress.completionHistory,
+            func(record : Types.MissionRecord) : Types.SerializedMissionRecord {
+              {
+                timestamp = record.timestamp;
+                pointsEarned = record.pointsEarned;
+                tweetId = record.tweetId;
+              };
+            },
+          );
           usedCodes = Iter.toArray(progress.usedCodes.entries());
         };
 
@@ -55,17 +72,11 @@ actor class Backend() {
     let missionAssetsEntries = Iter.toArray(missionAssets.entries());
     serializedMissionAssets := missionAssetsEntries;
 
-    // Serialize user pictures
-    let userPicturesEntries = Iter.toArray(userPictures.entries());
-    serializedUserPictures := userPicturesEntries;
   };
 
   // Post-upgrade function to deserialize the user progress
 
   system func postupgrade() {
-
-    // Initialize the new userProgress TrieMap
-    userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
 
     // Iterate over the serialized user progress data
     for (entry in serializedUserProgress.vals()) {
@@ -77,8 +88,17 @@ actor class Backend() {
         let (missionId, serializedProgress) = missionEntry;
 
         // Deserialize the Progress object
-        let progress = {
-          var completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(serializedProgress.completionHistory, func(record : Types.SerializedMissionRecord) : Types.MissionRecord { { var timestamp = record.timestamp; var pointsEarned = record.pointsEarned; var tweetId = record.tweetId } });
+        var progress = {
+          var completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
+            serializedProgress.completionHistory,
+            func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
+              {
+                var timestamp = record.timestamp;
+                var pointsEarned = record.pointsEarned;
+                var tweetId = record.tweetId;
+              };
+            },
+          );
           var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
         };
 
@@ -104,13 +124,6 @@ actor class Backend() {
       missionAssets.put(missionId, asset);
     };
 
-    // Deserialize the user pictures
-    userPictures := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
-
-    for (pictureEntry in serializedUserPictures.vals()) {
-      let (userId, hasPicture) = pictureEntry;
-      userPictures.put(userId, hasPicture);
-    };
   };
 
   //
@@ -143,7 +156,6 @@ actor class Backend() {
   // Function to check if the principal is an admin
 
   private func isAdmin(principalId : Principal) : Bool {
-
     return Array.find<Principal>(
       adminIds,
       func(id) : Bool {
@@ -178,11 +190,7 @@ actor class Backend() {
 
   // TrieMap to store the progress of each user's missions
 
-  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-
   // Stable storage for serialized data
-
-  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
   // Function to record or update progress on a mission
 
@@ -203,6 +211,61 @@ actor class Backend() {
 
       // Update the user's progress in the main TrieMap
       userProgress.put(userId, missions);
+
+      addTotalPointsToUser(userId, progress.completionHistory[0].pointsEarned);
+
+    };
+  };
+
+  // Function to add points to the total points of a user
+
+  private func addTotalPointsToUser(userId : Principal, points : Nat) : () {
+    var i = 0;
+    while (i < Vector.size(users)) {
+      switch (Vector.getOpt(users, i)) {
+        case (?user) {
+          if (user.id == userId) {
+            let updatedUser : Types.User = {
+              id = user.id;
+              var twitterid = user.twitterid;
+              var twitterhandle = user.twitterhandle;
+              creationTime = user.creationTime;
+              var pfpProgress = user.pfpProgress;
+              var totalPoints = user.totalPoints + points;
+            };
+            Vector.put(users, i, updatedUser);
+            return;
+          };
+        };
+        case _ {};
+      };
+      i += 1;
+    };
+  };
+
+  public shared (msg) func useAllPoints(userId : Principal) : async () {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            if (user.id == userId) {
+              let updatedUser : Types.User = {
+                id = user.id;
+                var twitterid = user.twitterid;
+                var twitterhandle = user.twitterhandle;
+                creationTime = user.creationTime;
+                var pfpProgress = user.pfpProgress;
+                var totalPoints = 0;
+              };
+              Vector.put(users, i, updatedUser);
+              return;
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
     };
   };
 
@@ -329,29 +392,13 @@ actor class Backend() {
 
   public shared query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      // Retrieve the user's mission progress from userProgress
-      let userMissionsOpt = userProgress.get(userId);
 
-      // If the user does not exist, return null
-      let userMissions = switch (userMissionsOpt) {
-        case null return null; // User not found
-        case (?missions) missions; // User found, continue
-      };
-
-      // Initialize a variable to keep track of total seconds
-      var totalSeconds : Nat = 0;
-
-      // Iterate through all missions for the user
-      for ((missionId, progress) in userMissions.entries()) {
-        // Iterate through the completion history of the mission
-        for (record in progress.completionHistory.vals()) {
-          totalSeconds += record.pointsEarned;
+      for (user in Vector.vals(users)) {
+        if (user.id == userId) {
+          return ?user.totalPoints;
         };
       };
-
-      return ?totalSeconds; // Return the total seconds
     };
-
     return ?0;
   };
 
@@ -370,33 +417,6 @@ actor class Backend() {
   stable var serializedMissionAssets : [(Text, Blob)] = [];
 
   // TrieMap for checking if an user did the picture mission
-
-  var userPictures : TrieMap.TrieMap<Principal, Bool> = TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
-
-  // Stable storage for serialized user pictures
-
-  stable var serializedUserPictures : [(Principal, Bool)] = [];
-
-  // Function to check if an user has done the picture mission
-
-  public shared query (msg) func getUserPicture(userId : Principal) : async Bool {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      return switch (userPictures.get(userId)) {
-        case (?didthem) didthem;
-        case null false;
-      };
-    };
-    return false;
-  };
-
-  // Function to set the user picture mission as done
-
-  public shared (msg) func setUserPicture(userId : Principal, didthem : Bool) : async () {
-    if (isAdmin(msg.caller)) {
-      userPictures.put(userId, didthem);
-    };
-    return;
-  };
 
   // Generate a unique image identifier using a combination of timestamp and hash
 
@@ -603,6 +623,7 @@ actor class Backend() {
         var twitterhandle = null;
         creationTime = Time.now();
         var pfpProgress = "false";
+        var totalPoints = Int.abs(pointsEarnedOpt);
       };
       Vector.add<Types.User>(users, newUser);
       return ?Serialization.serializeUser(newUser);
@@ -643,6 +664,79 @@ actor class Backend() {
     return null;
   };
 
+  // Function to set the MIssion PFP Progress as Loading
+
+  public shared (msg) func setPFPProgressLoading(userId : Principal) : async (Text) {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            if (user.id == userId) {
+              let updatedUser : Types.User = {
+                id = user.id;
+                var twitterid = user.twitterid;
+                var twitterhandle = user.twitterhandle;
+                creationTime = user.creationTime;
+                var pfpProgress = "loading";
+                var totalPoints = user.totalPoints;
+              };
+              Vector.put(users, i, updatedUser);
+              return "loading";
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
+    };
+    return "false";
+  };
+
+  // Function to set the MIssion PFP Progress
+
+  public shared (msg) func setPFPProgress(userId : Principal) : async () {
+    if (isAdmin(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            if (user.id == userId) {
+              let updatedUser : Types.User = {
+                id = user.id;
+                var twitterid = user.twitterid;
+                var twitterhandle = user.twitterhandle;
+                creationTime = user.creationTime;
+                var pfpProgress = "verified";
+                var totalPoints = user.totalPoints;
+              };
+              Vector.put(users, i, updatedUser);
+
+              let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 2).mintime, Vector.get(missions, 2).maxtime);
+
+              let firstMissionRecord : Types.SerializedMissionRecord = {
+                timestamp = Time.now();
+                pointsEarned = Int.abs(pointsEarnedOpt); // Convert to Nat using Int.abs
+                tweetId = null; // No tweet associated with this mission
+              };
+
+              // Create progress for the first mission
+              let firstMissionProgress : Types.SerializedProgress = {
+                completionHistory = [firstMissionRecord];
+                usedCodes = [];
+              };
+
+              await updateUserProgress(userId, 2, firstMissionProgress);
+              return;
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
+    };
+  };
+
   // Function to add Twitter information to a user
 
   public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
@@ -658,6 +752,7 @@ actor class Backend() {
                 var twitterhandle = ?twitterHandle;
                 creationTime = user.creationTime;
                 var pfpProgress = user.pfpProgress;
+                var totalPoints = user.totalPoints;
               };
               Vector.put(users, i, updatedUser);
               return;

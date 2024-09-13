@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { SerializedUser, SerializedProgress } from '../types.ts';
+import { SerializedUser, SerializedProgress } from '../../declarations/backend/backend.did.js';
 import { ActorSubclass } from "@dfinity/agent";
 
 export const useFetchUserDetails = (backend: ActorSubclass<any>) => {
@@ -24,13 +24,10 @@ export const useFetchUserDetails = (backend: ActorSubclass<any>) => {
 
       if (progressArray && progressArray.length > 0) {
         const progress = progressArray[0]; // Extract the first (and only) item
-        progressList.push({
-          missionId: i,
-          done: progress.done,
-          totalearned: progress.totalearned,
-          amountOfTimes: progress.amountOfTimes,
-          timestamp: progress.timestamp,
-        });
+        // progressList.push({
+        //   usedCodes = progress.usedCodes ?? false,
+
+        // });
 
         // Build the used codes map from this mission's progress
         if (progress.usedCodes && Array.isArray(progress.usedCodes)) {

@@ -4,11 +4,11 @@ import { convertSecondsToHMS, formatDate } from '../../../../../components/Utili
 import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';;
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import { SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
 
 interface HistoryModalProps {
     closeModal: () => void;
 }
-
 
 const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
     const globalID = useGlobalID();
@@ -26,48 +26,83 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
     const renderProgress = () => {
         const userProgress = globalID.userProgress;
         if (!userProgress) return <p>No Progress</p>;
-        return userProgress.flatMap((outerEntry, idx) => {
 
-            const innerEntry: [bigint, any] = outerEntry[0] as unknown as [bigint, any];
+        return (
+            <>
+                {userProgress.map((nestedEntry, idx) => {
 
-            const id = innerEntry[0];  // Mission ID
-            const progress = innerEntry[1];  // Progress object
+                    // Ensure nestedEntry is an array
+                    if (!Array.isArray(nestedEntry)) {
+                        console.error("nestedEntry is not an array", nestedEntry);
+                        return null;
+                    }
 
-            const mission = globalID.missions.find(m => String(m.id) === String(id));
-            if (!mission) {
+                    return nestedEntry.map((innerEntry: any, innerIdx: number) => {
 
-                return null;
-            }
+                        // Ensure innerEntry is an array with exactly 2 elements before destructuring
+                        if (Array.isArray(innerEntry) && innerEntry.length === 2) {
+                            const missionId = innerEntry[0] as bigint; // Type assertion for missionId
+                            const progress = innerEntry[1] as SerializedProgress; // Type assertion for progress
 
-            const requiredMissionTitle = mission.title || '';
-            const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
 
-            return progress.completionHistory.map((record: { timestamp: bigint; pointsEarned: any; tweetId: string | any[]; }, index: any) => {
+                            const mission = globalID.missions.find(m => String(m.id) === String(missionId));
+                            if (!mission) {
+                                return null;
+                            }
 
-                return (
-                    <div key={`${id}-${index}`} className={styles.ProgressEntry}>
-                        <h3>{formatDate(record.timestamp)}</h3>
-                        <p>Completed the mission: {formattedTitle}</p>
-                        <div className={styles.RightSection} style={{
-                            background: `linear-gradient(135deg, ${getGradientStartColor(Number(mission.mode))}, ${getGradientEndColor(Number(mission.mode))})`,
-                        }}>
-                            <div className={styles.PointsEarned}>+{convertSecondsToHMS(Number(record.pointsEarned))}</div>
-                        </div>
-                        {record.tweetId && record.tweetId.length > 0 && (
-                            <a
-                                href={constructTweetUrl(record.tweetId[0] ?? '')}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={styles.TweetLink}
-                            >
-                                {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
-                            </a>
-                        )}
-                    </div>
-                );
-            });
-        });
+                            const requiredMissionTitle = mission.title || '';
+                            const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
+
+                            return progress.completionHistory.map((record, index) => {
+
+                                return (
+                                    <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
+                                        <h3>{formatDate(record.timestamp)}</h3>
+                                        <p>Completed the mission: {formattedTitle}</p>
+                                        <div
+                                            className={styles.RightSection}
+                                            style={{
+                                                background: `linear-gradient(135deg, ${getGradientStartColor(Number(mission.mode))}, ${getGradientEndColor(Number(mission.mode))})`,
+                                            }}
+                                        >
+                                            <div className={styles.PointsEarned}>
+                                                +{convertSecondsToHMS(Number(record.pointsEarned))}
+                                            </div>
+                                        </div>
+                                        {record.tweetId && record.tweetId.length > 0 && (
+                                            <a
+                                                href={constructTweetUrl(record.tweetId[0] ?? '')}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={styles.TweetLink}
+                                            >
+                                                {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
+                                            </a>
+                                        )}
+                                        {/* Check for used codes and display them */}
+                                        {progress.usedCodes && progress.usedCodes.length > 0 && (
+                                            <p>
+                                                {progress.usedCodes.map(([code, isUsed], codeIndex) => (
+                                                    <span key={codeIndex}>Used code: {code}</span>
+                                                ))}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            });
+                        } else {
+                            console.error("Invalid structure in innerEntry", innerEntry);
+                            return null;
+                        }
+                    });
+                })}
+            </>
+        );
     };
+
+
+
+
 
     return (
         <div className={styles.ModalOverlay}>

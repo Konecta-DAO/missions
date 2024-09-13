@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActorSubclass } from "@dfinity/agent";
-import { SerializedUser, SerializedMission } from '../types.ts';
+import { SerializedUser, SerializedMission } from '../../declarations/backend/backend.did.js';
 
 export const useFetchData = (backend: ActorSubclass<any>) => {
   const [users, setUsers] = useState<SerializedUser[]>([]);

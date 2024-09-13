@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import styles from './MissionsPanel.module.scss';
-import { Principal } from '@dfinity/principal';
 import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from '../declarations/backend/index.js';
 import { Actor, HttpAgent } from "@dfinity/agent";
 import MissionList from './MissionList.tsx';

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 28.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="LogOutBoton" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+	 y="0px" viewBox="0 0 249.6 288.2" style="enable-background:new 0 0 249.6 288.2;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:url(#SVGID_1_);stroke:#201F34;stroke-width:2;stroke-miterlimit:10;}
+	.st1{fill:#201F34;}
+	.st2{filter:url(#Adobe_OpacityMaskFilter);}
+	.st3{opacity:0.75;mask:url(#SVGID_00000024695720406237775840000003994332006602536371_);}
+	.st4{fill:#27242D;stroke:#27242D;stroke-width:2;stroke-miterlimit:10;}
+	.st5{fill:#27242D;}
+</style>
+<g id="Button">
+	<g>
+		<g>
+			
+				<radialGradient id="SVGID_1_" cx="123.8601" cy="107.8006" r="112.979" fx="123.9064" fy="4.6756" gradientUnits="userSpaceOnUse">
+				<stop  offset="0" style="stop-color:#DBE02D"/>
+				<stop  offset="0.3925" style="stop-color:#DBB72D"/>
+				<stop  offset="1" style="stop-color:#DB7A2D"/>
+			</radialGradient>
+			<polygon class="st0" points="248.6,215.6 248.6,72.6 124.8,1.1 1,72.6 1,215.6 124.8,287.1 			"/>
+			<g>
+				<path class="st1" d="M124.8,24.2l103.8,59.9V204L124.8,264L21,204V84.2L124.8,24.2 M124.8,18.5L16,81.3v125.6l108.8,62.8
+					l108.8-62.8V81.3L124.8,18.5L124.8,18.5z"/>
+			</g>
+		</g>
+	</g>
+	<defs>
+		<filter id="Adobe_OpacityMaskFilter" filterUnits="userSpaceOnUse" x="0" y="0" width="249.6" height="288.2">
+			
+				<feColorMatrix  type="matrix" values="-1 0 0 0 1  0 -1 0 0 1  0 0 -1 0 1  0 0 0 1 0" color-interpolation-filters="sRGB" result="source"/>
+		</filter>
+	</defs>
+	
+		<mask maskUnits="userSpaceOnUse" x="0" y="0" width="249.6" height="288.2" id="SVGID_00000119839516029163483280000012540861290628094593_">
+		<g class="st2">
+			<image style="overflow:visible;" width="255" height="294" xlink:href="9D290005.jpg"  transform="matrix(1 0 0 1 -3 -2.8)">
+			</image>
+		</g>
+	</mask>
+	<g style="opacity:0.75;mask:url(#SVGID_00000119839516029163483280000012540861290628094593_);">
+		<g>
+			<polygon class="st4" points="248.6,215.6 248.6,72.6 124.8,1.1 1,72.6 1,215.6 124.8,287.1 			"/>
+			<g>
+				<path class="st5" d="M124.8,24.2l103.8,59.9V204L124.8,264L21,204V84.2L124.8,24.2 M124.8,18.5L16,81.3v125.6l108.8,62.8
+					l108.8-62.8V81.3L124.8,18.5L124.8,18.5z"/>
+			</g>
+		</g>
+	</g>
+</g>
+<g id="IconoPuerta">
+	<path class="st1" d="M147.5,161h-22.1c0,3.6,0,7.2,0,10.9c0,3.9-0.8,7.6-3.3,10.8c-4.1,5.3-10.6,7.2-17,5.2
+		c-6-1.9-10.2-7.3-10.4-13.8c-0.2-5.6,0-11.1,0-16.7c0-4,0-8.1,0-12.1l0,0c0-9.8-0.1-19.6,0-29.4c0.1-6.1,3.1-10.8,8.6-13.3
+		c5.6-2.5,11.3-2,16.3,1.9c4.4,3.5,5.8,8.4,5.8,13.8v8.7h22.1c0-6.5,0-13-0.1-19.6c0-4.4-0.6-8.8-1.7-13.1
+		c-3-11.1-10.3-18.6-20.3-23.5c-2-5.7-2.5-6-8.3-6.1c-2.3,0-4.6-0.2-6.9,0.1c-1.7,0.2-3.7,0.4-4.8,1.5c-1.8,1.8-3.7,2.4-6,3.1
+		c-15.7,5-25.8,18.5-25.9,35c-0.1,26.5,0.1,53.1-0.1,79.6c-0.1,17.7,12.9,31.7,26.4,35.3c1.5,0.4,3.4,0.8,4.1,1.8
+		c2.1,2.8,4.9,2.7,7.8,2.6c1.9,0,3.9,0,5.8,0c5.5-0.1,5.7-0.2,7.8-5.8l0,0c15.4-8,22.3-20.5,22.2-37.2
+		C147.5,174.1,147.5,167.6,147.5,161z"/>
+	<path class="st1" d="M65.3,110.1c-1.3,0.5-2.6,1-3.8,1.5c-4.1,1.7-6.6,4.9-6.9,9.2c-0.4,5.5-0.1,11-0.1,16.9
+		c3.8,0.2,7.1,0.4,10.5,0.6v11.9c-1.9,0.2-3.4,0.3-4.9,0.4c-1.7,0.1-3.4,0.2-5.7,0.3c0,4.5,0,8.7,0,12.9c0.1,8.6,1.9,11.2,10,13.9
+		c0.3,0.1,0.6,0.5,1.1,0.9c0,1.8,0,3.7,0,5.6c0,1.8-0.2,3.7-0.3,5.4c-11.9,0.8-22.9-9.8-23-21c-0.2-16.4-0.1-32.7,0-49.1
+		c0-5.6,2.5-10.5,6.4-14.4c4.5-4.4,9.7-7.3,16.6-6.4v11.4H65.3z"/>
+	<path class="st1" d="M206.7,145.5l-37.2,23.9c-1.1,0.7-2.4-0.2-2.4-1.5v-11c0-1-0.7-1.8-1.6-1.8h-55.3c-0.9,0-1.6-0.8-1.6-1.8
+		v-18.5c0-1,0.7-1.8,1.6-1.8h55.3c0.9,0,1.6-0.8,1.6-1.8v-11.1c0-1.4,1.3-2.2,2.4-1.5l37.2,23.9
+		C207.8,143.1,207.8,144.8,206.7,145.5z"/>
+</g>
+</svg>

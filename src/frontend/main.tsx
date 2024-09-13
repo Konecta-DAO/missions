@@ -14,8 +14,6 @@ import Missions from './pages/Missions/Missions.tsx';
 import UsergeekProvider from '../components/UsergeekProvider.tsx';
 import { IdentityKitAuthType } from "@nfid/identitykit"
 
-// const isMobile = useIsMobile();
-
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
   <React.StrictMode>

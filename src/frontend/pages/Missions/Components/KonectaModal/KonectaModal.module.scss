@@ -1,0 +1,221 @@
+@keyframes slideIn {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+.ModalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.ModalContent {
+    background-color: #151320;
+    padding: 20px;
+    border-radius: 50px;
+    position: relative;
+    z-index: 1001;
+    width: 67%;
+    height: 75%;
+    display: flex;
+    max-height: 67%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: none;
+    animation: slideIn 0.5s ease-out forwards;
+}
+
+.ModalContent.hide {
+    animation: slideOut 0.5s ease-out forwards;
+}
+
+.ModalContent::before {
+    content: '';
+    position: absolute;
+    top: -1%;
+    left: -0.5%;
+    width: 101%;
+    height: 101%;
+    border-radius: 50px;
+    padding: 8px;
+    background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    z-index: -1;
+    pointer-events: none;
+    transform: scale(0.99);
+}
+
+.CloseButton {
+    position: absolute;
+    top: 3%;
+    right: 1%;
+    background: none;
+    border: none;
+    font-size: 1.5vw;
+    cursor: pointer;
+    color: white;
+    width: 5%
+}
+
+.KamiKonecta {
+    width: 20%;
+    bottom: 8%;
+    left: 4%;
+    position: absolute;
+}
+
+.KonectaLogo {
+    width: 7%;
+    z-index: 1;
+    position: absolute;
+    left: 17%;
+    top: 22%;
+    animation: float 3s ease-in-out infinite;
+}
+
+
+@keyframes float {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8%);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.Container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    height: 10vh;
+    width: 50%;
+    position: absolute;
+    left: 37%;
+    bottom: 5%;
+}
+
+.Pacman {
+    position: relative;
+    background: transparent;
+    z-index: 1;
+
+    &::before,
+    &::after {
+        position: absolute;
+        top: -35px;
+        display: block;
+        border-radius: 50%;
+        content: "";
+        height: 0px;
+        width: 0px;
+    }
+
+    &::before {
+        animation: chunk-top .5s ease infinite;
+        border: 35px solid #3A77EF;
+        border-left-color: transparent;
+        border-bottom-color: transparent;
+    }
+
+    &::after {
+        animation: chunk-bottom .5s ease infinite;
+        border: 35px solid #3A77EF;
+        border-right-color: transparent;
+        border-top-color: transparent;
+    }
+
+
+}
+
+.VerticalLine {
+    position: absolute;
+    bottom: 12.25%;
+    left: 37.75%;
+    transform: translateX(-50%);
+    height: 60px;
+    width: 8px;
+    background-color: #353447;
+    animation: chunk-top .5s ease infinite;
+    z-index: -1;
+    rotate: 34deg;
+}
+
+.Path {
+    display: flex;
+    justify-content: space-around;
+    animation: eating-path .5s linear infinite;
+    width: 100%;
+
+}
+
+.Konectico {
+    width: 33%;
+    animation: eating-path .5s linear infinite;
+}
+
+@keyframes chunk-top {
+
+    0%,
+    100% {
+        transform: rotate(-45deg);
+    }
+
+    50% {
+        transform: rotate(-80deg);
+    }
+}
+
+@keyframes chunk-bottom {
+
+    0%,
+    100% {
+        transform: rotate(-40deg);
+    }
+
+    50% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes eating-path {
+    0% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
