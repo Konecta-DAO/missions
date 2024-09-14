@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Home.module.scss';
-import HomeBackgroundOverlay from './HomeBackgroundOverlay.tsx';
+import HomeBackgroundOverlay from './HomeBackground/HomeBackgroundOverlay.tsx';
+import HomeBackgroundOverlayMobile from './HomeBackground/HomeBackgroundOverlayMobile.tsx';
 import useIsMobile from '../../../hooks/useIsMobile.tsx';
 import Plataforma from '../../components/Plataforma/Plataforma.tsx';
 import Casco from '../../components/Casco.tsx';
+import CascoOtro from '../../components/CascoOtro.tsx';
 import Kami from '../../../../public/assets/Kami.svg';
 import KonectaLogo from '../../../../public/assets/Konecta Logo.svg';
 import KonectaInfoButton from '../../components/KonectaInfoButton/KonectaInfoButton.tsx';
@@ -87,7 +89,7 @@ const Home: React.FC = () => {
           }
           
           setData(agent);
-        }else{
+        } else {
           disconnect();
         }
 
@@ -124,6 +126,7 @@ const Home: React.FC = () => {
         button.click();
       }
     }
+    console.log("CLICKEA");
   };
 
   if (user?.principal !== undefined) {
@@ -140,14 +143,14 @@ const Home: React.FC = () => {
 
       {/* Page Content */}
       <div>
-        <div className={styles.OverlayWrapper}>
-          <HomeBackgroundOverlay mobile={isMobile} />
-        </div>
-        <div className={styles.KonectaLogoWrapper}>
-          <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-        </div>
-        {!isMobile && (
+        {!isMobile ? (
           <>
+            <div className={styles.OverlayWrapper}>
+              <HomeBackgroundOverlay />
+            </div>
+            <div className={styles.KonectaLogoWrapper}>
+              <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+            </div>
             <div className={styles.SvgWrapper}>
               <Plataforma animationDelay="0s" />
               <div className={styles.KamiWrapper}>
@@ -169,7 +172,7 @@ const Home: React.FC = () => {
                     <ConnectWallet />
                   </div>
                 </div>
-                <Plataforma animationDelay="0.5s" />
+                <Plataforma animationDelay="3s" />
               </div>
             </div>
             <div className={styles.HelpButtons}>
@@ -181,7 +184,31 @@ const Home: React.FC = () => {
               </div>
             </div>
           </>
+        ) : (
+          <>
+            <div className={styles.OverlayWrapper}>
+              <HomeBackgroundOverlayMobile />
+            </div>
+            <div className={styles.KonectaLogoWrapper2}>
+              <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+            </div>
+            <div className={styles.CascoLogin}>
+              <CascoOtro onClick={handleConnect} />
+              <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
+                <ConnectWallet />
+              </div>
+            </div>
+            <div className={styles.HelpButtons2}>
+              <div className={styles.KonecB2}>
+                <KonectaInfoButton onClick={handleKonectaClick} />
+              </div>
+              <div className={styles.HelpB2}>
+                <HelpButton onClick={handleHelpClick} />
+              </div>
+            </div>
+          </>
         )}
+
       </div>
     </div>
   );
