@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './HelpButton.scss';
-import QuestionSVG from '../../../../public/assets/Question Mark Button.svg';
+import QuestionSVG from '../../../../public/assets/question_button.svg';
 
 interface HelpButtonProps {
     onClick: () => void;

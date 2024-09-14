@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './KonectaInfoButton.scss';
-import KonectaSVG from '../../../../public/assets/Konecta Button.svg';
+import KonectaSVG from '../../../../public/assets/konecta_button.svg';
 
 interface KonectaInfoButtonProps {
     onClick: () => void;

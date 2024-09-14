@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './HistoryButton.scss';
-import KonectaSVG from '../../../../public/assets/History Button.svg';
+import KonectaSVG from '../../../../public/assets/history_button.svg';
 
 interface HistoryButtonProps {
     onClick: () => void;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './KamiButton.scss';
-import KamiSVG from '../../../../public/assets/Kami Button.svg';
+import KamiSVG from '../../../../public/assets/kami_button.svg';
 
 interface KamiButtonProps {
     onClick: () => void;

@@ -10,16 +10,15 @@ import "@nfid/identitykit/react/styles.css";
 import { GlobalProvider } from '../hooks/globalID.tsx';
 import { BrowserRouter } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
+import RadialBackground from '../components/RadialBackground/RadialBackground.tsx';
 
 // const isMobile = useIsMobile();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
-  <React.StrictMode>
+
     <GlobalProvider>
       <BrowserRouter>
-        <AgentProvider withProcessEnv>
-          <ActorProvider idlFactory={idlFactory} canisterId={canisterId}>
             <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
               <RadialBackground>
                 <Routes>
@@ -29,9 +28,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                 </Routes>
               </RadialBackground>
             </IdentityKitProvider>
-          {/* </ActorProvider>
-        </AgentProvider> */}
       </BrowserRouter>
     </GlobalProvider>
-  </React.StrictMode>,
+
 );

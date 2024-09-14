@@ -83,32 +83,6 @@ const Missions: React.FC = () => {
         navigate(`/Missions/${missionId}`);
     };
 
-    // Close modal handler
-
-    const openHistoryModal = () => {
-        setHistoryModalOpen(true);
-    };
-
-    const closeHistoryModal = () => {
-        setHistoryModalOpen(false);
-    };
-
-    const openKonectaModal = () => {
-        setKonectaModalOpen(true);
-    };
-
-    const closeKonectaModal = () => {
-        setKonectaModalOpen(false);
-    };
-
-    const openInfoModal = () => {
-        setInfoModalOpen(true);
-    };
-
-    const closeInfoModal = () => {
-        setInfoModalOpen(false);
-    };
-
     if (!loadingComplete) {
         return <LoadingOverlay loadingPercentage={loadingPercentage} />;
     }

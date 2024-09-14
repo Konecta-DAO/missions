@@ -145,7 +145,7 @@ const TopBar: React.FC<TopBarProps> = ({ isMobile }) => {
             )}
 
             {isInfoModalOpen && (
-                <InfoModal closeModal={closeKonectaModal} />
+                <InfoModal closeModal={closeInfoModal} />
             )}
         </nav>
     );

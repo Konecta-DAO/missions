@@ -19,10 +19,6 @@ actor class Backend() {
 
   //
 
-  public shared func addtoA(key : Text, value : Text) : async () {
-    a.put(key, value);
-  };
-
   // Upgrade Functions
 
   //
@@ -30,8 +26,6 @@ actor class Backend() {
   // Pre-upgrade function to serialize the user progress
 
   private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-
-  var a : TrieMap.TrieMap<Text, Text> = TrieMap.TrieMap<Text, Text>(Text.equal, Text.hash);
 
   stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
