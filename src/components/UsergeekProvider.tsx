@@ -5,7 +5,7 @@ interface UsergeekProviderProps {
     children: React.ReactNode;
 
 }
-const usergeekApiKey = process.env.VITE_USERGEEK_API_KEY ?? '';
+const usergeekApiKey = process.env.DEV_USERGEEK_API_KEY ?? '';
 
 
 const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {

@@ -44,7 +44,8 @@ export default defineConfig({
           CANISTER_ID_STATS_FRONTEND: process.env.CANISTER_ID_STATS_FRONTEND,
           CANISTER_ID: process.env.CANISTER_ID,
           CANISTER_CANDID_PATH: process.env.CANISTER_CANDID_PATH,
-          VITE_USERGEEK_API_KEY: process.env.VITE_USERGEEK_API_KEY,
+          DEV_IMG_CANISTER_ID: process.env.IMG_CANISTER_ID,
+          DEV_USERGEEK_API_KEY: process.env.DEV_USERGEEK_API_KEY,
         })
       },
     },

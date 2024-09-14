@@ -1,0 +1,132 @@
+
+.topbar {
+    display: flex;
+    align-items: center; /* Vertically centers the content */
+    padding: 0 4rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 12%; /* Adjust height as needed */
+    background-color: rgba(21, 19, 32, 0); /* Adjust opacity or color as needed */
+    z-index: 10;
+}
+
+.topbarLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    width: 25vw;
+}
+
+.topbarCenter {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    display: flex;
+    cursor: 'pointer';
+    text-align: center;
+}
+
+.topbarRight {
+    display: flex; /* Flexbox for horizontal layout */
+    justify-content: space-between; /* Distributes the logo, links, buttons */
+    flex-direction: row; /* Horizontal layout for buttons */
+    list-style-type: none; /* Removes default list styling */
+    justify-content: flex-end;
+    margin: 0;
+    padding: 0;
+    width: 25vw;
+    gap: 1rem; /* Space between button items */
+    z-index: 1;
+}
+
+.timeCapsuleWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.TimeCapsule {
+    width: 8vw;
+    height: auto;
+}
+
+.TimerText {
+    color: black;
+    font-size: 0.6em;
+    pointer-events: none;
+    position: absolute;
+    font-weight: bold;
+}
+
+.KonectaLogo {
+    width: 13.5vw;
+    height: auto;
+}
+
+.topbarButton {
+    display: flex; /* Flexbox for aligning content */
+    align-items: center;
+    justify-content: center; /* Centers button content */
+    cursor: pointer; /* Changes cursor to pointer */
+    max-width: 3vw;
+}
+
+.CustomHexagonButton {
+    scale: 30%;
+    position: absolute;
+    right: 12.3125%;
+    transform: translateY(-85%);
+}
+
+/* Main collapse wrapper */
+.collapseWrapper {
+    position: fixed;
+    bottom: 2rem;
+    right: 3rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the open/close button */
+}
+
+/* Hexagon buttons container */
+.collapsedButtons {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    gap: 1rem; /* Space between button items */
+    position: absolute;
+    bottom: 5rem; /* Adjust as necessary */
+    right: 0;
+    align-items: center; /* Center the hexagon buttons */
+}
+
+/* Individual button styling */
+.collapsedButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    /* Uniform size for all buttons */
+    width: 60px; /* Set a fixed width */
+    height: 60px; /* Set a fixed height */
+}
+
+/* Target the HexagonButton within collapseWrapper for open/close button */
+.collapseWrapper > .HexagonButton {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-bottom: 1rem; /* Ensure spacing between the open/close button and other buttons */
+}
