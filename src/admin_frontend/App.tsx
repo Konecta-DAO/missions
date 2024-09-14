@@ -15,7 +15,6 @@ function App() {
   const [uploadedData, setUploadedData] = useState<any>(null);
   useEffect(() => {
     const fetchData = async () => {
-      console.log(identity?.getPrincipal())
       if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
         if (identity.getPrincipal().toText() !== "2vxsx-fae") {
           const actor = Actor.createActor(idlFactory, {
@@ -80,7 +79,6 @@ function App() {
 
           // Set the processed data to the state or handle it as needed
           setUploadedData(parsedData);
-          console.log('Parsed data:', parsedData);
         } catch (error) {
           console.error('Error parsing JSON:', error);
         }

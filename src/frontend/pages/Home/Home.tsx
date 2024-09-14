@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import styles from './Home.module.scss';
 import HomeBackgroundOverlay from './HomeBackground/HomeBackgroundOverlay.tsx';
 import HomeBackgroundOverlayMobile from './HomeBackground/HomeBackgroundOverlayMobile.tsx';
-import useIsMobile from '../../../hooks/useIsMobile.tsx';
+import HomeBackgroundOverlayTablet from './HomeBackground/HomeBackgroundOverlayTablet.tsx';
+import { isMobileOnly, isTablet } from 'react-device-detect';
 import Plataforma from '../../components/Plataforma/Plataforma.tsx';
 import Casco from '../../components/Casco.tsx';
 import CascoOtro from '../../components/CascoOtro.tsx';
@@ -23,7 +24,6 @@ import { canisterId } from '../../../declarations/backend/index.js';
 import { Principal } from '@dfinity/principal';
 
 const Home: React.FC = () => {
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
@@ -87,7 +87,7 @@ const Home: React.FC = () => {
           if (process.env.NODE_ENV !== "production") {
             agent.fetchRootKey();
           }
-          
+
           setData(agent);
         } else {
           disconnect();
@@ -126,7 +126,6 @@ const Home: React.FC = () => {
         button.click();
       }
     }
-    console.log("CLICKEA");
   };
 
   if (user?.principal !== undefined) {
@@ -143,74 +142,109 @@ const Home: React.FC = () => {
 
       {/* Page Content */}
       <div>
-        {!isMobile ? (
-          <>
-            <div className={styles.OverlayWrapper}>
-              <HomeBackgroundOverlay />
-            </div>
-            <div className={styles.KonectaLogoWrapper}>
-              <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-            </div>
-            <div className={styles.SvgWrapper}>
-              <Plataforma animationDelay="0s" />
-              <div className={styles.KamiWrapper}>
-                <img src={Kami} alt="Kami" />
-              </div>
-            </div>
-            <div className={styles.TextWrapper}>
-              <SpeechBubble
-                visible={showBubble}
-                onHide={() => setShowBubble(false)}
-                content={bubbleContent}
-              />
-            </div>
-            <div className={styles.BottomPlataformaWrapper}>
-              <div className={styles.PlataformaContainer}>
-                <div className={styles.Casco}>
-                  <Casco onClick={handleConnect} />
-                  <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
-                    <ConnectWallet />
-                  </div>
-                </div>
-                <Plataforma animationDelay="3s" />
-              </div>
-            </div>
-            <div className={styles.HelpButtons}>
-              <div className={styles.KonecB}>
-                <KonectaInfoButton onClick={handleKonectaClick} />
-              </div>
-              <div className={styles.HelpB}>
-                <HelpButton onClick={handleHelpClick} />
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className={styles.OverlayWrapper}>
-              <HomeBackgroundOverlayMobile />
-            </div>
-            <div className={styles.KonectaLogoWrapper2}>
-              <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-            </div>
-            <div className={styles.CascoLogin}>
-              <CascoOtro onClick={handleConnect} />
-              <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
-                <ConnectWallet />
-              </div>
-            </div>
-            <div className={styles.HelpButtons2}>
-              <div className={styles.KonecB2}>
-                <KonectaInfoButton onClick={handleKonectaClick} />
-              </div>
-              <div className={styles.HelpB2}>
-                <HelpButton onClick={handleHelpClick} />
-              </div>
-            </div>
-          </>
-        )}
+        {
 
-      </div>
-    </div>
+
+          // DESKTOP
+
+          !isMobileOnly && !isTablet ? (
+            <>
+              <div className={styles.OverlayWrapper}>
+                <HomeBackgroundOverlay />
+              </div>
+              <div className={styles.KonectaLogoWrapper}>
+                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+              </div>
+              <div className={styles.SvgWrapper}>
+                <Plataforma animationDelay="0s" />
+                <div className={styles.KamiWrapper}>
+                  <img src={Kami} alt="Kami" />
+                </div>
+              </div>
+              <div className={styles.TextWrapper}>
+                <SpeechBubble
+                  visible={showBubble}
+                  onHide={() => setShowBubble(false)}
+                  content={bubbleContent}
+                />
+              </div>
+              <div className={styles.BottomPlataformaWrapper}>
+                <div className={styles.PlataformaContainer}>
+                  <div className={styles.Casco}>
+                    <Casco onClick={handleConnect} />
+                    <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
+                      <ConnectWallet />
+                    </div>
+                  </div>
+                  <Plataforma animationDelay="3s" />
+                </div>
+              </div>
+              <div className={styles.HelpButtons}>
+                <div className={styles.KonecB}>
+                  <KonectaInfoButton onClick={handleKonectaClick} />
+                </div>
+                <div className={styles.HelpB}>
+                  <HelpButton onClick={handleHelpClick} />
+                </div>
+              </div>
+            </>
+          ) : isMobileOnly ? (
+
+            // MOBILE
+
+            <>
+              <div className={styles.OverlayWrapper}>
+                <HomeBackgroundOverlayMobile />
+              </div>
+              <div className={styles.KonectaLogoWrapper2}>
+                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+              </div>
+              <div className={styles.CascoLogin}>
+                <CascoOtro onClick={handleConnect} />
+                <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
+                  <ConnectWallet />
+                </div>
+              </div>
+              <div className={styles.HelpButtons2}>
+                <div className={styles.KonecB2}>
+                  <KonectaInfoButton onClick={handleKonectaClick} />
+                </div>
+                <div className={styles.HelpB2}>
+                  <HelpButton onClick={handleHelpClick} />
+                </div>
+              </div>
+            </>
+          ) : (
+
+            // TABLET
+
+            <>
+              <div className={styles.OverlayWrapper2}>
+                <HomeBackgroundOverlayTablet />
+              </div>
+              <div className={styles.KonectaLogoWrapper2}>
+                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+              </div>
+              <div className={styles.CascoLogin2}>
+                <CascoOtro onClick={handleConnect} />
+                <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
+                  <ConnectWallet />
+                </div>
+              </div>
+              <div className={styles.HelpButtons3}>
+                <div className={styles.KonecB2}>
+                  <KonectaInfoButton onClick={handleKonectaClick} />
+                </div>
+                <div className={styles.HelpB2}>
+                  <HelpButton onClick={handleHelpClick} />
+                </div>
+              </div>
+            </>
+          )
+        }
+
+      </div >
+    </div >
   );
 };
 

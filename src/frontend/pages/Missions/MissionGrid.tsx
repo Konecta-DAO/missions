@@ -1,5 +1,4 @@
 import styles from './Missions.module.scss';
-import { SerializedMission, SerializedProgress } from '../../../declarations/backend/backend.did.js';
 import Mission from './Components/Mission/Mission.tsx';
 import { useState } from 'react';
 import MissionModal from './Components/MissionModal/MissionModal.tsx';

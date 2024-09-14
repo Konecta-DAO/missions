@@ -4,47 +4,50 @@ import './SpeechBubble.scss';
 interface SpeechBubbleProps {
     visible: boolean;
     onHide: () => void;
-    content: string; // Accept the text content as a prop
+    content: string;
 }
 
 const SpeechBubble: React.FC<SpeechBubbleProps> = ({ visible, onHide, content }) => {
     const [displayedText, setDisplayedText] = useState('');
     const typingEffectRef = useRef<NodeJS.Timeout | null>(null);
 
-    const clearTextBeforeTyping = () => {
-        return new Promise<void>((resolve) => {
-            setDisplayedText(''); // Clear the text
-            setTimeout(() => resolve(), 0); // Ensure React processes the state change
-        });
-    };
-
     useEffect(() => {
+        // Clear any existing typing intervals
+        if (typingEffectRef.current) {
+            clearInterval(typingEffectRef.current);
+            typingEffectRef.current = null;
+        }
+
         if (visible) {
-            clearTextBeforeTyping().then(() => {
-                let index = 0;
+            setDisplayedText(''); // Clear the displayed text
 
-                // Adjust the content to add a space at the second character position
-                const adjustedContent = content.slice(0, 1) + ' ' + content.slice(1);
+            let index = 0;
 
-                // Typing effect logic (faster typing speed)
-                typingEffectRef.current = setInterval(() => {
-                    if (index < adjustedContent.length) {
-                        setDisplayedText((prev) => prev + adjustedContent.charAt(index));
-                        index++;
-                    } else {
-                        if (typingEffectRef.current) clearInterval(typingEffectRef.current);
+            // Typing effect logic without relying on previous state
+            typingEffectRef.current = setInterval(() => {
+                if (index < content.length) {
+                    setDisplayedText(content.slice(0, index + 1)); // Set displayedText directly
+                    index++;
+                } else {
+                    // Clear the interval when done
+                    if (typingEffectRef.current) {
+                        clearInterval(typingEffectRef.current);
+                        typingEffectRef.current = null;
                     }
-                }, 30); // Typing speed is now 30ms
-
-            });
+                }
+            }, 30);
         } else {
-            setDisplayedText('');
+            setDisplayedText(''); // Clear the text when not visible
         }
 
         return () => {
-            if (typingEffectRef.current) clearInterval(typingEffectRef.current);
+            // Cleanup the interval on unmount or when dependencies change
+            if (typingEffectRef.current) {
+                clearInterval(typingEffectRef.current);
+                typingEffectRef.current = null;
+            }
         };
-    }, [visible, onHide, content]);
+    }, [visible, content]); // Removed onHide from dependencies
 
     return (
         <div className={`SpeechBubble ${visible ? 'visible' : 'hidden'}`} onClick={onHide}>

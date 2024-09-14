@@ -10,12 +10,10 @@ import { useIdentityKit } from "@nfid/identitykit/react";
 import KonectaModal from '../../Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../../Components/InfoModal/InfoModal.tsx';
 import HexagonButton from '../../../../components/HexagonButton/hexagonButton.tsx';
+import { isMobileOnly, isTablet } from 'react-device-detect';
 
-interface TopBarProps {
-  isMobile: boolean;
-}
 //TODO: ME QUEDE CREANDO VERSION DESKTOP Y MOBILE EN OTROS COMPONENTES.
-const TopBar: React.FC<TopBarProps> = ({ isMobile }) => {
+const TopBar: React.FC = () => {
     const globalID = useGlobalID();
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
     const [isKonectaModalOpen, setKonectaModalOpen] = useState(false);
@@ -59,32 +57,32 @@ const TopBar: React.FC<TopBarProps> = ({ isMobile }) => {
         return <LoadingOverlay loadingPercentage={loadingPercentage} />;
     }
 
-    const buttonList = [	
-        {    
-            name: 'History',	
+    const buttonList = [
+        {
+            name: 'History',
             src: '/assets/history_button.svg',
             onClick: openHistoryModal,
-        },	
-        {	
-            name: 'Konecta',	
+        },
+        {
+            name: 'Konecta',
             src: '/assets/konecta_button.svg',
             onClick: openKonectaModal,
-        },	
+        },
         {
             name: 'Kami',
-            src: '/assets/kami_button.svg',	
+            src: '/assets/kami_button.svg',
             onClick: () => { window.open('https://chatgpt.com/g/g-S0vONPiGL-kami', '_blank'); },
-        },	
+        },
         {
-            name: 'Help',	
-            src: '/assets/question_button.svg',	
+            name: 'Help',
+            src: '/assets/question_button.svg',
             onClick: openInfoModal,
-        },	
-        {	
+        },
+        {
             name: 'Log Out',
             src: '/assets/logout_button.svg',
             onClick: disconnect,
-        },	
+        },
     ];
 
     return (
@@ -96,33 +94,33 @@ const TopBar: React.FC<TopBarProps> = ({ isMobile }) => {
                 </div>
             </div>
             <div className={styles.topbarCenter}>
-                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo}/>
+                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
             </div>
 
             {
-                isMobile ? (
-                <div className={styles.collapseWrapper}>
-                    {/* Toggle between open and close button */}
-                    <div className={styles.HexagonButton}>
-                        <HexagonButton 
-                            name={isMenuOpen ? "Close" : "Menu"} 
-                            src={isMenuOpen ? "/assets/closeButton.svg" : "/assets/openButton.svg"} 
-                            onClick={toggleMenu} 
-                        />
+                isMobileOnly || isTablet ? (
+                    <div className={styles.collapseWrapper}>
+                        {/* Toggle between open and close button */}
+                        <div className={styles.HexagonButton}>
+                            <HexagonButton
+                                name={isMenuOpen ? "Close" : "Menu"}
+                                src={isMenuOpen ? "/assets/closeButton.svg" : "/assets/openButton.svg"}
+                                onClick={toggleMenu}
+                            />
+                        </div>
+                        {/* Show buttons only if the menu is open */}
+                        {isMenuOpen && (
+                            <ul className={styles.collapsedButtons}>
+                                {
+                                    buttonList.map((item) => (
+                                        <li className={styles.collapsedButton} key={item.name}>
+                                            <HexagonButton name={item.name} src={item.src} onClick={item.onClick} />
+                                        </li>
+                                    ))
+                                }
+                            </ul>
+                        )}
                     </div>
-                    {/* Show buttons only if the menu is open */}
-                    {isMenuOpen && (
-                        <ul className={styles.collapsedButtons}>
-                            {
-                                buttonList.map((item) => (
-                                    <li className={styles.collapsedButton} key={item.name}>
-                                        <HexagonButton name={item.name} src={item.src} onClick={item.onClick} />
-                                    </li>
-                                ))
-                            }
-                        </ul>
-                    )}
-                </div>
                 ) : (
                     <ul className={styles.topbarRight}>
                         {

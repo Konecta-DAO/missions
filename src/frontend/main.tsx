@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.scss';
-// import { ActorProvider, AgentProvider } from '@ic-reactor/react';
 import { idlFactory, canisterId } from '../declarations/backend/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
@@ -19,21 +18,17 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        {/* <AgentProvider withProcessEnv>
-          <ActorProvider idlFactory={idlFactory} canisterId={canisterId}> */}
-            <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai", canisterId] }} authType={IdentityKitAuthType.DELEGATION}>
-              <UsergeekProvider>
-                <RadialBackground>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/Missions" element={<Missions />} />
-                    <Route path="/Missions/:missionId" element={<Missions />} />
-                  </Routes>
-                </RadialBackground>
-              </UsergeekProvider>
-            </IdentityKitProvider>
-          {/* </ActorProvider>
-        </AgentProvider> */}
+        <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai", canisterId] }} authType={IdentityKitAuthType.DELEGATION}>
+          <UsergeekProvider>
+            <RadialBackground>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/Missions" element={<Missions />} />
+                <Route path="/Missions/:missionId" element={<Missions />} />
+              </Routes>
+            </RadialBackground>
+          </UsergeekProvider>
+        </IdentityKitProvider>
       </BrowserRouter>
     </GlobalProvider>
   </React.StrictMode>,

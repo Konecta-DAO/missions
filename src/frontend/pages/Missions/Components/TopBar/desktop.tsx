@@ -104,7 +104,7 @@
 //             </div>
 
 //             {
-//                 isMobile ? (
+//                 isMobileOnly ? (
 //                 <div className={styles.collapseWrapper}>
 //                     {/* Toggle between open and close button */}
 //                     <div className={styles.HexagonButton}>

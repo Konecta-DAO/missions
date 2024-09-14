@@ -12,10 +12,10 @@
 // import HexagonButton from '../../../../components/HexagonButton/hexagonButton.tsx';
 
 // interface TopBarProps {
-//   isMobile: boolean;
+//   isMobileOnly: boolean;
 // }
 
-// const TopBarMobile: React.FC<TopBarProps> = ({ isMobile }) => {
+// const TopBarMobile: React.FC<TopBarProps> = ({ isMobileOnly }) => {
 //     const globalID = useGlobalID();
 //     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
 //     const [isKonectaModalOpen, setKonectaModalOpen] = useState(false);
@@ -100,7 +100,7 @@
 //             </div>
 
 //             {
-//                 isMobile ? (
+//                 isMobileOnly ? (
 //                 <div className={styles.collapseWrapper}>
 //                     {/* Toggle between open and close button */}
 //                     <div className={styles.HexagonButton}>
