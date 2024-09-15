@@ -18,7 +18,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, progress, twe
         <h3>User Details for {user.id.toString()}</h3>
         <h4>Mission Progress</h4>
         <ul>
-          {progress.map((p, index) => (
+          {progress?.map((p, index) => (
             <li key={index}>
               Mission ID: {p.missionId.toString()},
 
@@ -28,7 +28,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, progress, twe
 
         <h4>Tweets</h4>
         <ul>
-          {tweets.map((tweet, index) => (
+          {tweets?.map((tweet, index) => (
             <li key={index}>
               Tweet ID: <a href={`https://twitter.com/user/status/${tweet[1]?.toString() ?? ""}`} target="_blank" rel="noopener noreferrer">{tweet[1]}</a>,
               Timestamp: {new Date(Number(tweet[0]) / 1_000_000).toLocaleString()}
@@ -38,7 +38,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, progress, twe
 
         <h4>Used Codes</h4>
         <ul>
-          {usedCodes.map((codeEntry, index) => (
+          {usedCodes?.map((codeEntry, index) => (
             <li key={index} style={{ backgroundColor: codeEntry.isUsed ? 'green' : 'red', color: 'white' }}>
               Code: {codeEntry.code}, Used: {codeEntry.isUsed ? "True" : "False"}
             </li>

@@ -25,7 +25,7 @@ const MissionList: React.FC<MissionListProps> = ({ missions, onUpdateMission, on
 
   return (
     <div className={styles.MissionsList}>
-      {missions.map((mission) => (
+      {missions?.map((mission) => (
         <div key={mission.id.toString()} className={styles.MissionItem}>
           <h3>{mission.title}</h3>
           <p>{mission.description}</p>

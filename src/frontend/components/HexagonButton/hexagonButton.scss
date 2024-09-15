@@ -1,6 +1,7 @@
 .HexagonButtonContainer {
     cursor: pointer;
-
+    display: flex;
+    align-items: center;
     img {
         width: 100%;
         height: auto;

@@ -26,7 +26,7 @@ const HexagonButton: React.FC<InfoButtonProps> = ({ onClick, src, name }) => {
 
     return (
         <a
-            className={`KonectaButtonContainer ${isPressed ? 'pressed' : ''}`}
+            className={`HexagonButtonContainer ${isPressed ? 'pressed' : ''}`}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}

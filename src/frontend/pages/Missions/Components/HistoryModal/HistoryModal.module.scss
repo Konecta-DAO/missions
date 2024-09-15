@@ -59,8 +59,8 @@
     position: absolute;
     top: -1%;
     left: -0.5%;
-    width: 101%;
-    height: 101%;
+    width: 100%;
+    height: 100%;
     border-radius: 50px;
     padding: 8px;
     background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF);
@@ -76,7 +76,7 @@
 .CloseButton {
     position: absolute;
     top: 3%;
-    right: 1%;
+    right: 0.3%;
     background: none;
     border: none;
     font-size: 1.5vw;
@@ -180,8 +180,6 @@
     font-size: 1.5vw;
     font-weight: bold;
 }
-
-;
 
 .TweetLink:hover {
     text-decoration: underline;

@@ -39,7 +39,6 @@ const Mission: React.FC<{
         }
     }, [mission.id]);
 
-    // CSS class for mission status
     const missionClass = missionCompleted ? styles.CompletedMission : requiredMissionCompleted ? styles.AvailableMission : styles.IncompleteMission;
 
     return (
@@ -48,31 +47,40 @@ const Mission: React.FC<{
             style={{ backgroundImage: `url(https://${BASE_URL}.raw.icp0.io${mission.image})` }}
             onClick={() => {
                 if (missionCompleted || isAvailableMission) {
-                    handleCardClick(mission.id.toString());
+                    handleCardClick(mission?.id?.toString());
                 }
             }}
-
+            
             onMouseMove={(e) => handleMouseMove(e, tooltipText)}
             onMouseLeave={handleMouseLeave}
 
         >
-            
-            {/* Mission Icon */}
-            <img
-                src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
-                alt="Mission Icon"
-                className={styles.MissionIcon}
-            />
-            {/* Gradient Circle */}
-            <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
-                <defs>
-                    <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor={getGradientStartColor(Number(mission.mode))} />
-                        <stop offset="100%" stopColor={getGradientEndColor(Number(mission.mode))} />
-                    </linearGradient>
-                </defs>
-                <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
-            </svg>
+            <div>
+                {/* Mission Title */}
+                <div className={styles.MissionTitleWrapper}>
+                    <div className={styles.MissionTitle}>
+                        {mission.title}
+                    </div>
+                </div>
+                <div className={styles.MissionBadge}>
+                    {/* Gradient Circle */}
+                    <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor={getGradientStartColor(Number(mission.mode))} />
+                                <stop offset="100%" stopColor={getGradientEndColor(Number(mission.mode))} />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
+                    </svg>
+                    {/* Mission Icon */}
+                    <img
+                        src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
+                        alt="Mission Icon"
+                        className={styles.MissionIcon}
+                    />
+                </div>
+            </div>
 
             {/* Darken Recursive Completed Missions */}
             {isRecursiveMissionDarkened && (
@@ -123,15 +131,8 @@ const Mission: React.FC<{
                         <stop offset="100%" stopColor={getGradientEndColor(Number(mission.mode))} />
                     </linearGradient>
                 </defs>
-                <path d="M 5 0 L 5 90 L 87 90 L 95 68 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="10" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" fill="none" />
+                <path d="M 5 0 L 5 90 L 87 90 L 95 68 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" fill="none" />
             </svg>
-
-            {/* Mission Title */}
-            <div className={styles.MissionTitleWrapper}>
-                <div className={styles.MissionTitle}>
-                    {mission.title}
-                </div>
-            </div>
 
             {/* Darken Recursive Missions and Display Countdown */}
             {isRecursiveMissionDarkened && <div className={styles.RecursiveMissionOverlay}>{countdownText}</div>}

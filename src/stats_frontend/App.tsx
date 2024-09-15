@@ -64,7 +64,7 @@ function App() {
         {showUserModal && selectedUser && (
           <UserDetailsModal
             user={selectedUser}
-            progress={userProgress.map((progress, index) => ({ progress, missionId: BigInt(index) }))}
+            progress={userProgress?.map((progress, index) => ({ progress, missionId: BigInt(index) }))}
             tweets={userTweets}
             usedCodes={userUsedCodes}
             onClose={handleCloseModal}

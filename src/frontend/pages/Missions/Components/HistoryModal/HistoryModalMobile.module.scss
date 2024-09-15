@@ -1,0 +1,191 @@
+@keyframes slideIn {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(20%);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    0% {
+        transform: translateY(20%);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+.MobileModalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.MobileModalContent {
+    background-color: #151320;
+    padding: 15px;
+    border-radius: 25px;
+    position: relative;
+    z-index: 1001;
+    width: 90%;
+    height: 75%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: none;
+    animation: slideIn 0.5s ease-out forwards;
+}
+
+.MobileModalContent.hide {
+    animation: slideOut 0.5s ease-out forwards;
+}
+
+.MobileModalContent::before {
+    content: '';
+    position: absolute;
+    top: -1%;
+    left: -1.5%;
+    width: 100%;
+    height: 101%;
+    border-radius: 25px;
+    padding: 5px;
+    background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF); /* Blue gradient border */
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    z-index: -1;
+    pointer-events: none;
+    transform: scale(0.98);
+}
+
+.CloseButton {
+    position: absolute;
+    top: 3%;
+    right: 3%;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: white;
+}
+
+.ModalTitle {
+    margin-left: 10px;
+}
+
+.Achievements {
+    text-align: center;
+    color: white;
+    font-size: 1.2rem;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.TopImage {
+    width: 86%;
+    height: auto;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    /* Same border as the modal */
+    background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF);
+    padding: 1px;
+    clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 86% 100%, 0% 100%);
+}
+
+.ProgressList {
+    width: 100%;
+    margin-top: 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #3A77EF transparent;
+    max-height: 60%;
+    padding-right: 10px;
+}
+
+.ProgressEntry {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #2c2d34;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ProgressEntry .Row1 {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.Row2 .Date {
+    font-size: 0.9rem;
+    color: #3A77EF; /* Keep the blue color for the date */
+}
+
+.Row1 .Title {
+    font-size: 1rem;
+    color: white;
+}
+
+.ProgressEntry .Row2 {
+    display: flex;
+    justify-content: space-between;
+}
+
+.PointsEarned {
+    padding: 5px 10px;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.TweetLink {
+    color: #33CBDA;
+    text-decoration: none;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.TweetLink:hover {
+    text-decoration: underline;
+}
+
+.Hexagon {
+    width: 80%;
+    margin: 0 auto;
+    clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 67% 100%, 0% 100%);
+    background-color: #151320;
+    position: relative;
+}
+
+.Hexagon::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF); /* Blue gradient hexagon */
+    clip-path: polygon(0% 0%, 0% 0%, 100% 75%, 67% 100%, 0% 100%);
+    z-index: -1;
+}
+
+.Kamimage {
+    width: 100%;
+    height: auto;
+    clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 67% 100%, 0% 100%);
+    border-radius: 10px;
+}

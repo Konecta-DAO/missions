@@ -110,7 +110,15 @@ const OpenChat: React.FC = () => {
         initOpenChat();
     }, []);
 
-    return <iframe id="openchat-iframe" title="OpenChat" style={{ width: '100%', height: '100%', border: 'none' }}></iframe>;
+    return <iframe 
+        id="openchat-iframe" 
+        title="OpenChat" 
+        style={{ 
+            width: '100%', 
+            height: '100%', 
+            border: "1px solid #ccc",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+        }}></iframe>;
 };
 
 export default OpenChat;

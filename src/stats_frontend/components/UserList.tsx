@@ -55,7 +55,7 @@ const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
           </tr>
         </thead>
         <tbody>
-          {filteredUsers.map(user => (
+          {filteredUsers?.map(user => (
             <tr key={user.id.toString()}>
               <td>{user.twitterid.toString()}</td>
               <td>{user.twitterhandle}</td>

@@ -18,7 +18,7 @@ export const formatTime = (seconds: bigint): string => {
         return `First Button Name: ${mission.obj1}, function: ${mission.functionName1}<br />Second Button Name: ${mission.obj2}, function: ${mission.functionName1}`;
       case 2n:
         const codes = await backend.getCodes() as string[];
-        return `Input Placeholder: ${mission.obj1}<br />Button Name: ${mission.obj2}, function: ${mission.functionName1}<br />Codes:<br />${codes.map(code => `- ${code}`).join('<br />')}`;
+        return `Input Placeholder: ${mission.obj1}<br />Button Name: ${mission.obj2}, function: ${mission.functionName1}<br />Codes:<br />${codes?.map(code => `- ${code}`).join('<br />')}`;
       default:
         return "Unknown Object Details";
     }

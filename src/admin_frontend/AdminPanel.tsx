@@ -20,7 +20,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
     const fetchAdminList = async () => {
         try {
             const admins: Principal[] = await backendActor.getAdminIds() as Principal[];
-            const adminStrings = admins.map((admin) => admin.toText());
+            const adminStrings = admins?.map((admin) => admin.toText());
             setAdminList(adminStrings);
         } catch (error) {
             console.error('Error fetching admin list:', error);
@@ -44,7 +44,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
             <div className={styles.AdminList}>
                 <h3>Admin List</h3>
                 <ul>
-                    {adminList.map((adminId, index) => (
+                    {adminList?.map((adminId, index) => (
                         <li key={index}>{adminId}</li>
                     ))}
                 </ul>

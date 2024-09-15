@@ -42,7 +42,7 @@ const MissionsPanel: React.FC<MissionsPanelProps> = () => {
         try {
             await backendActor.addOrUpdateMission(updatedMission); // Call backend to update mission
             // Update the state with the modified mission
-            setMissions(missions.map((mission) =>
+            setMissions(missions?.map((mission) =>
                 mission.id === updatedMission.id ? updatedMission : mission
             ));
         } catch (error) {

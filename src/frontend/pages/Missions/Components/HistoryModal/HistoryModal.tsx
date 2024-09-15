@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from './HistoryModal.module.scss';
 import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
-import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';;
+import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
@@ -29,7 +29,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
 
         return (
             <>
-                {userProgress.map((nestedEntry, idx) => {
+                {userProgress?.map((nestedEntry, idx) => {
 
                     // Ensure nestedEntry is an array
                     if (!Array.isArray(nestedEntry)) {
@@ -37,7 +37,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                         return null;
                     }
 
-                    return nestedEntry.map((innerEntry: any, innerIdx: number) => {
+                    return nestedEntry?.map((innerEntry: any, innerIdx: number) => {
 
                         // Ensure innerEntry is an array with exactly 2 elements before destructuring
                         if (Array.isArray(innerEntry) && innerEntry.length === 2) {
@@ -53,7 +53,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                             const requiredMissionTitle = mission.title || '';
                             const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
 
-                            return progress.completionHistory.map((record, index) => {
+                            return progress?.completionHistory?.map((record, index) => {
 
                                 return (
                                     <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
@@ -82,7 +82,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                         {/* Check for used codes and display them */}
                                         {progress.usedCodes && progress.usedCodes.length > 0 && (
                                             <p>
-                                                {progress.usedCodes.map(([code, isUsed], codeIndex) => (
+                                                {progress.usedCodes?.map(([code, isUsed], codeIndex) => (
                                                     <span key={codeIndex}>Used code: {code}</span>
                                                 ))}
                                             </p>
