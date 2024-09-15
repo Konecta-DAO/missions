@@ -186,6 +186,13 @@
     animation: eating-path .5s linear infinite;
 }
 
+.KonectaAnim {
+    position: absolute;
+    width: 55%;
+    bottom: 6%;
+    left: 33%;
+}
+
 @keyframes chunk-top {
 
     0%,
@@ -218,4 +225,13 @@
     100% {
         transform: translateX(-50%);
     }
+}
+
+.Texto {
+    position: absolute;
+    top: 12%;
+    width: 58%;
+    left: 33%;
+    text-align: justify;
+    font-size: 0.75vw;
 }

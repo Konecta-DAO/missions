@@ -12,9 +12,42 @@ const Casco: React.FC<{ onClick: () => void; }> = ({ onClick }) => {
             xmlSpace="preserve"
         >
             <style type="text/css">
-                {
-                    "\n\t.st0{fill:#FFFFFF;fill-opacity:0;}\n\t.st1{fill:url(#Cinta1_00000011735004232158673840000014433379248923013762_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}\n\t.st2{fill:url(#Cinta2_00000093135422682599828230000013579167385569616290_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}\n\t\n\t\t.st3{fill:url(#Cachito_00000067210349579142041940000011515306981852951215_);stroke:#4D4D4D;stroke-width:3;stroke-miterlimit:10;}\n\t\n\t\t.st4{fill:url(#Pedacito_00000142876221114662930620000006559835533118576532_);stroke:#666666;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}\n\t\n\t\t.st5{fill:url(#ParteInterna_00000005977642896224308720000002569684815952128920_);stroke:#333333;stroke-width:3;stroke-miterlimit:10;}\n\t\n\t\t.st6{fill:url(#Pedazote_00000066477357481510628180000002021643848277896092_);stroke:#666666;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}\n\t\n\t\t.st7{fill:url(#Cachote_00000018950435365080296270000010470554134192157832_);stroke:#4D4D4D;stroke-width:3;stroke-miterlimit:10;}\n\t\n\t\t.st8{fill:url(#FrenteBlanco_00000070828147867721929080000008175890657476006072_);stroke:#666666;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}\n\t\n\t\t.st9{fill:url(#ParteO1_00000087385019842855123210000001361385070173341586_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}\n\t\n\t\t.st10{fill:url(#ParteO2_00000173847976513155720130000013559249462256568201_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}\n\t.st11{fill:url(#BrilloLente_00000161622608114440322020000008201818576585855634_);}\n\t.st12{fill:url(#Boton_00000177443235297703420440000003790390706471513016_);stroke:#1A1A1A;stroke-miterlimit:10;}\n\t.st13{fill:#2E3192;}\n\t.st14{fill:url(#AzulChillon_00000011748091205079958540000010844096197971092156_);}\n\t.st15{fill:none;stroke:#34AADC;stroke-width:4;stroke-miterlimit:10;}\n"
-                }
+                {`
+        .st0{fill:#FFFFFF;fill-opacity:0;}
+        .st1{fill:url(#Cinta1_00000011735004232158673840000014433379248923013762_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}
+        .st2{fill:url(#Cinta2_00000093135422682599828230000013579167385569616290_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}
+        .st3{fill:url(#Cachito_00000067210349579142041940000011515306981852951215_);stroke:#4D4D4D;stroke-width:3;stroke-miterlimit:10;}
+        .st4{fill:url(#Pedacito_00000142876221114662930620000006559835533118576532_);stroke:#666666;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+        .st5{fill:url(#ParteInterna_00000005977642896224308720000002569684815952128920_);stroke:#333333;stroke-width:3;stroke-miterlimit:10;}
+        .st6{fill:url(#Pedazote_00000066477357481510628180000002021643848277896092_);stroke:#666666;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+        .st7{fill:url(#Cachote_00000018950435365080296270000010470554134192157832_);stroke:#4D4D4D;stroke-width:3;stroke-miterlimit:10;}
+        .st8{fill:url(#FrenteBlanco_00000070828147867721929080000008175890657476006072_);stroke:#666666;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+        .st9{fill:url(#ParteO1_00000087385019842855123210000001361385070173341586_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}
+        .st10{fill:url(#ParteO2_00000173847976513155720130000013559249462256568201_);stroke:#000000;stroke-width:3;stroke-miterlimit:10;}
+        .st11{fill:url(#BrilloLente_00000161622608114440322020000008201818576585855634_);}
+        .st12{fill:url(#Boton_00000177443235297703420440000003790390706471513016_);stroke:#1A1A1A;stroke-miterlimit:10;}
+        .st13{fill:#2E3192;}
+        .st14{fill:url(#AzulChillon_00000011748091205079958540000010844096197971092156_);}
+        .st15{fill:none;stroke:#34AADC;stroke-width:4;stroke-miterlimit:10;}
+
+        @keyframes glow {
+            0% {
+                filter: drop-shadow(0 0 0px rgba(0, 170, 255, 0));
+            }
+            50% {
+                filter: drop-shadow(0 0 10px rgba(0, 170, 255, 1)) 
+                    drop-shadow(0 0 20px rgba(0, 170, 255, 0.8)) 
+                    blur(7px); /* Increased blur for more intensity */
+            }
+            100% {
+                filter: drop-shadow(0 0 0px rgba(0, 170, 255, 0));
+            }
+        }
+
+        .glowing {
+            animation: glow 4s infinite ease-in-out;
+        }
+    `}
             </style>
             <g id="VisorCompleto">
                 <g id="Visor">
@@ -962,7 +995,7 @@ const Casco: React.FC<{ onClick: () => void; }> = ({ onClick }) => {
                         </g>
                     </g>
                 </g>
-                <g id="BotonLogIn">
+                <g id="BotonLogIn " >
                     <linearGradient
                         id="Boton_00000145041599839385425380000012871466294123081122_"
                         gradientUnits="userSpaceOnUse"
@@ -1006,7 +1039,7 @@ const Casco: React.FC<{ onClick: () => void; }> = ({ onClick }) => {
                         }}
                         d=" M1064.3,824.8l-87.4,19c-15.1,3.3-27.3-7.5-27.3-23.9v-16.6c0-16.5,12.2-32.5,27.3-35.8l87.4-19c15.1-3.3,27.3,7.5,27.3,23.9V789 C1091.6,805.5,1079.4,821.6,1064.3,824.8z"
                     />
-                    <g id="MarcoAzul">
+                    <g id="MarcoAzul" >
                         <path
                             id="AzulOscuro"
                             className="st13"
@@ -1116,7 +1149,7 @@ const Casco: React.FC<{ onClick: () => void; }> = ({ onClick }) => {
                     </g>
                 </g>
                 <g id="LetrasLogIn">
-                    <g id="BordeAzul">
+                    <g id="BordeAzul" className="glowing">
                         <path
                             id="TrazoL"
                             className="st15"
@@ -1174,7 +1207,7 @@ const Casco: React.FC<{ onClick: () => void; }> = ({ onClick }) => {
                     d="M1328.7,722c-19.3,9.4-37.2,17.4-53.3,24.1c-10.6,4.4-29.9,12.2-54.7,20.9 c-20.9,7.3-36.6,12-53.3,17c-15.7,4.7-35.4,10.3-58.5,16.3c-9.8,8-22.2,15.9-37.3,21.9c-2.5,1-4.9,1.9-7.3,2.6 c-29.1,6.3-58.3,12.7-87.4,19c-1.1,0.2-11,2.4-19.3-4.6c-8.1-6.8-8-16.5-7.9-17.7c0.2-8.4,0.5-16.9,0.7-25.3 c0.7-3.3,2.6-10.6,8.6-17.5c6.2-7,13.4-9.8,16.6-10.9c29.6-6.5,59.2-12.9,88.8-19.3c1.7-0.2,3.5-0.4,5.2-0.6 c14.2-1.4,27.4-0.9,39.5,0.7c23.8-7.1,43.6-13.1,57.8-17.5c24.3-7.5,36.8-11.4,53.1-16.9c20.9-7.1,35.2-11.9,53.7-19.6 c14-5.8,31.7-13.8,51.6-24.4C1326.4,687.5,1327.5,704.7,1328.7,722z"
                     onClick={onClick}
                     fill="transparent"
-                    style={{ pointerEvents: 'all' }}
+                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
                 />
             </g>
         </svg>
