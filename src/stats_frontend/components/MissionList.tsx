@@ -10,7 +10,7 @@ const MissionList: React.FC<MissionListProps> = ({ missions }) => {
         <div>
             {missions.length > 0 ? (
                 <ul>
-                    {missions.map((mission) => {
+                    {missions?.map((mission) => {
                         const [title, desc] = mission.description.split('\0');
                         return (
                             <li key={mission.id.toString()}>

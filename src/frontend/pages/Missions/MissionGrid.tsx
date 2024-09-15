@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 
 interface MissionGridProps {
-
     handleCardClick: (id: string) => void;
 }
 
@@ -41,8 +40,8 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
 
     return (
         <div className={styles.MissionGrid}>
-            {globalID.missions
-                .sort((a: any, b: any) => Number(a.id) - Number(b.id))
+            {globalID?.missions
+                ?.sort((a: any, b: any) => Number(a.id) - Number(b.id))
                 .map((mission: any) => (
                     <Mission
                         key={mission.id}
@@ -58,13 +57,12 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
                     {tooltipContent}
                 </div>
             )}
-
-            {selectedMission && selectedMission.id && (
+            
+            {selectedMission && selectedMission?.id !== undefined && (
                 <MissionModal
                     selectedMissionId={BigInt(selectedMission.id)}
                     closeModal={closeModal}
                 />
-
             )}
         </div>
     );

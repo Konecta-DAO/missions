@@ -12,7 +12,7 @@ const MissionChart: React.FC<MissionChartProps> = ({ missions, missionCounts }) 
     <div className="chart-container">
       <Bar
         data={{
-          labels: missions.map(mission => mission.id.toString()),
+          labels: missions?.map(mission => mission.id.toString()),
           datasets: [{
             label: 'Number of Times Mission Completed',
             data: missionCounts,

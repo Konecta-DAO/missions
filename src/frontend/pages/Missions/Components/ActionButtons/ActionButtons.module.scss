@@ -1,0 +1,47 @@
+/* Individual button styling */
+.collapsedButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    width: 60px;
+    height: 60px;
+}
+
+/* Main collapse wrapper */
+.collapseWrapper {
+    position: absolute;
+    bottom: 2rem;
+    right: 3rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the open/close button */
+}
+
+/* Hexagon buttons container */
+.collapsedButtons {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    gap: 1rem; /* Space between button items */
+    position: absolute;
+    bottom: 5.5rem; /* Adjust as necessary */
+    right: 1rem;
+    align-items: center; /* Center the hexagon buttons */
+    justify-content: center;
+}
+
+/* Target the HexagonButton within collapseWrapper for open/close button */
+// .collapseWrapper > .HexagonButton {
+//     width: 60px;
+//     height: 60px;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     cursor: pointer;
+//     margin-bottom: 1rem; /* Ensure spacing between the open/close button and other buttons */
+// }

@@ -55,7 +55,7 @@ export const useFetchUserDetails = (backend: ActorSubclass<any>) => {
     }
 
     const allCodes = await backend.getCodes() as string[];
-    const usedCodesList = allCodes.map(code => ({
+    const usedCodesList = allCodes?.map(code => ({
       code,
       isUsed: usedCodesMap[code] ?? false,  // Check if the code is used; default to false
     }));

@@ -12,6 +12,26 @@ import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import MissionGridComponent from './MissionGrid.tsx';
 import TopBar from './Components/TopBar/TopBar.tsx';
+import ActionButtons from './Components/ActionButtons/ActionButtons.tsx';
+import HistoryModal from './Components/HistoryModal/HistoryModal.tsx';
+import HistoryModalMobile from './Components/HistoryModal/Mobile.tsx';
+import KonectaModal from './Components/KonectaModal/KonectaModal.tsx';
+import InfoModal from './Components/InfoModal/InfoModal.tsx';
+import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
+
+interface ButtonItem {
+    name: string;
+    src: string;
+    onClick?: () => void;
+    type?: string;
+}
+
+type ModalState = {
+    isHistoryModalOpen: boolean;
+    isKonectaModalOpen: boolean;
+    isInfoModalOpen: boolean;
+    isOpenChatModalOpen: boolean;
+  };
 
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
@@ -21,20 +41,32 @@ const Missions: React.FC = () => {
     const [isIdentityChecked, setIsIdentityChecked] = useState(false);
     const [dataloaded, setDataloaded] = useState(false);
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
+    const { disconnect } = useIdentityKit();
+    const [modalState, setModalState] = useState<ModalState>({
+        isHistoryModalOpen: false,
+        isKonectaModalOpen: false,
+        isInfoModalOpen: false,
+        isOpenChatModalOpen: false,
+    });
 
     useEffect(() => {
         // Wait until the identity check is complete
         if (globalID.agent !== null && isIdentityChecked) {
-            if (identity === undefined) {
-                console.log('Entró a esta vaina x99', identity);
+            console.log("AnonymousIdentity", identity?.getPrincipal().toText() === '2vxsx-fae');
+            if (identity === undefined || identity?.getPrincipal().toText() === '2vxsx-fae') {
                 navigate('/');
             } else {
+                
                 fetchUserData(globalID.agent);
             }
+        } else {
+            if ((identity === undefined || identity?.getPrincipal().toText() === '2vxsx-fae')) {
+                console.log('Entró a esta vaina x99', identity);
+                navigate('/');
+            };
         }
     }, [isIdentityChecked, globalID.agent]);
 
-    // useEffect to simulate waiting for IdentityKit to initialize
     useEffect(() => {
         const checkIdentity = async () => {
             console.log('Identity pre vaina', identity);
@@ -59,51 +91,137 @@ const Missions: React.FC = () => {
                 agent: agent,
                 canisterId,
             })
-            const ae = await agent.getPrincipal();
-            await fetchData.fetchall(actor, ae, setDataloaded);
+            const principal = await agent.getPrincipal();
+            await fetchData.fetchall(actor, principal, setDataloaded);
         }
     };
 
-    // Click handler for mission cards
     const handleCardClick = (missionId: string) => {
         navigate(`/Missions/${missionId}`);
     };
 
-    if (!loadingComplete) {
-        return <LoadingOverlay loadingPercentage={loadingPercentage} />;
-    }
+    const toggleModal = (modalName: keyof ModalState) => {
+        console.log(`Toggling modal: ${modalName}`);
+        setModalState((prevState) => ({
+        ...prevState,
+        [modalName]: !prevState[modalName],
+        }));
+    };
 
+    const buttonList: ButtonItem[] = [
+        {
+            name: 'OpenChat',
+            src: '/assets/ocButton.svg',
+            type: 'mobile',
+        },
+        {
+            name: 'History',
+            src: '/assets/history_button.svg',
+        },
+        {
+            name: 'Konecta',
+            src: '/assets/konecta_button.svg',
+        },
+        {
+            name: 'Kami',
+            src: '/assets/kami_button.svg',
+            onClick: () => { window.open('https://chatgpt.com/g/g-S0vONPiGL-kami', '_blank'); },
+        },
+        {
+            name: 'Info',
+            src: '/assets/question_button.svg',
+        },
+        {
+            name: 'Log Out',
+            src: '/assets/logout_button.svg',
+            onClick: disconnect,
+            type: 'desktop',
+        },
+    ];
+
+    const modalComponents: { [key in keyof ModalState]: React.ReactNode } = {
+        isHistoryModalOpen: (
+            !isMobileOnly && !isTablet ? 
+                <HistoryModal closeModal={() => toggleModal('isHistoryModalOpen')} /> :
+                <HistoryModalMobile closeModal={() => toggleModal('isHistoryModalOpen')} />
+        ),
+        isKonectaModalOpen: (
+            <KonectaModal closeModal={() => toggleModal('isKonectaModalOpen')} />
+        ),
+        isInfoModalOpen: (
+            <InfoModal closeModal={() => toggleModal('isInfoModalOpen')} />
+        ),
+        isOpenChatModalOpen: (
+            <OpenChatModal closeModal={() => toggleModal('isOpenChatModalOpen')} />
+        ),
+    };
+      
     return (
         <>
-            {/* {!isMobileOnly ? (
-                <> */}
-            <TopBar />
             {
-                !isMobileOnly && !isTablet &&
-                <div className={styles.OpenChatWrapper}>
-                    <OpenChat />
-                </div>
-            }
-            {dataloaded ? (
-                <MissionGridComponent
-                    handleCardClick={handleCardClick}
-                />
-            ) : (
-                <div>Loading missions...</div>
-            )}
-            {/* </>
-            ) : (
-                <div style={{ display: 'none' }}>
-                    <div className={styles.TimeCapsuleWrapperMobile}>
-                        <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
-                        <div className={styles.TimerText}>{globalID.timerText}</div>
+                !loadingComplete &&
+                    <div className={styles.loadingOverlayWrapper}>
+                        <LoadingOverlay loadingPercentage={loadingPercentage} />
                     </div>
-                    <OpenChat />
-
-                </div>
-
-            )} */}
-
+            }
+            {
+                            Object.keys(modalState)?.map((key) => {
+                                const modalKey = key as keyof ModalState;
+                                return modalState[modalKey] ? modalComponents[modalKey] : null;
+                            })
+                        }
+            {
+                !isMobileOnly && !isTablet ? (
+                    <div className={styles.MissionsContainer}>
+                        <div className={styles.TopBarWrapper}>
+                            <TopBar
+                                buttonList={buttonList}
+                                toggleModal={toggleModal}
+                            />
+                        </div>
+                        <div className={styles.MissionsBody}>
+                            {dataloaded ? (
+                                <div className={styles.MissionsGridWrapper}>
+                                    <MissionGridComponent
+                                        handleCardClick={handleCardClick}
+                                    />
+                                </div>
+                            ) : (
+                                <div>Loading missions...</div>
+                            )}
+                            <div className={styles.OpenChatWrapper}>
+                                <OpenChat />
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className={styles.MissionsContainer}>
+                        <div className={styles.TopBarWrapperMobile}>
+                            <TopBar
+                                buttonList={buttonList}
+                                toggleModal={toggleModal}
+                            />
+                        </div>
+                        <div className={styles.MissionsBody}>
+                            {dataloaded ? (
+                                <div className={styles.MissionsGridWrapper}>
+                                    <MissionGridComponent
+                                        handleCardClick={handleCardClick}
+                                    />
+                                </div>
+                            ) : (
+                                <div>Loading missions...</div>
+                            )}
+                        </div>
+                        <div>
+                            <ActionButtons
+                                buttonList={buttonList}
+                                toggleModal={toggleModal}
+                            />
+                        </div>
+                    </div>
+                )
+            }
         </>
     );
 };

@@ -1,34 +1,64 @@
 .MissionsContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 0;
+}
+
+.TopBarWrapper {
     position: relative;
     width: 100%;
+    height: 12%;
+    z-index: 2;
+    margin-bottom: 3%;
+}
+
+.TopBarWrapperMobile {
+    position: relative;
+    width: 100%;
+    height: 15%;
+    z-index: 2;
+    margin-bottom: 10%;
+}
+
+.MissionsBody {
+    position: relative;
+    width: 100%;
+    height: 75%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    overflow-y: hidden;
+}
+
+.MissionsGridWrapper {
+    position: relative;
+    display: flex;
+    width: 80%;
     height: 100%;
+    padding: 0px 4vw 0px 4vw;
     overflow-y: auto;
 }
 
 .OpenChatWrapper {
-    position: fixed;
-    bottom: 50px;
-    right: 50px;
-    width: 23vw;
-    height: 77vh;
+    position: relative;
+    display: flex;
+    padding: 0px 4vw 0px 4vw;
+    width: 30%;
+    height: 100%;
     z-index: 1;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .MissionGrid {
-    position: absolute;
-    bottom: 2vw;
-    height: 77%;
-    overflow-y: auto;
-    left: 3vw;
-    width: 67vw;
+    position: relative;
+    height: 100%;
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     grid-auto-rows: auto;
     gap: 1.5rem;
-    padding: 1rem;
-    overflow-y: auto;
     background-color: transparent;
     align-items: start;
     user-select: none;
@@ -37,8 +67,8 @@
 .MissionCard {
     background-size: cover;
     background-position: top;
-    height: 25vh;
-    min-height: 300px;
+    height: 15vw;
+    min-height: 150px;
     border-radius: 20px;
     display: flex;
     flex-direction: column;
@@ -77,7 +107,7 @@
     font-size: 0.9rem;
     padding: 0.5rem;
     border-radius: 5px;
-    z-index: 10000;
+    z-index: 9;
     pointer-events: none;
     max-width: 300px;
     word-wrap: break-word;
@@ -108,7 +138,7 @@
     border-radius: 5px;
     opacity: 0;
     visibility: hidden;
-    z-index: 10000;
+    z-index: 9;
     /* Ensure tooltip is on top */
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
@@ -131,12 +161,10 @@
     z-index: 1;
     pointer-events: auto;
 }
-
 .CompletedMission {
     pointer-events: auto;
     cursor: pointer;
 }
-
 .MainDiv {
     position: absolute;
     width: 100%;
@@ -148,10 +176,14 @@
 }
 
 .MissionTitleWrapper {
-    background-color: rgba(21, 19, 32, 0.85);
+    background-color: rgba(21, 19, 32, 1);
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
     /* Background color for title section */
     width: 100%;
-    padding: 0.67rem;
+    height: 20%;
+    padding-left: 10%;
     position: absolute;
     top: 0;
     z-index: 2;
@@ -162,7 +194,6 @@
     background-size: cover;
     background-position: center;
     height: 150px;
-    /* Set the height for the image part */
     width: 100%;
 }
 
@@ -176,10 +207,14 @@
     text-align: center;
     text-transform: uppercase;
     margin: 0;
-    font-size: 1.08vw;
+    font-size: 1.4vh;
     transform: translateX(5%);
-    width: 80%;
+    width: 70%;
     line-height: 1.1em;
+    white-space: nowrap; /* Ensure the text stays on one line */
+    overflow: hidden;    /* Hide the overflowed text */
+    text-overflow: ellipsis; /* Add dots at the end if the text is too long */
+
 }
 
 .MissionLine {
@@ -188,27 +223,40 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.MissionBadge {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 20%;
+    z-index: 3;
     pointer-events: none;
 }
 
 .MissionCircle {
     position: absolute;
-    top: -6%;
+    top: -0.5vw;
     right: -3%;
     width: 18%;
     height: auto;
-    z-index: 3;
+    z-index: 4;
     pointer-events: none;
 }
 
 .MissionIcon {
     position: absolute;
-    top: 7%;
+    top: 1.4vh;
     right: 2.25%;
     width: 9%;
     height: auto;
-    z-index: 4;
+    z-index: 5;
     pointer-events: none;
 }
 
@@ -250,6 +298,35 @@
     z-index: 3;
     pointer-events: none;
 }
+
+.loadingOverlayWrapper {
+    z-index: 10;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+    width: 10px;
+    background-color: #3b1560; /* Dark purple background */
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: #f8961e; /* Orange thumb */
+    border-radius: 5px;
+    border: 2px solid #3b1560; /* Border matching the background */
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #fca311; /* Lighter orange on hover */
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: #31124f; /* Slightly darker purple track */
+  }
+  
+  ::-webkit-scrollbar-corner {
+    background-color: #3b1560; /* Matching the corner to the background */
+  }
+  
 
 @media (max-width: 1280px) {
     .MissionGrid {

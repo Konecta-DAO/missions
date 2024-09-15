@@ -6,7 +6,7 @@ export const checkMissionCompletion = (userProgress: any, missionId: bigint): bo
         console.error("userProgress is not an array");
         return false;
     }
-    const a = userProgress[0].some(([progressId, progress]: [bigint, SerializedProgress]) => {
+    const a = userProgress[0]?.some(([progressId, progress]: [bigint, SerializedProgress]) => {
         if (progressId === missionId) {
             return true;
         } else {
@@ -28,7 +28,7 @@ export const checkRequiredMissionCompletion = (globalID: any, mission: any) => {
         const requiredMissionBigInt = BigInt(requiredMissionId);
         const requiredMission = globalID.missions.find((m: any) => BigInt(m.id) === requiredMissionBigInt);
         requiredMissionTitle = requiredMission?.title ?? '';
-        const b = globalID.userProgress[0].some(([progressId, progress]: [bigint, SerializedProgress]) => {
+        const b = globalID?.userProgress[0]?.some(([progressId, progress]: [bigint, SerializedProgress]) => {
             if (progressId === requiredMission.id) {
                 return true;
             } else {

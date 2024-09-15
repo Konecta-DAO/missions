@@ -1,13 +1,22 @@
 .topbar {
     display: flex;
     align-items: center;
-    /* Vertically centers the content */
-    padding: 0 4rem;
-    position: absolute;
-    top: 0;
-    left: 0;
+    padding: 20px 2.5% 0 2.5%;
+    position: relative;
+    width: 95%;
+    height: 100%;
+    z-index: 10;
+}
+
+.topbarMobile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 7.5% 20px 7.5%;
+    position: relative;
     width: 100%;
-    height: 12%;
+    height: 100%;
+    align-items: center;
     /* Adjust height as needed */
     background-color: rgba(21, 19, 32, 0);
     /* Adjust opacity or color as needed */
@@ -20,11 +29,10 @@
     align-items: center;
     gap: 0.5rem;
     justify-content: flex-start;
-    width: 25vw;
+    width: 25%;
 }
 
 .topbarCenter {
-    flex: 1;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -32,9 +40,13 @@
     display: flex;
     cursor: 'pointer';
     text-align: center;
+    width: 50%;
 }
 
 .topbarRight {
+    display: flex; 
+    justify-content: space-between;
+    list-style-type: none; 
     display: flex;
     /* Flexbox for horizontal layout */
     justify-content: space-between;
@@ -46,10 +58,51 @@
     justify-content: flex-end;
     margin: 0;
     padding: 0;
+    width: 25%;
+    gap: 1rem; 
     width: 25vw;
     gap: 1rem;
     /* Space between button items */
     z-index: 1;
+}
+
+.topbarTop {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.topbarBottom {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.topbarLeftMobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    width: 50%;
+}
+
+.topbarRightMobile {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    width: 50%;
+}
+
+.hexagonButtonWrapper {
+    position: relative;
+    width: 20%;
+    display: flex;
+    align-items: center;
 }
 
 .timeCapsuleWrapper {
@@ -71,8 +124,26 @@
     font-weight: bold;
 }
 
+.TimeCapsuleMobile {
+    width: 28vw;
+    height: auto;
+}
+
+.TimerTextMobile {
+    color: black;
+    font-size: 0.8em;
+    pointer-events: none;
+    position: absolute;
+    font-weight: bold;
+}
+
 .KonectaLogo {
     width: 13.5vw;
+    height: auto;
+}
+
+.KonectaLogoMobile {
+    width: 28.5vw;
     height: auto;
 }
 

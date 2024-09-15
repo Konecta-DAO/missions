@@ -20,7 +20,7 @@ export const useFetchData = (backend: ActorSubclass<any>) => {
     setAdminIds(adminIds);
 
     let totalCompleted = 0;
-    const missionCounts = await Promise.all(missions.map(async (mission) => {
+    const missionCounts = await Promise.all(missions?.map(async (mission) => {
       try {
         const count = await backend.countCompletedUsers(mission.id);
         totalCompleted += Number(count); // Convert BigInt to number

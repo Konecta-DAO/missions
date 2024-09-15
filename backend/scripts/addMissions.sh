@@ -11,7 +11,7 @@ dfx canister call backend addOrUpdateMission '( record {
       description = "The adventure begins here, brave traveler! To unlock your first precious seconds, you must log in using your NFID. It’s your key to the Konecta Realm. Time waits for no one – claim yours now by hitting that login button and watch the seconds start rolling in!This mission resets every 24 hours, so don’t miss out – let’s keep the Konecta buzz alive!";
       secretCodes = null;
       image = "/missionassets/1725785491851511862_583528316.png";
-      requiredPreviousMissionId = opt (1 : nat);
+      requiredPreviousMissionId = opt (0 : nat);
       functionName1 = null;
       functionName2 = "MrWorldWide";
       iconUrl = "/missionassets/1725785497256751411_3004922307.png";

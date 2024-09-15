@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './MissionModal.module.scss';
 import { useNavigate } from 'react-router-dom';
 import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
@@ -14,14 +14,16 @@ interface MissionModalProps {
     selectedMissionId: bigint;
 }
 
-const BASE_URL = canisterId;
+const BASE_URL = process.env.DFX_NETWORK === "local" ? process.env.DEV_IMG_CANISTER_ID : canisterId;
 
 const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId }) => {
     const globalID = useGlobalID();
     const navigate = useNavigate();
     const fetchData = FetchData();
+    const [loading, setLoading] = useState(false);
     const missions = globalID.missions;
-    const mission = missions ? missions.find((m: { id: bigint; }) => m.id === selectedMissionId) : undefined;
+    const mission = missions ? missions?.find((m: { id: bigint; }) => m.id === selectedMissionId) : undefined;
+    console.log("MissionModal mission", mission);
     useEffect(() => {
         if (!mission) {
             navigate('/Missions');
@@ -46,6 +48,43 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const gradientStartColor = getGradientStartColor(Number(mission.mode));
     const gradientEndColor = getGradientEndColor(Number(mission.mode));
 
+    // Add a beforeunload event listener to warn the user about navigation while loading
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (loading) {
+                e.preventDefault();
+                e.returnValue = ''; // Show the default browser alert when trying to reload/close
+            }
+        };
+
+        // Attach the event listener
+        if (loading) {
+            window.addEventListener('beforeunload', handleBeforeUnload);
+        } else {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        }
+
+        // Cleanup the event listener when the component unmounts or loading is false
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [loading]); // Run this effect when the loading state changes
+
+    const executeFunction = async (functionName: string | undefined) => {
+        if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
+            setLoading(true);
+            try {
+                await MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID, navigate, fetchData);
+            } catch (error) {
+                console.error(`Error executing function: ${functionName}`, error);
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            console.error(`Function ${functionName} not found`);
+        }
+    };
+
     const renderButtons = () => {
         if (missionCompleted) {
             return <div className={styles.CompletedText}>Mission Completed!</div>;
@@ -58,22 +97,12 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
             backgroundImage: `linear-gradient(to right, ${gradientEndColor}, ${gradientStartColor})`,
         };
 
-        const executeFunction = (functionName: string | undefined) => {
-            if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
-                MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID, navigate, fetchData);
-            } else {
-                console.error(`Function ${functionName} not found`);
-            }
-        };
-
         const missionMode = Number(mission.mode);
         if (missionMode === 0) {
             return (
-                <>
-                    <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
-                        {mission.obj2}
-                    </button>
-                </>
+                <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle} disabled={loading}>
+                    {loading ? 'Loading...' : mission.obj2}
+                </button>
             );
         }
 
@@ -81,13 +110,13 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
             return (
                 <>
                     {functionName1 && (
-                        <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle}>
-                            {mission.obj1}
+                        <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle} disabled={loading}>
+                            {loading ? 'Loading...' : mission.obj1}
                         </button>
                     )}
                     {functionName2 && (
-                        <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle}>
-                            {mission.obj2}
+                        <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle} disabled={loading}>
+                            {loading ? 'Loading...' : mission.obj2}
                         </button>
                     )}
                 </>
@@ -126,10 +155,11 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     // Render custom content for PTW (Particular to mission 4)
     const { renderPTWContent } = usePTWData(Number(selectedMissionId));
 
-    // Handle background click (closes modal when clicking outside the modal content)
+    // Disable background click while loading
     const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (loading) return; // Do nothing if loading is true
         if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
-            closeModal(); // Close modal only if clicked outside the modal content
+            closeModal(); // Close modal only if clicked outside and not loading
         }
     };
 
@@ -163,13 +193,32 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                     <path d="M 5 0 L 5 96 L 74 96 L 95 80 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="10" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" fill="none" />
                 </svg>
 
-                {/* Mission Title */}
-                <div className={styles.MissionTitleWrapper}>
-                    <div className={styles.MissionTitle}>
-                        {mission.title}
+                <div>
+                    {/* Mission Title */}
+                    <div className={styles.MissionTitleWrapper}>
+                        <div className={styles.MissionTitle}>
+                            {mission.title}
+                        </div>
+                    </div>
+                    <div className={styles.MissionBadge}>
+                        {/* Gradient Circle */}
+                        <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor={getGradientStartColor(Number(mission.mode))} />
+                                    <stop offset="100%" stopColor={getGradientEndColor(Number(mission.mode))} />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
+                        </svg>
+                        {/* Mission Icon */}
+                        <img
+                            src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
+                            alt="Mission Icon"
+                            className={styles.MissionIcon}
+                        />
                     </div>
                 </div>
-
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
@@ -180,7 +229,9 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 {renderRecursiveMissionOverlay()}
 
                 <div className={styles.ButtonInputs}>
-                    <div className={styles.MissionActions}>{renderButtons()}</div>
+                    <div className={styles.MissionActions}>
+                        {loading ? <div className={styles.LoadingBar}>Loading...</div> : renderButtons()}
+                    </div>
                 </div>
 
             </div>
