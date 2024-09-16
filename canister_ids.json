@@ -5,8 +5,14 @@
   "backend": {
     "ic": "onpqf-diaaa-aaaag-qkeda-cai"
   },
+  "backend_test": {
+    "ic": "ynkdv-7qaaa-aaaag-qkluq-cai"
+  },
   "frontend": {
     "ic": "okowr-oqaaa-aaaag-qkedq-cai"
+  },
+  "frontend_test": {
+    "ic": "y7mum-taaaa-aaaag-qklxq-cai"
   },
   "stats_frontend": {
     "ic": "5bxlt-ryaaa-aaaag-qkhea-cai"

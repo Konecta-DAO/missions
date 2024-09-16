@@ -8,6 +8,7 @@ import { useGlobalID } from '../hooks/globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
+import { SerializedProgress } from '../declarations/backend/backend.did.js';
 
 function App() {
 
@@ -33,32 +34,94 @@ function App() {
     fetchData();
   }, [user?.principal, agent]);
 
+  type MissionEntry = [number, SerializedProgress];
+  type UserEntry = [string, MissionEntry[]];
+
+  interface GetAllUsersProgressResponse {
+    data: UserEntry[];
+    total: number;
+  }
+
+  interface ProgressActor {
+    getAllUsersProgress: (offset: number, limit: number) => Promise<GetAllUsersProgressResponse>;
+  }
+
   const getTodo = async () => {
-    const actor = Actor.createActor(idlFactory, {
+    // Define the Canister ID
+
+    // Create the Actor
+    const actor = Actor.createActor<ProgressActor>(idlFactory, {
       agent: agent!,
       canisterId,
     });
-    const progress = await actor.getAllUsersProgress();
 
-    const jsonString = JSON.stringify(progress, (_, value) => {
-      return typeof value === 'bigint' ? value.toString() : value;
-    }, 2);
+    const pageSize: number = 1; // Number of entries to fetch per request
+    let offset: number = 0;        // Starting point for pagination
+    let total: number = 0;         // Total number of entries
+    let allProgress: UserEntry[] = []; // Aggregated user progress data
 
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    console.log("Starting to fetch user progress...");
 
-    const url = URL.createObjectURL(blob);
+    try {
+      do {
+        console.log(`Fetching data from offset ${offset} to ${offset + pageSize}`);
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'progress.json';
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        // Fetch a page of data from the backend
+        const response: GetAllUsersProgressResponse = await actor.getAllUsersProgress(offset, pageSize);
+        const { data, total: fetchedTotal } = response;
 
-    // Clean up the URL after the download
-    URL.revokeObjectURL(url);
-  }
+        // On the first fetch, set the total number of entries
+        if (offset === 0) {
+          total = fetchedTotal;
+          console.log(`Total entries to fetch: ${total}`);
+        }
+
+        // Concatenate the fetched data to allProgress
+        allProgress = allProgress.concat(data);
+        console.log(`Fetched ${data.length} entries. Total fetched: ${allProgress.length}/${total}`);
+
+        // Increment the offset for the next fetch
+        offset += pageSize;
+      } while (offset < total);
+
+      console.log("All data fetched. Preparing download...");
+
+      // Serialize the data to JSON, handling bigint types
+      const jsonString: string = JSON.stringify(
+        allProgress,
+        (key: string, value: any): any => {
+          if (typeof value === "bigint") {
+            return value.toString();
+          }
+          return value;
+        },
+        2 // Indentation for readability
+      );
+
+      // Create a Blob from the JSON string
+      const blob: Blob = new Blob([jsonString], { type: "application/json" });
+
+      // Create a download URL for the Blob
+      const url: string = URL.createObjectURL(blob);
+
+      // Create a hidden anchor element and trigger the download
+      const link: HTMLAnchorElement = document.createElement("a");
+      link.href = url;
+      link.download = "progress.json";
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL after the download
+      URL.revokeObjectURL(url);
+
+      console.log("Download initiated successfully.");
+    } catch (error) {
+      console.error("An error occurred while fetching user progress:", error);
+      alert("Failed to download progress data. Please try again later.");
+    }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

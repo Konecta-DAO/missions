@@ -123,13 +123,17 @@ actor class Backend() {
   system func postupgrade() {
 
     // Iterate over the serialized user progress data
-    for (entry in serializedUserProgress.vals()) {
-      let (userId, serializedMissions) = entry;
+    for (tuple in Iter.fromArray(serializedUserProgress)) {
+
+      let userId = tuple.0;
+      let serializedUserMissions = tuple.1;
+
       let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
 
       // Iterate over each serialized mission progress for the current user
-      for (missionEntry in serializedMissions.vals()) {
-        let (missionId, serializedProgress) = missionEntry;
+      for (missionTuple in Iter.fromArray(serializedUserMissions)) {
+        let missionId = missionTuple.0; // Destructure the first element (Nat)
+        let serializedProgress = missionTuple.1; // Destructure the second element (SerializedProgress)
 
         // Deserialize completionHistory
         let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
@@ -147,9 +151,10 @@ actor class Backend() {
         let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
 
         // Deserialize the usedCodes
-        for (codeEntry in serializedProgress.usedCodes.vals()) {
-          let (code, used) = codeEntry;
-          usedCodes.put(code, used);
+        for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
+          let code = codeTuple.0; // First element (Text)
+          let value = codeTuple.1; // Second element (Bool)
+          usedCodes.put(code, value);
         };
 
         // Now construct the full Progress object after deserializing both completionHistory and usedCodes
@@ -683,42 +688,51 @@ actor class Backend() {
     return [];
   };
 
-  public shared query (msg) func getAllUsersProgress() : async [(Principal, [(Nat, Types.SerializedProgress)])] {
+  public shared query (msg) func getAllUsersProgress(offset : Nat, limit : Nat) : async {
+    data : [(Principal, [(Nat, Types.SerializedProgress)])];
+    total : Nat;
+  } {
     if (isAdmin(msg.caller)) {
-      let entries = Iter.toArray(userProgress.entries());
-      var serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+      // Convert userProgress entries to an array
+      let entries : [(Principal, Types.UserMissions)] = Iter.toArray(userProgress.entries());
+      let total : Nat = Array.size(entries);
 
-      for (entry in Iter.fromArray(entries)) {
-        let (userId, userMissions) = entry;
-        let missionEntries = Iter.toArray(userMissions.entries());
-        var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
-
-        for (missionEntry in Iter.fromArray(missionEntries)) {
-          let (missionId, progress) = missionEntry;
-
-          let serializedProgress = {
-            completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(
-              progress.completionHistory,
-              func(record : Types.MissionRecord) : Types.SerializedMissionRecord {
-                {
-                  timestamp = record.timestamp;
-                  pointsEarned = record.pointsEarned;
-                  tweetId = record.tweetId;
-                };
-              },
-            );
-            usedCodes = Iter.toArray(progress.usedCodes.entries());
-          };
-
-          serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, serializedProgress)]);
-        };
-
-        serializedEntries := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
+      // Handle cases where offset might be greater than total
+      let adjustedOffset : Nat = if (offset >= total) { total } else { offset };
+      let adjustedEnd : Nat = if (offset + limit > total) { total } else {
+        offset + limit;
       };
 
-      return serializedEntries;
+      // Calculate the length for subArray
+      let length : Nat = adjustedEnd - adjustedOffset;
+
+      // Apply pagination using Array.subArray with (from, length)
+      let paginatedEntries : [(Principal, Types.UserMissions)] = Array.subArray(entries, adjustedOffset, length);
+
+      // Serialize the paginated entries using Array.map
+      let serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = Array.map<(Principal, Types.UserMissions), (Principal, [(Nat, Types.SerializedProgress)])>(
+        paginatedEntries,
+        func(entry : (Principal, Types.UserMissions)) : (Principal, [(Nat, Types.SerializedProgress)]) {
+          let (userId, userMissions) = entry;
+          let missionEntries : [(Nat, Types.Progress)] = Iter.toArray(userMissions.entries());
+
+          // Serialize mission entries using Array.map
+          let serializedMissionEntries : [(Nat, Types.SerializedProgress)] = Array.map<(Nat, Types.Progress), (Nat, Types.SerializedProgress)>(
+            missionEntries,
+            func(missionEntry : (Nat, Types.Progress)) : (Nat, Types.SerializedProgress) {
+              let (missionId, progress) = missionEntry;
+              (missionId, Serialization.serializeProgress(progress));
+            },
+          );
+
+          (userId, serializedMissionEntries);
+        },
+      );
+
+      return { data = serializedEntries; total = total };
     };
-    return [];
+
+    return { data = []; total = 0 };
   };
 
   public shared (msg) func restoreProgress(data : [(Principal, [(Nat, Types.SerializedProgress)])]) : async () {

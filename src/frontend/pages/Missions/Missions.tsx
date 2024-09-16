@@ -31,7 +31,7 @@ type ModalState = {
     isKonectaModalOpen: boolean;
     isInfoModalOpen: boolean;
     isOpenChatModalOpen: boolean;
-  };
+};
 
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
@@ -52,26 +52,17 @@ const Missions: React.FC = () => {
     useEffect(() => {
         // Wait until the identity check is complete
         if (globalID.agent !== null && isIdentityChecked) {
-            console.log("AnonymousIdentity", identity?.getPrincipal().toText() === '2vxsx-fae');
-            if (identity === undefined || identity?.getPrincipal().toText() === '2vxsx-fae') {
+            if (user === undefined) {
                 navigate('/');
             } else {
-                
                 fetchUserData(globalID.agent);
             }
-        } else {
-            if ((identity === undefined || identity?.getPrincipal().toText() === '2vxsx-fae')) {
-                console.log('Entró a esta vaina x99', identity);
-                navigate('/');
-            };
         }
     }, [isIdentityChecked, globalID.agent]);
 
     useEffect(() => {
         const checkIdentity = async () => {
-            console.log('Identity pre vaina', identity);
-            if (user?.principal === undefined && identity === undefined) {
-                console.log('Entró a esta vaina', identity);
+            if (user === undefined && identity === undefined) {
                 setIsIdentityChecked(false);
             } else {
                 const agent = HttpAgent.createSync({ identity });
@@ -103,8 +94,8 @@ const Missions: React.FC = () => {
     const toggleModal = (modalName: keyof ModalState) => {
         console.log(`Toggling modal: ${modalName}`);
         setModalState((prevState) => ({
-        ...prevState,
-        [modalName]: !prevState[modalName],
+            ...prevState,
+            [modalName]: !prevState[modalName],
         }));
     };
 
@@ -141,7 +132,7 @@ const Missions: React.FC = () => {
 
     const modalComponents: { [key in keyof ModalState]: React.ReactNode } = {
         isHistoryModalOpen: (
-            !isMobileOnly && !isTablet ? 
+            !isMobileOnly && !isTablet ?
                 <HistoryModal closeModal={() => toggleModal('isHistoryModalOpen')} /> :
                 <HistoryModalMobile closeModal={() => toggleModal('isHistoryModalOpen')} />
         ),
@@ -155,21 +146,21 @@ const Missions: React.FC = () => {
             <OpenChatModal closeModal={() => toggleModal('isOpenChatModalOpen')} />
         ),
     };
-      
+
     return (
         <>
             {
                 !loadingComplete &&
-                    <div className={styles.loadingOverlayWrapper}>
-                        <LoadingOverlay loadingPercentage={loadingPercentage} />
-                    </div>
+                <div className={styles.loadingOverlayWrapper}>
+                    <LoadingOverlay loadingPercentage={loadingPercentage} />
+                </div>
             }
             {
-                            Object.keys(modalState)?.map((key) => {
-                                const modalKey = key as keyof ModalState;
-                                return modalState[modalKey] ? modalComponents[modalKey] : null;
-                            })
-                        }
+                Object.keys(modalState)?.map((key) => {
+                    const modalKey = key as keyof ModalState;
+                    return modalState[modalKey] ? modalComponents[modalKey] : null;
+                })
+            }
             {
                 !isMobileOnly && !isTablet ? (
                     <div className={styles.MissionsContainer}>
