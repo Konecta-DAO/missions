@@ -10,9 +10,11 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
 
 function App() {
+
   const { identity, user, agent, disconnect } = useIdentityKit();
   const globalID = useGlobalID();
   const [uploadedData, setUploadedData] = useState<any>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
@@ -65,20 +67,53 @@ function App() {
       const reader = new FileReader();
 
       // When the file is successfully read
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           // Parse the uploaded JSON file
           const jsonString = e.target?.result as string;
           const parsedData = JSON.parse(jsonString, (key, value) => {
-            // Convert stringified BigInts back to BigInt
+            // Convert stringified BigInts and 'nat' back to BigInt
             if (typeof value === 'string' && /^\d+n$/.test(value)) {
               return BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
             }
+
+            // Convert numeric strings back to numbers
+            if (typeof value === 'string' && /^\d+$/.test(value)) {
+              return Number(value); // Convert plain numbers back from strings
+            }
+
+            // Convert __principal__ values back to Principal objects
+            if (value && typeof value === 'object' && '__principal__' in value) {
+              return Principal.fromText(value.__principal__);
+            }
+
             return value;
           });
 
           // Set the processed data to the state or handle it as needed
           setUploadedData(parsedData);
+          console.log(parsedData);
+
+          // Initialize the actor
+          const actor = Actor.createActor(idlFactory, {
+            agent: agent!,
+            canisterId,
+          });
+
+          // Send parsed data to the canister
+          await actor.restoreAllUserProgress(parsedData);
+          console.log("Data successfully set.");
+
+          // Retrieve the progress and convert BigInts to strings for display
+          const progress = await actor.getAllUsersProgress();
+          console.log("Progress successfully retrieved.");
+
+          const jsonString2 = JSON.stringify(progress, (_, value) => {
+            return typeof value === 'bigint' ? value.toString() : value;
+          }, 2);
+
+          console.log(jsonString2);
+
         } catch (error) {
           console.error('Error parsing JSON:', error);
         }

@@ -23,11 +23,61 @@ actor class Backend() {
 
   //
 
-  // Pre-upgrade function to serialize the user progress
+  public func restoreAllUserProgress(serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]) : async () {
+
+    userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+
+    // Create an empty TrieMap to hold the deserialized user progress
+    for (tuple in Iter.fromArray(serializedData)) {
+
+      let userId = tuple.0; // Destructure the first element (Principal)
+      let serializedUserMissions = tuple.1; // Destructure the second element (Array of (Nat, SerializedProgress))
+
+      let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+
+      // Iterate over the array of tuples (Nat, SerializedProgress) for each user
+      for (missionTuple in Iter.fromArray(serializedUserMissions)) {
+        let missionId = missionTuple.0; // Destructure the first element (Nat)
+        let serializedProgress = missionTuple.1; // Destructure the second element (SerializedProgress)
+
+        let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
+          serializedProgress.completionHistory,
+          func(serializedRecord : Types.SerializedMissionRecord) : Types.MissionRecord {
+            {
+              var timestamp = serializedRecord.timestamp;
+              var pointsEarned = serializedRecord.pointsEarned;
+              var tweetId = serializedRecord.tweetId;
+            };
+          },
+        );
+
+        let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+
+        // Iterate over the array of used codes (Text, Bool)
+        for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
+          let code = codeTuple.0; // First element (Text)
+          let value = codeTuple.1; // Second element (Bool)
+          usedCodes.put(code, value);
+        };
+
+        let progress : Types.Progress = {
+          var completionHistory = completionHistory;
+          var usedCodes = usedCodes;
+        };
+
+        userMissions.put(missionId, progress);
+      };
+
+      userProgress.put(userId, userMissions);
+    };
+
+  };
 
   private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
 
   stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+
+  // Pre-upgrade function to serialize the user progress
 
   system func preupgrade() {
     // Serialize user progress
@@ -77,29 +127,35 @@ actor class Backend() {
       let (userId, serializedMissions) = entry;
       let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
 
-      // Iterate over each serialized mission progress
+      // Iterate over each serialized mission progress for the current user
       for (missionEntry in serializedMissions.vals()) {
         let (missionId, serializedProgress) = missionEntry;
 
-        // Deserialize the Progress object
-        var progress = {
-          var completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
-            serializedProgress.completionHistory,
-            func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
-              {
-                var timestamp = record.timestamp;
-                var pointsEarned = record.pointsEarned;
-                var tweetId = record.tweetId;
-              };
-            },
-          );
-          var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-        };
+        // Deserialize completionHistory
+        let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
+          serializedProgress.completionHistory,
+          func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
+            {
+              var timestamp = record.timestamp;
+              var pointsEarned = record.pointsEarned;
+              var tweetId = record.tweetId;
+            };
+          },
+        );
+
+        // Create an empty TrieMap for usedCodes
+        let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
 
         // Deserialize the usedCodes
         for (codeEntry in serializedProgress.usedCodes.vals()) {
           let (code, used) = codeEntry;
-          progress.usedCodes.put(code, used);
+          usedCodes.put(code, used);
+        };
+
+        // Now construct the full Progress object after deserializing both completionHistory and usedCodes
+        let progress : Types.Progress = {
+          var completionHistory = completionHistory;
+          var usedCodes = usedCodes;
         };
 
         // Put the deserialized progress into the userMissions TrieMap
