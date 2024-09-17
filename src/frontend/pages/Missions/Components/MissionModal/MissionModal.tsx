@@ -6,7 +6,6 @@ import usePTWData from '../../../../../hooks/usePTWData.tsx';
 import useTWtoRT from '../../../../../hooks/useTWtoRT.tsx';
 import MissionFunctionsComponent from '../MissionFunctionsComponent.tsx';
 import { FetchData } from '../../../../../hooks/fetchData.tsx';
-import { canisterId } from '../../../../../declarations/backend/index.js';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
 interface MissionModalProps {
@@ -14,7 +13,7 @@ interface MissionModalProps {
     selectedMissionId: bigint;
 }
 
-const BASE_URL = process.env.DFX_NETWORK === "local" ? process.env.DEV_IMG_CANISTER_ID : canisterId;
+const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
 
 const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId }) => {
     const globalID = useGlobalID();

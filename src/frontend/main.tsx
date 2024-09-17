@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.scss';
-import { idlFactory, canisterId } from '../declarations/backend/index.js';
+import { idlFactory, canisterId } from '../declarations/backend_test/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
 import { NFIDW } from "@nfid/identitykit"
@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ targets: ["onpqf-diaaa-aaaag-qkeda-cai", canisterId] }} authType={IdentityKitAuthType.DELEGATION}>
+        <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://ynkdv-7qaaa-aaaag-qkluq-cai.icp0.io", targets: [canisterId]  }} authType={IdentityKitAuthType.DELEGATION}>
           <UsergeekProvider>
             <RadialBackground>
               <Routes>

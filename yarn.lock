@@ -639,10 +639,10 @@
     "@emnapi/runtime" "^1.1.0"
     "@tybys/wasm-util" "^0.9.0"
 
-"@nfid/identitykit@^0.0.0-alpha.10":
-  version "0.0.0-alpha.10"
-  resolved "https://registry.npmjs.org/@nfid/identitykit/-/identitykit-0.0.0-alpha.10.tgz"
-  integrity sha512-coKU0262zKy8hjTbJrVeGQChZ598Uwr0PoYOLzLk70mKiLwtIyf2cIkuK4+P2MMpUGrixQeKYAefVb4myudvpA==
+"@nfid/identitykit@^0.0.0-alpha.11":
+  version "0.0.0-alpha.11"
+  resolved "https://registry.yarnpkg.com/@nfid/identitykit/-/identitykit-0.0.0-alpha.11.tgz#493c20ae591e3a1472a838ef3715536ed1bb4a2a"
+  integrity sha512-9+zLMcnpU1xALLP2F5/aMInE+ABWdlTRj6RZvKKn/JdMjxn2YDqibxg1aYWQilTZcomEX7AbfbzzNl1nX8uAqA==
   dependencies:
     "@headlessui/react" "2.1.4"
     "@radix-ui/react-dialog" "^1.1.1"
@@ -5909,10 +5909,10 @@ vite-plugin-static-copy@^1.0.6:
     fs-extra "^11.1.0"
     picocolors "^1.0.0"
 
-vite@^5.4.5:
-  version "5.4.5"
-  resolved "https://registry.npmjs.org/vite/-/vite-5.4.5.tgz"
-  integrity sha512-pXqR0qtb2bTwLkev4SE3r4abCNioP3GkjvIDLlzziPpXtHgiJIjuKl+1GN6ESOT3wMjG3JTeARopj2SwYaHTOA==
+vite@^5.4.6:
+  version "5.4.6"
+  resolved "https://registry.yarnpkg.com/vite/-/vite-5.4.6.tgz#85a93a1228a7fb5a723ca1743e337a2588ed008f"
+  integrity sha512-IeL5f8OO5nylsgzd9tq4qD2QqI0k2CQLGrWD0rCN0EQJZpBK5vJAx0I+GDkMOXxQX/OfFHMuLIx6ddAxGX/k+Q==
   dependencies:
     esbuild "^0.21.3"
     postcss "^8.4.43"

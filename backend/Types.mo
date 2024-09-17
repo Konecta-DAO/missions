@@ -14,6 +14,7 @@ module Types {
     creationTime : Int; // Creation Time in Nanoseconds
     var pfpProgress : Text;
     var totalPoints : Nat;
+    var ocProfile : ?Text;
   };
 
   public type SerializedUser = {
@@ -23,6 +24,7 @@ module Types {
     creationTime : Int;
     pfpProgress : Text;
     totalPoints : Nat;
+    ocProfile : ?Text;
   };
 
   // Mission Types

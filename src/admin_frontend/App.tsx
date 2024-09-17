@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.scss';
 import KonectaLogo from '../../public/assets/Konecta Logo.svg';
 // import AdminPanel from './AdminPanel.tsx';
@@ -15,6 +15,40 @@ function App() {
   const { identity, user, agent, disconnect } = useIdentityKit();
   const globalID = useGlobalID();
   const [uploadedData, setUploadedData] = useState<any>(null);
+  const [actor, setActor] = useState<any>(null);
+
+  const setData = async (agent: HttpAgent) => {
+    if (agent) {
+      console.log("canisterId:", canisterId);
+      console.log("agent:", agent);
+      const actor = Actor.createActor(idlFactory, {
+        agent: agent!,
+        canisterId,
+      });
+      setActor(actor);
+    }
+  };
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log(identity?.getPrincipal())
+      if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
+        if (identity.getPrincipal().toText() !== "2vxsx-fae") {
+          const agent = HttpAgent.createSync({ identity });
+          if (process.env.NODE_ENV !== "production") {
+            agent.fetchRootKey();
+          }
+          setData(agent);
+        } else {
+          disconnect();
+        }
+
+      }
+    };
+    fetchData();
+  }, [user?.principal]);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,6 +68,50 @@ function App() {
     fetchData();
   }, [user?.principal, agent]);
 
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [imageURL, setImageURL] = useState<string | null>(null);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+
+    const file = event.target.files?.[0];
+
+    if (file) {
+      console.log('File name:', file.name);
+      if (file.size > 2 * 1024 * 1024) { // Check if file is larger than 2MB
+        alert('File size must be less than 2MB');
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+
+
+        console.log('Uint8Array size:', uint8Array.length, 'bytes');
+
+        // Send parsed data to the canister
+        const a = await actor.uploadMissionImage(file.name, uint8Array) as string;
+        setImageURL(a);
+        console.log("Data successfully set.");
+        setUploadSuccess('Success');
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const handleImageButtonClick = () => {
+    const input = document.getElementById('hiddenImageInput') as HTMLInputElement;
+    if (input) {
+      input.click();
+    }
+  };
+
+
   type MissionEntry = [number, SerializedProgress];
   type UserEntry = [string, MissionEntry[]];
 
@@ -48,12 +126,6 @@ function App() {
 
   const getTodo = async () => {
     // Define the Canister ID
-
-    // Create the Actor
-    const actor = Actor.createActor<ProgressActor>(idlFactory, {
-      agent: agent!,
-      canisterId,
-    });
 
     const pageSize: number = 1; // Number of entries to fetch per request
     let offset: number = 0;        // Starting point for pagination
@@ -157,12 +229,6 @@ function App() {
           setUploadedData(parsedData);
           console.log(parsedData);
 
-          // Initialize the actor
-          const actor = Actor.createActor(idlFactory, {
-            agent: agent!,
-            canisterId,
-          });
-
           // Send parsed data to the canister
           await actor.restoreAllUserProgress(parsedData);
           console.log("Data successfully set.");
@@ -208,6 +274,21 @@ function App() {
             />
 
             <button onClick={handleButtonClick}>Upload JSON File</button>
+
+            {/* Image upload section */}
+
+            <input
+              id="hiddenImageInput"
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
+            <button onClick={handleImageButtonClick}>Upload Image</button>
+
+            {/* Display Success text */}
+
+            {uploadSuccess && <p>{imageURL}</p>}
           </>
         </div>
         <div>

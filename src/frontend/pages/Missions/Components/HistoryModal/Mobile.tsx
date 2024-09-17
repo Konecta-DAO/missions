@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styles from './HistoryModalMobile.module.scss';
 import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
+import { SerializedProgress } from '../../../../../declarations/backend_test/backend_test.did.js';
 import TopImage from '../../../../../../public/assets/HistoryKamiBanner.png';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 

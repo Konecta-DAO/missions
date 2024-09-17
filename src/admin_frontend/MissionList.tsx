@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import styles from './MissionsPanel.module.scss';
 import ModifyMissionModal from './ModifyMissionModal.tsx';
 import { SerializedMission } from '../declarations/backend/backend.did.js';
-import { canisterId } from '../declarations/backend/index.js';
 
 interface MissionListProps {
   missions: SerializedMission[];
@@ -21,7 +20,7 @@ const MissionList: React.FC<MissionListProps> = ({ missions, onUpdateMission, on
     setSelectedMission(null);
   };
   // Base URL for the image and icon resources
-  const BASE_URL = canisterId;
+  const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
 
   return (
     <div className={styles.MissionsList}>

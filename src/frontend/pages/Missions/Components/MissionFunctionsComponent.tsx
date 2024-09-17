@@ -1,5 +1,5 @@
 import { Actor } from "@dfinity/agent";
-import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
+import { canisterId, idlFactory } from "../../../../declarations/backend_test/index.js";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any) => {

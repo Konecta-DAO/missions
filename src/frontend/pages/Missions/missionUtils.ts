@@ -1,4 +1,4 @@
-import { SerializedProgress } from "../../../declarations/backend/backend.did.js";
+import { SerializedProgress } from "../../../declarations/backend_test/backend_test.did.js";
 
 // Utility function to check mission completion
 export const checkMissionCompletion = (userProgress: any, missionId: bigint): boolean => {

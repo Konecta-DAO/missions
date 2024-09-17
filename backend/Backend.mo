@@ -81,10 +81,9 @@ actor class Backend() {
 
   system func preupgrade() {
     // Serialize user progress
-    let entries = Iter.toArray(userProgress.entries());
-    var serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+    let entries = userProgress.entries();
 
-    for (entry in Iter.fromArray(entries)) {
+    for (entry in entries) {
       let (userId, userMissions) = entry;
       let missionEntries = Iter.toArray(userMissions.entries());
       var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
@@ -109,7 +108,7 @@ actor class Backend() {
         serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, serializedProgress)]);
       };
 
-      serializedUserProgress := Array.append(serializedEntries, [(userId, serializedMissionEntries)]);
+      serializedUserProgress := Array.append(serializedUserProgress, [(userId, serializedMissionEntries)]);
     };
 
     // Serialize mission assets
@@ -189,7 +188,7 @@ actor class Backend() {
 
   // Admin IDs
 
-  stable var adminIds : [Principal] = [];
+  stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
 
   // Function to add an admin ID
 
@@ -287,6 +286,7 @@ actor class Backend() {
               creationTime = user.creationTime;
               var pfpProgress = user.pfpProgress;
               var totalPoints = user.totalPoints + points;
+              var ocProfile = user.ocProfile;
             };
             Vector.put(users, i, updatedUser);
             return;
@@ -312,6 +312,7 @@ actor class Backend() {
                 creationTime = user.creationTime;
                 var pfpProgress = user.pfpProgress;
                 var totalPoints = 0;
+                var ocProfile = user.ocProfile;
               };
               Vector.put(users, i, updatedUser);
               return;
@@ -662,7 +663,7 @@ actor class Backend() {
 
       let tempP = Serialization.serializeProgress(firstMissionProgress);
 
-      let a = updateUserProgress(userId, 0, tempP);
+      await updateUserProgress(userId, 0, tempP);
 
       // Add the user to the users vector
       let newUser : Types.User = {
@@ -672,6 +673,7 @@ actor class Backend() {
         creationTime = Time.now();
         var pfpProgress = "false";
         var totalPoints = Int.abs(pointsEarnedOpt);
+        var ocProfile = null;
       };
       Vector.add<Types.User>(users, newUser);
       return ?Serialization.serializeUser(newUser);
@@ -816,6 +818,7 @@ actor class Backend() {
                 creationTime = user.creationTime;
                 var pfpProgress = "loading";
                 var totalPoints = user.totalPoints;
+                var ocProfile = user.ocProfile;
               };
               Vector.put(users, i, updatedUser);
               return "loading";
@@ -845,6 +848,7 @@ actor class Backend() {
                 creationTime = user.creationTime;
                 var pfpProgress = "verified";
                 var totalPoints = user.totalPoints;
+                var ocProfile = user.ocProfile;
               };
               Vector.put(users, i, updatedUser);
 
@@ -889,6 +893,7 @@ actor class Backend() {
                 creationTime = user.creationTime;
                 var pfpProgress = user.pfpProgress;
                 var totalPoints = user.totalPoints;
+                var ocProfile = user.ocProfile;
               };
               Vector.put(users, i, updatedUser);
               return;
@@ -1173,15 +1178,19 @@ actor class Backend() {
       "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io",
       "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io",
       "https://5bxlt-ryaaa-aaaag-qkhea-cai.icp0.io",
+      "https://y7mum-taaaa-aaaag-qklxq-cai.icp0.io",
       "https://apcy6-tiaaa-aaaag-qkfda-cai.raw.icp0.io",
       "https://okowr-oqaaa-aaaag-qkedq-cai.raw.icp0.io",
       "https://5bxlt-ryaaa-aaaag-qkhea-cai.raw.icp0.io",
+      "https://y7mum-taaaa-aaaag-qklxq-cai.raw.icp0.io",
       "https://apcy6-tiaaa-aaaag-qkfda-cai.ic0.app",
       "https://okowr-oqaaa-aaaag-qkedq-cai.ic0.app",
       "https://5bxlt-ryaaa-aaaag-qkhea-cai.ic0.app",
+      "https://y7mum-taaaa-aaaag-qklxq-cai.ic0.app",
       "https://apcy6-tiaaa-aaaag-qkfda-cai.raw.ic0.app",
       "https://okowr-oqaaa-aaaag-qkedq-cai.raw.ic0.app",
       "https://5bxlt-ryaaa-aaaag-qkhea-cai.raw.ic0.app",
+      "https://y7mum-taaaa-aaaag-qklxq-cai.raw.ic0.app",
     ];
 
     return {
