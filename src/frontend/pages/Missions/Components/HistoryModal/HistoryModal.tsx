@@ -4,7 +4,7 @@ import { convertSecondsToHMS, formatDate } from '../../../../../components/Utili
 import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
+import { SerializedProgress } from '../../../../../declarations/backend_test/backend_test.did.js';
 
 interface HistoryModalProps {
     closeModal: () => void;

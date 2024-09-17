@@ -20,8 +20,8 @@ import { useGlobalID } from '../../../hooks/globalID.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
-import { canisterId } from '../../../declarations/backend/index.js';
+import { idlFactory, SerializedUser } from '../../../declarations/backend_test/backend_test.did.js';
+import { canisterId } from '../../../declarations/backend_test/index.js';
 import { Principal } from '@dfinity/principal';
 
 const Home: React.FC = () => {

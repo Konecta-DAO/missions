@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import styles from '../../Missions.module.scss';
 import { checkMissionCompletion, checkRequiredMissionCompletion, checkRecursiveMission } from '../../missionUtils.ts';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
-import { canisterId } from '../../../../../declarations/backend/index.js';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 
 const Mission: React.FC<{
@@ -13,7 +12,7 @@ const Mission: React.FC<{
 
 }> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave }) => {
     const globalID = useGlobalID();
-    const BASE_URL = process.env.DFX_NETWORK === "local" ? process.env.DEV_IMG_CANISTER_ID : canisterId;
+    const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
     const missionId = BigInt(mission.id);
 
     // Check if the current mission is completed
@@ -50,7 +49,7 @@ const Mission: React.FC<{
                     handleCardClick(mission?.id?.toString());
                 }
             }}
-            
+
             onMouseMove={(e) => handleMouseMove(e, tooltipText)}
             onMouseLeave={handleMouseLeave}
 
