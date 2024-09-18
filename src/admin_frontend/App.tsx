@@ -127,7 +127,7 @@ function App() {
   const getTodo = async () => {
     // Define the Canister ID
 
-    const pageSize: number = 1; // Number of entries to fetch per request
+    const pageSize: number = 500; // Number of entries to fetch per request
     let offset: number = 0;        // Starting point for pagination
     let total: number = 0;         // Total number of entries
     let allProgress: UserEntry[] = []; // Aggregated user progress data
@@ -195,18 +195,18 @@ function App() {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
       const reader = new FileReader();
 
-      // When the file is successfully read
       reader.onload = async (e) => {
         try {
-          // Parse the uploaded JSON file
           const jsonString = e.target?.result as string;
-          const parsedData = JSON.parse(jsonString, (key, value) => {
+
+          // Reviver function to handle BigInts and Principals
+          const reviverFunction = (key: any, value: any) => {
             // Convert stringified BigInts and 'nat' back to BigInt
             if (typeof value === 'string' && /^\d+n$/.test(value)) {
               return BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
@@ -223,26 +223,53 @@ function App() {
             }
 
             return value;
-          });
+          };
 
-          // Set the processed data to the state or handle it as needed
-          setUploadedData(parsedData);
-          console.log(parsedData);
+          // Parse the uploaded JSON file using the reviver function
+          const parsedData = JSON.parse(jsonString, reviverFunction);
 
-          // Send parsed data to the canister
-          await actor.restoreAllUserProgress(parsedData);
-          console.log("Data successfully set.");
+          // Ensure parsedData is an array of tuples
+          const dataArray = Array.isArray(parsedData)
+            ? parsedData
+            : Object.entries(parsedData);
 
-          // Retrieve the progress and convert BigInts to strings for display
+          // Define the chunk size (adjust based on your needs)
+          const CHUNK_SIZE = 1; // Number of records per chunk
+
+          // Function to split data into chunks
+          const splitIntoChunks = (data: any[], chunkSize: number) => {
+            const chunks = [];
+            for (let i = 0; i < data.length; i += chunkSize) {
+              chunks.push(data.slice(i, i + chunkSize));
+            }
+            return chunks;
+          };
+
+          // Split the parsedData into chunks
+          const chunks = splitIntoChunks(dataArray, CHUNK_SIZE);
+
+          // Send each chunk to the backend
+          for (const chunk of chunks) {
+            // Send parsed chunk to the canister
+            await actor.restoreAllUserProgress(chunk);
+            console.log("Chunk successfully sent.");
+          }
+
+          console.log("All data successfully sent.");
+
+          // Optionally retrieve the progress and convert BigInts to strings for display
           const progress = await actor.getAllUsersProgress();
           console.log("Progress successfully retrieved.");
 
-          const jsonString2 = JSON.stringify(progress, (_, value) => {
-            return typeof value === 'bigint' ? value.toString() : value;
-          }, 2);
+          const jsonString2 = JSON.stringify(
+            progress,
+            (_, value) => {
+              return typeof value === 'bigint' ? value.toString() : value;
+            },
+            2
+          );
 
           console.log(jsonString2);
-
         } catch (error) {
           console.error('Error parsing JSON:', error);
         }
@@ -252,6 +279,7 @@ function App() {
       reader.readAsText(file);
     }
   };
+
 
   const handleButtonClick = () => {
     const input = document.getElementById('hiddenFileInput') as HTMLInputElement;

@@ -1,3 +1,23 @@
+/* ActionButtons.module.scss */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000; /* Black background */
+    opacity: 0; /* Start fully transparent */
+    transition: opacity 0.3s ease;
+    pointer-events: none; /* Disable interaction when not active */
+    z-index: 98; /* Just below the action buttons */
+  
+    &.active {
+      opacity: 0.33; /* 25% opacity for the dark overlay */
+      pointer-events: auto; /* Enable interaction when active */
+    }
+  }
+  
 /* Individual button styling */
 .collapsedButton {
     display: flex;
@@ -7,41 +27,48 @@
 
     width: 60px;
     height: 60px;
+
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+
+    /* This class is added when the button should be visible */
+    &.buttonVisible {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Main collapse wrapper */
 .collapseWrapper {
     position: absolute;
-    bottom: 2rem;
-    right: 3rem;
-    z-index: 9999;
+    bottom: 16vh;
+    right: 7vw;
+    z-index: 99;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center the open/close button */
+    align-items: center;
 }
 
 /* Hexagon buttons container */
 .collapsedButtons {
     display: flex;
-    flex-direction: column; /* Stack buttons vertically */
+    flex-direction: column;
     list-style-type: none;
     margin: 0;
     padding: 0;
-    gap: 1rem; /* Space between button items */
+    gap: 1rem;
     position: absolute;
-    bottom: 5.5rem; /* Adjust as necessary */
+    bottom: 5.5rem;
     right: 1rem;
-    align-items: center; /* Center the hexagon buttons */
+    align-items: center;
     justify-content: center;
-}
 
-/* Target the HexagonButton within collapseWrapper for open/close button */
-// .collapseWrapper > .HexagonButton {
-//     width: 60px;
-//     height: 60px;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//     cursor: pointer;
-//     margin-bottom: 1rem; /* Ensure spacing between the open/close button and other buttons */
-// }
+    /* Keep the container always visible */
+    opacity: 1;
+    pointer-events: none;
+
+    &.active {
+        pointer-events: auto;
+    }
+}

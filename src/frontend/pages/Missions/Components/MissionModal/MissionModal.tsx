@@ -73,11 +73,9 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         if (functionName && MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent]) {
             setLoading(true);
             try {
-                await MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID, navigate, fetchData);
+                await MissionFunctionsComponent[functionName as keyof typeof MissionFunctionsComponent](globalID, navigate, fetchData, setLoading, closeModal);
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
-            } finally {
-                setLoading(false);
             }
         } else {
             console.error(`Function ${functionName} not found`);
@@ -99,23 +97,83 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         const missionMode = Number(mission.mode);
         if (missionMode === 0) {
             return (
-                <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle} disabled={loading}>
-                    {loading ? 'Loading...' : mission.obj2}
+                <button
+                    onClick={() => executeFunction(functionName2)}
+                    style={buttonGradientStyle}
+                    disabled={loading}
+                    className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
+                >
+                    <div className={styles.buttonContent}>
+                        {loading && <div className={styles.spinner} />}
+                        <span className={loading ? styles.loadingText : ''}>
+                            {loading ? 'Loading...' : mission.obj2}
+                        </span>
+                    </div>
                 </button>
             );
         }
 
-        if (missionMode === 1 || missionMode === 2 || missionMode === 3) {
+        if (missionMode === 1) {
             return (
                 <>
                     {functionName1 && (
-                        <button onClick={() => executeFunction(functionName1)} style={buttonGradientStyle} disabled={loading}>
-                            {loading ? 'Loading...' : mission.obj1}
+                        <button
+                            onClick={() => executeFunction(functionName1)}
+                            style={buttonGradientStyle}
+                            disabled={loading}
+                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
+                        >
+                            <div className={styles.buttonContent}>
+                                {loading && <div className={styles.spinner} />}
+                                <span className={loading ? styles.loadingText : ''}>
+                                    {loading ? 'Loading...' : mission.obj1}
+                                </span>
+                            </div>
                         </button>
                     )}
                     {functionName2 && (
-                        <button onClick={() => executeFunction(functionName2)} style={buttonGradientStyle} disabled={loading}>
-                            {loading ? 'Loading...' : mission.obj2}
+                        <button
+                            onClick={() => executeFunction(functionName2)}
+                            style={buttonGradientStyle}
+                            disabled={loading}
+                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
+                        >
+                            <div className={styles.buttonContent}>
+                                {loading && <div className={styles.spinner} />}
+                                <span className={loading ? styles.loadingText : ''}>
+                                    {loading ? 'Loading...' : mission.obj2}
+                                </span>
+                            </div>
+                        </button>
+                    )}
+                </>
+            );
+        }
+
+        if (missionMode === 2 || missionMode === 3) {
+            return (
+                <>
+                    {functionName1 && (
+                        <input
+                            type="text"
+                            value={mission.obj1}
+                            disabled={loading}
+                            style={buttonGradientStyle}
+                        />
+                    )}
+                    {functionName2 && (
+                        <button
+                            onClick={() => executeFunction(functionName2)}
+                            style={buttonGradientStyle}
+                            disabled={loading}
+                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
+                        >
+                            <div className={styles.buttonContent}>
+                                {loading && <div className={styles.spinner} />}
+                                <span className={loading ? styles.loadingText : ''}>
+                                    {loading ? 'Loading...' : mission.obj2}
+                                </span>
+                            </div>
                         </button>
                     )}
                 </>
@@ -154,7 +212,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     // Render custom content for PTW (Particular to mission 4)
     const { renderPTWContent } = usePTWData(Number(selectedMissionId));
 
-    // Disable background click while loading
+    // Disable background click while mission in progress
     const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
         if (loading) return; // Do nothing if loading is true
         if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
@@ -229,7 +287,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
                 <div className={styles.ButtonInputs}>
                     <div className={styles.MissionActions}>
-                        {loading ? <div className={styles.LoadingBar}>Loading...</div> : renderButtons()}
+                        {renderButtons()}
                     </div>
                 </div>
 

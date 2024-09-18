@@ -1,8 +1,8 @@
 import { Actor } from "@dfinity/agent";
-import { canisterId, idlFactory } from "../../../../declarations/backend_test/index.js";
+import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 
 const MissionFunctionsComponent = {
-    followKonecta: async (globalID: any, navigate: any, fetchData: any) => {
+    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -20,6 +20,7 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
+
             const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
@@ -35,17 +36,28 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
-
-                navigate("/");
+                setLoading(false);
+                closeModal();
             }
 
             window.addEventListener("message", handleEvent);
+
+            let authSuccess = false;
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
+
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
-    verifyPFP: async (globalID: any, navigate: any, fetchData: any) => {
+    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -56,10 +68,11 @@ const MissionFunctionsComponent = {
         } else {
             alert("PFP status sucessfully set. You will soon be manually verified");
         }
-        navigate("/");
+        setLoading(false);
+        closeModal();
     },
 
-    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any) => {
+    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
@@ -93,17 +106,27 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
-
-                navigate("/");
+                setLoading(false);
+                closeModal();
             }
 
             window.addEventListener("message", handleEvent);
+
+            let authSuccess = false;
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
-    vfTweet: async (globalID: any, navigate: any, fetchData: any) => {
+    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -142,18 +165,27 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
-
-                navigate("/");
+                setLoading(false);
+                closeModal();
             }
 
             window.addEventListener("message", handleEvent);
 
+            let authSuccess = false;
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
-    verRT: async (globalID: any, navigate: any, fetchData: any) => {
+    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
 
         const principal = globalID.principalId;
 
@@ -174,6 +206,7 @@ const MissionFunctionsComponent = {
             const authURL = data.authURL;
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
             const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
@@ -188,17 +221,27 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
-
-                navigate("/");
+                setLoading(false);
+                closeModal();
             }
 
             window.addEventListener("message", handleEvent);
+
+            let authSuccess = false;
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
         } catch (error) {
             console.error("Error fetching Twitter auth URL:", error);
         }
     },
 
-    sendKamiDM: async (globalID: any, navigate: any, fetchData: any) => {
+    sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
         const url = 'https://x.com/messages/compose?recipient_id=1828134613375488000&text=Kami%2C%20I%27m%20on%20a%20mission%20for%20a%20killer%20profile%20pic.%20Let%E2%80%99s%20make%20it%20happen!';
         window.open(url, '_blank');
     },

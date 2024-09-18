@@ -1,286 +1,301 @@
 .ModalBackground {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    animation: fadeIn 0.5s forwards;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  animation: fadeIn 0.5s forwards;
 }
 
 .MissionModal {
-    position: relative;
-    width: 28%;
-    height: 75%;
-    background-color: #151320;
-    border-radius: 10px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-    transform: translateY(100vh);
-    animation: slideUp 0.5s forwards;
+  position: relative;
+  width: 28%;
+  height: 75%;
+  background-color: #151320;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transform: translateY(100vh);
+  animation: slideUp 0.5s forwards;
 }
 
 .MissionImageWrapper {
-    position: relative;
-    width: 100%;
-    height: 50%;
-    /* Image takes 50% of the height */
+  position: relative;
+  width: 100%;
+  height: 50%;
+  /* Image takes 50% of the height */
 }
 
 .MissionImage {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* Ensure the image covers the whole area */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Ensure the image covers the whole area */
 }
 
 .GradientOverlay {
-    position: relative;
-    bottom: 7px;
-    left: 0;
-    width: 100%;
-    height: 30%;
-    background: linear-gradient(to bottom, transparent, #151320);
+  position: relative;
+  bottom: 7px;
+  left: 0;
+  width: 100%;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, #151320);
 }
 
 .MissionContent {
-    padding: 20px;
-    flex: 1;
-    width: 83%;
-    transform: translateX(6.4%);
-    font-size: 0.93vw;
-    line-height: 1.25em;
-    font-weight: 500;
+  padding: 20px;
+  flex: 1;
+  width: 83%;
+  transform: translateX(6.4%);
+  font-size: 0.93vw;
+  line-height: 1.25em;
+  font-weight: 500;
 }
 
 .ButtonInputs {
-    padding: 20px;
-    flex: 1;
-    width: 80%;
-    transform: translateX(7%);
+  padding: 20px;
+  flex: 1;
+  width: 80%;
+  transform: translateX(7%);
 }
 
 .MissionTitleWrapper {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    background-color: rgba(21, 19, 32, 1);
-    /* Background color for title section */
-    width: 100%;
-    height: 8%;
-    position: absolute;
-    top: 0;
-    z-index: 1;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background-color: rgba(21, 19, 32, 1);
+  /* Background color for title section */
+  width: 100%;
+  height: 8%;
+  position: absolute;
+  top: 0;
+  z-index: 1;
 }
 
 .MissionTitle {
-    color: #fff;
-    font-weight: bold;
-    text-align: center;
-    text-transform: uppercase;
-    margin: 0;
-    font-size: 1.25vw;
-    line-height: 1.15em;
-    transform: translate(15.25%);
-    width: 75%;
-    text-overflow: ellipsis; /* Add dots at the end if the text is too long */
-    overflow: hidden;    /* Hide the overflowed text */
-    white-space: nowrap; /* Ensure the text stays on one line */
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 0;
+  font-size: 1.25vw;
+  line-height: 1.15em;
+  transform: translate(15.25%);
+  width: 75%;
+  text-overflow: ellipsis;
+  /* Add dots at the end if the text is too long */
+  overflow: hidden;
+  /* Hide the overflowed text */
+  white-space: nowrap;
+  /* Ensure the text stays on one line */
 }
 
 .MissionLine {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 3;
-    pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .MissionLine2 {
-    position: absolute;
-    top: 0;
-    left: -3px;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .MissionActions {
-    margin-top: 0.25vw;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.5em;
+  margin-top: 0.25vw;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1vw;
 }
 
 .InputButtonWrapper {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 
 button {
-    padding: 10px 20px;
-    color: white;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 1.1vw;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-button:hover {
-    background-color: #5746d6;
+  padding: 10px 20px;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1.1vw;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 
 .CompletedText {
-    font-size: 1vw;
-    color: white;
-    text-align: center;
-    font-weight: 500;
+  font-size: 1vw;
+  color: white;
+  text-align: center;
+  font-weight: 500;
 }
 
 .MissionCircle {
-    position: absolute;
-    top: -0.5vw;
-    right: -3%;
-    width: 18%;
-    height: auto;
-    z-index: 4;
-    pointer-events: none;
+  position: absolute;
+  top: -0.5vw;
+  right: -3%;
+  width: 18%;
+  height: auto;
+  z-index: 4;
+  pointer-events: none;
 }
 
 .MissionIcon {
-    position: absolute;
-    top: 1.4vh;
-    right: 2.25%;
-    width: 9%;
-    height: auto;
-    z-index: 5;
-    pointer-events: none;
+  position: absolute;
+  top: 1.4vh;
+  right: 2.25%;
+  width: 9%;
+  height: auto;
+  z-index: 5;
+  pointer-events: none;
 }
 
 .loadingOverlayWrapper {
   z-index: 10;
 }
 
+.buttonContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customButton {
+  padding: 10px 20px;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1.1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.loadingButton {
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingText {
+  margin-left: 8px;
+}
+
+.spinner {
+  display: inline-block;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 /* Fade in the background */
 @keyframes fadeIn {
-    from {
-        background-color: rgba(0, 0, 0, 0);
-        /* Transparent */
-    }
+  from {
+    background-color: rgba(0, 0, 0, 0);
+    /* Transparent */
+  }
 
-    to {
-        background-color: rgba(0, 0, 0, 0.75);
-        /* Full dark background */
-    }
+  to {
+    background-color: rgba(0, 0, 0, 0.75);
+    /* Full dark background */
+  }
 }
 
 /* Slide up the modal */
 @keyframes slideUp {
-    from {
-        transform: translateY(100vh);
-        /* Start from the bottom */
-    }
+  from {
+    transform: translateY(100vh);
+    /* Start from the bottom */
+  }
 
-    to {
-        transform: translateY(0);
-        /* End at the middle */
-    }
+  to {
+    transform: translateY(0);
+    /* End at the middle */
+  }
 }
 
 
-@media (max-width: 768px) {
-    .MissionModal {
-      width: 80%; /* Make the modal take up more of the screen on mobile */
-      height: 50%; /* Adjust the height for mobile */
-      border-radius: 10px;
-    }
-  
-    .MissionImageWrapper {
-      height: 40%; /* Reduce the image height for mobile */
-    }
-  
-    .MissionTitleWrapper {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        background-color: rgba(21, 19, 32, 1);
-        /* Background color for title section */
-        width: 100%;
-        height: 8%;
-        position: absolute;
-        top: 0;
-        z-index: 1;
-        padding: 1vh;
-        padding-left: 8vw;
-    }
-  
-    .MissionTitle {
-      font-size: 4vw; /* Adjust title size for mobile */
-      transform: none; /* Center the title properly */
-      width: 100%; /* Use the full width for the title */
-      text-align: center; /* Ensure title is centered */
-    }
-  
-    .MissionContent {
-      padding: 15px;
-      font-size: 3.5vw; /* Adjust content font size for mobile */
-      line-height: 1.2em;
-    }
-  
-    .ButtonInputs {
-      padding: 0px;
-      font-size: 4vw; /* Adjust button font size for mobile */
-      width: 100%;
-    }
-  
-    .MissionActions {
-      gap: 1.2em; /* Adjust gap between buttons */
-      align-items: center; /* Center buttons for mobile */
-    }
-  
-    button {
-      padding: 8px 15px;
-      font-size: 4vw; /* Adjust button text size for mobile */
-    }
-  
-    .CompletedText {
-      font-size: 3.5vw; /* Adjust completion text size for mobile */
-    }
+/* Additional improvements for smaller tablets */
+@media (max-width: 1024px) {
+  .MissionModal {
+    width: 90%;
+    /* Slightly larger width on tablets */
+    height: 75%;
+    /* Adjust the height for tablets */
   }
-  
-  /* Additional improvements for smaller tablets */
-  @media (max-width: 1024px) and (min-width: 769px) {
-    .MissionModal {
-      width: 75%; /* Slightly larger width on tablets */
-      height: 80%; /* Adjust the height for tablets */
-    }
-  
-    .MissionTitle {
-      font-size: 2.5vw; /* Adjust title size for tablets */
-    }
-  
-    .MissionContent {
-      font-size: 1.8vw; /* Adjust content font size for tablets */
-    }
-  
-    button {
-      font-size: 2.2vw; /* Adjust button text size for tablets */
-    }
-  
-    .CompletedText {
-      font-size: 2vw; /* Adjust completion text size for tablets */
-    }
+
+  .MissionTitle {
+    font-size: 3vw;
+    /* Adjust title size for tablets */
   }
-  
+
+  .MissionContent {
+    font-size: 1.67vh;
+    width: 75%;
+    padding-top: 0.5vh;
+    padding-bottom: 0.5vh;
+    /* Adjust content font size for tablets */
+  }
+
+  button {
+    font-size: 2.2vw;
+    /* Adjust button text size for tablets */
+  }
+
+  .CompletedText {
+    font-size: 3.5vw;
+    /* Adjust completion text size for tablets */
+  }
+
+  .customButton {
+    font-size: 3vw;
+  }
+
+  .MissionActions {
+    margin-top: -3.75vw;
+    gap: 4vw;
+  }
+
+  .MissionImageWrapper{
+    height: 29vh;
+  }
+
+  .ButtonInputs{
+    padding-top: 2vh;
+  }
+}

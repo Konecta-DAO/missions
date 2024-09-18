@@ -20,9 +20,11 @@ import { useGlobalID } from '../../../hooks/globalID.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { idlFactory, SerializedUser } from '../../../declarations/backend_test/backend_test.did.js';
-import { canisterId } from '../../../declarations/backend_test/index.js';
+import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
+import { canisterId } from '../../../declarations/backend/index.js';
 import { Principal } from '@dfinity/principal';
+import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
+import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +35,8 @@ const Home: React.FC = () => {
   const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
   const globalID = useGlobalID();
   const { loadingPercentage, loadingComplete } = useLoadingProgress();
+  const [isKonectaModalOpen, setIsKonectaModalOpen] = useState(false);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
@@ -73,14 +77,7 @@ const Home: React.FC = () => {
     }
   };
 
-
-
   useEffect(() => {
-    console.log("User: ", user);
-    console.log("Identity: ", identity);
-    console.log("PRincipal", user?.principal.toText());
-    console.log("Anonimo: ", user?.principal.isAnonymous());
-    console.log("Agente: ", globalID.agent);
     const fetchData = async () => {
       console.log(identity?.getPrincipal())
       if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
@@ -135,6 +132,22 @@ const Home: React.FC = () => {
     return <LoadingOverlay loadingPercentage={loadingPercentage} />;
   }
 
+  const handleKonectaClickMobile = () => {
+    setIsKonectaModalOpen(true); // Open the modal when the button is clicked
+  };
+
+  const handleKonectaCloseModal = () => {
+    setIsKonectaModalOpen(false); // Close the modal
+  };
+
+  const handleInfoClickMobile = () => {
+    setIsInfoModalOpen(true); // Open the modal when the button is clicked
+  };
+
+  const handleInfoCloseModal = () => {
+    setIsInfoModalOpen(false); // Close the modal
+  };
+
   return (
     <div className={styles.HomeContainer}>
 
@@ -146,7 +159,6 @@ const Home: React.FC = () => {
       {/* Page Content */}
       <div>
         {
-
 
           // DESKTOP
 
@@ -210,12 +222,20 @@ const Home: React.FC = () => {
               </div>
               <div className={styles.HelpButtons2}>
                 <div className={styles.KonecB2}>
-                  <KonectaInfoButton onClick={handleKonectaClick} />
+                  <KonectaInfoButton onClick={handleKonectaClickMobile} />
                 </div>
                 <div className={styles.HelpB2}>
-                  <HelpButton onClick={handleHelpClick} />
+                  <HelpButton onClick={handleInfoClickMobile} />
                 </div>
               </div>
+
+              {isKonectaModalOpen && (
+                <KonectaModal closeModal={handleKonectaCloseModal} />
+              )}
+
+              {isInfoModalOpen && (
+                <InfoModal closeModal={handleInfoCloseModal} />
+              )}
             </>
           ) : (
 
@@ -235,12 +255,20 @@ const Home: React.FC = () => {
                     </div>
                   </div><div className={styles.HelpButtons3}>
                     <div className={styles.KonecB2}>
-                      <KonectaInfoButton onClick={handleKonectaClick} />
+                      <KonectaInfoButton onClick={handleKonectaClickMobile} />
                     </div>
                     <div className={styles.HelpB2}>
-                      <HelpButton onClick={handleHelpClick} />
+                      <HelpButton onClick={handleInfoClickMobile} />
                     </div>
                   </div>
+
+                  {isKonectaModalOpen && (
+                    <KonectaModal closeModal={handleKonectaCloseModal} />
+                  )}
+
+                  {isInfoModalOpen && (
+                    <InfoModal closeModal={handleInfoCloseModal} />
+                  )}
                 </>
               )}
               {isLandscape && (

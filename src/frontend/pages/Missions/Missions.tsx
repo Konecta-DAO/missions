@@ -8,7 +8,7 @@ import { FetchData } from '../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { idlFactory, canisterId } from '../../../declarations/backend_test/index.js';
+import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import MissionGridComponent from './MissionGrid.tsx';
 import TopBar from './Components/TopBar/TopBar.tsx';
@@ -193,7 +193,7 @@ const Missions: React.FC = () => {
                                 toggleModal={toggleModal}
                             />
                         </div>
-                        <div className={styles.MissionsBody}>
+                        <div className={styles.MissionsBody2}>
                             {dataloaded ? (
                                 <div className={styles.MissionsGridWrapper}>
                                     <MissionGridComponent

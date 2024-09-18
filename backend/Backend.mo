@@ -23,23 +23,28 @@ actor class Backend() {
 
   //
 
-  public func restoreAllUserProgress(serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]) : async () {
-
-    userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-
-    // Create an empty TrieMap to hold the deserialized user progress
+  public func restoreAllUserProgress(
+    serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]
+  ) : async () {
+    // Iterate over each user data tuple
     for (tuple in Iter.fromArray(serializedData)) {
+      let userId = tuple.0;
+      let serializedUserMissions = tuple.1;
 
-      let userId = tuple.0; // Destructure the first element (Principal)
-      let serializedUserMissions = tuple.1; // Destructure the second element (Array of (Nat, SerializedProgress))
+      // Retrieve or initialize the user's mission data
+      var userMissions = switch (userProgress.get(userId)) {
+        case (?existingMissions) { existingMissions };
+        case null {
+          TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+        };
+      };
 
-      let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
-
-      // Iterate over the array of tuples (Nat, SerializedProgress) for each user
+      // Process each mission for the user
       for (missionTuple in Iter.fromArray(serializedUserMissions)) {
-        let missionId = missionTuple.0; // Destructure the first element (Nat)
-        let serializedProgress = missionTuple.1; // Destructure the second element (SerializedProgress)
+        let missionId = missionTuple.0;
+        let serializedProgress = missionTuple.1;
 
+        // Deserialize the serializedProgress
         let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
           serializedProgress.completionHistory,
           func(serializedRecord : Types.SerializedMissionRecord) : Types.MissionRecord {
@@ -52,11 +57,9 @@ actor class Backend() {
         );
 
         let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-
-        // Iterate over the array of used codes (Text, Bool)
         for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
-          let code = codeTuple.0; // First element (Text)
-          let value = codeTuple.1; // Second element (Bool)
+          let code = codeTuple.0;
+          let value = codeTuple.1;
           usedCodes.put(code, value);
         };
 
@@ -65,12 +68,13 @@ actor class Backend() {
           var usedCodes = usedCodes;
         };
 
+        // Update the mission progress
         userMissions.put(missionId, progress);
       };
 
+      // Update the user's missions in userProgress
       userProgress.put(userId, userMissions);
     };
-
   };
 
   private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
@@ -168,6 +172,7 @@ actor class Backend() {
 
       // Put the deserialized userMissions into the main userProgress TrieMap
       userProgress.put(userId, userMissions);
+
     };
 
     // Deserialize the mission assets
@@ -177,6 +182,9 @@ actor class Backend() {
       let (missionId, asset) = assetEntry;
       missionAssets.put(missionId, asset);
     };
+
+    serializedUserProgress := [];
+    serializedMissionAssets := [];
 
   };
 

@@ -80,7 +80,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 1rem;
+    margin-top: 1vh;
 }
 
 .topbarLeftMobile {
@@ -95,12 +95,11 @@
     position: relative;
     display: flex;
     justify-content: flex-end;
-    width: 50%;
 }
 
 .hexagonButtonWrapper {
     position: relative;
-    width: 20%;
+    width: 23%;
     display: flex;
     align-items: center;
 }
@@ -118,7 +117,7 @@
 
 .TimerText {
     color: black;
-    font-size: 0.6em;
+    font-size: 0.75vw;
     pointer-events: none;
     position: absolute;
     font-weight: bold;
@@ -131,7 +130,7 @@
 
 .TimerTextMobile {
     color: black;
-    font-size: 0.8em;
+    font-size: 3.25vw;
     pointer-events: none;
     position: absolute;
     font-weight: bold;
