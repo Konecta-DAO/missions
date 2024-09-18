@@ -57,37 +57,41 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
 
                                 return (
                                     <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
-                                        <h3>{formatDate(record.timestamp)}</h3>
-                                        <p>Completed the mission: {formattedTitle}</p>
+                                        <div className={styles.EntryContent}>
+                                            <h3>{formatDate(record.timestamp)}</h3>
+                                            <p>Completed the mission: {formattedTitle}</p>
+                                            {record.tweetId && record.tweetId.length > 0 && (
+                                                <a
+                                                    href={constructTweetUrl(record.tweetId[0] ?? '')}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={styles.TweetLink}
+                                                >
+                                                    {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
+                                                </a>
+                                            )}
+                                            {progress.usedCodes && progress.usedCodes.length > 0 && (
+                                                <p>
+                                                    {progress.usedCodes?.map(([code, isUsed], codeIndex) => (
+                                                        <span key={codeIndex}>Used code: {code}</span>
+                                                    ))}
+                                                </p>
+                                            )}
+                                        </div>
                                         <div
                                             className={styles.RightSection}
                                             style={{
-                                                background: `linear-gradient(135deg, ${getGradientStartColor(Number(mission.mode))}, ${getGradientEndColor(Number(mission.mode))})`,
+                                                background: `linear-gradient(135deg, ${getGradientStartColor(
+                                                    Number(mission.mode)
+                                                )}, ${getGradientEndColor(Number(mission.mode))})`,
                                             }}
                                         >
                                             <div className={styles.PointsEarned}>
                                                 +{convertSecondsToHMS(Number(record.pointsEarned))}
                                             </div>
                                         </div>
-                                        {record.tweetId && record.tweetId.length > 0 && (
-                                            <a
-                                                href={constructTweetUrl(record.tweetId[0] ?? '')}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={styles.TweetLink}
-                                            >
-                                                {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
-                                            </a>
-                                        )}
-                                        {/* Check for used codes and display them */}
-                                        {progress.usedCodes && progress.usedCodes.length > 0 && (
-                                            <p>
-                                                {progress.usedCodes?.map(([code, isUsed], codeIndex) => (
-                                                    <span key={codeIndex}>Used code: {code}</span>
-                                                ))}
-                                            </p>
-                                        )}
                                     </div>
+
                                 );
                             });
                         } else {

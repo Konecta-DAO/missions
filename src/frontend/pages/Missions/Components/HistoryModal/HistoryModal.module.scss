@@ -149,19 +149,27 @@
 }
 
 .ProgressEntry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
     padding-top: 10px;
     font-weight: bold;
 }
 
+.EntryContent {
+    flex: 1;
+    margin-right: 20px;
+}
+
 .ProgressEntry h3 {
-    font-size: 1.5em;
+    font-size: calc(14px + 0.5vw);
     margin-bottom: 5px;
     color: #3A77EF;
 }
 
 .ProgressEntry p {
-    font-size: 1.2em;
+    font-size: calc(8px + 0.5vw);
     margin-bottom: 5px;
     color: white;
 }
@@ -186,18 +194,14 @@
 }
 
 .RightSection {
-    width: 9%;
-    height: 1.25%;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 10px;
     border-radius: 15px;
-    position: absolute;
-    font-size: 14px;
-    left: 250px;
-    transform: translateY(-214%);
+    min-width: 100px; 
 }
+
 
 .PointsEarned {
     font-size: 1.2em;
