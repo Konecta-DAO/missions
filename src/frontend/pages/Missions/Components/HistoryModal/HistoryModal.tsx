@@ -70,13 +70,13 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                                     {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
                                                 </a>
                                             )}
-                                            {progress.usedCodes && progress.usedCodes.length > 0 && (
+                                            {/* {progress.usedCodes && progress.usedCodes.length > 0 && (
                                                 <p>
                                                     {progress.usedCodes?.map(([code, isUsed], codeIndex) => (
                                                         <span key={codeIndex}>Used code: {code}</span>
                                                     ))}
                                                 </p>
-                                            )}
+                                            )} */}
                                         </div>
                                         <div
                                             className={styles.RightSection}

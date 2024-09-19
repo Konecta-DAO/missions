@@ -48,7 +48,7 @@
 }
 
 .MissionContent {
-  padding: 20px;
+  padding: 1.15vh;
   flex: 1;
   width: 83%;
   transform: translateX(6.4%);
@@ -58,7 +58,10 @@
 }
 
 .ButtonInputs {
-  padding: 20px;
+  padding-left: 1.15vh;
+  padding-right: 1.15vh;
+  padding-top: 0.5vh;
+  padding-bottom: 0.5vh;
   flex: 1;
   width: 80%;
   transform: translateX(7%);
@@ -83,7 +86,7 @@
   text-align: center;
   text-transform: uppercase;
   margin: 0;
-  font-size: 1.25vw;
+  font-size: 1vw;
   line-height: 1.15em;
   transform: translate(15.25%);
   width: 75%;
@@ -152,7 +155,7 @@ button {
   position: absolute;
   top: -0.5vw;
   right: -3%;
-  width: 18%;
+  width: 17%;
   height: auto;
   z-index: 4;
   pointer-events: none;
@@ -161,7 +164,7 @@ button {
 .MissionIcon {
   position: absolute;
   top: 1.4vh;
-  right: 2.25%;
+  right: 1.75%;
   width: 9%;
   height: auto;
   z-index: 5;
@@ -192,6 +195,22 @@ button {
     cursor: not-allowed;
     opacity: 0.6;
   }
+}
+
+.InputContent {
+  padding: 10px 20px;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 1.1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  width: 7vw;
+}
+
+.InputContent::placeholder {
+  color: white;
+  opacity: .75;
 }
 
 .loadingButton {
@@ -291,11 +310,11 @@ button {
     gap: 4vw;
   }
 
-  .MissionImageWrapper{
+  .MissionImageWrapper {
     height: 29vh;
   }
 
-  .ButtonInputs{
+  .ButtonInputs {
     padding-top: 2vh;
   }
 }

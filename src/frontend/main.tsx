@@ -4,7 +4,7 @@ import './index.scss';
 import { canisterId } from '../declarations/backend/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
-import { NFIDW } from "@nfid/identitykit"
+import { InternetIdentity, NFIDW, Plug, Stoic } from "@nfid/identitykit"
 import { GlobalProvider } from '../hooks/globalID.tsx';
 import { Routes, Route } from 'react-router-dom';
 import RadialBackground from '../components/RadialBackground/RadialBackground.tsx';
@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", targets: [canisterId]  }} authType={IdentityKitAuthType.DELEGATION}>
+        <IdentityKitProvider signers={[NFIDW, InternetIdentity, Plug, Stoic]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", targets: [canisterId], idleOptions: { idleTimeout: 3600000 }, }} authType={IdentityKitAuthType.DELEGATION}>
           <UsergeekProvider>
             <RadialBackground>
               <Routes>

@@ -202,7 +202,7 @@
 }
 
 .MissionTitleWrapper {
-    background-color: rgba(21, 19, 32, 1);
+    background-color: rgba(21, 19, 32, 0.9);
     display: flex;
     justify-content: flex-start;
     align-items: center;
@@ -233,7 +233,7 @@
     text-align: center;
     text-transform: uppercase;
     margin: 0;
-    font-size: 1.4vh;
+    font-size: 0.9vw;
     transform: translateX(5%);
     width: 70%;
     line-height: 1.1em;
@@ -273,7 +273,7 @@
     position: absolute;
     top: -0.5vw;
     right: -3%;
-    width: 18%;
+    width: 17%;
     height: auto;
     z-index: 4;
     pointer-events: none;
@@ -282,7 +282,7 @@
 .MissionIcon {
     position: absolute;
     top: 1.6vh;
-    right: 2.25%;
+    right: 1.75%;
     width: 9%;
     height: auto;
     z-index: 5;
@@ -291,7 +291,7 @@
 
 .MissionIcon2 {
     position: absolute;
-    top:0 ;
+    top: 0;
     right: 2.25%;
     width: 9%;
     height: auto;
@@ -319,6 +319,31 @@
     width: 9%;
     height: auto;
     z-index: 4;
+    pointer-events: none;
+}
+
+.TimeDisplay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.56vh;
+    font-size: 0.75vw;
+    cursor: default;
+    font-weight: 600;
+    z-index: 2;
+}
+
+.CountdownDisplay {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.56vh;
+    font-size: 0.75vw;
+    font-weight: 600;
     pointer-events: none;
 }
 

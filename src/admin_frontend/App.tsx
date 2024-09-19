@@ -43,7 +43,6 @@ function App() {
         } else {
           disconnect();
         }
-
       }
     };
     fetchData();

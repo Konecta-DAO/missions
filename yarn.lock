@@ -446,6 +446,14 @@
     "@floating-ui/core" "^1.6.0"
     "@floating-ui/utils" "^0.2.7"
 
+"@floating-ui/dom@^1.6.1":
+  version "1.6.11"
+  resolved "https://registry.yarnpkg.com/@floating-ui/dom/-/dom-1.6.11.tgz#8631857838d34ee5712339eb7cbdfb8ad34da723"
+  integrity sha512-qkMCxSR24v2vGkhYDo/UzxfJN3D4syqSjyuTFz6C7XcpU1pASPRieNI0Kj5VP3/503mOfYiGY891ugBX1GlABQ==
+  dependencies:
+    "@floating-ui/core" "^1.6.0"
+    "@floating-ui/utils" "^0.2.8"
+
 "@floating-ui/react-dom@^2.0.0", "@floating-ui/react-dom@^2.1.1":
   version "2.1.1"
   resolved "https://registry.npmjs.org/@floating-ui/react-dom/-/react-dom-2.1.1.tgz"
@@ -467,10 +475,15 @@
   resolved "https://registry.npmjs.org/@floating-ui/utils/-/utils-0.2.7.tgz"
   integrity sha512-X8R8Oj771YRl/w+c1HqAC1szL8zWQRwFvgDwT129k9ACdBoud/+/rX9V0qiMl6LWUdP9voC2nDVZYPMQQsb6eA==
 
-"@headlessui/react@2.1.4":
-  version "2.1.4"
-  resolved "https://registry.npmjs.org/@headlessui/react/-/react-2.1.4.tgz"
-  integrity sha512-tqxvLFJ2Cx0FWfHKSR0ENM3oa+ATvpGZR5OUswtMNRA7KbkNr4sE+oYM7HQS7zqaIoTu7OVBeQV/JO3pnez9JQ==
+"@floating-ui/utils@^0.2.8":
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.8.tgz#21a907684723bbbaa5f0974cf7730bd797eb8e62"
+  integrity sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==
+
+"@headlessui/react@2.1.8":
+  version "2.1.8"
+  resolved "https://registry.yarnpkg.com/@headlessui/react/-/react-2.1.8.tgz#b0e254fdf8b1f65dbf28de444f70d0a9b61705dd"
+  integrity sha512-uajqVkAcVG/wHwG9Fh5PFMcFpf2VxM4vNRNKxRjuK009kePVur8LkuuygHfIE+2uZ7z7GnlTtYsyUe6glPpTLg==
   dependencies:
     "@floating-ui/react" "^0.26.16"
     "@react-aria/focus" "^3.17.1"
@@ -639,24 +652,24 @@
     "@emnapi/runtime" "^1.1.0"
     "@tybys/wasm-util" "^0.9.0"
 
-"@nfid/identitykit@^0.0.0-alpha.11":
-  version "0.0.0-alpha.11"
-  resolved "https://registry.yarnpkg.com/@nfid/identitykit/-/identitykit-0.0.0-alpha.11.tgz#493c20ae591e3a1472a838ef3715536ed1bb4a2a"
-  integrity sha512-9+zLMcnpU1xALLP2F5/aMInE+ABWdlTRj6RZvKKn/JdMjxn2YDqibxg1aYWQilTZcomEX7AbfbzzNl1nX8uAqA==
+"@nfid/identitykit@^0.0.0-alpha.12":
+  version "0.0.0-alpha.12"
+  resolved "https://registry.yarnpkg.com/@nfid/identitykit/-/identitykit-0.0.0-alpha.12.tgz#b4f9e68d5738c9752dfdeadef365b5aebb3d29be"
+  integrity sha512-cod1dbhKiWdyJe9zpA69aWjPg259eKBXKKHlckGmw7+++sd69bBGRuOSZl2d01D2QDJ+BGUwwKEPsEI9VOUN+A==
   dependencies:
-    "@headlessui/react" "2.1.4"
+    "@headlessui/react" "2.1.8"
     "@radix-ui/react-dialog" "^1.1.1"
     "@radix-ui/react-tooltip" "^1.1.2"
-    "@slide-computer/signer" "^3.6.2"
-    "@slide-computer/signer-agent" "^3.6.2"
-    "@slide-computer/signer-storage" "^3.6.2"
-    "@slide-computer/signer-transport-auth-client" "^3.6.2"
-    "@slide-computer/signer-transport-plug" "^3.6.2"
-    "@slide-computer/signer-transport-stoic" "^3.6.2"
-    "@slide-computer/signer-web" "^3.6.2"
+    "@slide-computer/signer" "^3.6.3"
+    "@slide-computer/signer-agent" "^3.6.3"
+    "@slide-computer/signer-storage" "^3.6.3"
+    "@slide-computer/signer-transport-auth-client" "^3.6.3"
+    "@slide-computer/signer-transport-plug" "^3.6.3"
+    "@slide-computer/signer-transport-stoic" "^3.6.3"
+    "@slide-computer/signer-web" "^3.6.3"
     clsx "^2.1.1"
     react-hook-form "^7.53.0"
-    tailwindcss "^3.4.10"
+    tailwindcss "^3.4.11"
     tailwindcss-scoped-preflight "^3.4.4"
 
 "@noble/curves@^1.2.0", "@noble/curves@^1.4.0", "@noble/curves@~1.6.0":
@@ -1348,42 +1361,42 @@
   resolved "https://registry.npmjs.org/@sindresorhus/merge-streams/-/merge-streams-4.0.0.tgz"
   integrity sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==
 
-"@slide-computer/signer-agent@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer-agent/-/signer-agent-3.6.2.tgz"
-  integrity sha512-2+qrfc3uKQ/yy7G90+EKLIoW8FElj/hMq3eKWVawJ+zmPs2Xtfx1qIcqyre76jP03BGaE31w9WTdiVlBdR4KFw==
+"@slide-computer/signer-agent@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-agent/-/signer-agent-3.6.3.tgz#a9d17552829cab534a36ae3bc07275def921ed0b"
+  integrity sha512-GZzF3oR6axSfS5ObMdnzWLLK7k5kqzanB5NGzwPeFgecs5Y93Eeis9/dZRaexQqrPMOqB8vE8lbSbY7pEwjAnQ==
 
-"@slide-computer/signer-storage@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer-storage/-/signer-storage-3.6.2.tgz"
-  integrity sha512-5lSlNqG3eJZ15dFzEJ7Teztr6v37k/cZrKXYAcHSRiqvjmR9LNnmKxWX7UU2CvnTyuRTrMoxKNqmdROF1bG9nw==
+"@slide-computer/signer-storage@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-storage/-/signer-storage-3.6.3.tgz#648447e17cf93593b8aeb898eceac424bca92c72"
+  integrity sha512-BqeIQE9njqUHfXDPW0kQFCvlJoZl7Sn9rJLswVYV0RIhUwY3MMzIowNAJZkKkI6SEgoGUgDktsIs4VcM/ygwDg==
   dependencies:
     idb-keyval "^6.2.1"
 
-"@slide-computer/signer-transport-auth-client@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer-transport-auth-client/-/signer-transport-auth-client-3.6.2.tgz"
-  integrity sha512-QBr8USLKqE8LP8jw/I6AXIYmmnhpZCnhoCjpYSSuSqxyWKqaGnfXVJhQwqChcUe9RvMlPy9yGDKL/QlTWIvRQg==
+"@slide-computer/signer-transport-auth-client@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-auth-client/-/signer-transport-auth-client-3.6.3.tgz#e26f362cf74474655e286d9293f31ad9ff96083e"
+  integrity sha512-g3WsqS0NbF1tWFGPi00aCLWu+LD7xenGEDSprSC7xtR1eKgGmHnsxKwRFArfX+sOEi0KL2SvZnNmeYSI8+Rr7Q==
 
-"@slide-computer/signer-transport-plug@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer-transport-plug/-/signer-transport-plug-3.6.2.tgz"
-  integrity sha512-uJDWLT4m5Cb0Y9TzO7hdc7KZJrpO5Qq7nhmGMSEJLF292v2tFhMnE8qSJGUEt92e/1khZmnhRmaR0KjonNNhLA==
+"@slide-computer/signer-transport-plug@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-plug/-/signer-transport-plug-3.6.3.tgz#1a518d3cd1d696d1bde4ac102f8e2794aff6c0f3"
+  integrity sha512-jJS8O2VCoSzv7D/GDVqEp2h91oDozKXeIai+/1E93Uf7xa38k5Moc3rzhWlpqyA0jdwj72svkJHH9FyaWiTAjA==
 
-"@slide-computer/signer-transport-stoic@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer-transport-stoic/-/signer-transport-stoic-3.6.2.tgz"
-  integrity sha512-hKgs7AgaLy3P6lgSdJri9xB53/HsU5u+ZEh/w0xESvQMMT3SOR/WQr+Ax6JBmdMB8eDnFdVOggq+2SLgWVF2CQ==
+"@slide-computer/signer-transport-stoic@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-stoic/-/signer-transport-stoic-3.6.3.tgz#cd300dba87b46927f0da9f037de4b58b44c48da2"
+  integrity sha512-rjoGfHUKyYesuHwFOo6VOpXmmuOe8BjrzNg5XLVFMQA/ke7KNh1p623yqINtWBCZPJd+rx+ehkl+R+gP5fjDVQ==
 
-"@slide-computer/signer-web@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer-web/-/signer-web-3.6.2.tgz"
-  integrity sha512-NRKsSUy3fmBrk6vQsZVqV6vmPx793K/+77C1+z5a7mdgX6iE2byfShp+1e9+qc8WR/L00ttVab4XQ9fPlIEfHQ==
+"@slide-computer/signer-web@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-web/-/signer-web-3.6.3.tgz#4714c0c72b5ad5ee27e011eb37a865f9c9cdf625"
+  integrity sha512-sEQPu9MKpim69qj6Xvx31OWpu32u/E2/F2kFQmiIwBDsFwURrJwaoBM2/+4QZfLtoDyO/hvXd2WlIYETMjbXOA==
 
-"@slide-computer/signer@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.npmjs.org/@slide-computer/signer/-/signer-3.6.2.tgz"
-  integrity sha512-uH59TIsq31mgZLR9P7sMQiV171slKMJhASmDRJN4CmWmjFtwg38NRmWe595iBTWy3gIk8WQzy5jaeOUktBzppg==
+"@slide-computer/signer@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer/-/signer-3.6.3.tgz#d6c414c6574ff774aea09b334851bc9512644a35"
+  integrity sha512-SK/WMUc56K1riHH3p/uG9HPrYd4Kmui67HVjh4cUyUP/9+us+4zSYFgtXUZcVv1p74t8/76VAKeIu1m0PVCUkw==
 
 "@swc/helpers@^0.5.0":
   version "0.5.13"
@@ -2009,7 +2022,7 @@ check-peer-dependencies@^4.3.0:
     shelljs "^0.8.4"
     yargs "^16.2.0"
 
-chokidar@3.6.0, "chokidar@>=3.0.0 <4.0.0", chokidar@^3.5.3:
+chokidar@3.6.0, chokidar@^3.5.3:
   version "3.6.0"
   resolved "https://registry.npmjs.org/chokidar/-/chokidar-3.6.0.tgz"
   integrity sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==
@@ -2024,10 +2037,22 @@ chokidar@3.6.0, "chokidar@>=3.0.0 <4.0.0", chokidar@^3.5.3:
   optionalDependencies:
     fsevents "~2.3.2"
 
+chokidar@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-4.0.0.tgz#4d603963e5dd762dc5c7bb1cb5664e53a3002225"
+  integrity sha512-mxIojEAQcuEvT/lyXq+jf/3cO/KoA6z4CeNDGGevTybECPOMFCnQy3OPahluUkbqgPNGw5Bi78UC7Po6Lhy+NA==
+  dependencies:
+    readdirp "^4.0.1"
+
 chownr@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npmjs.org/chownr/-/chownr-3.0.0.tgz"
   integrity sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==
+
+classnames@^2.3.0:
+  version "2.5.1"
+  resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.5.1.tgz#ba774c614be0f016da105c858e7159eae8e7687b"
+  integrity sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==
 
 clean-stack@^2.0.0:
   version "2.2.0"
@@ -3211,10 +3236,10 @@ hyphenate-style-name@^1.0.0:
   resolved "https://registry.yarnpkg.com/hyphenate-style-name/-/hyphenate-style-name-1.1.0.tgz#1797bf50369588b47b72ca6d5e65374607cf4436"
   integrity sha512-WDC/ui2VVRrz3jOVi+XtjqkDjiVjTtFaAGiW37k6b+ohyQ5wYDOGkvCZa8+H0nx3gyvv0+BST9xuOgIyGQ00gw==
 
-ic-mops@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/ic-mops/-/ic-mops-1.0.0.tgz"
-  integrity sha512-BuFC9fYiw9YAP5Y24eBoTehxlKvhVvTs0FwpdC4i2mdFWA1vEiZp52kyA8DeB6Qb6bkwQGMORkqIn0Iljt4Xsw==
+ic-mops@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/ic-mops/-/ic-mops-1.0.1.tgz#bc5b11e40c42f4ebe50b39a94a0a63ae8319ca66"
+  integrity sha512-C4cGlq0Dvwrm69eJAZ/B9xegXX7D2YjuEUduT5RSxDcdycvJwKayAt/Yd15trX963OaHyjP3VgPR6fABcjuL1A==
   dependencies:
     "@dfinity/agent" "2.1.0"
     "@dfinity/candid" "2.1.0"
@@ -4878,6 +4903,14 @@ react-style-singleton@^2.2.1:
     invariant "^2.2.4"
     tslib "^2.0.0"
 
+react-tooltip@^5.28.0:
+  version "5.28.0"
+  resolved "https://registry.yarnpkg.com/react-tooltip/-/react-tooltip-5.28.0.tgz#c7b5343ab2d740a428494a3d8315515af1f26f46"
+  integrity sha512-R5cO3JPPXk6FRbBHMO0rI9nkUG/JKfalBSQfZedZYzmqaZQgq7GLzF8vcCWx6IhUCKg0yPqJhXIzmIO5ff15xg==
+  dependencies:
+    "@floating-ui/dom" "^1.6.1"
+    classnames "^2.3.0"
+
 react@^18.3.1:
   version "18.3.1"
   resolved "https://registry.npmjs.org/react/-/react-18.3.1.tgz"
@@ -4932,6 +4965,11 @@ readable-stream@~1.0.31:
     inherits "~2.0.1"
     isarray "0.0.1"
     string_decoder "~0.10.x"
+
+readdirp@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/readdirp/-/readdirp-4.0.1.tgz#b2fe35f8dca63183cd3b86883ecc8f720ea96ae6"
+  integrity sha512-GkMg9uOTpIWWKbSsgwb5fA4EavTR+SG/PMPoAY8hkhHfEEY0/vqljY+XHqtDf2cr2IJtoNRDbrrEpZUiZCkYRw==
 
 readdirp@~3.6.0:
   version "3.6.0"
@@ -5098,12 +5136,12 @@ sanitize-filename@1.6.3:
   dependencies:
     truncate-utf8-bytes "^1.0.0"
 
-sass@^1.78.0:
-  version "1.78.0"
-  resolved "https://registry.npmjs.org/sass/-/sass-1.78.0.tgz"
-  integrity sha512-AaIqGSrjo5lA2Yg7RvFZrlXDBCp3nV4XP73GrLGvdRWWwk+8H3l0SDvq/5bA4eF+0RFPLuWUk3E+P1U/YqnpsQ==
+sass@^1.79.1:
+  version "1.79.1"
+  resolved "https://registry.yarnpkg.com/sass/-/sass-1.79.1.tgz#0c572e8f09cc4095c27077567f78dbb9b3dceeb2"
+  integrity sha512-+mA7svoNKeL0DiJqZGeR/ZGUu8he4I8o3jyUcOFyo4eBJrwNgIMmAEwCMo/N2Y3wdjOBcRzoNxZIOtrtMX8EXg==
   dependencies:
-    chokidar ">=3.0.0 <4.0.0"
+    chokidar "^4.0.0"
     immutable "^4.0.0"
     source-map-js ">=0.6.2 <2.0.0"
 
@@ -5536,10 +5574,10 @@ tailwindcss-scoped-preflight@^3.4.4:
   resolved "https://registry.npmjs.org/tailwindcss-scoped-preflight/-/tailwindcss-scoped-preflight-3.4.4.tgz"
   integrity sha512-mUT5S35ndFqRKjAQFYqfmldVkRQx1HtEB1NnHoPOdJerUqBx22pfVFdydPrfjPlDfuP5IwtkPEx5+MLNhI/2RA==
 
-tailwindcss@^3.4.10:
-  version "3.4.10"
-  resolved "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.10.tgz"
-  integrity sha512-KWZkVPm7yJRhdu4SRSl9d4AK2wM3a50UsvgHZO7xY77NQr2V+fIrEuoDGQcbvswWvFGbS2f6e+jC/6WJm1Dl0w==
+tailwindcss@^3.4.11:
+  version "3.4.12"
+  resolved "https://registry.yarnpkg.com/tailwindcss/-/tailwindcss-3.4.12.tgz#fd3b67c6d2c04d9d7bfa13e3fc70ccef9fef0455"
+  integrity sha512-Htf/gHj2+soPb9UayUNci/Ja3d8pTmu9ONTfh4QY8r3MATTZOzmv6UYWF7ZwikEIC8okpfqmGqrmDehua8mF8w==
   dependencies:
     "@alloc/quick-lru" "^5.2.0"
     arg "^5.0.2"

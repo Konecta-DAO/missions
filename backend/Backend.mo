@@ -23,57 +23,59 @@ actor class Backend() {
 
   //
 
-  public func restoreAllUserProgress(
+  public shared (msg) func restoreAllUserProgress(
     serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]
   ) : async () {
-    // Iterate over each user data tuple
-    for (tuple in Iter.fromArray(serializedData)) {
-      let userId = tuple.0;
-      let serializedUserMissions = tuple.1;
+    if (isAdmin(msg.caller)) {
+      // Iterate over each user data tuple
+      for (tuple in Iter.fromArray(serializedData)) {
+        let userId = tuple.0;
+        let serializedUserMissions = tuple.1;
 
-      // Retrieve or initialize the user's mission data
-      var userMissions = switch (userProgress.get(userId)) {
-        case (?existingMissions) { existingMissions };
-        case null {
-          TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+        // Retrieve or initialize the user's mission data
+        var userMissions = switch (userProgress.get(userId)) {
+          case (?existingMissions) { existingMissions };
+          case null {
+            TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+          };
         };
+
+        // Process each mission for the user
+        for (missionTuple in Iter.fromArray(serializedUserMissions)) {
+          let missionId = missionTuple.0;
+          let serializedProgress = missionTuple.1;
+
+          // Deserialize the serializedProgress
+          let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
+            serializedProgress.completionHistory,
+            func(serializedRecord : Types.SerializedMissionRecord) : Types.MissionRecord {
+              {
+                var timestamp = serializedRecord.timestamp;
+                var pointsEarned = serializedRecord.pointsEarned;
+                var tweetId = serializedRecord.tweetId;
+              };
+            },
+          );
+
+          let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+          for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
+            let code = codeTuple.0;
+            let value = codeTuple.1;
+            usedCodes.put(code, value);
+          };
+
+          let progress : Types.Progress = {
+            var completionHistory = completionHistory;
+            var usedCodes = usedCodes;
+          };
+
+          // Update the mission progress
+          userMissions.put(missionId, progress);
+        };
+
+        // Update the user's missions in userProgress
+        userProgress.put(userId, userMissions);
       };
-
-      // Process each mission for the user
-      for (missionTuple in Iter.fromArray(serializedUserMissions)) {
-        let missionId = missionTuple.0;
-        let serializedProgress = missionTuple.1;
-
-        // Deserialize the serializedProgress
-        let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
-          serializedProgress.completionHistory,
-          func(serializedRecord : Types.SerializedMissionRecord) : Types.MissionRecord {
-            {
-              var timestamp = serializedRecord.timestamp;
-              var pointsEarned = serializedRecord.pointsEarned;
-              var tweetId = serializedRecord.tweetId;
-            };
-          },
-        );
-
-        let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-        for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
-          let code = codeTuple.0;
-          let value = codeTuple.1;
-          usedCodes.put(code, value);
-        };
-
-        let progress : Types.Progress = {
-          var completionHistory = completionHistory;
-          var usedCodes = usedCodes;
-        };
-
-        // Update the mission progress
-        userMissions.put(missionId, progress);
-      };
-
-      // Update the user's missions in userProgress
-      userProgress.put(userId, userMissions);
     };
   };
 
@@ -387,24 +389,36 @@ actor class Backend() {
 
   // Function to add a secret code to a user's progress for the mission
 
-  public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async () {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      // Retrieve user's missions progress
+  public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      // Retrieve or initialize user's missions progress
       let userMissions = switch (userProgress.get(userId)) {
         case (?progress) progress;
-        case null return; // User progress not found
+        case null return false;
       };
 
-      // Retrieve the mission progress
+      // Retrieve or initialize the mission progress
       let missionProgress = switch (userMissions.get(missionId)) {
         case (?progress) progress;
-        case null return; // Mission progress not found
+        case null {
+          // Initialize a new Progress record for the mission
+          let newProgress : Types.Progress = {
+            var completionHistory = [];
+            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+          };
+          // Insert the new Progress into userMissions
+          userMissions.put(missionId, newProgress);
+          newProgress;
+        };
       };
 
-      // Retrieve the mission details from the missions vector
-      let missionOpt = Vector.get(missions, missionId);
+      // Retrieve the mission details from the missions vector using getOpt
+      let missionOpt : ?Types.Mission = Vector.getOpt(missions, missionId);
       let mission = switch (missionOpt) {
-        case (m) m;
+        case (?m) m;
+        case null {
+          return false; // Mission ID is invalid
+        };
       };
 
       // Ensure the mission has a secret code enabled
@@ -412,17 +426,17 @@ actor class Backend() {
         case (?secretCode) {
           // Ensure the code matches
           if (secretCode != code) {
-            return; // Invalid code
+            return false; // Invalid code
           };
         };
         case null {
-          return; // This mission doesn't accept codes
+          return false; // This mission doesn't accept codes
         };
       };
 
       // Check if the code has already been used by this user
       if (missionProgress.usedCodes.get(code) == ?true) {
-        return; // Code already used
+        return false; // Code already used
       };
 
       // Generate a random number of points between mintime and maxtime using the utility function
@@ -434,7 +448,7 @@ actor class Backend() {
       // Mark the code as used
       missionProgress.usedCodes.put(code, true);
 
-      // Update the mission progress with the earned points
+      // Create a new MissionRecord
       let newRecord : Types.MissionRecord = {
         var timestamp = Time.now();
         var pointsEarned = pointsEarnedNat;
@@ -447,9 +461,11 @@ actor class Backend() {
       // Save the updated mission progress
       userMissions.put(missionId, missionProgress);
       userProgress.put(userId, userMissions);
+
+      return true;
     };
 
-    return;
+    return false;
   };
 
   // Get the total seconds of an user by Principal
@@ -567,19 +583,28 @@ actor class Backend() {
   // Function to get all missions (serialized)
 
   public shared query (msg) func getAllMissions() : async [Types.SerializedMission] {
-    if (isAdmin(msg.caller)) {
-      return Array.map<Types.Mission, Types.SerializedMission>(Vector.toArray(missions), Serialization.serializeMission);
-    } else {
-      return Array.map<Types.Mission, Types.SerializedMission>(
-        Array.filter<Types.Mission>(
+    if (not Principal.isAnonymous(msg.caller)) {
+      if (isAdmin(msg.caller)) {
+        return Array.map<Types.Mission, Types.SerializedMission>(Vector.toArray(missions), Serialization.serializeMission);
+      } else {
+        let filteredMissions = Array.filter<Types.Mission>(
           Vector.toArray(missions),
           func(mission : Types.Mission) : Bool {
             mission.startDate <= Time.now();
           },
-        ),
-        Serialization.serializeMission,
-      );
+        );
+
+        return Array.map<Types.Mission, Types.SerializedMission>(
+          filteredMissions,
+          func(mission : Types.Mission) : Types.SerializedMission {
+            let serialized = Serialization.serializeMission(mission);
+            let updatedSerialized = { serialized with secretCodes = null };
+            return updatedSerialized;
+          },
+        );
+      };
     };
+    return [];
   };
 
   // Function to get a mission by ID
@@ -918,10 +943,6 @@ actor class Backend() {
 
   // Http Request and Cycles
 
-  public shared query (msg) func whoamI() : async Principal {
-    return msg.caller;
-  };
-
   //
 
   // Http Request Function
@@ -968,136 +989,142 @@ actor class Backend() {
 
   //Function to upload Tweet Post Parameters
 
-  public shared func setPTW(payloadArray : [Text]) : async Text {
-    // 1. DECLARE IC MANAGEMENT CANISTER
-    let ic : Types.IC = actor ("aaaaa-aa");
+  public shared (msg) func setPTW(payloadArray : [Text]) : async Text {
+    if (isAdmin(msg.caller)) {
+      // 1. DECLARE IC MANAGEMENT CANISTER
+      let ic : Types.IC = actor ("aaaaa-aa");
 
-    // 2. Add cycles for the HTTP request
-    Cycles.add<system>(22_935_266_640);
+      // 2. Add cycles for the HTTP request
+      Cycles.add<system>(22_935_266_640);
 
-    // 3. Serialize the array into a JSON array
-    let payloadJson = serializeTextArrayToJson(payloadArray);
+      // 3. Serialize the array into a JSON array
+      let payloadJson = serializeTextArrayToJson(payloadArray);
 
-    // 4. Prepare the headers for the request
-    let host : Text = "do.konecta.one";
-    let url = "https://" # host # "/twitterstuff";
+      // 4. Prepare the headers for the request
+      let host : Text = "do.konecta.one";
+      let url = "https://" # host # "/twitterstuff";
 
-    // 5. Prepare the body for the POST request (the JSON-serialized array)
-    let body : Blob = Text.encodeUtf8(payloadJson);
-    let bodyAsNat8 : [Nat8] = Blob.toArray(body);
+      // 5. Prepare the body for the POST request (the JSON-serialized array)
+      let body : Blob = Text.encodeUtf8(payloadJson);
+      let bodyAsNat8 : [Nat8] = Blob.toArray(body);
 
-    // 6. Define the HTTP request
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = [
-        { name = "Content-Type"; value = "application/json" },
+      // 6. Define the HTTP request
+      let http_request : Types.HttpRequestArgs = {
+        url = url;
+        max_response_bytes = null;
+        headers = [
+          { name = "Content-Type"; value = "application/json" },
 
-      ];
-      body = ?bodyAsNat8; // Ensure body is an optional Blob
-      method = #post; // Use variant for POST method
-      transform = null;
-    };
+        ];
+        body = ?bodyAsNat8; // Ensure body is an optional Blob
+        method = #post; // Use variant for POST method
+        transform = null;
+      };
 
-    // 7. Make the HTTP outcall
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+      // 7. Make the HTTP outcall
+      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
 
-    // 8. Handle the response
-    if (http_response.status == 200) {
-      if (http_response.body.size() > 0) {
-        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-          case (?decodedBody) {
-            return "POST request successful: " # decodedBody;
+      // 8. Handle the response
+      if (http_response.status == 200) {
+        if (http_response.body.size() > 0) {
+          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+            case (?decodedBody) {
+              return "POST request successful: " # decodedBody;
+            };
+            case (null) {
+              return "POST request successful but failed to decode body";
+            };
           };
-          case (null) {
-            return "POST request successful but failed to decode body";
-          };
+        } else {
+          return "POST request successful but no body in response";
         };
       } else {
-        return "POST request successful but no body in response";
-      };
-    } else {
-      if (http_response.body.size() > 0) {
-        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-          case (?decodedBody) {
-            return "POST request failed: " # decodedBody;
+        if (http_response.body.size() > 0) {
+          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+            case (?decodedBody) {
+              return "POST request failed: " # decodedBody;
+            };
+            case (null) {
+              return "POST request failed and failed to decode body";
+            };
           };
-          case (null) {
-            return "POST request failed and failed to decode body";
-          };
+        } else {
+          return "POST request failed and no body in response";
         };
-      } else {
-        return "POST request failed and no body in response";
       };
     };
+    return "";
   };
 
   // Function to upload Retweet Id
 
-  public shared func postRT(payload : Text) : async Text {
-    // 1. DECLARE IC MANAGEMENT CANISTER
-    let ic : Types.IC = actor ("aaaaa-aa");
+  public shared (msg) func postRT(payload : Text) : async Text {
+    if (isAdmin(msg.caller)) {
+      // 1. DECLARE IC MANAGEMENT CANISTER
+      let ic : Types.IC = actor ("aaaaa-aa");
 
-    // 2. Add cycles for the HTTP request
-    Cycles.add<system>(22_935_266_640);
+      // 2. Add cycles for the HTTP request
+      Cycles.add<system>(22_935_266_640);
 
-    // 3. Serialize the array into a JSON array
-    let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
+      // 3. Serialize the array into a JSON array
+      let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
 
-    // 4. Prepare the headers for the request
-    let host : Text = "do.konecta.one";
-    let url = "https://" # host # "/storeRetweetId";
+      // 4. Prepare the headers for the request
+      let host : Text = "do.konecta.one";
+      let url = "https://" # host # "/storeRetweetId";
 
-    // 5. Prepare the body for the POST request (the JSON-serialized array)
-    let body : Blob = Text.encodeUtf8(payloadJson);
-    let bodyAsNat8 : [Nat8] = Blob.toArray(body);
+      // 5. Prepare the body for the POST request (the JSON-serialized array)
+      let body : Blob = Text.encodeUtf8(payloadJson);
+      let bodyAsNat8 : [Nat8] = Blob.toArray(body);
 
-    // 6. Define the HTTP request
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = [
-        { name = "Content-Type"; value = "application/json" },
+      // 6. Define the HTTP request
+      let http_request : Types.HttpRequestArgs = {
+        url = url;
+        max_response_bytes = null;
+        headers = [
+          { name = "Content-Type"; value = "application/json" },
 
-      ];
-      body = ?bodyAsNat8; // Ensure body is an optional Blob
-      method = #post; // Use variant for POST method
-      transform = null;
-    };
+        ];
+        body = ?bodyAsNat8; // Ensure body is an optional Blob
+        method = #post; // Use variant for POST method
+        transform = null;
+      };
 
-    Cycles.add<system>(22_935_266_640);
+      Cycles.add<system>(22_935_266_640);
 
-    // 7. Make the HTTP outcall
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+      // 7. Make the HTTP outcall
+      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
 
-    // 8. Handle the response
-    if (http_response.status == 200) {
-      if (http_response.body.size() > 0) {
-        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-          case (?decodedBody) {
-            return "POST request successful: " # decodedBody;
+      // 8. Handle the response
+      if (http_response.status == 200) {
+        if (http_response.body.size() > 0) {
+          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+            case (?decodedBody) {
+              return "POST request successful: " # decodedBody;
+            };
+            case (null) {
+              return "POST request successful but failed to decode body";
+            };
           };
-          case (null) {
-            return "POST request successful but failed to decode body";
-          };
+        } else {
+          return "POST request successful but no body in response";
         };
       } else {
-        return "POST request successful but no body in response";
-      };
-    } else {
-      if (http_response.body.size() > 0) {
-        switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-          case (?decodedBody) {
-            return "POST request failed: " # decodedBody;
+        if (http_response.body.size() > 0) {
+          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
+            case (?decodedBody) {
+              return "POST request failed: " # decodedBody;
+            };
+            case (null) {
+              return "POST request failed and failed to decode body";
+            };
           };
-          case (null) {
-            return "POST request failed and failed to decode body";
-          };
+        } else {
+          return "POST request failed and no body in response";
         };
-      } else {
-        return "POST request failed and no body in response";
       };
     };
+    return "";
   };
 
   // Function to get canister cycles balance
@@ -1134,45 +1161,51 @@ actor class Backend() {
 
   // Function to reset all data Structures
 
-  public func resetall() : async () {
-    Vector.clear(users);
-    userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-    return;
+  public shared (msg) func resetall() : async () {
+    if (isAdmin(msg.caller)) {
+      Vector.clear(users);
+      userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+      return;
+    };
   };
 
   // Function to reset an user Progress
 
-  public func resetUserProgress(userId : Principal) : async () {
-    userProgress.delete(userId);
-    let newUsers = Vector.new<Types.User>();
+  public shared (msg) func resetUserProgress(userId : Principal) : async () {
+    if (isAdmin(msg.caller)) {
+      userProgress.delete(userId);
+      let newUsers = Vector.new<Types.User>();
 
-    for (index in Iter.range(0, Vector.size(users) - 1)) {
-      switch (Vector.getOpt(users, index)) {
-        case (?user) {
-          if (user.id != userId) {
-            Vector.add(newUsers, user);
+      for (index in Iter.range(0, Vector.size(users) - 1)) {
+        switch (Vector.getOpt(users, index)) {
+          case (?user) {
+            if (user.id != userId) {
+              Vector.add(newUsers, user);
+            };
           };
+          case _ {};
         };
-        case _ {};
       };
-    };
 
-    // Replace the original users vector with the new one, which excludes the deleted user
-    users := newUsers;
-    return;
+      // Replace the original users vector with the new one, which excludes the deleted user
+      users := newUsers;
+      return;
+    };
   };
 
   // Function to reset a specific Mission Progress for an user
 
-  public func resetUserMissionProgress(userId : Principal, missionId : Nat) : async () {
-    let userMissions = switch (userProgress.get(userId)) {
-      case (?progress) progress;
-      case null return;
-    };
+  public shared (msg) func resetUserMissionProgress(userId : Principal, missionId : Nat) : async () {
+    if (isAdmin(msg.caller)) {
+      let userMissions = switch (userProgress.get(userId)) {
+        case (?progress) progress;
+        case null return;
+      };
 
-    userMissions.delete(missionId);
-    userProgress.put(userId, userMissions);
-    return;
+      userMissions.delete(missionId);
+      userProgress.put(userId, userMissions);
+      return;
+    };
   };
 
   // Function to get trusted origins for NFID authentication
@@ -1208,56 +1241,60 @@ actor class Backend() {
 
   // Security function to transform the response
 
-  public query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
-    let transformed : Types.CanisterHttpResponsePayload = {
-      status = raw.response.status;
-      body = raw.response.body;
-      headers = [
-        {
-          name = "Content-Security-Policy";
-          value = "default-src 'self'";
-        },
-        { name = "Referrer-Policy"; value = "strict-origin" },
-        { name = "Permissions-Policy"; value = "geolocation=(self)" },
-        {
-          name = "Strict-Transport-Security";
-          value = "max-age=63072000";
-        },
-        { name = "X-Frame-Options"; value = "DENY" },
-        { name = "X-Content-Type-Options"; value = "nosniff" },
-      ];
-    };
-    transformed;
-  };
+  // private query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
+  //   let transformed : Types.CanisterHttpResponsePayload = {
+  //     status = raw.response.status;
+  //     body = raw.response.body;
+  //     headers = [
+  //       {
+  //         name = "Content-Security-Policy";
+  //         value = "default-src 'self'";
+  //       },
+  //       { name = "Referrer-Policy"; value = "strict-origin" },
+  //       { name = "Permissions-Policy"; value = "geolocation=(self)" },
+  //       {
+  //         name = "Strict-Transport-Security";
+  //         value = "max-age=63072000";
+  //       },
+  //       { name = "X-Frame-Options"; value = "DENY" },
+  //       { name = "X-Content-Type-Options"; value = "nosniff" },
+  //     ];
+  //   };
+  //   transformed;
+  // };
 
   // Function to check if the middleman server is reachable
 
-  public func isMiddlemanReachable() : async Bool {
-    // 1. DECLARE IC MANAGEMENT CANISTER
-    let ic : Types.IC = actor ("aaaaa-aa");
+  public shared (msg) func isMiddlemanReachable() : async Bool {
+    if (isAdmin(msg.caller)) {
+      // 1. DECLARE IC MANAGEMENT CANISTER
+      let ic : Types.IC = actor ("aaaaa-aa");
 
-    // 2. SETUP ARGUMENTS FOR HTTP GET request to test the middleman server
-    let host : Text = "do.konecta.one";
-    let url = "https://" # host # "/ping";
+      // 2. SETUP ARGUMENTS FOR HTTP GET request to test the middleman server
+      let host : Text = "do.konecta.one";
+      let url = "https://" # host # "/ping";
 
-    let http_request : Types.HttpRequestArgs = {
-      url = url;
-      max_response_bytes = null;
-      headers = [
-        { name = "Host"; value = host },
-      ];
-      body = null;
-      method = #get;
-      transform = null;
+      let http_request : Types.HttpRequestArgs = {
+        url = url;
+        max_response_bytes = null;
+        headers = [
+          { name = "Host"; value = host },
+        ];
+        body = null;
+        method = #get;
+        transform = null;
+      };
+
+      // Add sufficient cycles for the HTTP request
+      Cycles.add<system>(22_935_266_640);
+
+      // Make the HTTP request and wait for the response
+      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
+
+      // Check if the response status is 200 (OK)
+      return http_response.status == 200;
     };
-
-    // Add sufficient cycles for the HTTP request
-    Cycles.add<system>(22_935_266_640);
-
-    // Make the HTTP request and wait for the response
-    let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-
-    // Check if the response status is 200 (OK)
-    return http_response.status == 200;
+    return false;
   };
+
 };

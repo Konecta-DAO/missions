@@ -25,7 +25,6 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
     const handleMissionClick = (mission: any) => {
         setSelectedMission(mission);
         handleCardClick(mission.id);
-
     };
 
     const handleMouseLeave = () => {
@@ -57,7 +56,7 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
                     {tooltipContent}
                 </div>
             )}
-            
+
             {selectedMission && selectedMission?.id !== undefined && (
                 <MissionModal
                     selectedMissionId={BigInt(selectedMission.id)}

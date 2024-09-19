@@ -16,7 +16,6 @@ export const checkMissionCompletion = (userProgress: any, missionId: bigint): bo
     return a;
 };
 
-
 // Utility function to check required mission completion
 export const checkRequiredMissionCompletion = (globalID: any, mission: any) => {
     let requiredMissionCompleted = true; // Assume no required mission or it's completed
@@ -37,13 +36,6 @@ export const checkRequiredMissionCompletion = (globalID: any, mission: any) => {
         });
         requiredMissionCompleted = b;
 
-        // requiredMissionCompleted = globalID.userProgress?.some((nestedEntry: any) => {
-        //     if (Array.isArray(nestedEntry) && Array.isArray(nestedEntry[0])) {
-        //         const [progressId, progress] = nestedEntry[0];
-        //         return BigInt(progressId) === requiredMissionBigInt && progress.completionHistory.length > 0;
-        //     }
-        //     return false;
-        // }) ?? false;
     }
 
     return { requiredMissionCompleted, requiredMissionTitle };

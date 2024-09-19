@@ -2,7 +2,7 @@ import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 
 const MissionFunctionsComponent = {
-    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
+    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -36,6 +36,7 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
+                fetchData.fetchAll();
                 setLoading(false);
                 closeModal();
             }
@@ -57,7 +58,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
+    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -68,11 +69,12 @@ const MissionFunctionsComponent = {
         } else {
             alert("PFP status sucessfully set. You will soon be manually verified");
         }
+        fetchData.fetchAll();
         setLoading(false);
         closeModal();
     },
 
-    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
+    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
@@ -106,6 +108,7 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
+                fetchData.fetchAll();
                 setLoading(false);
                 closeModal();
             }
@@ -126,7 +129,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
+    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -165,6 +168,7 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
+                fetchData.fetchAll();
                 setLoading(false);
                 closeModal();
             }
@@ -185,7 +189,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
+    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
 
         const principal = globalID.principalId;
 
@@ -221,6 +225,7 @@ const MissionFunctionsComponent = {
                 localStorage.setItem("refreshToken", refreshToken);
 
                 popup?.close();
+                fetchData.fetchAll();
                 setLoading(false);
                 closeModal();
             }
@@ -241,9 +246,39 @@ const MissionFunctionsComponent = {
         }
     },
 
-    sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any) => {
+    sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
         const url = 'https://x.com/messages/compose?recipient_id=1828134613375488000&text=Kami%2C%20I%27m%20on%20a%20mission%20for%20a%20killer%20profile%20pic.%20Let%E2%80%99s%20make%20it%20happen!';
         window.open(url, '_blank');
+    },
+
+    twPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const url = 'https://twitter.com/intent/tweet?text=Leveling%20up%20my%20profile%20with%20%23KonectaPFP%21%20Time%E2%80%99s%20on%20my%20side%20now.%20%24ICP%20%E2%8F%B3';
+        window.open(url, '_blank');
+    },
+
+    gTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const url = 'https://twitter.com/intent/tweet';
+        window.open(url, '_blank');
+    },
+
+    submitCode: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const actor = Actor.createActor(idlFactory, {
+            agent: globalID.agent,
+            canisterId,
+        })
+        console.log(globalID.principalId);
+        console.log(missionid);
+        console.log(input);
+        const a = await actor.submitCode(globalID.principalId, missionid, input);
+        if (a) {
+            alert("Success");
+            fetchData.fetchAll();
+            setLoading(false);
+            closeModal();
+        } else {
+            alert("Failed");
+            setLoading(false);
+        }
     },
 };
 

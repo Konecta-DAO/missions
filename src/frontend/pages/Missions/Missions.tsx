@@ -4,7 +4,7 @@ import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
-import { FetchData } from '../../../hooks/fetchData.tsx';
+import useFetchData from '../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor, HttpAgent } from '@dfinity/agent';
@@ -37,7 +37,7 @@ const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const { user, identity } = useIdentityKit();
     const navigate = useNavigate();
-    const fetchData = FetchData();
+    const fetchData = useFetchData();
     const [isIdentityChecked, setIsIdentityChecked] = useState(false);
     const [dataloaded, setDataloaded] = useState(false);
     const { loadingPercentage, loadingComplete } = useLoadingProgress();
@@ -55,6 +55,7 @@ const Missions: React.FC = () => {
             if (user === undefined) {
                 navigate('/');
             } else {
+                globalID.setPrincipal(user.principal);
                 fetchUserData(globalID.agent);
             }
         }
@@ -83,7 +84,7 @@ const Missions: React.FC = () => {
                 canisterId,
             })
             const principal = await agent.getPrincipal();
-            await fetchData.fetchall(actor, principal, setDataloaded);
+            await fetchData.fetchAll(actor, principal, setDataloaded);
         }
     };
 

@@ -22,7 +22,6 @@ import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
-import { Principal } from '@dfinity/principal';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 
@@ -40,8 +39,6 @@ const Home: React.FC = () => {
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
-      console.log("canisterId:", canisterId);
-      console.log("agent:", agent);
       const actor = Actor.createActor(idlFactory, {
         agent: agent!,
         canisterId,
@@ -49,10 +46,8 @@ const Home: React.FC = () => {
 
       agent.getPrincipal().then((a) => {
         globalID.setPrincipal(a);
-        console.log("ppal home:43 ", a.toText());
 
         (actor.getUser(a) as Promise<SerializedUser[]>).then((b) => {
-          console.log("user home:45 ", b);
           if (Array.isArray(b) && b.length !== 0) {
             globalID.setPrincipal(a);
             globalID.setUser(b);
@@ -62,41 +57,37 @@ const Home: React.FC = () => {
               globalID.setPrincipal(a);
               globalID.setUser(newUser);
               navigate('/Missions');
-            }).catch((error) => {
-              console.error("Error adding user: ", error);
-            });
+            })
           }
-        }).catch((error) => {
-          console.error("Error getting user: ", error);
-        });
-      }).catch((error) => {
-        console.error("Error getting principal: ", error);
-      });
-    } else {
-      console.log("else agent:", agent);
+        })
+      })
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log(identity?.getPrincipal())
-      if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
-        if (identity.getPrincipal().toText() !== "2vxsx-fae") {
-          const agent = HttpAgent.createSync({ identity });
 
-          if (process.env.NODE_ENV !== "production") {
-            agent.fetchRootKey();
-          }
+      const isUserPrincipalValid = user?.principal
+        ? user.principal.toText() !== "2vxsx-fae"
+        : false;
 
-          setData(agent);
-        } else {
-          disconnect();
+      if (isUserPrincipalValid) {
+        const agent = HttpAgent.createSync({ identity });
+
+        if (process.env.NODE_ENV !== "production") {
+          agent.fetchRootKey();
         }
 
+        await setData(agent);
+      } else {
+        disconnect();
       }
+
     };
+
     fetchData();
-  }, [user?.principal]);
+  }, [user, identity]);
+
 
   // Bubble Content Handlers
 
@@ -128,9 +119,6 @@ const Home: React.FC = () => {
     }
   };
 
-  if (user?.principal !== undefined) {
-    return <LoadingOverlay loadingPercentage={loadingPercentage} />;
-  }
 
   const handleKonectaClickMobile = () => {
     setIsKonectaModalOpen(true); // Open the modal when the button is clicked
@@ -148,13 +136,12 @@ const Home: React.FC = () => {
     setIsInfoModalOpen(false); // Close the modal
   };
 
+  if (user?.principal !== undefined) {
+    return <LoadingOverlay loadingPercentage={loadingPercentage} />;
+  }
+
   return (
     <div className={styles.HomeContainer}>
-
-      {/* Loading Screen - Visible until the iFrame is ready
-      {!iframeReady && (
-        <LoadingOverlay loadingPercentage={loadingPercentage} />
-      )} */}
 
       {/* Page Content */}
       <div>

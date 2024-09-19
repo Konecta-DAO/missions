@@ -1,5 +1,5 @@
 import { Principal } from '@dfinity/principal';
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useMemo } from 'react';
 import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
@@ -34,27 +34,36 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [userPFPstatus, setPFPstatus] = useState<string>('');
     const [agent, setAgent] = useState<HttpAgent | null>(null);
 
+    const value = useMemo(() => ({
+        principalId,
+        setPrincipal,
+        missions,
+        setMissions,
+        userProgress,
+        setUserProgress,
+        user,
+        setUser,
+        timerText,
+        setTimerText,
+        twitterhandle,
+        setTwitterHandle,
+        userPFPstatus,
+        setPFPstatus,
+        agent,
+        setAgent,
+    }), [
+        principalId,
+        missions,
+        userProgress,
+        user,
+        timerText,
+        twitterhandle,
+        userPFPstatus,
+        agent,
+    ]);
+
     return (
-        <GlobalID.Provider
-            value={{
-                principalId,
-                setPrincipal,
-                missions,
-                setMissions,
-                userProgress,
-                setUserProgress,
-                user,
-                setUser,
-                timerText,
-                setTimerText,
-                twitterhandle,
-                setTwitterHandle,
-                userPFPstatus,
-                setPFPstatus,
-                agent,
-                setAgent,
-            }}
-        >
+        <GlobalID.Provider value={value}>
             {children}
         </GlobalID.Provider>
     );
