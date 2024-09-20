@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.scss';
 import KonectaLogo from '../../public/assets/Konecta Logo.svg';
-// import AdminPanel from './AdminPanel.tsx';
-// import MissionsPanel from './MissionsPanel.tsx';
 import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
-import { useGlobalID } from '../hooks/globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
-import { SerializedProgress } from '../declarations/backend/backend.did.js';
+import { SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
 
 function App() {
 
   const { identity, user, agent, disconnect } = useIdentityKit();
-  const globalID = useGlobalID();
-  const [uploadedData, setUploadedData] = useState<any>(null);
   const [actor, setActor] = useState<any>(null);
 
   const setData = async (agent: HttpAgent) => {
@@ -123,8 +118,42 @@ function App() {
     getAllUsersProgress: (offset: number, limit: number) => Promise<GetAllUsersProgressResponse>;
   }
 
+  const getUsers = async () => {
+    const a = await actor.getUsers();
+
+    // Serialize the data to JSON, handling bigint types
+    const jsonString: string = JSON.stringify(
+      a,
+      (key: string, value: any): any => {
+        if (typeof value === "bigint") {
+          return value.toString();
+        }
+        return value;
+      },
+      2 // Indentation for readability
+    );
+    // Create a Blob from the JSON string
+    const blob: Blob = new Blob([jsonString], { type: "application/json" });
+
+    // Create a download URL for the Blob
+    const url: string = URL.createObjectURL(blob);
+
+    // Create a hidden anchor element and trigger the download
+    const link: HTMLAnchorElement = document.createElement("a");
+    link.href = url;
+    link.download = "users.json";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the URL after the download
+    URL.revokeObjectURL(url);
+
+    console.log("Download initiated successfully.");
+  };
+
   const getTodo = async () => {
-    // Define the Canister ID
 
     const pageSize: number = 500; // Number of entries to fetch per request
     let offset: number = 0;        // Starting point for pagination
@@ -194,6 +223,81 @@ function App() {
     }
   };
 
+  const handleUserFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          const jsonString = e.target?.result as string;
+
+          // Reviver function to handle BigInts and Principals
+          const reviverFunction = (key: any, value: any) => {
+            // Convert stringified BigInts back to BigInt
+            if (typeof value === 'string' && /^\d+$/.test(value)) {
+              // Assuming all numeric strings are meant to be BigInt (Nat)
+              return BigInt(value);
+            }
+
+            // Convert __principal__ values back to Principal objects
+            if (value && typeof value === 'object' && '__principal__' in value) {
+              return Principal.fromText(value.__principal__);
+            }
+
+            return value;
+          };
+
+          // Parse the uploaded JSON file using the reviver function
+          const parsedData = JSON.parse(jsonString, reviverFunction);
+
+          // Ensure parsedData is an array
+          const dataArray: any[] = Array.isArray(parsedData)
+            ? parsedData
+            : Object.values(parsedData);
+
+          // Validate and transform data to match SerializedUser type
+          const serializedUsers: SerializedUser[] = dataArray.map((user) => ({
+            id: user.id as Principal, // Assert that id is a Principal
+
+            // Map 'twitterid' to [] | [bigint]
+            twitterid: Array.isArray(user.twitterid) && user.twitterid.length > 0
+              ? [BigInt(user.twitterid[0])]
+              : [],
+
+            // Map 'twitterhandle' to [] | [string]
+            twitterhandle: Array.isArray(user.twitterhandle) && user.twitterhandle.length > 0
+              ? [user.twitterhandle[0]]
+              : [],
+
+            creationTime: BigInt(user.creationTime),
+            pfpProgress: String(user.pfpProgress),
+            totalPoints: BigInt(user.totalPoints),
+
+            // Map 'ocProfile' to [] | [string]
+            ocProfile: Array.isArray(user.ocProfile) && user.ocProfile.length > 0
+              ? [user.ocProfile[0]]
+              : [],
+          }));
+
+          // Upload the serialized users to the backend
+          await actor.restoreUsers(serializedUsers);
+          console.log('Users successfully uploaded.');
+
+          // Optionally, retrieve and log the updated users
+          const updatedUsers = await actor.getUsers();
+          console.log('Updated Users:', updatedUsers);
+        } catch (error) {
+          console.error('Error parsing or uploading users JSON:', error);
+        }
+      };
+
+      // Read the file as a text string (assuming it is a JSON file)
+      reader.readAsText(file);
+    }
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -206,12 +310,21 @@ function App() {
 
           // Reviver function to handle BigInts and Principals
           const reviverFunction = (key: any, value: any) => {
+            // Check for the tweetId key and ensure it's treated as a string
+            if (key === "tweetId" && Array.isArray(value) && value.length > 0) {
+              return [String(value[0])]; // Ensure it's a string inside an array
+            }
+
+            if (key === "usedCodes" && Array.isArray(value)) {
+              return value.map(([text, bool]: [string, boolean]) => [String(text), bool]); // Convert text to string
+            }
+
             // Convert stringified BigInts and 'nat' back to BigInt
             if (typeof value === 'string' && /^\d+n$/.test(value)) {
               return BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
             }
 
-            // Convert numeric strings back to numbers
+            // Convert numeric strings back to numbers (except for tweetId)
             if (typeof value === 'string' && /^\d+$/.test(value)) {
               return Number(value); // Convert plain numbers back from strings
             }
@@ -233,7 +346,7 @@ function App() {
             : Object.entries(parsedData);
 
           // Define the chunk size (adjust based on your needs)
-          const CHUNK_SIZE = 1; // Number of records per chunk
+          const CHUNK_SIZE = 500; // Number of records per chunk
 
           // Function to split data into chunks
           const splitIntoChunks = (data: any[], chunkSize: number) => {
@@ -246,29 +359,20 @@ function App() {
 
           // Split the parsedData into chunks
           const chunks = splitIntoChunks(dataArray, CHUNK_SIZE);
+          const totalChunks = chunks.length; // Calculate total number of chunks
+
+          await actor.resetallProgress();
 
           // Send each chunk to the backend
-          for (const chunk of chunks) {
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
             // Send parsed chunk to the canister
             await actor.restoreAllUserProgress(chunk);
-            console.log("Chunk successfully sent.");
+            console.log(`Chunk ${i + 1} of ${totalChunks} successfully sent.`);
           }
 
           console.log("All data successfully sent.");
 
-          // Optionally retrieve the progress and convert BigInts to strings for display
-          const progress = await actor.getAllUsersProgress();
-          console.log("Progress successfully retrieved.");
-
-          const jsonString2 = JSON.stringify(
-            progress,
-            (_, value) => {
-              return typeof value === 'bigint' ? value.toString() : value;
-            },
-            2
-          );
-
-          console.log(jsonString2);
         } catch (error) {
           console.error('Error parsing JSON:', error);
         }
@@ -279,6 +383,16 @@ function App() {
     }
   };
 
+  const resetAll = () => {
+    actor.resetall();
+    console.log("All data successfully reset.");
+  };
+
+  const handleUserButtonClick = () => {
+    const input = document.getElementById('hiddenUserFileInput') as HTMLInputElement;
+    input.click();
+  };
+
 
   const handleButtonClick = () => {
     const input = document.getElementById('hiddenFileInput') as HTMLInputElement;
@@ -286,41 +400,50 @@ function App() {
   };
 
   return (
-    <div className={`${styles.HomeContainer}`}>
-      <div>
-        <div className={styles.KonectaLogoWrapper}>
-          <>
-            <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-            <button onClick={getTodo}>Guardar Progreso de todo el mundo</button>
-            <input
-              id="hiddenFileInput"
-              type="file"
-              accept=".json"
-              onChange={handleFileUpload}
-              style={{ display: 'none' }} // Hide the file input
-            />
+    <div className={styles.HomeContainer}>
+      {/* Konecta Logo Section */}
+      <div className={styles.KonectaLogoWrapper}>
+        <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+      </div>
 
-            <button onClick={handleButtonClick}>Upload JSON File</button>
+      {/* ConnectWallet Section */}
+      <div className={styles.ConnectWalletWrapper}>
+        <ConnectWallet />
+      </div>
 
-            {/* Image upload section */}
+      {/* Buttons Column */}
+      <div className={styles.ButtonsColumn}>
 
-            <input
-              id="hiddenImageInput"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-            />
-            <button onClick={handleImageButtonClick}>Upload Image</button>
+        <button onClick={resetAll}>Nuke Bomb</button>
 
-            {/* Display Success text */}
+        <button onClick={getUsers}>Guardar datos de todo el mundo</button>
 
-            {uploadSuccess && <p>{imageURL}</p>}
-          </>
+        <button onClick={getTodo}>Guardar Progreso de todo el mundo</button>
+
+        {/* JSON File Upload */}
+        <div>
+          <input id="hiddenUserFileInput" type="file" accept=".json" onChange={handleUserFileUpload} style={{ display: 'none' }} />
+          <button onClick={handleUserButtonClick}>Upload Users JSON File</button>
         </div>
         <div>
-          <ConnectWallet />
+          <input id="hiddenFileInput" type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
+          <button onClick={handleButtonClick}>Upload Progress JSON File</button>
         </div>
+
+        {/* Image Upload Section */}
+        <div>
+          <input
+            id="hiddenImageInput"
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+          <button onClick={handleImageButtonClick}>Upload Image</button>
+        </div>
+
+        {/* Display Success Text */}
+        {uploadSuccess && <p className={styles.UploadSuccessMessage}>{imageURL}</p>}
       </div>
     </div>
   );

@@ -25,10 +25,14 @@ const MissionFunctionsComponent = {
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
-                if (result) {
+                if (result === 'true') {
                     alert("Success!")
                 } else {
-                    alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    if (result === 'false') {
+                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    } else {
+                        alert("You can't use the same twitter account in two different principals.")
+                    }
                 }
 
                 window.removeEventListener("message", handleEvent);

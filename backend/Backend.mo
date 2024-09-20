@@ -89,12 +89,15 @@ actor class Backend() {
     // Serialize user progress
     let entries = userProgress.entries();
 
+    var serializedUserProgressVec = Vector.new<(Principal, [(Nat, Types.SerializedProgress)])>();
+
     for (entry in entries) {
       let (userId, userMissions) = entry;
-      let missionEntries = Iter.toArray(userMissions.entries());
-      var serializedMissionEntries : [(Nat, Types.SerializedProgress)] = [];
+      let missionEntries = userMissions.entries();
 
-      for (missionEntry in Iter.fromArray(missionEntries)) {
+      var serializedMissionEntries = Vector.new<(Nat, Types.SerializedProgress)>();
+
+      for (missionEntry in missionEntries) {
         let (missionId, progress) = missionEntry;
 
         let serializedProgress = {
@@ -111,13 +114,13 @@ actor class Backend() {
           usedCodes = Iter.toArray(progress.usedCodes.entries());
         };
 
-        serializedMissionEntries := Array.append(serializedMissionEntries, [(missionId, serializedProgress)]);
+        Vector.add<(Nat, Types.SerializedProgress)>(serializedMissionEntries, (missionId, serializedProgress));
       };
+      Vector.add<(Principal, [(Nat, Types.SerializedProgress)])>(serializedUserProgressVec, (userId, Vector.toArray(serializedMissionEntries)));
 
-      serializedUserProgress := Array.append(serializedUserProgress, [(userId, serializedMissionEntries)]);
     };
+    serializedUserProgress := Vector.toArray(serializedUserProgressVec);
 
-    // Serialize mission assets
     let missionAssetsEntries = Iter.toArray(missionAssets.entries());
     serializedMissionAssets := missionAssetsEntries;
 
@@ -174,7 +177,6 @@ actor class Backend() {
 
       // Put the deserialized userMissions into the main userProgress TrieMap
       userProgress.put(userId, userMissions);
-
     };
 
     // Deserialize the mission assets
@@ -184,7 +186,6 @@ actor class Backend() {
       let (missionId, asset) = assetEntry;
       missionAssets.put(missionId, asset);
     };
-
     serializedUserProgress := [];
     serializedMissionAssets := [];
 
@@ -723,6 +724,29 @@ actor class Backend() {
     return [];
   };
 
+  public shared (msg) func restoreUsers(serializedUsers : [Types.SerializedUser]) : async () {
+    if (isAdmin(msg.caller)) {
+      users := Vector.new<Types.User>();
+
+      // Loop over serializedUsers and convert each to a User
+      for (serializedUser in serializedUsers.vals()) {
+        let newUser : Types.User = {
+          id = serializedUser.id;
+          var twitterid = serializedUser.twitterid;
+          var twitterhandle = serializedUser.twitterhandle;
+          creationTime = serializedUser.creationTime;
+          var pfpProgress = serializedUser.pfpProgress;
+          var totalPoints = serializedUser.totalPoints;
+          var ocProfile = serializedUser.ocProfile;
+        };
+
+        // Add the new user to the vector
+
+        Vector.add<Types.User>(users, newUser);
+      };
+    };
+  };
+
   public shared query (msg) func getAllUsersProgress(offset : Nat, limit : Nat) : async {
     data : [(Principal, [(Nat, Types.SerializedProgress)])];
     total : Nat;
@@ -820,6 +844,22 @@ actor class Backend() {
       };
     };
     return null;
+  };
+
+  public shared query (msg) func isTwitterIdUsed(twitterhandle : Text) : async Bool {
+    if (isAdmin(msg.caller)) {
+      for (user in Vector.vals(users)) {
+        switch (user.twitterhandle) {
+          case (?handle) {
+            if (handle == twitterhandle) {
+              return true;
+            };
+          };
+          case null {};
+        };
+      };
+    };
+    return false;
   };
 
   // Function to get the Mission PFP Progress
@@ -1164,6 +1204,14 @@ actor class Backend() {
   public shared (msg) func resetall() : async () {
     if (isAdmin(msg.caller)) {
       Vector.clear(users);
+      userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+      return;
+    };
+
+  };
+
+  public shared (msg) func resetallProgress() : async () {
+    if (isAdmin(msg.caller)) {
       userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
       return;
     };
