@@ -60,7 +60,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const missionId = BigInt(mission.id);
 
     // Memoize mission completion checks
-    const missionCompleted = useMemo(() => checkMissionCompletion(globalID.userProgress, missionId), [globalID.userProgress, missionId]);
+    const missionCompleted = useMemo(() => checkMissionCompletion(globalID.userProgress, mission), [globalID.userProgress, missionId]);
 
     const { requiredMissionCompleted } = useMemo(() => checkRequiredMissionCompletion(globalID, mission), [globalID, mission]);
 

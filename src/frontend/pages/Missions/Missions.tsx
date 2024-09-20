@@ -18,6 +18,7 @@ import HistoryModalMobile from './Components/HistoryModal/Mobile.tsx';
 import KonectaModal from './Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from './Components/InfoModal/InfoModal.tsx';
 import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
+import { useMediaQuery } from 'react-responsive';
 
 interface ButtonItem {
     name: string;
@@ -48,6 +49,8 @@ const Missions: React.FC = () => {
         isInfoModalOpen: false,
         isOpenChatModalOpen: false,
     });
+    const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
+    const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
 
     useEffect(() => {
         // Wait until the identity check is complete
@@ -62,6 +65,7 @@ const Missions: React.FC = () => {
     }, [isIdentityChecked, globalID.agent]);
 
     useEffect(() => {
+        console.log(canisterId);
         const checkIdentity = async () => {
             if (user === undefined && identity === undefined) {
                 setIsIdentityChecked(false);
@@ -163,6 +167,8 @@ const Missions: React.FC = () => {
                 })
             }
             {
+                /* Desktop */
+
                 !isMobileOnly && !isTablet ? (
                     <div className={styles.MissionsContainer}>
                         <div className={styles.TopBarWrapper}>
@@ -186,32 +192,107 @@ const Missions: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                ) : (
-                    <div className={styles.MissionsContainer}>
-                        <div className={styles.TopBarWrapperMobile}>
-                            <TopBar
-                                buttonList={buttonList}
-                                toggleModal={toggleModal}
-                            />
-                        </div>
-                        <div className={styles.MissionsBody2}>
-                            {dataloaded ? (
-                                <div className={styles.MissionsGridWrapper}>
-                                    <MissionGridComponent
-                                        handleCardClick={handleCardClick}
-                                    />
+
+                    /* Mobile */
+
+                ) : isMobileOnly ? (
+                    <>
+                        {isPortrait && (
+                            <>
+                                <div className={styles.MissionsContainer}>
+                                    <div className={styles.TopBarWrapperMobile}>
+                                        <TopBar
+                                            buttonList={buttonList}
+                                            toggleModal={toggleModal}
+                                        />
+                                    </div>
+                                    <div className={styles.MissionsBody2}>
+                                        {dataloaded ? (
+                                            <div className={styles.MissionsGridWrapper}>
+                                                <MissionGridComponent
+                                                    handleCardClick={handleCardClick}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div>Loading missions...</div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <ActionButtons
+                                            buttonList={buttonList}
+                                            toggleModal={toggleModal}
+                                        />
+                                    </div>
                                 </div>
-                            ) : (
-                                <div>Loading missions...</div>
-                            )}
-                        </div>
-                        <div>
-                            <ActionButtons
-                                buttonList={buttonList}
-                                toggleModal={toggleModal}
-                            />
-                        </div>
-                    </div>
+                            </>
+                        )}
+                        {isLandscape && (
+                            <>
+                                <p>Please rotate your phone</p>
+                            </>
+                        )}
+                    </>
+
+                    /* Tablet */
+
+                ) : (
+                    <>
+                        {isPortrait && (
+                            <>
+                                <div className={styles.MissionsContainer}>
+                                    <div className={styles.TopBarWrapperMobile}>
+                                        <TopBar
+                                            buttonList={buttonList}
+                                            toggleModal={toggleModal}
+                                        />
+                                    </div>
+                                    <div className={styles.MissionsBody2}>
+                                        {dataloaded ? (
+                                            <div className={styles.MissionsGridWrapper}>
+                                                <MissionGridComponent
+                                                    handleCardClick={handleCardClick}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div>Loading missions...</div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <ActionButtons
+                                            buttonList={buttonList}
+                                            toggleModal={toggleModal}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {isLandscape && (
+                            <>
+                                <div className={styles.MissionsContainer}>
+                                    <div className={styles.TopBarWrapper}>
+                                        <TopBar
+                                            buttonList={buttonList}
+                                            toggleModal={toggleModal}
+                                        />
+                                    </div>
+                                    <div className={styles.MissionsBody}>
+                                        {dataloaded ? (
+                                            <div className={styles.MissionsGridWrapper}>
+                                                <MissionGridComponent
+                                                    handleCardClick={handleCardClick}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div>Loading missions...</div>
+                                        )}
+                                        <div className={styles.OpenChatWrapper}>
+                                            <OpenChat />
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </>
                 )
             }
         </>

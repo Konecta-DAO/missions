@@ -34,15 +34,17 @@ const useFetchData = () => {
     const fetchUser = useCallback(async (actor: ActorSubclass, ae: Principal) => {
         if (setUser) {
             const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
+            console.log(user);
             setUser(user);
-            setPFPstatus(user[0].pfpProgress || '');
-            setTwitterHandle(user[0].twitterhandle?.length ? user[0].twitterhandle[0].toString() : '');
+            setPFPstatus(user[0]?.pfpProgress || '');
+            setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
         }
     }, [setUser, setPFPstatus, setTwitterHandle]);
 
     // Fetch user seconds
     const fetchUserSeconds = useCallback(async (actor: ActorSubclass, ae: Principal) => {
         const userSeconds: bigint = await actor.getTotalSecondsForUser(ae) as bigint;
+
         setTimerText(convertSecondsToHMS(Number(userSeconds)));
     }, [setTimerText]);
 

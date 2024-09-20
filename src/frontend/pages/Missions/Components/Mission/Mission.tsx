@@ -18,7 +18,6 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
     const location = useLocation();
     const globalID = useGlobalID();
     const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
-    const missionId = BigInt(mission.id);
 
     // State to track remaining time in seconds
     const [remainingTime, setRemainingTime] = useState<number | null>(null);
@@ -33,7 +32,7 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
     // Check mission statuses
     const missionCompleted = checkMissionCompletion(
         globalID.userProgress,
-        missionId
+        mission
     );
     const { requiredMissionCompleted, requiredMissionTitle } =
         checkRequiredMissionCompletion(globalID, mission);
@@ -48,6 +47,9 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
     const tooltipText = displayTooltip
         ? `You Must Complete the "${formattedRequiredTitle}" Mission before being able to complete this one`
         : null;
+
+    // Determine if the mission is recursive and completed
+    const isRecursiveCompleted = mission.recursive && missionCompleted;
 
     // Effect for countdown timer
     useEffect(() => {
@@ -83,11 +85,13 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
         return null;
     }
 
-    const missionClass = missionCompleted
-        ? styles.CompletedMission
-        : requiredMissionCompleted
-            ? styles.AvailableMission
-            : styles.IncompleteMission;
+    const missionClass = isRecursiveCompleted
+        ? styles.IncompleteMission
+        : missionCompleted
+            ? styles.CompletedMission
+            : requiredMissionCompleted
+                ? styles.AvailableMission
+                : styles.IncompleteMission;
 
     // Helper function to format remaining time as DD:HH:MM:SS
     const formatRemainingTime = (seconds: number): string => {
@@ -287,6 +291,13 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
             {isRecursiveMissionDarkened && (
                 <div className={styles.RecursiveMissionOverlay}>
                     {countdownText}
+                </div>
+            )}
+
+            {/* Conditional Text for Recursive Completed Missions */}
+            {isRecursiveCompleted && (
+                <div className={styles.MissionUnavailableText}>
+                    Mission will be available again when the timer ends
                 </div>
             )}
 

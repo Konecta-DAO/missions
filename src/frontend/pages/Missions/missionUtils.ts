@@ -1,17 +1,46 @@
-import { SerializedProgress } from "../../../declarations/backend/backend.did.js";
+import { SerializedMission, SerializedProgress } from "../../../declarations/backend/backend.did.js";
 
 // Utility function to check mission completion
-export const checkMissionCompletion = (userProgress: any, missionId: bigint): boolean => {
+export const checkMissionCompletion = (userProgress: any, mission: SerializedMission): boolean => {
     if (!Array.isArray(userProgress)) {
         console.error("userProgress is not an array");
         return false;
     }
     const a = userProgress[0]?.some(([progressId, progress]: [bigint, SerializedProgress]) => {
-        if (progressId === missionId) {
-            return true;
+        if (!mission.recursive) {
+            if (progressId === mission.id) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
+            // Recursive Missions
+            if (progressId === mission.id) {
+                // Exists
+                if (
+                    Array.isArray(progress.completionHistory) &&
+                    progress.completionHistory.length > 0
+                ) {
+                    // Check if any record has a timestamp greater than mission.startDate
+                    const hasRecentCompletion = progress.completionHistory.some(
+                        (record) => record.timestamp > mission.startDate
+                    );
+
+                    // If yes then mission is completed
+                    if (hasRecentCompletion) {
+                        return true;
+                    } else {
+                        // If not then mission is not completed
+                        return false;
+                    }
+                } else {
+                    // No completion history = mission available first time
+                    return false;
+                }
+            }
             return false;
         }
+
     });
     return a;
 };

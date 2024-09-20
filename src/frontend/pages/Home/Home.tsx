@@ -195,33 +195,42 @@ const Home: React.FC = () => {
             // MOBILE
 
             <>
-              <div className={styles.OverlayWrapper}>
-                <HomeBackgroundOverlayMobile />
-              </div>
-              <div className={styles.KonectaLogoWrapper2}>
-                <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-              </div>
-              <div className={styles.CascoLogin}>
-                <CascoOtro onClick={handleConnect} />
-                <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
-                  <ConnectWallet />
-                </div>
-              </div>
-              <div className={styles.HelpButtons2}>
-                <div className={styles.KonecB2}>
-                  <KonectaInfoButton onClick={handleKonectaClickMobile} />
-                </div>
-                <div className={styles.HelpB2}>
-                  <HelpButton onClick={handleInfoClickMobile} />
-                </div>
-              </div>
+              {isPortrait && (
+                <>
+                  <div className={styles.OverlayWrapper}>
+                    <HomeBackgroundOverlayMobile />
+                  </div>
+                  <div className={styles.KonectaLogoWrapper2}>
+                    <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
+                  </div>
+                  <div className={styles.CascoLogin}>
+                    <CascoOtro onClick={handleConnect} />
+                    <div ref={connectWalletRef} style={{ visibility: 'hidden' }}>
+                      <ConnectWallet />
+                    </div>
+                  </div>
+                  <div className={styles.HelpButtons2}>
+                    <div className={styles.KonecB2}>
+                      <KonectaInfoButton onClick={handleKonectaClickMobile} />
+                    </div>
+                    <div className={styles.HelpB2}>
+                      <HelpButton onClick={handleInfoClickMobile} />
+                    </div>
+                  </div>
 
-              {isKonectaModalOpen && (
-                <KonectaModal closeModal={handleKonectaCloseModal} />
+                  {isKonectaModalOpen && (
+                    <KonectaModal closeModal={handleKonectaCloseModal} />
+                  )}
+
+                  {isInfoModalOpen && (
+                    <InfoModal closeModal={handleInfoCloseModal} />
+                  )}
+                </>
               )}
-
-              {isInfoModalOpen && (
-                <InfoModal closeModal={handleInfoCloseModal} />
+              {isLandscape && (
+                <>
+                  <p>Please rotate your phone</p>
+                </>
               )}
             </>
           ) : (
