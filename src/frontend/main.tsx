@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.scss';
-import { canisterId } from '../declarations/backend/index.js';
+import { canisterId as backId } from '../declarations/backend/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
 import { InternetIdentity, NFIDW, Plug, Stoic } from "@nfid/identitykit"
@@ -13,12 +13,14 @@ import Missions from './pages/Missions/Missions.tsx';
 import UsergeekProvider from '../components/UsergeekProvider.tsx';
 import { IdentityKitAuthType } from "@nfid/identitykit"
 
+const frontId = process.env.CANISTER_ID_FRONTEND
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        <IdentityKitProvider signers={[NFIDW, InternetIdentity, Plug, Stoic]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://okowr-oqaaa-aaaag-qkedq-cai.icp0.io", targets: [canisterId], idleOptions: { idleTimeout: 3600000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+        <IdentityKitProvider signers={[NFIDW, InternetIdentity, Plug, Stoic]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId], idleOptions: { idleTimeout: 3600000 }, }} authType={IdentityKitAuthType.DELEGATION}>
           <UsergeekProvider>
             <RadialBackground>
               <Routes>
