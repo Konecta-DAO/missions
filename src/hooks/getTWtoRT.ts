@@ -1,5 +1,4 @@
-const getTWtoRT = async () => {
-
+const getTWtoRT = async (): Promise<string> => {
     const response = await fetch("https://do.konecta.one/getRToday", {
         method: "GET",
         credentials: "include",
@@ -10,8 +9,7 @@ const getTWtoRT = async () => {
     }
 
     const data = await response.json();
-
-    return data.tweetid;
+    return data.retwId;
 };
 
 export default getTWtoRT;

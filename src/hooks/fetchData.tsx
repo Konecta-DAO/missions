@@ -34,7 +34,6 @@ const useFetchData = () => {
     const fetchUser = useCallback(async (actor: ActorSubclass, ae: Principal) => {
         if (setUser) {
             const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
-            console.log(user);
             setUser(user);
             setPFPstatus(user[0]?.pfpProgress || '');
             setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');

@@ -312,7 +312,7 @@ function App() {
           const reviverFunction = (key: any, value: any) => {
             // Check for the tweetId key and ensure it's treated as a string
             if (key === "tweetId" && Array.isArray(value) && value.length > 0) {
-              return [String(value[0])]; // Ensure it's a string inside an array
+              return [String(value[0])];
             }
 
             if (key === "usedCodes" && Array.isArray(value)) {

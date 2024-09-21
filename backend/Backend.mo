@@ -794,47 +794,6 @@ actor class Backend() {
     return { data = []; total = 0 };
   };
 
-  public shared (msg) func restoreProgress(data : [(Principal, [(Nat, Types.SerializedProgress)])]) : async () {
-    if (isAdmin(msg.caller)) {
-      for (entry in data.vals()) {
-        let (userId, serializedMissions) = entry;
-        let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
-
-        // Iterate over each serialized mission progress
-        for (missionEntry in serializedMissions.vals()) {
-          let (missionId, serializedProgress) = missionEntry;
-
-          // Deserialize the Progress object
-          var progress = {
-            var completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
-              serializedProgress.completionHistory,
-              func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
-                {
-                  var timestamp = record.timestamp;
-                  var pointsEarned = record.pointsEarned;
-                  var tweetId = record.tweetId;
-                };
-              },
-            );
-            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-          };
-
-          // Deserialize the usedCodes
-          for (codeEntry in serializedProgress.usedCodes.vals()) {
-            let (code, used) = codeEntry;
-            progress.usedCodes.put(code, used);
-          };
-
-          // Put the deserialized progress into the userMissions TrieMap
-          userMissions.put(missionId, progress);
-        };
-
-        // Put the deserialized userMissions into the main userProgress TrieMap
-        userProgress.put(userId, userMissions);
-      };
-    };
-  };
-
   public shared query (msg) func getUser(userId : Principal) : async ?Types.SerializedUser {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       for (user in Vector.vals(users)) {
@@ -1213,30 +1172,6 @@ actor class Backend() {
   public shared (msg) func resetallProgress() : async () {
     if (isAdmin(msg.caller)) {
       userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-      return;
-    };
-  };
-
-  // Function to reset an user Progress
-
-  public shared (msg) func resetUserProgress(userId : Principal) : async () {
-    if (isAdmin(msg.caller)) {
-      userProgress.delete(userId);
-      let newUsers = Vector.new<Types.User>();
-
-      for (index in Iter.range(0, Vector.size(users) - 1)) {
-        switch (Vector.getOpt(users, index)) {
-          case (?user) {
-            if (user.id != userId) {
-              Vector.add(newUsers, user);
-            };
-          };
-          case _ {};
-        };
-      };
-
-      // Replace the original users vector with the new one, which excludes the deleted user
-      users := newUsers;
       return;
     };
   };

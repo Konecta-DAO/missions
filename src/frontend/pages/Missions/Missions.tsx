@@ -107,7 +107,6 @@ const Missions: React.FC = () => {
     };
 
     const toggleModal = (modalName: keyof ModalState) => {
-        console.log(`Toggling modal: ${modalName}`);
         setModalState((prevState) => ({
             ...prevState,
             [modalName]: !prevState[modalName],

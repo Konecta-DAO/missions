@@ -116,9 +116,7 @@
     justify-content: center;
     align-items: center;
     position: relative;
-    /* Required for the pseudo-element */
     padding: 8px;
-    /* Adds space for the border */
 }
 
 .Hexagon::before {
@@ -137,7 +135,6 @@
     height: auto;
     background-color: #151320;
     position: relative;
-    /* Ensure it's placed above the gradient */
     z-index: 1;
 }
 

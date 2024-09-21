@@ -31,19 +31,11 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
             <>
                 {userProgress?.map((nestedEntry, idx) => {
 
-                    // Ensure nestedEntry is an array
-                    if (!Array.isArray(nestedEntry)) {
-                        console.error("nestedEntry is not an array", nestedEntry);
-                        return null;
-                    }
-
                     return nestedEntry?.map((innerEntry: any, innerIdx: number) => {
 
-                        // Ensure innerEntry is an array with exactly 2 elements before destructuring
                         if (Array.isArray(innerEntry) && innerEntry.length === 2) {
                             const missionId = innerEntry[0] as bigint; // Type assertion for missionId
                             const progress = innerEntry[1] as SerializedProgress; // Type assertion for progress
-
 
                             const mission = globalID.missions.find(m => String(m.id) === String(missionId));
                             if (!mission) {
@@ -53,8 +45,10 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                             const requiredMissionTitle = mission.title || '';
                             const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
 
-                            return progress?.completionHistory?.map((record, index) => {
+                            // Sort the completionHistory by timestamp (most recent first)
+                            const sortedHistory = [...progress.completionHistory].sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 
+                            return sortedHistory?.map((record, index) => {
                                 return (
                                     <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
                                         <div className={styles.EntryContent}>
@@ -70,13 +64,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                                     {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
                                                 </a>
                                             )}
-                                            {/* {progress.usedCodes && progress.usedCodes.length > 0 && (
-                                                <p>
-                                                    {progress.usedCodes?.map(([code, isUsed], codeIndex) => (
-                                                        <span key={codeIndex}>Used code: {code}</span>
-                                                    ))}
-                                                </p>
-                                            )} */}
                                         </div>
                                         <div
                                             className={styles.RightSection}
@@ -91,21 +78,14 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                             </div>
                                         </div>
                                     </div>
-
                                 );
                             });
-                        } else {
-                            console.error("Invalid structure in innerEntry", innerEntry);
-                            return null;
                         }
                     });
                 })}
             </>
         );
     };
-
-
-
 
 
     return (

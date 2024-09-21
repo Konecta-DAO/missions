@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import styles from './MissionModal.module.scss';
 import { useNavigate } from 'react-router-dom';
 import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
@@ -8,6 +8,13 @@ import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
+
+declare global {
+    interface Window {
+        twttr: any;
+    }
+}
+
 
 interface MissionModalProps {
     closeModal: () => void;
@@ -23,13 +30,12 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const [loading, setLoading] = useState(false);
     const [ptwContent, setPtwContent] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState('');
+    const [tweetId, setTweetId] = useState<string | null>(null);
 
     // Memoize mission selection
     const mission = useMemo(() => {
         return globalID.missions?.find((m: { id: bigint }) => m.id === selectedMissionId);
     }, [globalID.missions, selectedMissionId]);
-
-    console.log("MissionModal mission", mission);
 
     // Redirect if mission not found
     useEffect(() => {
@@ -56,6 +62,93 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
         fetchAndSetPTWContent();
     }, []);
+
+    useEffect(() => {
+        const fetchTweetId = async () => {
+            try {
+                const id = await getTWtoRT();
+                setTweetId(id);
+            } catch (error) {
+                console.error('Failed to fetch tweet ID', error);
+            }
+        };
+
+        if (Number(selectedMissionId) === 5) {
+            fetchTweetId();
+        }
+    }, [selectedMissionId]);
+
+    const [isWidgetLoaded, setIsWidgetLoaded] = useState(false);
+    const [isTweetVisible, setIsTweetVisible] = useState(false);
+    const tweetRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Only proceed if selectedMissionId is 5, tweetId is present, and the tweet is visible
+        if (Number(selectedMissionId) !== 5 || !tweetId || !isTweetVisible) {
+            return;
+        }
+
+        const loadTwitterWidget = () => {
+            if (window.twttr && window.twttr.widgets && tweetRef.current) {
+                window.twttr.widgets
+                    .createTweet(tweetId, tweetRef.current, {
+                        theme: 'dark',
+                        cards: 'hidden',
+                        width: '550px',
+                        conversation: 'none',
+                        dnt: true,
+                    })
+                    .then(() => {
+                        setIsWidgetLoaded(true);
+                    })
+                    .catch((err: unknown) => {
+                        console.error('Error adding Tweet:', err);
+                    });
+            }
+        };
+
+        // Check if the Twitter script is already present
+        if (window.twttr && window.twttr.widgets) {
+            loadTwitterWidget();
+        } else {
+            const existingScript = document.querySelector(
+                'script[src="https://platform.twitter.com/widgets.js"]'
+            );
+            if (!existingScript) {
+                const script = document.createElement('script');
+                script.src = 'https://platform.twitter.com/widgets.js';
+                script.async = true;
+                script.onload = loadTwitterWidget;
+                script.onerror = () => {
+                    console.error('Failed to load Twitter widgets script.');
+                };
+                document.body.appendChild(script);
+            } else {
+                existingScript.addEventListener('load', loadTwitterWidget);
+                existingScript.addEventListener('error', () => {
+                    console.error('Failed to load Twitter widgets script.');
+                });
+            }
+        }
+
+        // Cleanup event listeners on unmount
+        return () => {
+            const existingScript = document.querySelector(
+                'script[src="https://platform.twitter.com/widgets.js"]'
+            );
+            if (existingScript) {
+                existingScript.removeEventListener('load', loadTwitterWidget);
+                existingScript.removeEventListener('error', () => { });
+            }
+        };
+    }, [tweetId, selectedMissionId, isTweetVisible]);
+
+    useEffect(() => {
+        if (!isTweetVisible && tweetRef.current) {
+            setIsWidgetLoaded(false);
+            tweetRef.current.innerHTML = '';
+        }
+    }, [isTweetVisible]);
 
     const missionId = BigInt(mission.id);
 
@@ -217,31 +310,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         return null;
     }, [missionCompleted, mission, executeFunction, buttonGradientStyle, loading]);
 
-    // Memoize recursive mission overlay
-    const renderRecursiveMissionOverlay = useMemo(() => {
-        if (mission.recursive && missionCompleted && BigInt(mission.endDate) !== BigInt(0)) {
-            const countdownText = `Mission resets at ${new Date(Number(mission.endDate)).toLocaleString()}`;
-            return <div className={styles.RecursiveMissionOverlay}>{countdownText}</div>;
-        }
-        return null;
-    }, [mission, missionCompleted]);
-
-    // Handle tweet embed
-    const tweetId = getTWtoRT();
-    const renderTweetEmbed = useMemo(() => {
-        if (!tweetId) return null;
-
-        return (
-            <div className={styles.TweetEmbedWrapper}>
-                <blockquote className="twitter-tweet">
-                    <a href={`https://twitter.com/i/web/status/${tweetId}`}></a>
-                </blockquote>
-                <script async src="https://platform.twitter.com/widgets.js" charSet="utf-8"></script>
-            </div>
-        );
-    }, [tweetId]);
-
-
     // Memoize background click handler
     const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
         if (loading) return; // Do nothing if loading is true
@@ -310,10 +378,30 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
                     {Number(selectedMissionId) === 4 && ptwContent && <p>{ptwContent}</p>}
-                    {Number(selectedMissionId) === 5 && renderTweetEmbed}
-                </div>
+                    {Number(selectedMissionId) === 5 && tweetId && (
+                        <div className={styles.tweetEmbedContainer}>
+                            <button
+                                onClick={() => setIsTweetVisible(!isTweetVisible)}
+                                aria-expanded={isTweetVisible}
+                                aria-controls="tweetEmbed"
+                                className={styles.toggleButton}
+                            >
+                                {isTweetVisible ? 'Hide Tweet' : 'Show Tweet'}
+                            </button>
 
-                {renderRecursiveMissionOverlay}
+                            {isTweetVisible && (
+                                <div className={styles.scrollableContainer}>
+                                    {!isWidgetLoaded && <div>Loading tweet...</div>}
+                                    <div
+                                        id="tweetEmbed"
+                                        ref={tweetRef}
+                                        className={styles.tweetEmbed}
+                                    ></div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <div className={styles.ButtonInputs}>
                     <div className={styles.MissionActions}>

@@ -36,7 +36,7 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
     );
     const { requiredMissionCompleted, requiredMissionTitle } =
         checkRequiredMissionCompletion(globalID, mission);
-    const { isRecursiveMissionDarkened, countdownText } =
+    const { isRecursiveMissionDarkened } =
         checkRecursiveMission(mission, missionCompleted);
 
     // Determine mission availability and tooltip text
@@ -99,19 +99,27 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
                 ? styles.AvailableMission
                 : styles.IncompleteMission;
 
-    // Helper function to format remaining time as DD:HH:MM:SS
     const formatRemainingTime = (seconds: number): string => {
         const days = Math.floor(seconds / (3600 * 24));
         const hours = Math.floor((seconds % (3600 * 24)) / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const secs = seconds % 60;
-        return `${String(days).padStart(2, '0')}:${String(hours).padStart(
-            2,
-            '0'
-        )}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(
-            2,
-            '0'
-        )}`;
+
+        if (days > 0) {
+            return `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(
+                2,
+                '0'
+            )}:${String(secs).padStart(2, '0')}`;
+        } else if (hours > 0) {
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(
+                2,
+                '0'
+            )}`;
+        } else if (minutes > 0) {
+            return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        } else {
+            return `0:${String(secs).padStart(2, '0')}`;
+        }
     };
 
     return (
@@ -173,13 +181,6 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
                     />
                 </div>
             </div>
-
-            {/* Darken Recursive Completed Missions */}
-            {isRecursiveMissionDarkened && (
-                <div className={styles.RecursiveMissionOverlay}>
-                    {countdownText}
-                </div>
-            )}
 
             {/* Smaller Circle */}
             {(missionCompleted || !requiredMissionCompleted) && (
@@ -244,7 +245,7 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
             )}
 
             {/* Checkmark for Completed Missions */}
-            {missionCompleted && !isRecursiveMissionDarkened && (
+            {missionCompleted && (
                 <svg
                     className={styles.Checkmark}
                     viewBox="0 0 24 24"
@@ -293,13 +294,6 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
                 />
             </svg>
 
-            {/* Darken Recursive Missions and Display Countdown */}
-            {isRecursiveMissionDarkened && (
-                <div className={styles.RecursiveMissionOverlay}>
-                    {countdownText}
-                </div>
-            )}
-
             {/* Conditional Text for Recursive Completed Missions */}
             {isRecursiveCompleted && (
                 <div className={styles.MissionUnavailableText}>
@@ -314,9 +308,11 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
 
             {/* Countdown Timer at Bottom Right Corner */}
             {endDateMs > 0 && remainingTime !== null && remainingTime > 0 && (
-                <div className={styles.CountdownDisplay}>
-                    {countdownLabel}: {formatRemainingTime(remainingTime)}
-                </div>
+                (!mission.recursive || (mission.recursive && missionCompleted)) && (
+                    <div className={styles.CountdownDisplay}>
+                        {countdownLabel}: {formatRemainingTime(remainingTime)}
+                    </div>
+                )
             )}
         </div>
     );

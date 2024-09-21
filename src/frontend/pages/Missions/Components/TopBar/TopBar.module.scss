@@ -17,9 +17,7 @@
     width: 100%;
     height: 100%;
     align-items: center;
-    /* Adjust height as needed */
     background-color: rgba(21, 19, 32, 0);
-    /* Adjust opacity or color as needed */
     z-index: 10;
     box-sizing: border-box;
 }
@@ -48,13 +46,9 @@
     justify-content: space-between;
     list-style-type: none; 
     display: flex;
-    /* Flexbox for horizontal layout */
     justify-content: space-between;
-    /* Distributes the logo, links, buttons */
     flex-direction: row;
-    /* Horizontal layout for buttons */
     list-style-type: none;
-    /* Removes default list styling */
     justify-content: flex-end;
     margin: 0;
     padding: 0;
@@ -62,7 +56,6 @@
     gap: 1rem; 
     width: 25vw;
     gap: 1rem;
-    /* Space between button items */
     z-index: 1;
 }
 
@@ -148,12 +141,9 @@
 
 .topbarButton {
     display: flex;
-    /* Flexbox for aligning content */
     align-items: center;
     justify-content: center;
-    /* Centers button content */
     cursor: pointer;
-    /* Changes cursor to pointer */
     max-width: 3vw;
 }
 
@@ -164,7 +154,6 @@
     transform: translateY(-85%);
 }
 
-/* Main collapse wrapper */
 .collapseWrapper {
     position: fixed;
     bottom: 2rem;
@@ -173,42 +162,31 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Center the open/close button */
 }
 
-/* Hexagon buttons container */
 .collapsedButtons {
     display: flex;
     flex-direction: column;
-    /* Stack buttons vertically */
     list-style-type: none;
     margin: 0;
     padding: 0;
     gap: 1rem;
-    /* Space between button items */
     position: absolute;
     bottom: 5rem;
-    /* Adjust as necessary */
     right: 0;
     align-items: center;
-    /* Center the hexagon buttons */
 }
 
-/* Individual button styling */
 .collapsedButton {
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
 
-    /* Uniform size for all buttons */
     width: 60px;
-    /* Set a fixed width */
     height: 60px;
-    /* Set a fixed height */
 }
 
-/* Target the HexagonButton within collapseWrapper for open/close button */
 .collapseWrapper>.HexagonButton {
     width: 60px;
     height: 60px;
@@ -217,5 +195,4 @@
     justify-content: center;
     cursor: pointer;
     margin-bottom: 1rem;
-    /* Ensure spacing between the open/close button and other buttons */
 }

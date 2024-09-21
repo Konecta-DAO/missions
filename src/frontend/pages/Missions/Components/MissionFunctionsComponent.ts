@@ -33,7 +33,6 @@ const MissionFunctionsComponent = {
                         alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                     } else {
                         alert("You can't use the same twitter account in two different principals.")
-                        console.log(result);
                     }
                 }
 
@@ -294,9 +293,6 @@ const MissionFunctionsComponent = {
             agent: globalID.agent,
             canisterId,
         })
-        console.log(globalID.principalId);
-        console.log(missionid);
-        console.log(input);
         const a = await actor.submitCode(globalID.principalId, missionid, input);
         if (a) {
             alert("Success");

@@ -78,8 +78,7 @@ export const checkRecursiveMission = (mission: any, missionCompleted: boolean) =
 
     if (mission.recursive && missionCompleted && BigInt(mission.endDate) !== BigInt(0)) {
         isRecursiveMissionDarkened = true;
-        countdownText = `This Mission will reset at ${new Date(Number(mission.endDate)).toLocaleString()}`;
     }
 
-    return { isRecursiveMissionDarkened, countdownText };
+    return { isRecursiveMissionDarkened };
 };

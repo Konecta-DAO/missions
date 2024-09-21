@@ -19,7 +19,6 @@ export const getGradientEndColor = (mode: number): string => {
 };
 
 export const rgbToRgba = (color: string, transparencyPercentage: number): string => {
-    // Convert percentage to a value between 0 and 1 for the alpha channel
     const alpha = transparencyPercentage / 100;
 
     // Convert hex color to RGB if necessary
@@ -27,7 +26,6 @@ export const rgbToRgba = (color: string, transparencyPercentage: number): string
         color = hexToRgb(color);
     }
 
-    // Ensure the color is in 'rgb(r, g, b)' format before converting to 'rgba'
     if (color.startsWith('rgb')) {
         return color.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
     }

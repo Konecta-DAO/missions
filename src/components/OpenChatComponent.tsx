@@ -5,7 +5,7 @@ const OpenChat: React.FC = () => {
     useEffect(() => {
         const initOpenChat = async () => {
             let attempts = 0;
-            const maxAttempts = 10; // Increase the number of retries
+            const maxAttempts = 10;
 
             const checkIframeExists = (): Promise<HTMLIFrameElement | null> => {
                 return new Promise<HTMLIFrameElement | null>((resolve) => {
@@ -16,7 +16,7 @@ const OpenChat: React.FC = () => {
                         setTimeout(() => {
                             attempts += 1;
                             resolve(checkIframeExists());
-                        }, 300); // Increase the delay between retries
+                        }, 300);
                     } else {
                         resolve(null);
                     }
