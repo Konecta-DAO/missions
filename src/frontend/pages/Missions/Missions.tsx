@@ -39,9 +39,8 @@ const Missions: React.FC = () => {
     const { user, identity } = useIdentityKit();
     const navigate = useNavigate();
     const fetchData = useFetchData();
-    const [isIdentityChecked, setIsIdentityChecked] = useState(false);
     const [dataloaded, setDataloaded] = useState(false);
-    const { loadingPercentage, loadingComplete } = useLoadingProgress();
+    const { loadingPercentage, loadingComplete } = useLoadingProgress({ totalTime: 3000 });
     const { disconnect } = useIdentityKit();
     const [modalState, setModalState] = useState<ModalState>({
         isHistoryModalOpen: false,
@@ -53,42 +52,53 @@ const Missions: React.FC = () => {
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
 
     useEffect(() => {
-        // Wait until the identity check is complete
-        if (globalID.agent !== null && isIdentityChecked) {
-            if (user === undefined) {
-                navigate('/');
-            } else {
-                globalID.setPrincipal(user.principal);
-                fetchUserData(globalID.agent);
-            }
-        }
-    }, [isIdentityChecked, globalID.agent]);
+        let isMounted = true;
 
-    useEffect(() => {
-        console.log(canisterId);
-        const checkIdentity = async () => {
-            if (user === undefined && identity === undefined) {
-                setIsIdentityChecked(false);
-            } else {
+        // Introduce a delay before checking authentication state
+        const timeoutId = setTimeout(() => {
+            if (!isMounted) return;
+
+            const isUserLoggedIn =
+                identity &&
+                user?.principal &&
+                user.principal.toText() !== '2vxsx-fae';
+
+            if (isUserLoggedIn) {
+                // User is logged in; proceed to set up agent and fetch data
                 const agent = HttpAgent.createSync({ identity });
-                if (process.env.NODE_ENV !== "production") {
+                if (process.env.NODE_ENV !== 'production') {
                     agent.fetchRootKey();
                 }
                 globalID.setAgent(agent);
-                setIsIdentityChecked(true);
+                globalID.setPrincipal(user.principal);
+                fetchUserData(agent);
+            } else {
+                // User is not logged in; redirect to home page
+                navigate('/');
             }
+        }, 1000); // Wait for 1000ms before proceeding
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
         };
-        checkIdentity();
     }, [user, identity]);
 
+
     const fetchUserData = async (agent: HttpAgent) => {
-        if (fetchData) {
-            const actor = Actor.createActor(idlFactory, {
-                agent: agent,
-                canisterId,
-            })
-            const principal = await agent.getPrincipal();
-            await fetchData.fetchAll(actor, principal, setDataloaded);
+        try {
+            if (fetchData) {
+                const actor = Actor.createActor(idlFactory, {
+                    agent: agent,
+                    canisterId,
+                });
+                const principal = await agent.getPrincipal();
+                await fetchData.fetchAll(actor, principal, setDataloaded);
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            // Optionally, navigate to '/' or show an error message
+            navigate('/');
         }
     };
 
@@ -228,7 +238,9 @@ const Missions: React.FC = () => {
                         )}
                         {isLandscape && (
                             <>
-                                <p>Please rotate your phone</p>
+                                <div className={styles.MobileMessage}>
+                                    <p>Please rotate your phone</p>
+                                </div>
                             </>
                         )}
                     </>

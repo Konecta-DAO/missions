@@ -20,7 +20,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        <IdentityKitProvider signers={[NFIDW, InternetIdentity, Plug, Stoic]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId], idleOptions: { idleTimeout: 3600000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+        <IdentityKitProvider signers={[NFIDW, Plug, Stoic]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId], idleOptions: { idleTimeout: 86400000 }, }} authType={IdentityKitAuthType.DELEGATION}>
           <UsergeekProvider>
             <RadialBackground>
               <Routes>

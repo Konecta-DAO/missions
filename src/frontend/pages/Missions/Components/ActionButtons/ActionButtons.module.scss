@@ -13,7 +13,7 @@
     z-index: 98; /* Just below the action buttons */
   
     &.active {
-      opacity: 0.33; /* 25% opacity for the dark overlay */
+      opacity: 0.50; /* dark overlay */
       pointer-events: auto; /* Enable interaction when active */
     }
   }

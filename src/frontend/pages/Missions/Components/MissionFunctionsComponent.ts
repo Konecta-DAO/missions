@@ -20,6 +20,7 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
+            let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
@@ -32,8 +33,11 @@ const MissionFunctionsComponent = {
                         alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                     } else {
                         alert("You can't use the same twitter account in two different principals.")
+                        console.log(result);
                     }
                 }
+
+                authSuccess = true;
 
                 window.removeEventListener("message", handleEvent);
                 localStorage.setItem("accessToken", accessToken);
@@ -45,9 +49,10 @@ const MissionFunctionsComponent = {
                 closeModal();
             }
 
+
             window.addEventListener("message", handleEvent);
 
-            let authSuccess = false;
+
 
             const popupInterval = setInterval(() => {
                 if (popup && popup.closed && !authSuccess) {
@@ -98,15 +103,24 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
+            let authSuccess = false;
+
             const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
-                if (result) {
+                if (result === 'true') {
                     alert("Success!")
                 } else {
-                    alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    if (result === 'notw') {
+                        alert("No Tweet Found!")
+                    } else {
+                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    }
                 }
+
+                authSuccess = true;
+
                 window.removeEventListener("message", handleEvent);
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
@@ -119,7 +133,7 @@ const MissionFunctionsComponent = {
 
             window.addEventListener("message", handleEvent);
 
-            let authSuccess = false;
+
 
             const popupInterval = setInterval(() => {
                 if (popup && popup.closed && !authSuccess) {
@@ -154,6 +168,8 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
+            let authSuccess = false;
+
             const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
@@ -167,6 +183,9 @@ const MissionFunctionsComponent = {
                         alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                     }
                 }
+
+                authSuccess = true;
+
                 window.removeEventListener("message", handleEvent);
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
@@ -179,7 +198,7 @@ const MissionFunctionsComponent = {
 
             window.addEventListener("message", handleEvent);
 
-            let authSuccess = false;
+
 
             const popupInterval = setInterval(() => {
                 if (popup && popup.closed && !authSuccess) {
@@ -215,6 +234,8 @@ const MissionFunctionsComponent = {
 
             const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
 
+            let authSuccess = false;
+
             const handleEvent = (event: MessageEvent<any>) => {
                 if (event.origin !== "https://do.konecta.one") return;
 
@@ -224,6 +245,9 @@ const MissionFunctionsComponent = {
                 } else {
                     alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                 }
+
+                authSuccess = true;
+
                 window.removeEventListener("message", handleEvent);
                 localStorage.setItem("accessToken", accessToken);
                 localStorage.setItem("refreshToken", refreshToken);
@@ -236,7 +260,7 @@ const MissionFunctionsComponent = {
 
             window.addEventListener("message", handleEvent);
 
-            let authSuccess = false;
+
 
             const popupInterval = setInterval(() => {
                 if (popup && popup.closed && !authSuccess) {

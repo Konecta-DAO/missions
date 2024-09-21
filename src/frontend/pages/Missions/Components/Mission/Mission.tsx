@@ -51,6 +51,12 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
     // Determine if the mission is recursive and completed
     const isRecursiveCompleted = mission.recursive && missionCompleted;
 
+    // Define the countdown label based on mission.recursive
+    const countdownLabel = mission.recursive
+        ? 'This Mission will reset in'
+        : 'This Mission ends in';
+
+
     // Effect for countdown timer
     useEffect(() => {
         if (endDateMs > 0) {
@@ -309,7 +315,7 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
             {/* Countdown Timer at Bottom Right Corner */}
             {endDateMs > 0 && remainingTime !== null && remainingTime > 0 && (
                 <div className={styles.CountdownDisplay}>
-                    This Mission ends in: {formatRemainingTime(remainingTime)}
+                    {countdownLabel}: {formatRemainingTime(remainingTime)}
                 </div>
             )}
         </div>

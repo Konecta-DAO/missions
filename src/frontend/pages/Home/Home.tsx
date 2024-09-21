@@ -17,25 +17,24 @@ import SpeechBubble from '../../components/SpeechBubble/SpeechBubble.tsx';
 import "@nfid/identitykit/react/styles.css"
 import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
 import { useGlobalID } from '../../../hooks/globalID.tsx';
-import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
-import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
+import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
-  const { identity, user, disconnect } = useIdentityKit();
+  const { identity, user } = useIdentityKit();
   const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
   const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
   const globalID = useGlobalID();
-  const { loadingPercentage, loadingComplete } = useLoadingProgress();
   const [isKonectaModalOpen, setIsKonectaModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isnfiding, setIsnfiding] = useState(false);
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
@@ -43,7 +42,7 @@ const Home: React.FC = () => {
         agent: agent!,
         canisterId,
       });
-
+      setIsnfiding(true);
       agent.getPrincipal().then((a) => {
         globalID.setPrincipal(a);
 
@@ -79,15 +78,11 @@ const Home: React.FC = () => {
         }
 
         await setData(agent);
-      } else {
-        disconnect();
       }
-
     };
 
     fetchData();
   }, [user, identity]);
-
 
   // Bubble Content Handlers
 
@@ -136,13 +131,14 @@ const Home: React.FC = () => {
     setIsInfoModalOpen(false); // Close the modal
   };
 
-  if (user?.principal !== undefined) {
-    return <LoadingOverlay loadingPercentage={loadingPercentage} />;
-  }
-
   return (
     <div className={styles.HomeContainer}>
-
+      {
+        isnfiding &&
+        <div className={styles.loadingOverlayWrapper}>
+          <LoadingOverlay loadingPercentage={"LOADING"} />
+        </div>
+      }
       {/* Page Content */}
       <div>
         {
@@ -229,7 +225,9 @@ const Home: React.FC = () => {
               )}
               {isLandscape && (
                 <>
-                  <p>Please rotate your phone</p>
+                  <div className={styles.MobileMessage}>
+                    <p>Please rotate your phone</p>
+                  </div>
                 </>
               )}
             </>

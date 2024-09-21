@@ -134,6 +134,11 @@ $animation-timing-function: ease-in-out;
   z-index: 2;
 }
 
+.MobileMessage {
+  font-size: 30px;
+  font-weight: bold;
+}
+
 .PlataformaContainer {
   width: 100%;
   max-width: 50vw;
@@ -211,6 +216,11 @@ $animation-timing-function: ease-in-out;
 
 .HelpButtonContainer {
   transform: translateY(25%);
+}
+
+.loadingOverlayWrapper {
+  z-index: 99999;
+  position: absolute;
 }
 
 .KonecB {
