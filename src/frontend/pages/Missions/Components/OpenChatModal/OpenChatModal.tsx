@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from '../HistoryModal/HistoryModalMobile.module.scss';
+import styles from './OpenChatModalMobile.module.scss';
 import OpenChat from '../../../../../components/OpenChatComponent.tsx';
 
 interface HistoryModalProps {

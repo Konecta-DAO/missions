@@ -8,9 +8,6 @@
       }
     },
     "frontend": {
-      "dependencies": [
-        "backend"
-      ],
       "type": "assets",
       "source": [
         "dist/frontend"

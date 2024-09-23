@@ -4,6 +4,7 @@ import Cycles "mo:base/ExperimentalCycles";
 import Types "Types";
 import Serialization "Serialization";
 import Array "mo:base/Array";
+import Option "mo:base/Option";
 import Time "mo:base/Time";
 import Random "mo:base/Random";
 import Vector "mo:vector";
@@ -423,8 +424,25 @@ actor class Backend() {
         };
       };
 
-      // Retrieve the mission details from the missions vector using getOpt
-      let missionOpt : ?Types.Mission = Vector.getOpt(missions, missionId);
+      // Find the mission with the matching id directly within submitCode
+      var missionOpt : ?Types.Mission = null;
+      var index : Nat = 0;
+      let size = Vector.size(missions);
+      while (index < size and Option.isNull(missionOpt)) {
+        let missionAtIndexOpt = Vector.get(missions, index);
+
+        switch (missionAtIndexOpt) {
+          case (missionAtIndex) {
+            if (missionAtIndex.id == missionId) {
+              missionOpt := ?missionAtIndex; // Assign the mission when found
+            };
+          };
+        };
+
+        index += 1;
+      };
+
+      // Check if the mission was found
       let mission = switch (missionOpt) {
         case (?m) m;
         case null {
