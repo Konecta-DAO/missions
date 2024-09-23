@@ -279,6 +279,8 @@ function App() {
             ocProfile: Array.isArray(user.ocProfile) && user.ocProfile.length > 0
               ? [user.ocProfile[0]]
               : [],
+
+            ocCompleted: Boolean(user.ocCompleted),
           }));
 
           // Upload the serialized users to the backend

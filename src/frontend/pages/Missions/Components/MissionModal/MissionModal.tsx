@@ -31,6 +31,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const [ptwContent, setPtwContent] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState('');
     const [tweetId, setTweetId] = useState<string | null>(null);
+    const [placestate, setPlacestate] = useState(false);
 
     // Memoize mission selection
     const mission = useMemo(() => {
@@ -190,7 +191,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
             setLoading(true);
             try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue);
+                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate);
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
             }
