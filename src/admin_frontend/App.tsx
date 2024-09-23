@@ -11,16 +11,20 @@ function App() {
 
   const { identity, user, agent, disconnect } = useIdentityKit();
   const [actor, setActor] = useState<any>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
-      console.log("canisterId:", canisterId);
-      console.log("agent:", agent);
       const actor = Actor.createActor(idlFactory, {
         agent: agent!,
         canisterId,
       });
       setActor(actor);
+
+      const b = await actor.trisAdmin(user?.principal!);
+      if (b) {
+        setLoaded(true);
+      }
     }
   };
 
@@ -279,6 +283,8 @@ function App() {
             ocProfile: Array.isArray(user.ocProfile) && user.ocProfile.length > 0
               ? [user.ocProfile[0]]
               : [],
+
+            ocCompleted: Boolean(user.ocCompleted),
           }));
 
           // Upload the serialized users to the backend
@@ -412,39 +418,41 @@ function App() {
       </div>
 
       {/* Buttons Column */}
-      <div className={styles.ButtonsColumn}>
+      {loaded && (
+        <div className={styles.ButtonsColumn}>
 
-        <button onClick={resetAll}>Nuke Bomb</button>
+          <button onClick={resetAll}>Nuke Bomb</button>
 
-        <button onClick={getUsers}>Guardar datos de todo el mundo</button>
+          <button onClick={getUsers}>Save All Users</button>
 
-        <button onClick={getTodo}>Guardar Progreso de todo el mundo</button>
+          <button onClick={getTodo}>Save All Progress</button>
 
-        {/* JSON File Upload */}
-        <div>
-          <input id="hiddenUserFileInput" type="file" accept=".json" onChange={handleUserFileUpload} style={{ display: 'none' }} />
-          <button onClick={handleUserButtonClick}>Upload Users JSON File</button>
+          {/* JSON File Upload */}
+          <div>
+            <input id="hiddenUserFileInput" type="file" accept=".json" onChange={handleUserFileUpload} style={{ display: 'none' }} />
+            <button onClick={handleUserButtonClick}>Upload Users JSON File</button>
+          </div>
+          <div>
+            <input id="hiddenFileInput" type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
+            <button onClick={handleButtonClick}>Upload Progress JSON File</button>
+          </div>
+
+          {/* Image Upload Section */}
+          <div>
+            <input
+              id="hiddenImageInput"
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
+            <button onClick={handleImageButtonClick}>Upload Image</button>
+          </div>
+
+          {/* Display Success Text */}
+          {uploadSuccess && <p className={styles.UploadSuccessMessage}>{imageURL}</p>}
         </div>
-        <div>
-          <input id="hiddenFileInput" type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
-          <button onClick={handleButtonClick}>Upload Progress JSON File</button>
-        </div>
-
-        {/* Image Upload Section */}
-        <div>
-          <input
-            id="hiddenImageInput"
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            style={{ display: 'none' }}
-          />
-          <button onClick={handleImageButtonClick}>Upload Image</button>
-        </div>
-
-        {/* Display Success Text */}
-        {uploadSuccess && <p className={styles.UploadSuccessMessage}>{imageURL}</p>}
-      </div>
+      )}
     </div>
   );
 }

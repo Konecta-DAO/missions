@@ -19,6 +19,18 @@ module Serialization {
     };
   };
 
+  public func serializeUserTemp(user : Types.UserTemp) : Types.SerializedUserTemp {
+    {
+      id = user.id;
+      twitterid = user.twitterid;
+      twitterhandle = user.twitterhandle;
+      creationTime = user.creationTime;
+      pfpProgress = user.pfpProgress;
+      totalPoints = user.totalPoints;
+      ocProfile = user.ocProfile;
+    };
+  };
+
   public func deserializeUser(serializedUser : Types.SerializedUser) : Types.User {
     {
       id = serializedUser.id;

@@ -8,18 +8,12 @@
       }
     },
     "frontend": {
-      "dependencies": [
-        "backend"
-      ],
       "type": "assets",
       "source": [
         "dist/frontend"
       ]
     },
     "admin_frontend": {
-      "dependencies": [
-        "backend"
-      ],
       "type": "assets",
       "source": [
         "dist/admin"

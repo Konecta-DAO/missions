@@ -75,20 +75,22 @@
 
 .ModalContent2 {
     background-color: #151320;
-    padding: 20px;
+    // padding: 2;
     border-radius: 50px;
     position: relative;
     z-index: 1001;
     width: 70%;
-    height: 80%;
+    height: 60%;
     display: flex;
-    max-height: 67%;
+    max-width: 500px;
+    max-height: 1000px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border: none;
     animation: slideIn 0.5s ease-out forwards;
-    margin-bottom: 12vh;
+    // margin-bottom: 5vh;
     display: flex;
     justify-content: center;
+    padding: 7%;
 }
 
 .ModalContent2.hide {
@@ -210,13 +212,13 @@
 
 .Texto2 {
     position: relative;
-    width: 80%;
+    width: 100%;
     text-align: justify;
     line-height: 4vw;
 }
 
 .Texto2 p {
-    font-size: 1rem;
+    font-size: 3vw;
 }
 
 .ContentWrapper2 {
@@ -226,7 +228,6 @@
     justify-content: center;
     align-items: center;
     text-align: center;
-    width: 95%;
-    margin-top: 10px;
-    overflow: hidden;
+    width: 80%;
+    overflow-y: visible;
 }

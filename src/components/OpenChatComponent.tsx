@@ -1,7 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { initialise } from '@open-ic/openchat-xframe';
+import { Actor } from '@dfinity/agent';
+import { idlFactory } from '../declarations/backend/backend.did.js';
+import { useGlobalID } from '../hooks/globalID.tsx';
+import { canisterId } from '../declarations/backend/index.js';
+import useFetchData from '../hooks/fetchData.tsx';
 
 const OpenChat: React.FC = () => {
+    const globalID = useGlobalID();
+    const fetchData = useFetchData();
+    const [placestate, setPlacestate] = useState(false);
+
     useEffect(() => {
         const initOpenChat = async () => {
             let attempts = 0;
@@ -96,8 +105,15 @@ const OpenChat: React.FC = () => {
                         }
                     },
                     onUserIdentified: (userId: string) => {
-                      //  console.log(`User identified: ${userId}`);
-                      
+                        //  console.log(`User identified: ${userId}`);
+                        if (globalID.agent != null && globalID.principalId != null) {
+                            const actor = Actor.createActor(idlFactory, {
+                                agent: globalID.agent,
+                                canisterId,
+                            })
+                            actor.addOCProfile(globalID.principalId, userId);
+                            fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                        }
                     },
                     settings: {
                         disableLeftNav: true
@@ -111,12 +127,12 @@ const OpenChat: React.FC = () => {
         initOpenChat();
     }, []);
 
-    return <iframe 
-        id="openchat-iframe" 
-        title="OpenChat" 
-        style={{ 
-            width: '100%', 
-            height: '100%', 
+    return <iframe
+        id="openchat-iframe"
+        title="OpenChat"
+        style={{
+            width: '100%',
+            height: '100%',
             border: "1px solid #ccc",
             boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
         }}></iframe>;

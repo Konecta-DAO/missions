@@ -58,8 +58,7 @@ const Missions: React.FC = () => {
         const timeoutId = setTimeout(() => {
             if (!isMounted) return;
 
-            if (identity && user?.principal && user.principal.toText() !== '2vxsx-fae' && dataloaded === false) {
-
+            if (identity && user?.principal && user.principal.toText() !== '2vxsx-fae') {
                 // User is logged in; proceed to set up agent and fetch data
                 const agent = HttpAgent.createSync({ identity });
                 if (process.env.NODE_ENV !== 'production') {
@@ -68,7 +67,6 @@ const Missions: React.FC = () => {
                 globalID.setAgent(agent);
                 globalID.setPrincipal(user.principal);
                 fetchUserData(agent);
-
             } else {
                 // User is not logged in; redirect to home page
                 navigate('/');
@@ -79,21 +77,19 @@ const Missions: React.FC = () => {
             isMounted = false;
             clearTimeout(timeoutId);
         };
-    }, [user, identity, dataloaded]);
+    }, [user, identity]);
 
 
     const fetchUserData = async (agent: HttpAgent) => {
         try {
             if (fetchData) {
-                if (dataloaded === false) {
-                    const actor = Actor.createActor(idlFactory, {
-                        agent: agent,
-                        canisterId,
-                    });
-                    const principal = await agent.getPrincipal();
+                const actor = Actor.createActor(idlFactory, {
+                    agent: agent,
+                    canisterId,
+                });
+                const principal = await agent.getPrincipal();
 
-                    await fetchData.fetchAll(actor, principal, setDataloaded);
-                }
+                await fetchData.fetchAll(actor, principal, setDataloaded);
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
