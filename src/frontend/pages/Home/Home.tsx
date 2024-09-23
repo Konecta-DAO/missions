@@ -23,6 +23,7 @@ import { canisterId } from '../../../declarations/backend/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
+import { Usergeek } from 'usergeek-ic-js';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ const Home: React.FC = () => {
             (actor.addUser(a) as Promise<SerializedUser[]>).then((newUser) => {
               globalID.setPrincipal(a);
               globalID.setUser(newUser);
+              Usergeek.trackEvent("Mission 0: Registered");
               navigate('/Missions');
             })
           }

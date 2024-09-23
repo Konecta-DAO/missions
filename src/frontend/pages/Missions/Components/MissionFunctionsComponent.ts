@@ -1,6 +1,7 @@
 import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 import { Console } from "console";
+import { Usergeek } from "usergeek-ic-js";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
@@ -28,6 +29,7 @@ const MissionFunctionsComponent = {
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
+                    Usergeek.trackEvent("Mission 1: Follow");
                     alert("Success!")
                 } else {
                     if (result === 'false') {
@@ -115,6 +117,7 @@ const MissionFunctionsComponent = {
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
                     alert("Success!")
+                    Usergeek.trackEvent("Mission 3: PFP Tweet");
                 } else {
                     if (result === 'notw') {
                         alert("No Tweet Found!")
@@ -184,6 +187,7 @@ const MissionFunctionsComponent = {
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
                     alert("Success!")
+                    Usergeek.trackEvent("Mission 4: Tweet");
                 } else {
                     if (result === 'notw') {
                         alert("No Tweet Found!")
@@ -254,6 +258,7 @@ const MissionFunctionsComponent = {
                 const { accessToken, refreshToken, result } = event.data;
                 if (result) {
                     alert("Success!")
+                    Usergeek.trackEvent("Mission 5: Retweet");
                 } else {
                     alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
                 }
