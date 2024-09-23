@@ -16,6 +16,7 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
+import Buffer "mo:base/Buffer";
 actor class Backend() {
 
   //
@@ -232,6 +233,15 @@ actor class Backend() {
   // Function to check if the principal is an admin
 
   private func isAdmin(principalId : Principal) : Bool {
+    return Array.find<Principal>(
+      adminIds,
+      func(id) : Bool {
+        id == principalId;
+      },
+    ) != null;
+  };
+
+  public shared func trisAdmin(principalId : Principal) : async Bool {
     return Array.find<Principal>(
       adminIds,
       func(id) : Bool {
@@ -499,39 +509,39 @@ actor class Backend() {
 
   // Function to check Mission #7
 
-  public shared (msg) func isOc(userId : Principal) : async Text {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      for (user in Vector.vals(users)) {
-        if (user.id == userId) {
-          if (user.ocCompleted) {
-            let achievement = {
-              achievement_id = Nat32.fromNat(1234);
-              user_id = userId;
-            };
-            let response = await oc.award_external_achievement(achievement);
-            switch (response) {
-              case (#Success { remaining_budget }) {
-                return "Success";
-                cBudget := remaining_budget;
-              };
-              case (#InvalidCaller) {};
-              case (#NotFound) {};
-              case (#AlreadyAwarded) {
-                return "You have already done this mission (although it shouldn't be possible)";
-              };
-              case (#InsufficientBudget) {
-                return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
-              };
-              case (#Expired) {
-                return "This Mission is already over";
-              };
-            };
-          };
-        };
-      };
-    };
-    return "";
-  };
+  // public shared (msg) func isOc(userId : Principal) : async Text {
+  //   if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+  //     for (user in Vector.vals(users)) {
+  //       if (user.id == userId) {
+  //         if (user.ocCompleted) {
+  //           let achievement = {
+  //             achievement_id = Nat32.fromNat(1234);
+  //             user_id = userId;
+  //           };
+  //           let response = await oc.award_external_achievement(achievement);
+  //           switch (response) {
+  //             case (#Success { remaining_budget }) {
+  //               return "Success";
+  //               cBudget := remaining_budget;
+  //             };
+  //             case (#InvalidCaller) {};
+  //             case (#NotFound) {};
+  //             case (#AlreadyAwarded) {
+  //               return "You have already done this mission (although it shouldn't be possible)";
+  //             };
+  //             case (#InsufficientBudget) {
+  //               return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
+  //             };
+  //             case (#Expired) {
+  //               return "This Mission is already over";
+  //             };
+  //           };
+  //         };
+  //       };
+  //     };
+  //   };
+  //   return "";
+  // };
 
   // Get the total seconds of an user by Principal
 
@@ -800,6 +810,52 @@ actor class Backend() {
     return [];
   };
 
+  // Function to get all users with the Profile Mission Pending
+
+  public shared query (msg) func getPFPUsers() : async [Types.SerializedUser] {
+    if (isAdmin(msg.caller)) {
+      let usersArray = Vector.toArray(users);
+
+      let filteredUsers = Array.filter<Types.User>(
+        usersArray,
+        func(user : Types.User) : Bool {
+          return user.pfpProgress == "loading";
+        },
+      );
+
+      // Map the filtered users to the serialized form
+      return Array.map<Types.User, Types.SerializedUser>(filteredUsers, Serialization.serializeUser);
+    };
+    return [];
+  };
+
+  public shared (msg) func setOCMissionEnabled(userId : Principal) : async () {
+    if (isAdmin(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            if (user.id == userId) {
+              let updatedUser : Types.User = {
+                id = user.id;
+                var twitterid = user.twitterid;
+                var twitterhandle = user.twitterhandle;
+                creationTime = user.creationTime;
+                var pfpProgress = user.pfpProgress;
+                var totalPoints = user.totalPoints;
+                var ocProfile = user.ocProfile;
+                var ocCompleted = true;
+              };
+              Vector.put(users, i, updatedUser);
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
+    };
+  };
+
   // Function to restore all users
 
   public shared (msg) func restoreUsers(serializedUsers : [Types.SerializedUser]) : async () {
@@ -1024,6 +1080,35 @@ actor class Backend() {
         i += 1;
       };
     };
+  };
+
+  public shared (msg) func addOCProfile(userId : Principal, ocprofile : Text) {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            if (user.id == userId) {
+              let updatedUser : Types.User = {
+                id = user.id;
+                var twitterid = user.twitterid;
+                var twitterhandle = user.twitterhandle;
+                creationTime = user.creationTime;
+                var pfpProgress = user.pfpProgress;
+                var totalPoints = user.totalPoints;
+                var ocProfile = ?ocprofile;
+                var ocCompleted = user.ocCompleted;
+              };
+              Vector.put(users, i, updatedUser);
+              return;
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
+    };
+
   };
 
   //

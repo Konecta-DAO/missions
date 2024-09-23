@@ -14,9 +14,6 @@
       ]
     },
     "admin_frontend": {
-      "dependencies": [
-        "backend"
-      ],
       "type": "assets",
       "source": [
         "dist/admin"

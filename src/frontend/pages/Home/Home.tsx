@@ -89,7 +89,7 @@ const Home: React.FC = () => {
   const handleKonectaClick = () => {
     setShowBubble(false); // Bubble Restart
     setTimeout(() => {
-      setBubbleContent("Konecta WebApp: Konecta is a Web app for Service providers to Offer and people to Request Services, in a Calendar-focus way.\nKonecta Protocol: Event Management protocol, for users to get their events cross-dApps.");
+      setBubbleContent("Welcome to Konecta Pre-Register! I’m Kami, your guide in this adventure. Konecta is a platform built on ICP to connect users securely, for offering or requesting services via streaming.");
       setShowBubble(true);
     }, 0);
   };
@@ -99,7 +99,7 @@ const Home: React.FC = () => {
   const handleHelpClick = () => {
     setShowBubble(false); // Bubble Restart
     setTimeout(() => {
-      setBubbleContent("The adventure begins here, brave traveler! To unlock your first precious seconds, you must log in using your NFID. It’s your key to the Konecta Realm. Time waits for no one!");
+      setBubbleContent("The adventure begins here, brave traveler! Your journey starts with the Time Capsule—where time is gold. Complete missions to earn seconds, which will convert to KTA tokens, Konecta’s native currency. Every second counts toward your next epic adventure. Let’s make it count!");
       setShowBubble(true);
     }, 0);
   };

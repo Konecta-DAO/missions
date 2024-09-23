@@ -29,6 +29,28 @@ module Types {
     ocCompleted : Bool;
   };
 
+  public type UserTemp = {
+    id : Principal; // Principal ID
+    var twitterid : ?Nat; // Twitter ID
+    var twitterhandle : ?Text; // Twitter Handle
+    creationTime : Int; // Creation Time in Nanoseconds
+    var pfpProgress : Text;
+    var totalPoints : Nat;
+    var ocProfile : ?Text;
+    // var ocCompleted : Bool;
+  };
+
+  public type SerializedUserTemp = {
+    id : Principal;
+    twitterid : ?Nat;
+    twitterhandle : ?Text;
+    creationTime : Int;
+    pfpProgress : Text;
+    totalPoints : Nat;
+    ocProfile : ?Text;
+    // ocCompleted : Bool;
+  };
+
   // Mission Types
   public type Mission = {
     var id : Nat; // Mission Number

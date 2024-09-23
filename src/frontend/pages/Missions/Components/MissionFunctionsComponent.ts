@@ -76,11 +76,11 @@ const MissionFunctionsComponent = {
             agent: globalID.agent,
             canisterId,
         })
-        if (globalID.userPFPstatus === "false") {
+        if (globalID.userPFPstatus !== "loading") {
             globalID.setPFPstatus = await fetchData.fetchUserPFPstatus(actor, globalID.principalId);
-            alert("PFP status not verified. Please upload your updated profile picture or wait for manual verification if you already did.");
+            alert("PFP status not verified. Please upload your updated profile picture to your twitter profile or wait for manual verification if you already did.");
         } else {
-            alert("PFP status sucessfully set. You will soon be manually verified");
+            alert("PFP status already set successfully. You will soon be manually verified");
         }
         await fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
         setLoading(false);
@@ -291,6 +291,11 @@ const MissionFunctionsComponent = {
     },
 
     sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const actor = Actor.createActor(idlFactory, {
+            agent: globalID.agent,
+            canisterId,
+        })
+        const a = await actor.setPFPProgressLoading(globalID.principalId);
         const url = 'https://x.com/messages/compose?recipient_id=1828134613375488000&text=Kami%2C%20I%27m%20on%20a%20mission%20for%20a%20killer%20profile%20pic.%20Let%E2%80%99s%20make%20it%20happen!';
         window.open(url, '_blank');
     },
@@ -311,18 +316,14 @@ const MissionFunctionsComponent = {
             canisterId,
         })
 
-        console.log(canisterId);
-        console.log(input);
         const a = await actor.submitCode(globalID.principalId, missionid, input);
         if (a) {
-            console.log("Entr1");
             if (missionid != 7) {
                 alert("Success");
                 await fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
                 setLoading(false);
                 closeModal();
             } else {
-                console.log("Entr2");
                 const b = await actor.isOc(globalID.principalId);
                 alert(b);
                 await fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
@@ -330,7 +331,6 @@ const MissionFunctionsComponent = {
                 closeModal();
             }
         } else {
-            console.log("Entr3");
             alert("Failed");
             setLoading(false);
         }
