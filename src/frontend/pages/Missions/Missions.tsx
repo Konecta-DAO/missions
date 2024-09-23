@@ -58,12 +58,8 @@ const Missions: React.FC = () => {
         const timeoutId = setTimeout(() => {
             if (!isMounted) return;
 
-            const isUserLoggedIn =
-                identity &&
-                user?.principal &&
-                user.principal.toText() !== '2vxsx-fae';
+            if (identity && user?.principal && user.principal.toText() !== '2vxsx-fae' && dataloaded === false) {
 
-            if (isUserLoggedIn) {
                 // User is logged in; proceed to set up agent and fetch data
                 const agent = HttpAgent.createSync({ identity });
                 if (process.env.NODE_ENV !== 'production') {
@@ -72,6 +68,7 @@ const Missions: React.FC = () => {
                 globalID.setAgent(agent);
                 globalID.setPrincipal(user.principal);
                 fetchUserData(agent);
+
             } else {
                 // User is not logged in; redirect to home page
                 navigate('/');
@@ -82,18 +79,21 @@ const Missions: React.FC = () => {
             isMounted = false;
             clearTimeout(timeoutId);
         };
-    }, [user, identity]);
+    }, [user, identity, dataloaded]);
 
 
     const fetchUserData = async (agent: HttpAgent) => {
         try {
             if (fetchData) {
-                const actor = Actor.createActor(idlFactory, {
-                    agent: agent,
-                    canisterId,
-                });
-                const principal = await agent.getPrincipal();
-                await fetchData.fetchAll(actor, principal, setDataloaded);
+                if (dataloaded === false) {
+                    const actor = Actor.createActor(idlFactory, {
+                        agent: agent,
+                        canisterId,
+                    });
+                    const principal = await agent.getPrincipal();
+
+                    await fetchData.fetchAll(actor, principal, setDataloaded);
+                }
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -146,7 +146,7 @@ const Missions: React.FC = () => {
 
     const modalComponents: { [key in keyof ModalState]: React.ReactNode } = {
         isHistoryModalOpen: (
-            !isMobileOnly && !isPortrait?
+            !isMobileOnly && !isTablet ?
                 <HistoryModal closeModal={() => toggleModal('isHistoryModalOpen')} /> :
                 <HistoryModalMobile closeModal={() => toggleModal('isHistoryModalOpen')} />
         ),

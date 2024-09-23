@@ -19,9 +19,19 @@ actor class Backend() {
 
   //
 
-  // Upgrade Functions
+  // Upgrade And Restore Functions
 
   //
+
+  // TrieMap to store the progress of each user's missions
+
+  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+
+  // Stable storage for serialized data
+
+  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+
+  // Restore Function
 
   public shared (msg) func restoreAllUserProgress(
     serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]
@@ -78,10 +88,6 @@ actor class Backend() {
       };
     };
   };
-
-  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-
-  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
   // Pre-upgrade function to serialize the user progress
 
@@ -191,6 +197,10 @@ actor class Backend() {
 
   };
 
+  let oc = actor ("7njde-waaaa-aaaaf-ab2ca-cai") : actor {
+    award_external_achievement : (Types.AwardExternalAchievementArgs) -> async Types.AwardExternalAchievementResponse;
+  };
+
   //
 
   // Admin Management
@@ -253,10 +263,6 @@ actor class Backend() {
 
   //
 
-  // TrieMap to store the progress of each user's missions
-
-  // Stable storage for serialized data
-
   // Function to record or update progress on a mission
 
   public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
@@ -298,6 +304,7 @@ actor class Backend() {
               var pfpProgress = user.pfpProgress;
               var totalPoints = user.totalPoints + points;
               var ocProfile = user.ocProfile;
+              var ocCompleted = user.ocCompleted;
             };
             Vector.put(users, i, updatedUser);
             return;
@@ -308,6 +315,8 @@ actor class Backend() {
       i += 1;
     };
   };
+
+  // Function to Consume All Current Points
 
   public shared (msg) func useAllPoints(userId : Principal) : async () {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
@@ -324,6 +333,7 @@ actor class Backend() {
                 var pfpProgress = user.pfpProgress;
                 var totalPoints = 0;
                 var ocProfile = user.ocProfile;
+                var ocCompleted = user.ocCompleted;
               };
               Vector.put(users, i, updatedUser);
               return;
@@ -469,6 +479,42 @@ actor class Backend() {
     return false;
   };
 
+  // Function to check Mission #7
+
+  public shared (msg) func isOc(userId : Principal) : async Text {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      for (user in Vector.vals(users)) {
+        if (user.id == userId) {
+          if (user.ocCompleted) {
+            let achievement = {
+              achievement_id = Nat32.fromNat(1234);
+              user_id = userId;
+            };
+            let response = await oc.award_external_achievement(achievement);
+            switch (response) {
+              case (#Success { remaining_budget }) {
+                return "Success";
+                cBudget := remaining_budget;
+              };
+              case (#InvalidCaller) {};
+              case (#NotFound) {};
+              case (#AlreadyAwarded) {
+                return "You have already done this mission (although it shouldn't be possible)";
+              };
+              case (#InsufficientBudget) {
+                return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
+              };
+              case (#Expired) {
+                return "This Mission is already over";
+              };
+            };
+          };
+        };
+      };
+    };
+    return "";
+  };
+
   // Get the total seconds of an user by Principal
 
   public shared query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
@@ -496,8 +542,6 @@ actor class Backend() {
   // Stable storage for serialized mission assets
 
   stable var serializedMissionAssets : [(Text, Blob)] = [];
-
-  // TrieMap for checking if an user did the picture mission
 
   // Generate a unique image identifier using a combination of timestamp and hash
 
@@ -581,7 +625,7 @@ actor class Backend() {
     return;
   };
 
-  // Function to get all missions (serialized)
+  // Function to get all missions
 
   public shared query (msg) func getAllMissions() : async [Types.SerializedMission] {
     if (not Principal.isAnonymous(msg.caller)) {
@@ -664,6 +708,19 @@ actor class Backend() {
     return 0;
   };
 
+  // Budget for Mission 7
+
+  stable var cBudget : Nat32 = 0;
+
+  // Get Budget from Mission 7
+
+  public shared query (msg) func getcBudget() : async Nat32 {
+    if (isAdmin(msg.caller)) {
+      return cBudget;
+    };
+    return 0;
+  };
+
   //
 
   // User Management
@@ -708,6 +765,7 @@ actor class Backend() {
         var pfpProgress = "false";
         var totalPoints = Int.abs(pointsEarnedOpt);
         var ocProfile = null;
+        var ocCompleted = false;
       };
       Vector.add<Types.User>(users, newUser);
       return ?Serialization.serializeUser(newUser);
@@ -724,6 +782,8 @@ actor class Backend() {
     return [];
   };
 
+  // Function to restore all users
+
   public shared (msg) func restoreUsers(serializedUsers : [Types.SerializedUser]) : async () {
     if (isAdmin(msg.caller)) {
       users := Vector.new<Types.User>();
@@ -738,6 +798,7 @@ actor class Backend() {
           var pfpProgress = serializedUser.pfpProgress;
           var totalPoints = serializedUser.totalPoints;
           var ocProfile = serializedUser.ocProfile;
+          var ocCompleted = serializedUser.ocCompleted;
         };
 
         // Add the new user to the vector
@@ -746,6 +807,8 @@ actor class Backend() {
       };
     };
   };
+
+  // Function to get All Users Progress
 
   public shared query (msg) func getAllUsersProgress(offset : Nat, limit : Nat) : async {
     data : [(Principal, [(Nat, Types.SerializedProgress)])];
@@ -794,6 +857,8 @@ actor class Backend() {
     return { data = []; total = 0 };
   };
 
+  // Function to get an specific User
+
   public shared query (msg) func getUser(userId : Principal) : async ?Types.SerializedUser {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       for (user in Vector.vals(users)) {
@@ -804,6 +869,8 @@ actor class Backend() {
     };
     return null;
   };
+
+  // Function to check if a Twitter Id is already used
 
   public shared query (msg) func isTwitterIdUsed(twitterhandle : Text) : async Bool {
     if (isAdmin(msg.caller)) {
@@ -851,6 +918,7 @@ actor class Backend() {
                 var pfpProgress = "loading";
                 var totalPoints = user.totalPoints;
                 var ocProfile = user.ocProfile;
+                var ocCompleted = user.ocCompleted;
               };
               Vector.put(users, i, updatedUser);
               return "loading";
@@ -881,6 +949,7 @@ actor class Backend() {
                 var pfpProgress = "verified";
                 var totalPoints = user.totalPoints;
                 var ocProfile = user.ocProfile;
+                var ocCompleted = user.ocCompleted;
               };
               Vector.put(users, i, updatedUser);
 
@@ -926,6 +995,7 @@ actor class Backend() {
                 var pfpProgress = user.pfpProgress;
                 var totalPoints = user.totalPoints;
                 var ocProfile = user.ocProfile;
+                var ocCompleted = user.ocCompleted;
               };
               Vector.put(users, i, updatedUser);
               return;
@@ -1222,7 +1292,7 @@ actor class Backend() {
     };
   };
 
-  // Security function to transform the response
+  // Utility function to transform the response
 
   // private query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
   //   let transformed : Types.CanisterHttpResponsePayload = {

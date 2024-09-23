@@ -15,6 +15,7 @@ module Serialization {
       pfpProgress = user.pfpProgress;
       totalPoints = user.totalPoints;
       ocProfile = user.ocProfile;
+      ocCompleted = user.ocCompleted;
     };
   };
 
@@ -27,6 +28,7 @@ module Serialization {
       var pfpProgress = serializedUser.pfpProgress;
       var totalPoints = serializedUser.totalPoints;
       var ocProfile = serializedUser.ocProfile;
+      var ocCompleted = serializedUser.ocCompleted;
     };
   };
 

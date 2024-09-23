@@ -15,6 +15,7 @@ module Types {
     var pfpProgress : Text;
     var totalPoints : Nat;
     var ocProfile : ?Text;
+    var ocCompleted : Bool;
   };
 
   public type SerializedUser = {
@@ -25,6 +26,7 @@ module Types {
     pfpProgress : Text;
     totalPoints : Nat;
     ocProfile : ?Text;
+    ocCompleted : Bool;
   };
 
   // Mission Types
@@ -70,7 +72,7 @@ module Types {
     iconUrl : Text;
   };
 
-  // Progress Types
+  // Progress Types and Mission Related Types
   public type Progress = {
     var completionHistory : [MissionRecord]; // Array of records for each time the mission was completed
     var usedCodes : TrieMap.TrieMap<Text, Bool>; // Map of secret codes the user has used (for the secret code mission)
@@ -93,8 +95,23 @@ module Types {
     usedCodes : [(Text, Bool)];
   };
 
-  // Mission Related functions
   public type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
+
+  public type AwardExternalAchievementArgs = {
+    achievement_id : Nat32;
+    user_id : Principal;
+  };
+
+  public type AwardExternalAchievementResponse = {
+    #Success : {
+      remaining_budget : Nat32;
+    };
+    #InvalidCaller;
+    #NotFound;
+    #AlreadyAwarded;
+    #InsufficientBudget;
+    #Expired;
+  };
 
   // HTTP Request Types
   public type HttpRequestArgs = {

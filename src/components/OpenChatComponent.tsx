@@ -97,6 +97,7 @@ const OpenChat: React.FC = () => {
                     },
                     onUserIdentified: (userId: string) => {
                       //  console.log(`User identified: ${userId}`);
+                      
                     },
                     settings: {
                         disableLeftNav: true

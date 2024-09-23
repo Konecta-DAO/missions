@@ -70,12 +70,10 @@ export const checkRequiredMissionCompletion = (globalID: any, mission: any) => {
     return { requiredMissionCompleted, requiredMissionTitle };
 };
 
-
 // Utility function for recursive mission
 export const checkRecursiveMission = (mission: any, missionCompleted: boolean) => {
     let isRecursiveMissionDarkened = false;
-    let countdownText = '';
-
+    
     if (mission.recursive && missionCompleted && BigInt(mission.endDate) !== BigInt(0)) {
         isRecursiveMissionDarkened = true;
     }

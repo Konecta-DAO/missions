@@ -294,15 +294,33 @@ const MissionFunctionsComponent = {
             canisterId,
         })
         const a = await actor.submitCode(globalID.principalId, missionid, input);
-        if (a) {
-            alert("Success");
-            fetchData.fetchAll();
-            setLoading(false);
-            closeModal();
+
+        if (missionid != 7) {
+            if (a) {
+                alert("Success");
+                fetchData.fetchAll();
+                setLoading(false);
+                closeModal();
+            } else {
+                alert("Failed");
+                setLoading(false);
+            }
         } else {
-            alert("Failed");
-            setLoading(false);
+            if (a) {
+                const b = await actor.isOc(globalID.principalId);
+
+                alert(b);
+                fetchData.fetchAll();
+                setLoading(false);
+                closeModal();
+            } else {
+                alert("Failed");
+                setLoading(false);
+            }
         }
+
+
+
     },
 };
 
