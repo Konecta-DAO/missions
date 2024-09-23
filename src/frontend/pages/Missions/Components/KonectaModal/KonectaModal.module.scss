@@ -79,14 +79,16 @@
     border-radius: 50px;
     position: relative;
     z-index: 1001;
-    width: 67%;
-    height: 75%;
+    width: 70%;
+    height: 80%;
     display: flex;
     max-height: 67%;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border: none;
     animation: slideIn 0.5s ease-out forwards;
     margin-bottom: 12vh;
+    display: flex;
+    justify-content: center;
 }
 
 .ModalContent2.hide {
@@ -180,16 +182,16 @@
 
 .KonectaAnim {
     position: absolute;
-    width: 58vh;
+    width: 40vh;
     bottom: 6%;
     left: 40%;
 }
 
 .KonectaAnim2 {
-    position: absolute;
-    width: 80vw;
-    bottom: 4%;
-    left: 0%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: 40vw;
 }
 
 .Texto {
@@ -207,15 +209,24 @@
 }
 
 .Texto2 {
-    position: absolute;
-    top: 7%;
-    width: 85%;
-    left: 8%;
+    position: relative;
+    width: 80%;
     text-align: justify;
-    font-size: 3vw;
     line-height: 4vw;
 }
 
 .Texto2 p {
-    padding-bottom: 1vh;
+    font-size: 1rem;
+}
+
+.ContentWrapper2 {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 95%;
+    margin-top: 10px;
+    overflow: hidden;
 }

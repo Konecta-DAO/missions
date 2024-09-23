@@ -3,13 +3,15 @@ import styles from './KonectaModal.module.scss';
 import KamiKonecta from '../../../../../../public/assets/KamiKonecta.svg';
 import KonectaLogo from '../../../../../../public/assets/Konecta Logo Icon.svg';
 import KonectaSVG from './KonectaSVG/KonectaSVG.tsx';
-import { isMobileOnly } from 'react-device-detect';
+import { isMobileOnly, isTablet } from 'react-device-detect';
+import { useMediaQuery } from 'react-responsive';
 interface KonectaModalProps {
     closeModal: () => void;
 }
 
 
 const KonectaModal: React.FC<KonectaModalProps> = ({ closeModal }) => {
+    const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const [isClosing, setIsClosing] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
 
@@ -36,27 +38,28 @@ const KonectaModal: React.FC<KonectaModalProps> = ({ closeModal }) => {
     return (
         <div className={styles.ModalOverlay}>
 
-            {isMobileOnly ? (
+            {isMobileOnly || (isTablet && isPortrait) ? (
                 <>
                     <div className={`${styles.ModalContent2} ${isClosing ? styles.hide : ''}`}>
-                        <div className={styles.Texto2}>
-                            <p>
-                                The Konecta WebApp is a versatile platform designed to make event management seamless and interactive.
-                            </p>
-                            <p>
-                                Users can manage their calendars, organize events, and engage with others through integrated audio and video chat.
-                            </p>
-                            <p>
-                                It offers advanced features like matchmaking based on shared interests, and integrates powerful tools like payments, NFTs, video on demand, and live streaming.
-                            </p>
-                            <p>
-                                Additionally, the platform allows users to connect with service providers and access cross-app event management, making the entire process smooth and efficient​​.
-                            </p>
-                        </div>
-
                         <button className={styles.CloseButton2} onClick={handleCloseModal}>X</button>
-                        <div className={styles.KonectaAnim2}>
-                            <KonectaSVG />
+                        <div className={styles.ContentWrapper2}>
+                            <div className={styles.Texto2}>
+                                <p>
+                                    The Konecta WebApp is a versatile platform designed to make event management seamless and interactive.
+                                </p>
+                                <p>
+                                    Users can manage their calendars, organize events, and engage with others through integrated audio and video chat.
+                                </p>
+                                <p>
+                                    It offers advanced features like matchmaking based on shared interests, and integrates powerful tools like payments, NFTs, video on demand, and live streaming.
+                                </p>
+                                <p>
+                                    Additionally, the platform allows users to connect with service providers and access cross-app event management, making the entire process smooth and efficient​​.
+                                </p>
+                            </div>
+                            <div className={styles.KonectaAnim2}>
+                                <KonectaSVG />
+                            </div>
                         </div>
                     </div>
                 </>

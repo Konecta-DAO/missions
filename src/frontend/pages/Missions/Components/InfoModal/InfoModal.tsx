@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import styles from './InfoModal.module.scss';
 import KamiKonecta from '../../../../../../public/assets/KamiKonecta.svg';
 import KonectaLogo from '../../../../../../public/assets/Konecta Logo Icon.svg';
-import { isMobileOnly } from 'react-device-detect';
+import { isMobileOnly, isTablet } from 'react-device-detect';
+import { useMediaQuery } from 'react-responsive';
 import TimeCapsule from '../../../../../../public/assets/Time Capsule.svg';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import MissionPlaceholder from '../Mission/MissionPlaceholder.tsx';
@@ -13,6 +14,7 @@ interface InfoModalProps {
 }
 
 const InfoModal: React.FC<InfoModalProps> = ({ closeModal }) => {
+    const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const globalID = useGlobalID();
     const [isClosing, setIsClosing] = useState(false);
     const handleCloseModal = () => {
@@ -26,7 +28,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ closeModal }) => {
         <div className={styles.ModalOverlay}>
 
 
-            {isMobileOnly ? (
+            {isMobileOnly || (isTablet && isPortrait)  ? (
                 <>
                     <div className={`${styles.ModalContent2} ${isClosing ? styles.hide : ''}`}>
                         <div className={styles.Texto2}>
