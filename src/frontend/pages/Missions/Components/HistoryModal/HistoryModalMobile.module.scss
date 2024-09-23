@@ -28,16 +28,18 @@
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
+    display: flex;
+    justify-content: center;
 }
 
 .MobileModalContent {
     background-color: #151320;
     padding: 15px;
     border-radius: 25px;
-    position: absolute;
+    position: relative;
     z-index: 1001;
     width: 90%;
-    height: 63%;
+    height: 40vh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -47,7 +49,6 @@
     overflow-y: auto;
     overflow-x: hidden;
     bottom:1vw;
-    left:1.5%;
 }
 
 .MobileModalContent.hide {
@@ -60,7 +61,7 @@
     top: -1%;
     left: -1.5%;
     width: 100%;
-    height: 66%;
+    height: 100%;
     border-radius: 25px;
     padding: 5px;
     background: linear-gradient(135deg, #3A77EF, #33CBDA, #3A77EF, #33CBDA, #3A77EF); /* Blue gradient border */
