@@ -268,7 +268,7 @@ actor class Backend() {
 
   public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
 
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller) and missionId == 1)) {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
       // Deserialize the progress object
       let progress = Serialization.deserializeProgress(serializedProgress);
 
