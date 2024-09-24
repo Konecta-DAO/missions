@@ -509,39 +509,43 @@ actor class Backend() {
 
   // Function to check Mission #7
 
-  // public shared (msg) func isOc(userId : Principal) : async Text {
-  //   if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-  //     for (user in Vector.vals(users)) {
-  //       if (user.id == userId) {
-  //         if (user.ocCompleted) {
-  //           let achievement = {
-  //             achievement_id = Nat32.fromNat(1234);
-  //             user_id = userId;
-  //           };
-  //           let response = await oc.award_external_achievement(achievement);
-  //           switch (response) {
-  //             case (#Success { remaining_budget }) {
-  //               return "Success";
-  //               cBudget := remaining_budget;
-  //             };
-  //             case (#InvalidCaller) {};
-  //             case (#NotFound) {};
-  //             case (#AlreadyAwarded) {
-  //               return "You have already done this mission (although it shouldn't be possible)";
-  //             };
-  //             case (#InsufficientBudget) {
-  //               return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
-  //             };
-  //             case (#Expired) {
-  //               return "This Mission is already over";
-  //             };
-  //           };
-  //         };
-  //       };
-  //     };
-  //   };
-  //   return "";
-  // };
+  public shared (msg) func isOc(userId : Principal) : async Text {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      for (user in Vector.vals(users)) {
+        if (user.id == userId) {
+          if (user.ocCompleted) {
+            let achievement = {
+              achievement_id = Nat32.fromNat(2531583761);
+              user_id = userId;
+            };
+            let response = await oc.award_external_achievement(achievement);
+            switch (response) {
+              case (#Success { remaining_budget }) {
+                return "Success";
+                cBudget := remaining_budget;
+              };
+              case (#InvalidCaller) {
+                return "Invalid caller";
+              };
+              case (#NotFound) {
+                return "Achievement not found";
+              };
+              case (#AlreadyAwarded) {
+                return "You have already done this mission (although it shouldn't be possible)";
+              };
+              case (#InsufficientBudget) {
+                return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
+              };
+              case (#Expired) {
+                return "This Mission is already over";
+              };
+            };
+          };
+        };
+      };
+    };
+    return "";
+  };
 
   // Get the total seconds of an user by Principal
 
