@@ -16,11 +16,12 @@ const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
             Usergeek.init({
                 apiKey: usergeekApiKey,
             });
+            Usergeek.setPrincipal(globalID.principalId)
             Usergeek.trackSession();
         } else {
             Usergeek.setPrincipal(undefined);
         };
-    }, [globalID]);
+    }, [globalID.principalId]);
 
     return <>{children}</>;
 };
