@@ -32,6 +32,41 @@ actor class Backend() {
 
   stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
 
+  private var terms : TrieMap.TrieMap<Principal, Bool> = TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+
+  stable var serializedTerms : [(Principal, Bool)] = [];
+
+  public query (msg) func hasAcceptedTerms(userId : Principal) : async Bool {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      switch (terms.get(userId)) {
+        case (?value) {
+          if (value == true) {
+            return true;
+          } else {
+            return false;
+          };
+        };
+        case null return false;
+      };
+      return false;
+    };
+    return false;
+  };
+
+  public shared (msg) func acceptTerms(userId : Principal) : async () {
+    if (userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      terms.put(userId, true);
+    };
+  };
+
+  public shared (msg) func updatedTerms() : async () {
+    if (isAdmin(msg.caller)) {
+      for (key in terms.keys()) {
+        terms.put(key, false);
+      };
+    };
+  };
+
   // Restore Function
 
   public shared (msg) func restoreAllUserProgress(
@@ -131,6 +166,9 @@ actor class Backend() {
     let missionAssetsEntries = Iter.toArray(missionAssets.entries());
     serializedMissionAssets := missionAssetsEntries;
 
+    let termsEntries = terms.entries();
+    serializedTerms := Iter.toArray(termsEntries);
+
   };
 
   // Post-upgrade function to deserialize the user progress
@@ -195,6 +233,16 @@ actor class Backend() {
     };
     serializedUserProgress := [];
     serializedMissionAssets := [];
+
+    // Terms
+
+    terms := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+
+    for ((principal, boolValue) in Iter.fromArray(serializedTerms)) {
+      terms.put(principal, boolValue);
+    };
+
+    serializedTerms := [];
 
   };
 
@@ -412,6 +460,17 @@ actor class Backend() {
 
   public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+
+      if (missionId == 7) {
+        for (user in Vector.vals(users)) {
+          if (user.id == userId) {
+            if (not user.ocCompleted) {
+              return false;
+            };
+          };
+        };
+      };
+
       // Retrieve or initialize user's missions progress
       let userMissions = switch (userProgress.get(userId)) {
         case (?progress) progress;
@@ -542,11 +601,11 @@ actor class Backend() {
                 };
               };
               case null {
-                return "You have to log in into OpenChat first";
+                return "You have to log in into the OpenChat Frame first";
               };
             };
           } else {
-            return "You have to send a DM to Kami first";
+            return "You have to send a DM to Kami";
           };
         };
       };

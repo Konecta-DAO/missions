@@ -50,7 +50,7 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -84,7 +84,7 @@ const MissionFunctionsComponent = {
         } else {
             alert("PFP status already set successfully. You will soon be manually verified");
         }
-        await fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+        await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
         setLoading(false);
         closeModal();
     },
@@ -137,7 +137,7 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -207,7 +207,7 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -274,7 +274,7 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -321,23 +321,29 @@ const MissionFunctionsComponent = {
             canisterId,
         })
 
-        const a = await actor.submitCode(globalID.principalId, missionid, input);
-        if (a) {
-            if (missionid != 7) {
+        if (missionid != 7) {
+            const a = await actor.submitCode(globalID.principalId, missionid, input);
+            if (a) {
                 alert("Success");
-                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             } else {
-                const b = await actor.isOc(globalID.principalId);
-                alert(b);
-                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                alert("Invalid Code");
+                setLoading(false);
+            }
+
+        } else {
+            const b = await actor.isOc(globalID.principalId);
+            alert(b);
+            if (b === "Success") {
+                const a = await actor.submitCode(globalID.principalId, missionid, input);
+                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
+            } else {
+                setLoading(false);
             }
-        } else {
-            alert("Failed");
-            setLoading(false);
         }
 
     },

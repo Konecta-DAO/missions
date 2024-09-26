@@ -114,7 +114,7 @@ const OpenChat: React.FC = () => {
                                     canisterId,
                                 })
                                 await actor.addOCProfile(globalID.principalId, userId);
-                                fetchData.fetchAll(actor, globalID.principalId, setPlacestate);
+                                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                             }
                         },
                         settings: {

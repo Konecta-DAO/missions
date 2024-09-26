@@ -19,6 +19,7 @@ import KonectaModal from './Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from './Components/InfoModal/InfoModal.tsx';
 import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
 import { useMediaQuery } from 'react-responsive';
+import TermsModal from './Components/TermsModal/TermsModal.tsx';
 
 interface ButtonItem {
     name: string;
@@ -50,6 +51,25 @@ const Missions: React.FC = () => {
     });
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
+    const [acceptedTerms, setAcceptedTerms] = useState(true);
+    const [isTermsModalVisible, setIsTermsModalVisible] = useState<boolean>(false);
+
+    const handleAccept = async () => {
+
+        const agent = HttpAgent.createSync({ identity });
+        const actor = Actor.createActor(idlFactory, {
+            agent: agent,
+            canisterId,
+        });
+        await actor.acceptTerms(globalID.principalId);
+        setIsTermsModalVisible(false);
+    };
+
+    useEffect(() => {
+        if (!acceptedTerms) {
+            setIsTermsModalVisible(true);
+        }
+    }, [acceptedTerms]);
 
     useEffect(() => {
         let isMounted = true;
@@ -89,7 +109,7 @@ const Missions: React.FC = () => {
                 });
                 const principal = await agent.getPrincipal();
 
-                await fetchData.fetchAll(actor, principal, setDataloaded);
+                await fetchData.fetchAll(actor, principal, setDataloaded, setAcceptedTerms);
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -175,7 +195,9 @@ const Missions: React.FC = () => {
                 /* Desktop */
 
                 !isMobileOnly && !isTablet ? (
+
                     <div className={styles.MissionsContainer}>
+                        <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
                         <div className={styles.TopBarWrapper}>
                             <TopBar
                                 buttonList={buttonList}

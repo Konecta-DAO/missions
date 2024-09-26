@@ -13,7 +13,6 @@ const UsergeekProvider: React.FC<UsergeekProviderProps> = ({ children }) => {
 
     useEffect(() => {
         if (globalID.principalId != null) {
-            console.log("entro");
             Usergeek.init({
                 apiKey: usergeekApiKey,
             });
