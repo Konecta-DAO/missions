@@ -16,7 +16,6 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
-import Buffer "mo:base/Buffer";
 actor class Backend() {
 
   //
@@ -507,39 +506,47 @@ actor class Backend() {
     return false;
   };
 
-  // Function to check Mission #7
-
   public shared (msg) func isOc(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       for (user in Vector.vals(users)) {
         if (user.id == userId) {
           if (user.ocCompleted) {
-            let achievement = {
-              achievement_id = Nat32.fromNat(2531583761);
-              user_id = userId;
+            // Check if ocProfile is not null before using it
+            switch (user.ocProfile) {
+              case (?ocProfile) {
+                let achievement = {
+                  achievement_id = Nat32.fromNat(2531583761);
+                  user_id = Principal.fromText(ocProfile); // Now ocProfile is safely unwrapped as Text
+                };
+                let response = await oc.award_external_achievement(achievement);
+                switch (response) {
+                  case (#Success { remaining_chit_budget }) {
+                    cBudget := remaining_chit_budget;
+                    return "Success";
+                  };
+                  case (#InvalidCaller) {
+                    return "Invalid caller";
+                  };
+                  case (#NotFound) {
+                    return "Achievement not found";
+                  };
+                  case (#AlreadyAwarded) {
+                    return "You have already done this mission (although it shouldn't be possible)";
+                  };
+                  case (#InsufficientBudget) {
+                    return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
+                  };
+                  case (#Expired) {
+                    return "This Mission is already over";
+                  };
+                };
+              };
+              case null {
+                return "You have to log in into OpenChat first";
+              };
             };
-            let response = await oc.award_external_achievement(achievement);
-            switch (response) {
-              case (#Success { remaining_budget }) {
-                return "Success";
-                cBudget := remaining_budget;
-              };
-              case (#InvalidCaller) {
-                return "Invalid caller";
-              };
-              case (#NotFound) {
-                return "Achievement not found";
-              };
-              case (#AlreadyAwarded) {
-                return "You have already done this mission (although it shouldn't be possible)";
-              };
-              case (#InsufficientBudget) {
-                return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
-              };
-              case (#Expired) {
-                return "This Mission is already over";
-              };
-            };
+          } else {
+            return "You have to send a DM to Kami first";
           };
         };
       };
@@ -833,24 +840,30 @@ actor class Backend() {
     return [];
   };
 
-  public shared (msg) func setOCMissionEnabled(userId : Principal) : async () {
+  public shared (msg) func setOCMissionEnabled(userId : Principal) : async Bool {
     if (isAdmin(msg.caller)) {
       var i = 0;
       while (i < Vector.size(users)) {
         switch (Vector.getOpt(users, i)) {
           case (?user) {
-            if (user.id == userId) {
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = true;
+            switch (user.ocProfile) {
+              case (?profileText) {
+                if (profileText == Principal.toText(userId)) {
+                  let updatedUser : Types.User = {
+                    id = user.id;
+                    var twitterid = user.twitterid;
+                    var twitterhandle = user.twitterhandle;
+                    creationTime = user.creationTime;
+                    var pfpProgress = user.pfpProgress;
+                    var totalPoints = user.totalPoints;
+                    var ocProfile = user.ocProfile;
+                    var ocCompleted = true;
+                  };
+                  Vector.put(users, i, updatedUser);
+                  return true;
+                };
               };
-              Vector.put(users, i, updatedUser);
+              case null return false;
             };
           };
           case _ {};
@@ -858,6 +871,7 @@ actor class Backend() {
         i += 1;
       };
     };
+    return false;
   };
 
   // Function to restore all users
@@ -1086,7 +1100,7 @@ actor class Backend() {
     };
   };
 
-  public shared (msg) func addOCProfile(userId : Principal, ocprofile : Text) {
+  public shared (msg) func addOCProfile(userId : Principal, ocprofile : Text) : async () {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
       var i = 0;
       while (i < Vector.size(users)) {
