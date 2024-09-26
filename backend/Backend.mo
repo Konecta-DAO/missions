@@ -565,47 +565,105 @@ actor class Backend() {
     return false;
   };
 
+  private func ispreOc(userId : Principal) : Bool {
+
+    var i = 0;
+
+    switch (userProgress.get(userId)) {
+      case (?userMissions) {
+        switch (userMissions.get(9)) {
+          case (?_progress) {
+            i := i + 1;
+          };
+          case null {
+
+          };
+        };
+      };
+      case null {};
+    };
+
+    switch (userProgress.get(userId)) {
+      case (?userMissions) {
+        switch (userMissions.get(10)) {
+          case (?_progress) {
+            i := i + 1;
+          };
+          case null {
+
+          };
+        };
+      };
+      case null {};
+    };
+
+    switch (userProgress.get(userId)) {
+      case (?userMissions) {
+        switch (userMissions.get(5)) {
+          case (?progress) {
+            for (record in Iter.fromArray(progress.completionHistory)) {
+              i := i + 1;
+            };
+          };
+          case null {
+
+          };
+        };
+      };
+      case null {};
+    };
+
+    if (i >= 5) {
+      return true;
+    };
+    return false;
+  };
+
   public shared (msg) func isOc(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       for (user in Vector.vals(users)) {
         if (user.id == userId) {
-          if (user.ocCompleted) {
-            // Check if ocProfile is not null before using it
-            switch (user.ocProfile) {
-              case (?ocProfile) {
-                let achievement = {
-                  achievement_id = Nat32.fromNat(2531583761);
-                  user_id = Principal.fromText(ocProfile); // Now ocProfile is safely unwrapped as Text
+          if (ispreOc(userId)) {
+            if (user.ocCompleted) {
+              // Check if ocProfile is not null before using it
+              switch (user.ocProfile) {
+                case (?ocProfile) {
+                  let achievement = {
+                    achievement_id = Nat32.fromNat(2531583761);
+                    user_id = Principal.fromText(ocProfile); // Now ocProfile is safely unwrapped as Text
+                  };
+                  let response = await oc.award_external_achievement(achievement);
+                  switch (response) {
+                    case (#Success { remaining_chit_budget }) {
+                      cBudget := remaining_chit_budget;
+                      return "Success";
+                    };
+                    case (#InvalidCaller) {
+                      return "Invalid caller";
+                    };
+                    case (#NotFound) {
+                      return "Achievement not found";
+                    };
+                    case (#AlreadyAwarded) {
+                      return "You have already done this mission (although it shouldn't be possible)";
+                    };
+                    case (#InsufficientBudget) {
+                      return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
+                    };
+                    case (#Expired) {
+                      return "This Mission is already over";
+                    };
+                  };
                 };
-                let response = await oc.award_external_achievement(achievement);
-                switch (response) {
-                  case (#Success { remaining_chit_budget }) {
-                    cBudget := remaining_chit_budget;
-                    return "Success";
-                  };
-                  case (#InvalidCaller) {
-                    return "Invalid caller";
-                  };
-                  case (#NotFound) {
-                    return "Achievement not found";
-                  };
-                  case (#AlreadyAwarded) {
-                    return "You have already done this mission (although it shouldn't be possible)";
-                  };
-                  case (#InsufficientBudget) {
-                    return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
-                  };
-                  case (#Expired) {
-                    return "This Mission is already over";
-                  };
+                case null {
+                  return "You have to log in into the OpenChat Frame first";
                 };
               };
-              case null {
-                return "You have to log in into the OpenChat Frame first";
-              };
+            } else {
+              return "You have to send a DM to Kami";
             };
           } else {
-            return "You have to send a DM to Kami";
+            return "You have to complete 5 retweet missions before doing this mission";
           };
         };
       };
