@@ -105,7 +105,6 @@ const OpenChat: React.FC = () => {
                         }
                     },
                     onUserIdentified: (userId: string) => {
-                        //  console.log(`User identified: ${userId}`);
                         if (globalID.agent != null && globalID.principalId != null) {
                             const actor = Actor.createActor(idlFactory, {
                                 agent: globalID.agent,

@@ -305,10 +305,6 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
             <div className={styles.TimeDisplay}>
                 {formattedMinTime} - {formattedMaxTime} ⏱
             </div>
-            {console.log("endDateMs: ", endDateMs)}
-            {console.log("remainingTime: ", remainingTime)}
-            {console.log("!mission.recursive: ", !mission.recursive)}
-            {console.log("countdownLabel: ", countdownLabel)}
             {/* Countdown Timer at Bottom Right Corner */}
             {endDateMs > 0 && remainingTime !== null && remainingTime > 0 && (
                 (mission.recursive) && (
