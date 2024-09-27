@@ -8,6 +8,8 @@ import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
+import PTWContent from './PTWContent.tsx';
+import TweetEmbed from './TweetEmbed.tsx';
 
 declare global {
     interface Window {
@@ -28,12 +30,9 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const navigate = useNavigate();
     const fetchData = useFetchData();
     const [loading, setLoading] = useState(false);
-    const [ptwContent, setPtwContent] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState('');
-    const [tweetId, setTweetId] = useState<string | null>(null);
     const [placestate, setPlacestate] = useState(false);
 
-    // Memoize mission selection
     const mission = useMemo(() => {
         return globalID.missions?.find((m: { id: bigint }) => m.id === selectedMissionId);
     }, [globalID.missions, selectedMissionId]);
@@ -46,110 +45,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     }, [mission, navigate]);
 
     if (!mission) return null;
-
-    useEffect(() => {
-        const missionId = Number(selectedMissionId);
-
-        // Only fetch if missionId is 4
-        if (missionId !== 4) {
-            return;
-        }
-
-        const fetchAndSetPTWContent = async () => {
-            const data: PTWData | null = await fetchPTWData(missionId);
-            const content = generatePTWContent(data);
-            setPtwContent(content);
-        };
-
-        fetchAndSetPTWContent();
-    }, []);
-
-    useEffect(() => {
-        const fetchTweetId = async () => {
-            try {
-                const id = await getTWtoRT();
-                setTweetId(id);
-            } catch (error) {
-                console.error('Failed to fetch tweet ID', error);
-            }
-        };
-
-        if (Number(selectedMissionId) === 5) {
-            fetchTweetId();
-        }
-    }, [selectedMissionId]);
-
-    const [isWidgetLoaded, setIsWidgetLoaded] = useState(false);
-    const [isTweetVisible, setIsTweetVisible] = useState(false);
-    const tweetRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        // Only proceed if selectedMissionId is 5, tweetId is present, and the tweet is visible
-        if (Number(selectedMissionId) !== 5 || !tweetId || !isTweetVisible) {
-            return;
-        }
-
-        const loadTwitterWidget = () => {
-            if (window.twttr && window.twttr.widgets && tweetRef.current) {
-                window.twttr.widgets
-                    .createTweet(tweetId, tweetRef.current, {
-                        theme: 'dark',
-                        cards: 'hidden',
-                        width: '550px',
-                        conversation: 'none',
-                        dnt: true,
-                    })
-                    .then(() => {
-                        setIsWidgetLoaded(true);
-                    })
-                    .catch((err: unknown) => {
-                        console.error('Error adding Tweet:', err);
-                    });
-            }
-        };
-
-        // Check if the Twitter script is already present
-        if (window.twttr && window.twttr.widgets) {
-            loadTwitterWidget();
-        } else {
-            const existingScript = document.querySelector(
-                'script[src="https://platform.twitter.com/widgets.js"]'
-            );
-            if (!existingScript) {
-                const script = document.createElement('script');
-                script.src = 'https://platform.twitter.com/widgets.js';
-                script.async = true;
-                script.onload = loadTwitterWidget;
-                script.onerror = () => {
-                    console.error('Failed to load Twitter widgets script.');
-                };
-                document.body.appendChild(script);
-            } else {
-                existingScript.addEventListener('load', loadTwitterWidget);
-                existingScript.addEventListener('error', () => {
-                    console.error('Failed to load Twitter widgets script.');
-                });
-            }
-        }
-
-        // Cleanup event listeners on unmount
-        return () => {
-            const existingScript = document.querySelector(
-                'script[src="https://platform.twitter.com/widgets.js"]'
-            );
-            if (existingScript) {
-                existingScript.removeEventListener('load', loadTwitterWidget);
-                existingScript.removeEventListener('error', () => { });
-            }
-        };
-    }, [tweetId, selectedMissionId, isTweetVisible]);
-
-    useEffect(() => {
-        if (!isTweetVisible && tweetRef.current) {
-            setIsWidgetLoaded(false);
-            tweetRef.current.innerHTML = '';
-        }
-    }, [isTweetVisible]);
 
     const missionId = BigInt(mission.id);
 
@@ -378,30 +273,10 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
-                    {Number(selectedMissionId) === 4 && ptwContent && <p>{ptwContent}</p>}
-                    {Number(selectedMissionId) === 5 && tweetId && (
-                        <div className={styles.tweetEmbedContainer}>
-                            <button
-                                onClick={() => setIsTweetVisible(!isTweetVisible)}
-                                aria-expanded={isTweetVisible}
-                                aria-controls="tweetEmbed"
-                                className={styles.toggleButton}
-                            >
-                                {isTweetVisible ? 'Hide Tweet' : 'Show Tweet'}
-                            </button>
-
-                            {isTweetVisible && (
-                                <div className={styles.scrollableContainer}>
-                                    {!isWidgetLoaded && <div>Loading tweet...</div>}
-                                    <div
-                                        id="tweetEmbed"
-                                        ref={tweetRef}
-                                        className={styles.tweetEmbed}
-                                    ></div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {/* PTW Content Component */}
+                    <PTWContent missionId={Number(missionId)} />
+                    {/* Tweet Embed Component */}
+                    <TweetEmbed missionId={Number(missionId)} />
                 </div>
 
                 <div className={styles.ButtonInputs}>
