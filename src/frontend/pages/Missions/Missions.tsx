@@ -58,7 +58,12 @@ const Missions: React.FC = () => {
         const timeoutId = setTimeout(() => {
             if (!isMounted) return;
 
-            if (identity && user?.principal && user.principal.toText() !== '2vxsx-fae') {
+            if (
+                identity && 
+                user?.principal && 
+                user?.principal.toText() !== '2vxsx-fae' &&
+                identity?.getPrincipal().toText() !== '2vxsx-fae'
+            ) {
                 // User is logged in; proceed to set up agent and fetch data
                 const agent = HttpAgent.createSync({ identity });
                 if (process.env.NODE_ENV !== 'production') {
