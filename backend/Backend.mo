@@ -758,9 +758,27 @@ actor class Backend() {
   public shared query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      for (user in Vector.vals(users)) {
-        if (user.id == userId) {
-          return ?user.totalPoints;
+      let userMissionsOpt = userProgress.get(userId);
+
+      switch (userMissionsOpt) {
+        case null {
+          return null;
+        };
+        case (?userMissions) {
+          var totalPoints : Nat = 0;
+
+          // Iterate over each mission in the user's progress
+          for ((_, progress) in userMissions.entries()) {
+            // Access the completion history directly from progress
+            let completionHistory = progress.completionHistory;
+
+            // Sum up the pointsEarned from each mission record
+            for (missionRecord in Iter.fromArray(completionHistory)) {
+              totalPoints += missionRecord.pointsEarned;
+            };
+          };
+
+          return ?totalPoints;
         };
       };
     };
