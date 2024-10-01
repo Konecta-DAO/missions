@@ -2,14 +2,20 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import styles from './MissionModal.module.scss';
 import { useNavigate } from 'react-router-dom';
 import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
-import { fetchPTWData, generatePTWContent, PTWData } from '../../../../../hooks/ptwUtils.ts';
-import getTWtoRT from '../../../../../hooks/getTWtoRT.ts';
 import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
 import PTWContent from './PTWContent.tsx';
 import TweetEmbed from './TweetEmbed.tsx';
+import Mission7View from './Mission7View.tsx';
+
+enum Mission7State {
+    Step1,
+    Step2,
+    Step3,
+    Done,
+}
 
 declare global {
     interface Window {
@@ -46,10 +52,72 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
     if (!mission) return null;
 
+    // Memoize background click handler
+    const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (loading) return; // Do nothing if loading is true
+        if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
+            closeModal(); // Close modal only if clicked outside and not loading
+        }
+    }, [loading, closeModal]);
+
     const missionId = BigInt(mission.id);
 
-    // Memoize mission completion checks
+    // Memoize gradient colors
+    const gradientColors = useMemo(() => ({
+        start: getGradientStartColor(Number(mission.mode)),
+        end: getGradientEndColor(Number(mission.mode)),
+    }), [mission.mode]);
+
     const missionCompleted = useMemo(() => checkMissionCompletion(globalID.userProgress, mission), [globalID.userProgress, missionId]);
+
+    if (Number(selectedMissionId) === 7 && !missionCompleted) {
+        return (
+            <>
+                <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
+                    <div className={styles.MissionModal}>
+
+                        <div>
+                            {/* Mission Title */}
+                            <div className={styles.MissionTitleWrapper}>
+                                <div className={styles.MissionTitle}>
+                                    {mission.title}
+                                </div>
+                            </div>
+                            <div className={styles.MissionBadge}>
+                                {/* Gradient Circle */}
+                                <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor={gradientColors.start} />
+                                            <stop offset="100%" stopColor={gradientColors.end} />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
+                                </svg>
+                                {/* Mission Icon */}
+                                <img
+                                    src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
+                                    alt="Mission Icon"
+                                    className={styles.MissionIcon}
+                                />
+                            </div>
+                        </div>
+                        {/* Mission Content */}
+                        <div className={styles.MissionContent7}>
+                            <Mission7View
+                                mission={mission}
+                                closeModal={closeModal}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+
+    // Memoize mission completion checks
+
 
     const { requiredMissionCompleted } = useMemo(() => checkRequiredMissionCompletion(globalID, mission), [globalID, mission]);
 
@@ -60,11 +128,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         }
     }, [requiredMissionCompleted, missionCompleted, navigate]);
 
-    // Memoize gradient colors
-    const gradientColors = useMemo(() => ({
-        start: getGradientStartColor(Number(mission.mode)),
-        end: getGradientEndColor(Number(mission.mode)),
-    }), [mission.mode]);
+
 
     // Handle beforeunload event
     const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
@@ -206,13 +270,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         return null;
     }, [missionCompleted, mission, executeFunction, buttonGradientStyle, loading]);
 
-    // Memoize background click handler
-    const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        if (loading) return; // Do nothing if loading is true
-        if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
-            closeModal(); // Close modal only if clicked outside and not loading
-        }
-    }, [loading, closeModal]);
+
 
     return (
         <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
@@ -273,9 +331,9 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
-                    {/* PTW Content Component */}
+                    {/* Tweet Component */}
                     <PTWContent missionId={Number(missionId)} />
-                    {/* Tweet Embed Component */}
+                    {/* Retweet Embed Component */}
                     <TweetEmbed missionId={Number(missionId)} />
                 </div>
 

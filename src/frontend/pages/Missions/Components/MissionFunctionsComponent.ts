@@ -8,7 +8,7 @@ const MissionFunctionsComponent = {
 
         const principal = globalID.principalId;
         try {
-            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-follow/", {
+            const response = await fetch("https://dotest.konecta.one/requestTwitterAuth-v2-follow/", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -25,7 +25,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://do.konecta.one") return;
+                if (event.origin !== "https://dotest.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -93,7 +93,7 @@ const MissionFunctionsComponent = {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
-                "https://do.konecta.one/requestTwitterAuth-v2-pfp-tweet",
+                "https://dotest.konecta.one/requestTwitterAuth-v2-pfp-tweet",
                 {
                     method: "POST",
                     credentials: "include",
@@ -112,7 +112,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://do.konecta.one") return;
+                if (event.origin !== "https://dotest.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -163,7 +163,7 @@ const MissionFunctionsComponent = {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
-                "https://do.konecta.one/requestTwitterAuth-v2-vft",
+                "https://dotest.konecta.one/requestTwitterAuth-v2-vft",
                 {
                     method: "POST",
                     credentials: "include",
@@ -182,7 +182,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://do.konecta.one") return;
+                if (event.origin !== "https://dotest.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -234,7 +234,7 @@ const MissionFunctionsComponent = {
 
         try {
             const response = await fetch(
-                "https://do.konecta.one/requestTwitterAuth-v2-trt",
+                "https://dotest.konecta.one/requestTwitterAuth-v2-trt",
                 {
                     method: "POST",
                     credentials: "include",
@@ -253,7 +253,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://do.konecta.one") return;
+                if (event.origin !== "https://dotest.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result) {
@@ -277,6 +277,72 @@ const MissionFunctionsComponent = {
                 fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
+            }
+
+            window.addEventListener("message", handleEvent);
+
+
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
+        } catch (error) {
+            console.error("Error fetching Twitter auth URL:", error);
+        }
+    },
+
+    verMRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch(
+                "https://dotest.konecta.one/requestTwitterAuth-v2-trtm",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ principal }),
+                }
+            );
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
+            let authSuccess = false;
+
+            const handleEvent = (event: MessageEvent<any>) => {
+                if (event.origin !== "https://dotest.konecta.one") return;
+
+                const { accessToken, refreshToken, result } = event.data;
+                if (result) {
+                    alert("Success!")
+                    Usergeek.trackEvent("Mission 7 Part 2: Retweet");
+                } else {
+                    alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                }
+
+                authSuccess = true;
+
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                setLoading(false);
             }
 
             window.addEventListener("message", handleEvent);
@@ -321,31 +387,34 @@ const MissionFunctionsComponent = {
             canisterId,
         })
 
-        if (missionid != 7) {
-            const a = await actor.submitCode(globalID.principalId, missionid, input);
-            if (a) {
-                alert("Success");
-                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
-                setLoading(false);
-                closeModal();
-            } else {
-                alert("Invalid Code");
-                setLoading(false);
-            }
-
+        const a = await actor.submitCode(globalID.principalId, missionid, input);
+        if (a) {
+            alert("Success");
+            await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+            setLoading(false);
+            closeModal();
         } else {
-            const b = await actor.isOc(globalID.principalId);
-            alert(b);
-            if (b === "Success") {
-                const a = await actor.submitCode(globalID.principalId, missionid, input);
-                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
-                setLoading(false);
-                closeModal();
-            } else {
-                setLoading(false);
-            }
+            alert("Invalid Code");
+            setLoading(false);
         }
 
+    },
+
+    ocMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const actor = Actor.createActor(idlFactory, {
+            agent: globalID.agent,
+            canisterId,
+        })
+        const b = await actor.isOc(globalID.principalId);
+        alert(b);
+        if (b === "Success") {
+            Usergeek.trackEvent("Mission 7 Part 4: CHIT");
+            await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+            setLoading(false);
+            closeModal();
+        } else {
+            setLoading(false);
+        }
     },
 };
 

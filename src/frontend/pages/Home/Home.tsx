@@ -29,7 +29,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
-  const { identity, user } = useIdentityKit();
+  const { identity, user, disconnect } = useIdentityKit();
   const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
   const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
   const globalID = useGlobalID();
@@ -89,12 +89,13 @@ const Home: React.FC = () => {
   })
 
   useEffect(() => {
-
     const fetchData = async () => {
 
-      const isUserPrincipalValid = user?.principal
-        ? user.principal.toText() !== "2vxsx-fae"
-        : false;
+      const isUserPrincipalValid =
+        user?.principal &&
+        user.principal.toText() !== "2vxsx-fae" &&
+        identity &&
+        identity.getPrincipal().toText() !== "2vxsx-fae";
 
       if (isUserPrincipalValid) {
         const agent = HttpAgent.createSync({ identity });
@@ -104,12 +105,13 @@ const Home: React.FC = () => {
         }
 
         await setData(agent);
-      }
+      } else {
+        disconnect();
+      };
     };
 
     fetchData();
   }, [user, identity]);
-
   // Bubble Content Handlers
 
   const handleKonectaClick = () => {

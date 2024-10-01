@@ -51,7 +51,6 @@ function App() {
         canisterId,
       });
       setActor(actor);
-      console.log("Hay actor 1", actor)
       const b = await actor.trisAdmin(user?.principal!);
       if (b) {
         setLoaded(true);
@@ -128,10 +127,6 @@ function App() {
   interface GetAllUsersProgressResponse {
     data: UserEntry[];
     total: number;
-  }
-
-  interface ProgressActor {
-    getAllUsersProgress: (offset: number, limit: number) => Promise<GetAllUsersProgressResponse>;
   }
 
   const getUsers = async () => {

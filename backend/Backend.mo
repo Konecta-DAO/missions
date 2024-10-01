@@ -461,16 +461,6 @@ actor class Backend() {
   public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      if (missionId == 7) {
-        for (user in Vector.vals(users)) {
-          if (user.id == userId) {
-            if (not user.ocCompleted) {
-              return false;
-            };
-          };
-        };
-      };
-
       // Retrieve or initialize user's missions progress
       let userMissions = switch (userProgress.get(userId)) {
         case (?progress) progress;
@@ -565,105 +555,197 @@ actor class Backend() {
     return false;
   };
 
-  private func ispreOc(userId : Principal) : Bool {
+  public shared query (msg) func canUserDoMission(userId : Principal, missionId : Nat) : async Bool {
+    if (isAdmin(msg.caller)) {
 
-    var i = 0;
+      switch (userProgress.get(userId)) {
+        case (?userMissions) {
+          switch (userMissions.get(missionId)) {
+            case (?progress) {
+              for (record in Iter.fromArray(progress.completionHistory)) {
+                return false;
+              };
+            };
+            case null {
 
-    switch (userProgress.get(userId)) {
-      case (?userMissions) {
-        switch (userMissions.get(9)) {
-          case (?_progress) {
-            i := i + 1;
-          };
-          case null {
-
-          };
-        };
-      };
-      case null {};
-    };
-
-    switch (userProgress.get(userId)) {
-      case (?userMissions) {
-        switch (userMissions.get(10)) {
-          case (?_progress) {
-            i := i + 1;
-          };
-          case null {
-
-          };
-        };
-      };
-      case null {};
-    };
-
-    switch (userProgress.get(userId)) {
-      case (?userMissions) {
-        switch (userMissions.get(5)) {
-          case (?progress) {
-            for (record in Iter.fromArray(progress.completionHistory)) {
-              i := i + 1;
             };
           };
-          case null {
-
-          };
         };
+        case null {};
       };
-      case null {};
-    };
 
-    if (i >= 5) {
       return true;
     };
     return false;
+  };
+
+  public shared query (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
+    if (isAdmin(msg.caller)) {
+
+      for (mission in Vector.vals(missions)) {
+        if (mission.id == missionId) {
+          var thismission = mission;
+
+          switch (userProgress.get(userId)) {
+            case (?userMissions) {
+              switch (userMissions.get(missionId)) {
+                case (?progress) {
+                  for (record in Iter.fromArray(progress.completionHistory)) {
+                    if (record.timestamp > thismission.startDate) {
+                      return false;
+                    };
+                  };
+                };
+                case null {
+
+                };
+              };
+            };
+            case null {};
+          };
+
+        };
+      };
+
+      return true;
+    };
+    return false;
+  };
+
+  public shared query (msg) func isFullOc(userId : Principal) : async Nat {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      var i = 0;
+
+      switch (userProgress.get(userId)) {
+        case (?userMissions) {
+          switch (userMissions.get(10)) {
+            case (?progress) {
+              for (record in Iter.fromArray(progress.completionHistory)) {
+                i := i + 1;
+              };
+            };
+            case null {
+
+            };
+          };
+        };
+        case null {};
+      };
+
+      return i;
+    };
+    return 0;
+  };
+
+  public shared query (msg) func isRecOc(userId : Principal) : async Nat {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      var i = 0;
+
+      switch (userProgress.get(userId)) {
+        case (?userMissions) {
+          switch (userMissions.get(5)) {
+            case (?progress) {
+              for (record in Iter.fromArray(progress.completionHistory)) {
+                i := i + 1;
+              };
+            };
+            case null {
+
+            };
+          };
+        };
+        case null {};
+      };
+
+      return i;
+    };
+    return 0;
   };
 
   public shared (msg) func isOc(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       for (user in Vector.vals(users)) {
         if (user.id == userId) {
-          if (ispreOc(userId)) {
+          let a = await isRecOc(userId);
+          if (a >= 1) {
+            // SET TO 3
             if (user.ocCompleted) {
-              // Check if ocProfile is not null before using it
-              switch (user.ocProfile) {
-                case (?ocProfile) {
-                  let achievement = {
-                    achievement_id = Nat32.fromNat(2531583761);
-                    user_id = Principal.fromText(ocProfile); // Now ocProfile is safely unwrapped as Text
+              let b = await isFullOc(userId);
+              if (b >= 1) {
+                switch (user.ocProfile) {
+                  case (?ocProfile) {
+                    let achievement = {
+                      achievement_id = Nat32.fromNat(2531583761);
+                      user_id = Principal.fromText(ocProfile);
+                    };
+                    let response = await oc.award_external_achievement(achievement);
+                    switch (response) {
+                      case (#Success { remaining_chit_budget }) {
+                        cBudget := remaining_chit_budget;
+                        for (mission in Vector.vals(missions)) {
+                          if (mission.id == 7 and mission.startDate <= Time.now()) {
+                            let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
+                            let firstMissionRecord : Types.SerializedMissionRecord = {
+                              timestamp = Time.now();
+                              pointsEarned = Int.abs(pointsEarnedOpt);
+                              tweetId = null;
+                            };
+                            // Create progress for the first mission
+                            let firstMissionProgress : Types.SerializedProgress = {
+                              completionHistory = [firstMissionRecord];
+                              usedCodes = [];
+                            };
+                            await updateUserProgress(userId, 7, firstMissionProgress);
+                          };
+                        };
+                        return "Success";
+                      };
+                      case (#InvalidCaller) {
+                        return "Invalid caller";
+                      };
+                      case (#NotFound) {
+                        return "Achievement not found";
+                      };
+                      case (#AlreadyAwarded) {
+                        for (mission in Vector.vals(missions)) {
+                          if (mission.id == 7 and mission.startDate <= Time.now()) {
+                            let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
+                            let firstMissionRecord : Types.SerializedMissionRecord = {
+                              timestamp = Time.now();
+                              pointsEarned = Int.abs(pointsEarnedOpt);
+                              tweetId = null;
+                            };
+                            // Create progress for the first mission
+                            let firstMissionProgress : Types.SerializedProgress = {
+                              completionHistory = [firstMissionRecord];
+                              usedCodes = [];
+                            };
+                            await updateUserProgress(userId, 7, firstMissionProgress);
+                          };
+                        };
+                        return "You have already done this mission (although it shouldn't be possible)";
+
+                      };
+                      case (#InsufficientBudget) {
+                        return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
+                      };
+                      case (#Expired) {
+                        return "This Mission is already over";
+                      };
+                    };
                   };
-                  let response = await oc.award_external_achievement(achievement);
-                  switch (response) {
-                    case (#Success { remaining_chit_budget }) {
-                      cBudget := remaining_chit_budget;
-                      return "Success";
-                    };
-                    case (#InvalidCaller) {
-                      return "Invalid caller";
-                    };
-                    case (#NotFound) {
-                      return "Achievement not found";
-                    };
-                    case (#AlreadyAwarded) {
-                      return "You have already done this mission (although it shouldn't be possible)";
-                    };
-                    case (#InsufficientBudget) {
-                      return "Seconds Awarded! However, external budget is empty, so no external points to give on this Mission";
-                    };
-                    case (#Expired) {
-                      return "This Mission is already over";
-                    };
+                  case null {
+                    return "You have to log in into the OpenChat Frame first";
                   };
                 };
-                case null {
-                  return "You have to log in into the OpenChat Frame first";
-                };
+              } else {
+                return "You have to do the Main Retweet Mission";
               };
             } else {
-              return "You have to send a DM to Kami";
+              return "You have to join the OC Group";
             };
           } else {
-            return "You have to complete 5 retweet missions before doing this mission";
+            return "You have to complete 3 recursive retweet missions before doing this mission";
           };
         };
       };
@@ -957,8 +1039,39 @@ actor class Backend() {
     return [];
   };
 
-  public shared (msg) func setOCMissionEnabled(userId : Principal) : async Bool {
-    if (isAdmin(msg.caller)) {
+  public shared (msg) func setOCMissionEnabled(userId : Principal) : async () {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(users)) {
+        switch (Vector.getOpt(users, i)) {
+          case (?user) {
+            switch (user.id) {
+              case (id) {
+                if (user.id == userId) {
+                  let updatedUser : Types.User = {
+                    id = user.id;
+                    var twitterid = user.twitterid;
+                    var twitterhandle = user.twitterhandle;
+                    creationTime = user.creationTime;
+                    var pfpProgress = user.pfpProgress;
+                    var totalPoints = user.totalPoints;
+                    var ocProfile = user.ocProfile;
+                    var ocCompleted = true;
+                  };
+                  Vector.put(users, i, updatedUser);
+                };
+              };
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
+    };
+  };
+
+  public shared (msg) func setOCMissionDisabled(userId : Principal) : async () {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       var i = 0;
       while (i < Vector.size(users)) {
         switch (Vector.getOpt(users, i)) {
@@ -974,13 +1087,12 @@ actor class Backend() {
                     var pfpProgress = user.pfpProgress;
                     var totalPoints = user.totalPoints;
                     var ocProfile = user.ocProfile;
-                    var ocCompleted = true;
+                    var ocCompleted = false;
                   };
                   Vector.put(users, i, updatedUser);
-                  return true;
                 };
               };
-              case null return false;
+              case null {};
             };
           };
           case _ {};
@@ -988,7 +1100,6 @@ actor class Backend() {
         i += 1;
       };
     };
-    return false;
   };
 
   // Function to restore all users
