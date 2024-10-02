@@ -9,7 +9,7 @@ const MissionFunctionsComponent = {
 
         const principal = globalID.principalId;
         try {
-            const response = await fetch("https://dotest.konecta.one/requestTwitterAuth-v2-follow/", {
+            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-follow/", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -26,7 +26,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -94,7 +94,7 @@ const MissionFunctionsComponent = {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
-                "https://dotest.konecta.one/requestTwitterAuth-v2-pfp-tweet",
+                "https://do.konecta.one/requestTwitterAuth-v2-pfp-tweet",
                 {
                     method: "POST",
                     credentials: "include",
@@ -113,7 +113,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -164,7 +164,7 @@ const MissionFunctionsComponent = {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
-                "https://dotest.konecta.one/requestTwitterAuth-v2-vft",
+                "https://do.konecta.one/requestTwitterAuth-v2-vft",
                 {
                     method: "POST",
                     credentials: "include",
@@ -183,7 +183,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -235,7 +235,7 @@ const MissionFunctionsComponent = {
 
         try {
             const response = await fetch(
-                "https://dotest.konecta.one/requestTwitterAuth-v2-trt",
+                "https://do.konecta.one/requestTwitterAuth-v2-trt",
                 {
                     method: "POST",
                     credentials: "include",
@@ -254,7 +254,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result) {
@@ -302,7 +302,7 @@ const MissionFunctionsComponent = {
 
         try {
             const response = await fetch(
-                "https://dotest.konecta.one/requestTwitterAuth-v2-trtm",
+                "https://do.konecta.one/requestTwitterAuth-v2-trtm",
                 {
                     method: "POST",
                     credentials: "include",
@@ -321,7 +321,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result) {
@@ -413,15 +413,9 @@ const MissionFunctionsComponent = {
         const b = await actor.isOc(globalID.principalId);
 
         alert(b);
-        if (b === "Success" || b === "You have already done this mission (although it shouldn't be possible)") { // PENDIENTE
+        if (b === "Success") {
             Usergeek.trackEvent("Mission 7 Part 4: CHIT");
             const c = await actor.getProgress(globalID.principalId, 7n) as SerializedProgress;
-            console.log("exists" + c);
-            console.log(
-                JSON.stringify(c, (key, value) =>
-                    typeof value === 'bigint' ? value.toString() : value
-                    , 2)
-            );
 
             if (Array.isArray(c) && c.length > 0) {
                 const firstProgress = c[0];

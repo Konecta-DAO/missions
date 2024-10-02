@@ -147,7 +147,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
 
                 if (currentMissionState === Mission7State.Step3) {
                     const mainRT2 = await actor.isRecOc(globalID.principalId);
-                    if (Number(mainRT2) >= 3) {                                       // PENDIENTE
+                    if (Number(mainRT2) >= 3) {                                   
                         currentMissionState = Mission7State.Done;
                         setMission7State(currentMissionState);
                     } else {
@@ -318,7 +318,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
                                 Your Second Step in this journey is to retweet the 2 given tweets. Just click on the button and you're ready to go!
                             </p>
                             <a
-                                href="https://twitter.com/i/web/status/1838237735817236790"
+                                href="https://twitter.com/i/web/status/1838240418150146242"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ textDecoration: 'none', color: '#34AADC', cursor: 'pointer', fontWeight: '700', paddingRight: '2vh' }}
@@ -326,7 +326,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
                                 Tweet 1
                             </a>
                             <a
-                                href="https://twitter.com/i/web/status/1838237735817236790"
+                                href="https://twitter.com/i/web/status/1841472564935176586"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ textDecoration: 'none', color: '#34AADC', cursor: 'pointer', fontWeight: '700', paddingRight: '2vh' }}

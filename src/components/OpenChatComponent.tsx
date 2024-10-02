@@ -43,8 +43,8 @@ const OpenChat: React.FC = () => {
 
                 try {
                     await initialise(iframe, {
-                        targetOrigin: 'https://test.oc.app',
-                        initialPath: '/community/oxp54-qyaaa-aaaaf-bihca-cai/channel/193045351996144511302122644121321431833',
+                        targetOrigin: 'https://oc.app',
+                        initialPath: '/community/mnxqn-oaaaa-aaaaf-bm4dq-cai/channel/249008524007198397170279379338618862603',
                         theme: {
                             name: 'konecta',
                             base: 'dark',

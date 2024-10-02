@@ -1436,7 +1436,7 @@ actor class Backend() {
       let payloadJson = serializeTextArrayToJson(payloadArray);
 
       // 4. Prepare the headers for the request
-      let host : Text = "dotest.konecta.one";
+      let host : Text = "do.konecta.one";
       let url = "https://" # host # "/twitterstuff";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
@@ -1505,7 +1505,7 @@ actor class Backend() {
       let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
 
       // 4. Prepare the headers for the request
-      let host : Text = "dotest.konecta.one";
+      let host : Text = "do.konecta.one";
       let url = "https://" # host # "/storeRetweetId";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
@@ -1690,7 +1690,7 @@ actor class Backend() {
       let ic : Types.IC = actor ("aaaaa-aa");
 
       // 2. SETUP ARGUMENTS FOR HTTP GET request to test the middleman server
-      let host : Text = "dotest.konecta.one";
+      let host : Text = "do.konecta.one";
       let url = "https://" # host # "/ping";
 
       let http_request : Types.HttpRequestArgs = {

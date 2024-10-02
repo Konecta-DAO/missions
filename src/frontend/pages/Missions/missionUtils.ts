@@ -2,11 +2,19 @@ import { SerializedMission, SerializedProgress } from "../../../declarations/bac
 
 // Utility function to check mission completion
 export const checkMissionCompletion = (userProgress: any, mission: SerializedMission): boolean => {
+    if (!mission) {
+        console.error("mission is undefined");
+        return false;
+    }
+    
     if (!Array.isArray(userProgress)) {
         console.error("userProgress is not an array");
         return false;
     }
     const a = userProgress[0]?.some(([progressId, progress]: [bigint, SerializedProgress]) => {
+
+        
+
         if (!mission.recursive) {
             if (progressId === mission.id) {
                 return true;

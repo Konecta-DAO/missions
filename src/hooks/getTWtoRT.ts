@@ -1,5 +1,5 @@
 const getTWtoRT = async (): Promise<string> => {
-    const response = await fetch("https://dotest.konecta.one/getRToday", {
+    const response = await fetch("https://do.konecta.one/getRToday", {
         method: "GET",
         credentials: "include",
     });
