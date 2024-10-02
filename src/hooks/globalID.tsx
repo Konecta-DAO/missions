@@ -20,6 +20,10 @@ interface GlobalIDType {
     setPFPstatus: (status: string) => void;
     agent: HttpAgent | null;
     setAgent: (agent: HttpAgent) => void;
+    celebOverlay: boolean;
+    setCelebOverlay: (value: boolean) => void;
+    ocS: string;
+    setocS: (text: string) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -33,6 +37,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [twitterhandle, setTwitterHandle] = useState<string | null>('');
     const [userPFPstatus, setPFPstatus] = useState<string>('');
     const [agent, setAgent] = useState<HttpAgent | null>(null);
+    const [celebOverlay, setCelebOverlay] = useState<boolean>(false);
+    const [ocS, setocS] = useState<string>('');
 
     const value = useMemo(() => ({
         principalId,
@@ -51,6 +57,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setPFPstatus,
         agent,
         setAgent,
+        celebOverlay,
+        setCelebOverlay,
+        ocS,
+        setocS
     }), [
         principalId,
         missions,
@@ -60,6 +70,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         twitterhandle,
         userPFPstatus,
         agent,
+        celebOverlay,
+        ocS
     ]);
 
     return (

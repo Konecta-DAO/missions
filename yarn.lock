@@ -668,21 +668,21 @@
     "@emnapi/runtime" "^1.1.0"
     "@tybys/wasm-util" "^0.9.0"
 
-"@nfid/identitykit@^0.0.0-alpha.15":
-  version "0.0.0-alpha.15"
-  resolved "https://registry.yarnpkg.com/@nfid/identitykit/-/identitykit-0.0.0-alpha.15.tgz#7b85b48d203caf8bb45a8e95813578734add0129"
-  integrity sha512-/5PkdDDMHeNoRn6jy8SkCr3ZJy+t3RlP2iD+pt7tXIK4pfbXeFAUqj7xKOLauXfFGt0xejc1wL+fLM//kvUBnA==
+"@nfid/identitykit@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@nfid/identitykit/-/identitykit-0.0.3.tgz#8baf2d49c66734e536b17158202423fa87184eda"
+  integrity sha512-jAxto5RmDe9GChNQxfhOvjuw3DzyGUEx865AnvJs8o1U6jLl7EHEeLJC73mAvR7Tb5LO67Ta8uTbQduyMsJ5Tg==
   dependencies:
     "@headlessui/react" "2.1.8"
     "@radix-ui/react-dialog" "^1.1.1"
     "@radix-ui/react-tooltip" "^1.1.2"
-    "@slide-computer/signer" "^3.6.3"
-    "@slide-computer/signer-agent" "^3.6.3"
-    "@slide-computer/signer-storage" "^3.6.3"
-    "@slide-computer/signer-transport-auth-client" "^3.6.3"
-    "@slide-computer/signer-transport-plug" "^3.6.3"
-    "@slide-computer/signer-transport-stoic" "^3.6.3"
-    "@slide-computer/signer-web" "^3.6.3"
+    "@slide-computer/signer" "^3.6.4"
+    "@slide-computer/signer-agent" "^3.6.4"
+    "@slide-computer/signer-storage" "^3.6.4"
+    "@slide-computer/signer-transport-auth-client" "^3.6.4"
+    "@slide-computer/signer-transport-plug" "^3.6.4"
+    "@slide-computer/signer-transport-stoic" "^3.6.4"
+    "@slide-computer/signer-web" "^3.6.4"
     clsx "^2.1.1"
     react-hook-form "^7.53.0"
     tailwindcss "^3.4.11"
@@ -1377,42 +1377,42 @@
   resolved "https://registry.npmjs.org/@sindresorhus/merge-streams/-/merge-streams-4.0.0.tgz"
   integrity sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==
 
-"@slide-computer/signer-agent@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer-agent/-/signer-agent-3.6.3.tgz#a9d17552829cab534a36ae3bc07275def921ed0b"
-  integrity sha512-GZzF3oR6axSfS5ObMdnzWLLK7k5kqzanB5NGzwPeFgecs5Y93Eeis9/dZRaexQqrPMOqB8vE8lbSbY7pEwjAnQ==
+"@slide-computer/signer-agent@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-agent/-/signer-agent-3.6.4.tgz#2ce8061b3a834e4f337e54abb5a3acff5f78bb08"
+  integrity sha512-pbHkZmQgum3l560J1g1G0dNcJBXWAHOhmLyoQot1KpOmVmyoTutkMIAiDqusTY2LVz9D689t4vReC2cxLCMRig==
 
-"@slide-computer/signer-storage@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer-storage/-/signer-storage-3.6.3.tgz#648447e17cf93593b8aeb898eceac424bca92c72"
-  integrity sha512-BqeIQE9njqUHfXDPW0kQFCvlJoZl7Sn9rJLswVYV0RIhUwY3MMzIowNAJZkKkI6SEgoGUgDktsIs4VcM/ygwDg==
+"@slide-computer/signer-storage@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-storage/-/signer-storage-3.6.4.tgz#2bdc1363aa482033f405520406715f13fd18809d"
+  integrity sha512-D/hvMa33QpGhi1m2xlpenTxucaOrI6hD4VI3xrRpsEi7hEHY4nS15dQVD9LDAG8M5BBGL1NW5xK9Nr0wmFSBJA==
   dependencies:
     idb-keyval "^6.2.1"
 
-"@slide-computer/signer-transport-auth-client@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-auth-client/-/signer-transport-auth-client-3.6.3.tgz#e26f362cf74474655e286d9293f31ad9ff96083e"
-  integrity sha512-g3WsqS0NbF1tWFGPi00aCLWu+LD7xenGEDSprSC7xtR1eKgGmHnsxKwRFArfX+sOEi0KL2SvZnNmeYSI8+Rr7Q==
+"@slide-computer/signer-transport-auth-client@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-auth-client/-/signer-transport-auth-client-3.6.4.tgz#ce44b17397520ecd0b54a9b773c631e9790c087c"
+  integrity sha512-y49yK0B2FXKFl1Yfbfr2RY5ndecWxZ2N7WSqBXkZsAO1NzOcILGWKejhCcIGd8PvkTRLyCV7KBefG7KK0Orm3A==
 
-"@slide-computer/signer-transport-plug@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-plug/-/signer-transport-plug-3.6.3.tgz#1a518d3cd1d696d1bde4ac102f8e2794aff6c0f3"
-  integrity sha512-jJS8O2VCoSzv7D/GDVqEp2h91oDozKXeIai+/1E93Uf7xa38k5Moc3rzhWlpqyA0jdwj72svkJHH9FyaWiTAjA==
+"@slide-computer/signer-transport-plug@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-plug/-/signer-transport-plug-3.6.4.tgz#ee76e8399642c934e747f608343738622d6c6a91"
+  integrity sha512-G/vEB0q6Mz5IzWyLnPeHHCbCw+vleWpSChQqlKUGrC/49/B3s7hfGtTZprH6OSxgj62ygVYQ5uutTPSn4AuWmA==
 
-"@slide-computer/signer-transport-stoic@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-stoic/-/signer-transport-stoic-3.6.3.tgz#cd300dba87b46927f0da9f037de4b58b44c48da2"
-  integrity sha512-rjoGfHUKyYesuHwFOo6VOpXmmuOe8BjrzNg5XLVFMQA/ke7KNh1p623yqINtWBCZPJd+rx+ehkl+R+gP5fjDVQ==
+"@slide-computer/signer-transport-stoic@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-transport-stoic/-/signer-transport-stoic-3.6.4.tgz#8c86e4cc94bb41b8b463f725d18ffaca55c14484"
+  integrity sha512-BtN9AH9ka7QW5kmLQbcIR6IHi5VcfC2COq954DWSSh61K4p4ofhc7TY/aPe3asGRqYbGFUI/O+bC+6eWx4H3MA==
 
-"@slide-computer/signer-web@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer-web/-/signer-web-3.6.3.tgz#4714c0c72b5ad5ee27e011eb37a865f9c9cdf625"
-  integrity sha512-sEQPu9MKpim69qj6Xvx31OWpu32u/E2/F2kFQmiIwBDsFwURrJwaoBM2/+4QZfLtoDyO/hvXd2WlIYETMjbXOA==
+"@slide-computer/signer-web@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer-web/-/signer-web-3.6.4.tgz#8da83a6f391fa49ab923c37ba23e27be650995dc"
+  integrity sha512-AXmTOlZcfsPpf7bgaXZ9WcXXflPbn6kc7mYZFdY+Nh7WcLmUuO9eiL+7QoFlt/cFUGeDAg+J3LS8JZ4qp0C/cg==
 
-"@slide-computer/signer@^3.6.3":
-  version "3.6.3"
-  resolved "https://registry.yarnpkg.com/@slide-computer/signer/-/signer-3.6.3.tgz#d6c414c6574ff774aea09b334851bc9512644a35"
-  integrity sha512-SK/WMUc56K1riHH3p/uG9HPrYd4Kmui67HVjh4cUyUP/9+us+4zSYFgtXUZcVv1p74t8/76VAKeIu1m0PVCUkw==
+"@slide-computer/signer@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@slide-computer/signer/-/signer-3.6.4.tgz#b65c594385e766f727de7e6f6fa413886d84411b"
+  integrity sha512-TsiRteJOOdMjTmuxbFZy7Bo4ypBveDkvLyFEbHOsow7yUd7X6RuIJ035oUkkNGd+m48XkSJfbAiurLBoFV3fWQ==
 
 "@swc/helpers@^0.5.0":
   version "0.5.13"
@@ -1539,10 +1539,17 @@
   resolved "https://registry.npmjs.org/@types/ms/-/ms-0.7.34.tgz"
   integrity sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==
 
-"@types/node@*", "@types/node@^22.5.5":
+"@types/node@*":
   version "22.5.5"
   resolved "https://registry.npmjs.org/@types/node/-/node-22.5.5.tgz"
   integrity sha512-Xjs4y5UPO/CLdzpgR6GirZJx36yScjh73+2NlLlkFRSoQN8B0DpfXPdZGnvVmLRLOsqDpOfTNv7D9trgGhmOIA==
+  dependencies:
+    undici-types "~6.19.2"
+
+"@types/node@^22.7.4":
+  version "22.7.4"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.4.tgz#e35d6f48dca3255ce44256ddc05dee1c23353fcc"
+  integrity sha512-y+NPi1rFzDs1NdQHHToqeiX2TIS79SWEAw9GYhkkx8bD0ChpfqC+n2j5OXOCpzfojBEBt6DnEnnG9MY0zk1XLg==
   dependencies:
     undici-types "~6.19.2"
 
@@ -1580,10 +1587,10 @@
     "@types/prop-types" "*"
     csstype "^3.0.2"
 
-"@types/react@^18.3.8":
-  version "18.3.8"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.3.8.tgz#1672ab19993f8aca7c7dc844c07d5d9e467d5a79"
-  integrity sha512-syBUrW3/XpnW4WJ41Pft+I+aPoDVbrBVQGEnbD7NijDGlVC+8gV/XKRY+7vMDlfPpbwYt0l1vd/Sj8bJGMbs9Q==
+"@types/react@^18.3.10":
+  version "18.3.10"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.3.10.tgz#6edc26dc22ff8c9c226d3c7bf8357b013c842219"
+  integrity sha512-02sAAlBnP39JgXwkAq3PeU9DVaaGpZyF3MGcC0MKgQVkZor5IiiDAipVaxQHtDJAmO4GIy/rVBy/LzVj76Cyqg==
   dependencies:
     "@types/prop-types" "*"
     csstype "^3.0.2"
@@ -5973,10 +5980,10 @@ vite-plugin-static-copy@^1.0.6:
     fs-extra "^11.1.0"
     picocolors "^1.0.0"
 
-vite@^5.4.7:
-  version "5.4.7"
-  resolved "https://registry.yarnpkg.com/vite/-/vite-5.4.7.tgz#d226f57c08b61379e955f3836253ed3efb2dcf00"
-  integrity sha512-5l2zxqMEPVENgvzTuBpHer2awaetimj2BGkhBPdnwKbPNOlHsODU+oiazEZzLK7KhAnOrO+XGYJYn4ZlUhDtDQ==
+vite@^5.4.8:
+  version "5.4.8"
+  resolved "https://registry.yarnpkg.com/vite/-/vite-5.4.8.tgz#af548ce1c211b2785478d3ba3e8da51e39a287e8"
+  integrity sha512-FqrItQ4DT1NC4zCUqMB4c4AZORMKIa0m8/URVCZ77OZ/QSNeJ54bU1vrFADbDsuwfIPcgknRkmqakQcgnL4GiQ==
   dependencies:
     esbuild "^0.21.3"
     postcss "^8.4.43"

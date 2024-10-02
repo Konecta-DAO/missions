@@ -36,6 +36,7 @@ const Home: React.FC = () => {
   const [isKonectaModalOpen, setIsKonectaModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isnfiding, setIsnfiding] = useState(false);
+  const [userId, setUserId] = useState('');
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
@@ -49,11 +50,17 @@ const Home: React.FC = () => {
 
         (actor.getUser(a) as Promise<SerializedUser[]>).then((b) => {
           if (Array.isArray(b) && b.length !== 0) {
+            if (userId !== '' && b[0].ocProfile.length > 0) {
+              actor.addOCProfile(a, userId);
+            }
             globalID.setPrincipal(a);
             globalID.setUser(b);
             navigate('/Missions');
           } else {
             (actor.addUser(a) as Promise<SerializedUser[]>).then((newUser) => {
+              if (userId !== '') {
+                actor.addOCProfile(a, userId);
+              }
               globalID.setPrincipal(a);
               globalID.setUser(newUser);
               Usergeek.trackEvent("Mission 0: Registered");
@@ -66,12 +73,28 @@ const Home: React.FC = () => {
   };
 
   useEffect(() => {
+    const extractQueryParams = () => {
+      const queryString = window.location.search;
+
+
+      const urlParams = new URLSearchParams(queryString);
+
+      const ocUserId = urlParams.get('oc_userid');
+
+      if (ocUserId) {
+        setUserId(ocUserId);
+      }
+    };
+    extractQueryParams();
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
 
-      const isUserPrincipalValid = 
-        user?.principal && 
-        user.principal.toText() !== "2vxsx-fae" && 
-        identity && 
+      const isUserPrincipalValid =
+        user?.principal &&
+        user.principal.toText() !== "2vxsx-fae" &&
+        identity &&
         identity.getPrincipal().toText() !== "2vxsx-fae";
 
       if (isUserPrincipalValid) {
@@ -89,7 +112,6 @@ const Home: React.FC = () => {
 
     fetchData();
   }, [user, identity]);
-
   // Bubble Content Handlers
 
   const handleKonectaClick = () => {

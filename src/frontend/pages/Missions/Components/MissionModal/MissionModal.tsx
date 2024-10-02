@@ -2,12 +2,13 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import styles from './MissionModal.module.scss';
 import { useNavigate } from 'react-router-dom';
 import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
-import { fetchPTWData, generatePTWContent, PTWData } from '../../../../../hooks/ptwUtils.ts';
-import getTWtoRT from '../../../../../hooks/getTWtoRT.ts';
 import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
+import PTWContent from './PTWContent.tsx';
+import TweetEmbed from './TweetEmbed.tsx';
+import Mission7View from './Mission7View.tsx';
 
 declare global {
     interface Window {
@@ -28,15 +29,35 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const navigate = useNavigate();
     const fetchData = useFetchData();
     const [loading, setLoading] = useState(false);
-    const [ptwContent, setPtwContent] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState('');
-    const [tweetId, setTweetId] = useState<string | null>(null);
     const [placestate, setPlacestate] = useState(false);
+    const [currentTimeNano, setCurrentTimeNano] = useState(() => {
+        return BigInt(Date.now()) * 1_000_000n;
+    });
 
-    // Memoize mission selection
     const mission = useMemo(() => {
         return globalID.missions?.find((m: { id: bigint }) => m.id === selectedMissionId);
     }, [globalID.missions, selectedMissionId]);
+
+    useEffect(() => {
+        const updateTime = () => {
+            setCurrentTimeNano(BigInt(Date.now()) * 1_000_000n);
+        };
+
+        updateTime();
+
+        const intervalId = setInterval(updateTime, 1000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (currentTimeNano >= mission?.endDate! && mission?.endDate! !== BigInt(0)) {
+            closeModal();
+        }
+    }, [currentTimeNano]);
+
+
 
     // Redirect if mission not found
     useEffect(() => {
@@ -47,114 +68,72 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
     if (!mission) return null;
 
-    useEffect(() => {
-        const missionId = Number(selectedMissionId);
-
-        // Only fetch if missionId is 4
-        if (missionId !== 4) {
-            return;
+    // Memoize background click handler
+    const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (loading) return; // Do nothing if loading is true
+        if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
+            closeModal(); // Close modal only if clicked outside and not loading
         }
-
-        const fetchAndSetPTWContent = async () => {
-            const data: PTWData | null = await fetchPTWData(missionId);
-            const content = generatePTWContent(data);
-            setPtwContent(content);
-        };
-
-        fetchAndSetPTWContent();
-    }, []);
-
-    useEffect(() => {
-        const fetchTweetId = async () => {
-            try {
-                const id = await getTWtoRT();
-                setTweetId(id);
-            } catch (error) {
-                console.error('Failed to fetch tweet ID', error);
-            }
-        };
-
-        if (Number(selectedMissionId) === 5) {
-            fetchTweetId();
-        }
-    }, [selectedMissionId]);
-
-    const [isWidgetLoaded, setIsWidgetLoaded] = useState(false);
-    const [isTweetVisible, setIsTweetVisible] = useState(false);
-    const tweetRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        // Only proceed if selectedMissionId is 5, tweetId is present, and the tweet is visible
-        if (Number(selectedMissionId) !== 5 || !tweetId || !isTweetVisible) {
-            return;
-        }
-
-        const loadTwitterWidget = () => {
-            if (window.twttr && window.twttr.widgets && tweetRef.current) {
-                window.twttr.widgets
-                    .createTweet(tweetId, tweetRef.current, {
-                        theme: 'dark',
-                        cards: 'hidden',
-                        width: '550px',
-                        conversation: 'none',
-                        dnt: true,
-                    })
-                    .then(() => {
-                        setIsWidgetLoaded(true);
-                    })
-                    .catch((err: unknown) => {
-                        console.error('Error adding Tweet:', err);
-                    });
-            }
-        };
-
-        // Check if the Twitter script is already present
-        if (window.twttr && window.twttr.widgets) {
-            loadTwitterWidget();
-        } else {
-            const existingScript = document.querySelector(
-                'script[src="https://platform.twitter.com/widgets.js"]'
-            );
-            if (!existingScript) {
-                const script = document.createElement('script');
-                script.src = 'https://platform.twitter.com/widgets.js';
-                script.async = true;
-                script.onload = loadTwitterWidget;
-                script.onerror = () => {
-                    console.error('Failed to load Twitter widgets script.');
-                };
-                document.body.appendChild(script);
-            } else {
-                existingScript.addEventListener('load', loadTwitterWidget);
-                existingScript.addEventListener('error', () => {
-                    console.error('Failed to load Twitter widgets script.');
-                });
-            }
-        }
-
-        // Cleanup event listeners on unmount
-        return () => {
-            const existingScript = document.querySelector(
-                'script[src="https://platform.twitter.com/widgets.js"]'
-            );
-            if (existingScript) {
-                existingScript.removeEventListener('load', loadTwitterWidget);
-                existingScript.removeEventListener('error', () => { });
-            }
-        };
-    }, [tweetId, selectedMissionId, isTweetVisible]);
-
-    useEffect(() => {
-        if (!isTweetVisible && tweetRef.current) {
-            setIsWidgetLoaded(false);
-            tweetRef.current.innerHTML = '';
-        }
-    }, [isTweetVisible]);
+    }, [loading, closeModal]);
 
     const missionId = BigInt(mission.id);
 
-    // Memoize mission completion checks
+    // Memoize gradient colors
+    const gradientColors = useMemo(() => ({
+        start: getGradientStartColor(Number(mission.mode)),
+        end: getGradientEndColor(Number(mission.mode)),
+    }), [mission.mode]);
+
     const missionCompleted = useMemo(() => checkMissionCompletion(globalID.userProgress, mission), [globalID.userProgress, missionId]);
+
+    if (Number(selectedMissionId) === 7 && !missionCompleted) {
+        return (
+            <>
+                <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
+                    <div className={styles.MissionModal}>
+
+                        <div>
+                            {/* Mission Title */}
+                            <div className={styles.MissionTitleWrapper}>
+                                <div className={styles.MissionTitle}>
+                                    {mission.title}
+                                </div>
+                            </div>
+                            <div className={styles.MissionBadge}>
+                                {/* Gradient Circle */}
+                                <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor={gradientColors.start} />
+                                            <stop offset="100%" stopColor={gradientColors.end} />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
+                                </svg>
+                                {/* Mission Icon */}
+                                <img
+                                    src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
+                                    alt="Mission Icon"
+                                    className={styles.MissionIcon}
+                                />
+                            </div>
+                        </div>
+                        {/* Mission Content */}
+                        <div className={styles.MissionContent7}>
+                            <Mission7View
+                                mission={mission}
+                                closeModal={closeModal}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+
+    // Memoize mission completion checks
+
 
     const { requiredMissionCompleted } = useMemo(() => checkRequiredMissionCompletion(globalID, mission), [globalID, mission]);
 
@@ -165,11 +144,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         }
     }, [requiredMissionCompleted, missionCompleted, navigate]);
 
-    // Memoize gradient colors
-    const gradientColors = useMemo(() => ({
-        start: getGradientStartColor(Number(mission.mode)),
-        end: getGradientEndColor(Number(mission.mode)),
-    }), [mission.mode]);
+
 
     // Handle beforeunload event
     const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
@@ -311,13 +286,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         return null;
     }, [missionCompleted, mission, executeFunction, buttonGradientStyle, loading]);
 
-    // Memoize background click handler
-    const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        if (loading) return; // Do nothing if loading is true
-        if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
-            closeModal(); // Close modal only if clicked outside and not loading
-        }
-    }, [loading, closeModal]);
+
 
     return (
         <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
@@ -378,30 +347,10 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
-                    {Number(selectedMissionId) === 4 && ptwContent && <p>{ptwContent}</p>}
-                    {Number(selectedMissionId) === 5 && tweetId && (
-                        <div className={styles.tweetEmbedContainer}>
-                            <button
-                                onClick={() => setIsTweetVisible(!isTweetVisible)}
-                                aria-expanded={isTweetVisible}
-                                aria-controls="tweetEmbed"
-                                className={styles.toggleButton}
-                            >
-                                {isTweetVisible ? 'Hide Tweet' : 'Show Tweet'}
-                            </button>
-
-                            {isTweetVisible && (
-                                <div className={styles.scrollableContainer}>
-                                    {!isWidgetLoaded && <div>Loading tweet...</div>}
-                                    <div
-                                        id="tweetEmbed"
-                                        ref={tweetRef}
-                                        className={styles.tweetEmbed}
-                                    ></div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {/* Tweet Component */}
+                    <PTWContent missionId={Number(missionId)} />
+                    {/* Retweet Embed Component */}
+                    <TweetEmbed missionId={Number(missionId)} />
                 </div>
 
                 <div className={styles.ButtonInputs}>

@@ -1,0 +1,113 @@
+.full-screen-overlay,
+.overlayO,
+canvas,
+.moving-image,
+.overlay-text {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.full-screen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    cursor: pointer;
+    z-index: 99;
+}
+
+.overlayO {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0;
+    animation: fadeIn 1s forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.75;
+    }
+}
+
+canvas#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.image-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 100%);
+}
+
+.animate-move-up {
+    animation: moveUp 1s forwards;
+}
+
+.image-wrapper {
+    position: relative;
+    width: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+}
+
+.moving-image {
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+@keyframes moveUp {
+    from {
+        transform: translate(-50%, 100%);
+    }
+
+    to {
+        transform: translate(-50%, 0%);
+    }
+}
+
+.overlay-text {
+    position: absolute;
+    top: 21%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 3.5vh;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    width: 100%;
+    opacity: 0;
+}
+
+.animate-text {
+    animation: textScaleUp 1s forwards;
+    animation-delay: 1s;
+}
+
+
+@keyframes textScaleUp {
+    from {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}

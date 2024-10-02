@@ -29,28 +29,6 @@ module Types {
     ocCompleted : Bool;
   };
 
-  public type UserTemp = {
-    id : Principal; // Principal ID
-    var twitterid : ?Nat; // Twitter ID
-    var twitterhandle : ?Text; // Twitter Handle
-    creationTime : Int; // Creation Time in Nanoseconds
-    var pfpProgress : Text;
-    var totalPoints : Nat;
-    var ocProfile : ?Text;
-    // var ocCompleted : Bool;
-  };
-
-  public type SerializedUserTemp = {
-    id : Principal;
-    twitterid : ?Nat;
-    twitterhandle : ?Text;
-    creationTime : Int;
-    pfpProgress : Text;
-    totalPoints : Nat;
-    ocProfile : ?Text;
-    // ocCompleted : Bool;
-  };
-
   // Mission Types
   public type Mission = {
     var id : Nat; // Mission Number
@@ -126,7 +104,7 @@ module Types {
 
   public type AwardExternalAchievementResponse = {
     #Success : {
-      remaining_budget : Nat32;
+      remaining_chit_budget : Nat32;
     };
     #InvalidCaller;
     #NotFound;
@@ -201,9 +179,9 @@ module Types {
     body : Blob;
   };
 
-  public type UserResponse = {
-    following : Bool;
-    id : Nat;
-    username : Text;
-  };
+  // public type UserResponse = {
+  //   following : Bool;
+  //   id : Nat;
+  //   username : Text;
+  // };
 };

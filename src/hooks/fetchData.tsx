@@ -1,4 +1,3 @@
-// useFetchData.tsx
 import { ActorSubclass } from '@dfinity/agent';
 import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
 import { useGlobalID } from './globalID.tsx';
@@ -14,8 +13,14 @@ const useFetchData = () => {
         setTimerText,
         setPFPstatus,
         setTwitterHandle,
-        setPrincipal
     } = useGlobalID();
+
+    const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
+        const hasAccepted = await actor.hasAcceptedTerms(ae) as boolean;
+        if (!hasAccepted) {
+            setTerms(false);
+        }
+    }, []);
 
     // Fetch missions
     const fetchMissions = useCallback(async (actor: ActorSubclass) => {
@@ -54,16 +59,18 @@ const useFetchData = () => {
         return userPFPstatus;
     }, [setPFPstatus]);
 
-
     const fetchAll = useCallback(async (
         actor: ActorSubclass,
         ae: Principal,
-        setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>
+        setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>,
+        setTerms: React.Dispatch<React.SetStateAction<boolean>>
     ) => {
+        await hasAccepted(actor, ae, setTerms);
         await fetchMissions(actor);
         await fetchUserProgress(actor, ae);
         await fetchUser(actor, ae);
         await fetchUserSeconds(actor, ae);
+
         setDataLoaded(true);
     }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds]);
 
