@@ -15,6 +15,7 @@ import { Principal } from '@dfinity/principal';
 import { checkMissionCompletion } from '../../missionUtils.ts';
 import { isMobileOnly } from 'react-device-detect';
 import { Usergeek } from 'usergeek-ic-js';
+import TweetEmbed from './TweetEmbed.tsx';
 
 type UserId = Principal;
 
@@ -42,10 +43,9 @@ enum Mission7State {
 }
 
 interface Mission7ViewProps {
-    mission: any; // Replace with the actual type of mission
+    mission: any;
     closeModal: () => void;
 }
-
 
 
 const Mission7View: React.FC<Mission7ViewProps> = ({
@@ -58,68 +58,107 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
     const navigate = useNavigate();
     const fetchData = useFetchData();
     const [loading, setLoading] = useState(false);
-    const [inputValue, setInputValue] = useState('');
+    const [inputValue, setInputValue] = useState('a');
     const [placestate, setPlacestate] = useState(false);
     const [rtsdone, setRtsdone] = useState(0);
     const [mission7State, setMission7State] = useState<Mission7State>(Mission7State.Step1);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [rtAvailable, setRtavailable] = useState(false);
+    const [currentTimeNano, setCurrentTimeNano] = useState(() => {
+        return BigInt(Date.now()) * 1_000_000n;
+    });
+    const [rtDate, setRtDate] = useState(0);
 
+    useEffect(() => {
+        const updateTime = () => {
+            setCurrentTimeNano(BigInt(Date.now()) * 1_000_000n);
+        };
+
+        updateTime();
+
+        const intervalId = setInterval(updateTime, 1000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (currentTimeNano >= rtDate && rtDate != 0) {
+            setRtavailable(false);
+        }
+    }, [currentTimeNano]);
 
     useEffect(() => {
 
         const startM7 = async () => {
             setIsLoaded(false);
+
             const agent2 = HttpAgent.createSync();
             const actor = Actor.createActor(idlFactory, {
                 agent: globalID.agent!,
                 canisterId,
             })
 
-            let currentMissionState = mission7State;
+            const a = await actor.canUserDoMission(globalID.principalId, 7n);
 
-            if (globalID.user && globalID.user[0]?.ocCompleted) {
-                currentMissionState = Mission7State.Step2;
-                setMission7State(currentMissionState);
-            } else {
-                const actor2 = Actor.createActor(ocIdl, {
-                    agent: agent2,
-                    canisterId: canisterId2,
-                })
+            if (a) {
 
-                if (globalID.principalId && globalID.user && globalID.user[0]?.ocProfile && globalID.user[0].ocProfile.length > 0) {
-                    const ocProfile: string = globalID.user[0].ocProfile[0]!;
+                const rtMission = globalID.missions.find(mission => mission.id === 5n);
+                setRtDate(Number(rtMission?.endDate) ?? 0);
+                if (rtMission && rtMission.endDate > currentTimeNano) {
+                    setRtavailable(true);
+                }
 
-                    const args: LookupMembersArgs = { user_ids: [Principal.fromText(ocProfile)] };
+                let currentMissionState = mission7State;
 
-                    const response: LookupMembersResponse = await actor2.lookup_members(args) as LookupMembersResponse;
+                if (globalID.user && globalID.user[0]?.ocCompleted) {
+                    currentMissionState = Mission7State.Step2;
+                    setMission7State(currentMissionState);
+                } else {
+                    const actor2 = Actor.createActor(ocIdl, {
+                        agent: agent2,
+                        canisterId: canisterId2,
+                    })
 
-                    if ("Success" in response) {
-                        await actor.setOCMissionEnabled(globalID.principalId);
-                        Usergeek.trackEvent("Mission 7 Part 1: Join");
-                        currentMissionState = Mission7State.Step2;
+                    if (globalID.principalId && globalID.user && globalID.user[0]?.ocProfile && globalID.user[0].ocProfile.length > 0) {
+                        const ocProfile: string = globalID.user[0].ocProfile[0]!;
+
+                        const args: LookupMembersArgs = { user_ids: [Principal.fromText(ocProfile)] };
+
+                        const response: LookupMembersResponse = await actor2.lookup_members(args) as LookupMembersResponse;
+
+                        const isMember: boolean = 'Success' in response && response.Success.members.length > 0;
+
+                        if (isMember) {
+                            await actor.setOCMissionEnabled(globalID.principalId);
+                            Usergeek.trackEvent("Mission 7 Part 1: Join");
+                            currentMissionState = Mission7State.Step2;
+                            setMission7State(currentMissionState);
+                        }
+                    }
+                }
+
+                if (currentMissionState === Mission7State.Step2) {
+                    const mainRT = await actor.isFullOc(globalID.principalId);
+                    if (Number(mainRT) >= 1) {
+                        currentMissionState = Mission7State.Step3;
                         setMission7State(currentMissionState);
                     }
                 }
-            }
 
-            if (currentMissionState === Mission7State.Step2) {
-                const mainRT = await actor.isFullOc(globalID.principalId);
-                if (Number(mainRT) >= 1) {
-                    currentMissionState = Mission7State.Step3;
-                    setMission7State(currentMissionState);
+                if (currentMissionState === Mission7State.Step3) {
+                    const mainRT2 = await actor.isRecOc(globalID.principalId);
+                    if (Number(mainRT2) >= 3) {                                       // PENDIENTE
+                        currentMissionState = Mission7State.Done;
+                        setMission7State(currentMissionState);
+                    } else {
+                        setRtsdone(Number(mainRT2));
+                    }
                 }
-            }
+                setIsLoaded(true);
+            } else {
+                closeModal();
+            };
 
-            if (currentMissionState === Mission7State.Step3) {
-                const mainRT2 = await actor.isRecOc(globalID.principalId);
-                if (Number(mainRT2) >= 1) {                                // SET EN 3
-                    currentMissionState = Mission7State.Done;
-                    setMission7State(currentMissionState);
-                } else {
-                    setRtsdone(Number(mainRT2));
-                }
-            }
-            setIsLoaded(true);
         };
         startM7();
     }, [globalID.userProgress])
@@ -191,7 +230,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
         } else {
             console.error(`Function ${functionName} not found`);
         }
-    }, [globalID, navigate, fetchData, closeModal]);
+    }, [closeModal]);
 
     // Function to render the timeline
     const renderTimeline = () => {
@@ -224,17 +263,14 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
                         </div>
                     );
                 })}
-                {/* The line that goes down and gets lost */}
                 <div className={styles.timelineEndLine}></div>
             </div>
         );
     };
 
 
-
-
-    // Render different UI based on the current state
     const renderContent = () => {
+
         if (!isLoaded) {
             return (
                 <div className={styles.Mission7Desc0}>
@@ -346,18 +382,30 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
                                 Your Last Step in this journey is to complete the retweet recursive mission 3 times! It resets every 2 days, so keep it up!
                             </p>
                             <div className={styles.Mission7Sub}>
-                                <button
-                                    onClick={() => executeFunction('verRT')}
-                                    disabled={isButtonDisabled || loading}
-                                    className={`${styles.Mission7Button} ${isButtonDisabled ? styles.greyedOutButton : ''} ${loading ? styles.loadingButton : ''}`}
-                                >
-                                    <div className={styles.buttonContent}>
-                                        {loading && <div className={styles.spinner} />}
-                                        <span className={loading ? styles.loadingText : ''}>
-                                            {buttonText}
+                                {rtAvailable ? (
+                                    <>
+                                        <TweetEmbed missionId={5} />
+                                        <button
+                                            onClick={() => executeFunction('verRT')}
+                                            disabled={isButtonDisabled || loading}
+                                            className={`${styles.Mission7Button} ${isButtonDisabled ? styles.greyedOutButton : ''} ${loading ? styles.loadingButton : ''}`}
+                                        >
+                                            <div className={styles.buttonContent}>
+                                                {loading && <div className={styles.spinner} />}
+                                                <span className={loading ? styles.loadingText : ''}>
+                                                    {buttonText}
+                                                </span>
+                                            </div>
+                                        </button>
+                                        <span className={styles.completionText}>
+                                            Times completed: {rtsdone}/3
                                         </span>
-                                    </div>
-                                </button>
+                                    </>
+                                ) : (
+                                    <p className={styles.resettingMessage}>
+                                        This mission is resetting, please refresh the page in some minutes!
+                                    </p>
+                                )}
                             </div>
                         </div>
                         {renderTimeline()}
@@ -368,7 +416,15 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
                                     <stop offset="100%" stopColor={'#34AADC'} />
                                 </linearGradient>
                             </defs>
-                            <path d="M 5 0 L 5 71 L 74 71 L 95 54 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="10" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" fill="none" />
+                            <path
+                                d="M 5 0 L 5 71 L 74 71 L 95 54 L 95 0"
+                                stroke={`url(#lineGradient${mission.id})`}
+                                strokeWidth="10"
+                                strokeLinejoin="round"
+                                strokeLinecap="round"
+                                vectorEffect="non-scaling-stroke"
+                                fill="none"
+                            />
                         </svg>
                         <img src={Kami3} className={styles.Kami3} alt="Cool Kami Picture" />
                     </>
@@ -411,13 +467,15 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
     };
 
     return (
-        <div>
-            <div className={styles.Mission7Content}>
-                <h2>Complete 3 tasks. Earn Seconds and CHIT</h2>
-            </div>
+        <>
+            <div>
+                <div className={styles.Mission7Content}>
+                    <h2>Complete 3 tasks. Earn Seconds and CHIT</h2>
+                </div>
 
-            {renderContent()}
-        </div>
+                {renderContent()}
+            </div>
+        </>
     );
 };
 

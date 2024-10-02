@@ -116,7 +116,7 @@ const TweetEmbed: React.FC<TweetEmbedProps> = ({ missionId }) => {
                 aria-expanded={isTweetVisible}
                 aria-controls="tweetEmbed"
                 className={styles.toggleButton}
-                disabled={false} // You can add a disabled state if needed
+                disabled={false}
             >
                 {isTweetVisible ? 'Hide Tweet' : 'Show Tweet'}
             </button>

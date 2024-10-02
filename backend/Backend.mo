@@ -556,7 +556,7 @@ actor class Backend() {
   };
 
   public shared query (msg) func canUserDoMission(userId : Principal, missionId : Nat) : async Bool {
-    if (isAdmin(msg.caller)) {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
       switch (userProgress.get(userId)) {
         case (?userMissions) {
@@ -580,7 +580,7 @@ actor class Backend() {
   };
 
   public shared query (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
-    if (isAdmin(msg.caller)) {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
       for (mission in Vector.vals(missions)) {
         if (mission.id == missionId) {
@@ -1094,9 +1094,9 @@ actor class Backend() {
       while (i < Vector.size(users)) {
         switch (Vector.getOpt(users, i)) {
           case (?user) {
-            switch (user.ocProfile) {
-              case (?profileText) {
-                if (profileText == Principal.toText(userId)) {
+            switch (user.id) {
+              case (id) {
+                if (user.id == userId) {
                   let updatedUser : Types.User = {
                     id = user.id;
                     var twitterid = user.twitterid;
@@ -1110,7 +1110,6 @@ actor class Backend() {
                   Vector.put(users, i, updatedUser);
                 };
               };
-              case null {};
             };
           };
           case _ {};
@@ -1437,7 +1436,7 @@ actor class Backend() {
       let payloadJson = serializeTextArrayToJson(payloadArray);
 
       // 4. Prepare the headers for the request
-      let host : Text = "do.konecta.one";
+      let host : Text = "dotest.konecta.one";
       let url = "https://" # host # "/twitterstuff";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
@@ -1506,7 +1505,7 @@ actor class Backend() {
       let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
 
       // 4. Prepare the headers for the request
-      let host : Text = "do.konecta.one";
+      let host : Text = "dotest.konecta.one";
       let url = "https://" # host # "/storeRetweetId";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
@@ -1691,7 +1690,7 @@ actor class Backend() {
       let ic : Types.IC = actor ("aaaaa-aa");
 
       // 2. SETUP ARGUMENTS FOR HTTP GET request to test the middleman server
-      let host : Text = "do.konecta.one";
+      let host : Text = "dotest.konecta.one";
       let url = "https://" # host # "/ping";
 
       let http_request : Types.HttpRequestArgs = {

@@ -1,7 +1,8 @@
 import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
-import { Console } from "console";
 import { Usergeek } from "usergeek-ic-js";
+import { convertSecondsToHMS } from "../../../../components/Utilities.tsx";
+import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
@@ -276,12 +277,12 @@ const MissionFunctionsComponent = {
                 })
                 fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
-                closeModal();
+                if (input != 'a') {
+                    closeModal();
+                }
             }
 
             window.addEventListener("message", handleEvent);
-
-
 
             const popupInterval = setInterval(() => {
                 if (popup && popup.closed && !authSuccess) {
@@ -369,16 +370,19 @@ const MissionFunctionsComponent = {
         const a = await actor.setPFPProgressLoading(globalID.principalId);
         const url = 'https://x.com/messages/compose?recipient_id=1828134613375488000&text=Kami%2C%20I%27m%20on%20a%20mission%20for%20a%20killer%20profile%20pic.%20Let%E2%80%99s%20make%20it%20happen!';
         window.open(url, '_blank');
+        setLoading(false);
     },
 
     twPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
         const url = 'https://twitter.com/intent/tweet?text=Leveling%20up%20my%20profile%20with%20%23KonectaPFP%21%20Time%E2%80%99s%20on%20my%20side%20now.%20%24ICP%20%E2%8F%B3';
         window.open(url, '_blank');
+        setLoading(false);
     },
 
     gTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
         const url = 'https://twitter.com/intent/tweet';
         window.open(url, '_blank');
+        setLoading(false);
     },
 
     submitCode: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
@@ -401,16 +405,33 @@ const MissionFunctionsComponent = {
     },
 
     ocMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
         })
         const b = await actor.isOc(globalID.principalId);
+
         alert(b);
-        if (b === "Success") {
+        if (b === "Success" || b === "You have already done this mission (although it shouldn't be possible)") { // PENDIENTE
             Usergeek.trackEvent("Mission 7 Part 4: CHIT");
-            await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+            const c = await actor.getProgress(globalID.principalId, 7n) as SerializedProgress;
+            console.log("exists" + c);
+            console.log(
+                JSON.stringify(c, (key, value) =>
+                    typeof value === 'bigint' ? value.toString() : value
+                    , 2)
+            );
+
+            if (Array.isArray(c) && c.length > 0) {
+                const firstProgress = c[0];
+                const pointsEarnedStr = firstProgress.completionHistory[0].pointsEarned;
+                const pointsEarned = Number(pointsEarnedStr);
+                await globalID.setocS(convertSecondsToHMS(pointsEarned));
+
+            }
             setLoading(false);
+            navigate('/Missions');
             closeModal();
         } else {
             setLoading(false);

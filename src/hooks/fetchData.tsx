@@ -1,4 +1,3 @@
-// useFetchData.tsx
 import { ActorSubclass } from '@dfinity/agent';
 import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
 import { useGlobalID } from './globalID.tsx';

@@ -22,7 +22,7 @@ const PTWContent: React.FC<PTWContentProps> = ({ missionId }) => {
                     const content = generatePTWContent(data);
                     setPtwContent(content);
                 } else {
-                    setError('No PTW data available.');
+                    setError('Not available.');
                 }
             } catch (err) {
                 console.error('Error fetching PTW data:', err);

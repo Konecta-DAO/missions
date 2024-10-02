@@ -20,6 +20,7 @@ import InfoModal from './Components/InfoModal/InfoModal.tsx';
 import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
 import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
+import OpenChatSuccessOverlay from '../../components/OpenChatSuccessOverlay/OpenChatSuccessOverlay.tsx';
 
 interface ButtonItem {
     name: string;
@@ -53,6 +54,12 @@ const Missions: React.FC = () => {
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
     const [acceptedTerms, setAcceptedTerms] = useState(true);
     const [isTermsModalVisible, setIsTermsModalVisible] = useState<boolean>(false);
+    const [showOverlay, setShowOverlay] = useState(false);
+
+    const handleCloseOverlay = () => {
+        setShowOverlay(false);
+        globalID.setocS('');
+    };
 
     const handleAccept = async () => {
 
@@ -70,6 +77,17 @@ const Missions: React.FC = () => {
             setIsTermsModalVisible(true);
         }
     }, [acceptedTerms]);
+
+    useEffect(() => {
+        if (globalID.ocS != '') {
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent!,
+                canisterId,
+            });
+            fetchData.fetchUserProgress(actor, globalID.principalId!);
+            setShowOverlay(true);
+        }
+    }, [globalID.ocS]);
 
     useEffect(() => {
         let isMounted = true;
@@ -184,6 +202,9 @@ const Missions: React.FC = () => {
 
     return (
         <>
+            {showOverlay && (
+                <OpenChatSuccessOverlay message={globalID.ocS} onClose={handleCloseOverlay} />
+            )}
             {
                 !loadingComplete &&
                 <div className={styles.loadingOverlayWrapper}>

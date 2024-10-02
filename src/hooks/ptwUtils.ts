@@ -17,7 +17,7 @@ export const fetchPTWData = async (missionId: number): Promise<PTWData | null> =
     }
 
     try {
-        const response = await fetch("https://do.konecta.one/getPTW", {
+        const response = await fetch("https://dotest.konecta.one/getPTW", {
             method: "GET",
             credentials: "include",
         });

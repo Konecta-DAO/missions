@@ -4,10 +4,17 @@ import { convertSecondsToHMS, formatDate } from '../../../../../components/Utili
 import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
+import { SerializedMission, SerializedMissionRecord, SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
 
 interface HistoryModalProps {
     closeModal: () => void;
+}
+
+interface AllEntry {
+    missionId: bigint;
+    mission: SerializedMission;
+    record: SerializedMissionRecord;
+    formattedTitle: string;
 }
 
 const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
@@ -21,67 +28,80 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
         }, 500);
     };
 
-    const constructTweetUrl = (tweetId: string) => `https://twitter.com/${globalID.twitterhandle}/status/${tweetId}`;
+    const constructTweetUrl = (tweetId: string) => `https://twitter.com/i/web/status/${tweetId}`;
 
     const renderProgress = () => {
         const userProgress = globalID.userProgress;
         if (!userProgress) return <p>No Progress</p>;
 
+        const allEntries: AllEntry[] = [];
+
+        // Flatten all progress entries into a single array
+        userProgress.forEach((nestedEntry) => {
+            nestedEntry.forEach((innerEntry: any) => {
+                if (Array.isArray(innerEntry) && innerEntry.length === 2) {
+                    const missionId = innerEntry[0] as bigint;
+                    const progress = innerEntry[1] as SerializedProgress;
+
+                    const mission = globalID.missions.find(m => String(m.id) === String(missionId));
+                    if (!mission) {
+                        return;
+                    }
+
+                    const requiredMissionTitle = mission.title || '';
+                    const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
+
+                    progress.completionHistory.forEach((record) => {
+                        allEntries.push({
+                            missionId,
+                            mission,
+                            record,
+                            formattedTitle,
+                        });
+                    });
+                }
+            });
+        });
+
+        // Sort the flat array by timestamp (most recent first)
+        allEntries.sort((a, b) => Number(b.record.timestamp) - Number(a.record.timestamp));
+
+        // Render the sorted entries
         return (
             <>
-                {userProgress?.map((nestedEntry, idx) => {
+                {allEntries.map((entry, index) => {
+                    const { missionId, mission, record, formattedTitle } = entry;
 
-                    return nestedEntry?.map((innerEntry: any, innerIdx: number) => {
-
-                        if (Array.isArray(innerEntry) && innerEntry.length === 2) {
-                            const missionId = innerEntry[0] as bigint; // Type assertion for missionId
-                            const progress = innerEntry[1] as SerializedProgress; // Type assertion for progress
-
-                            const mission = globalID.missions.find(m => String(m.id) === String(missionId));
-                            if (!mission) {
-                                return null;
-                            }
-
-                            const requiredMissionTitle = mission.title || '';
-                            const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
-
-                            // Sort the completionHistory by timestamp (most recent first)
-                            const sortedHistory = [...progress.completionHistory].sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
-
-                            return sortedHistory?.map((record, index) => {
-                                return (
-                                    <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
-                                        <div className={styles.EntryContent}>
-                                            <h3>{formatDate(record.timestamp)}</h3>
-                                            <p>Completed the mission: {formattedTitle}</p>
-                                            {record.tweetId && record.tweetId.length > 0 && (
-                                                <a
-                                                    href={constructTweetUrl(record.tweetId[0] ?? '')}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className={styles.TweetLink}
-                                                >
-                                                    {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
-                                                </a>
-                                            )}
-                                        </div>
-                                        <div
-                                            className={styles.RightSection}
-                                            style={{
-                                                background: `linear-gradient(135deg, ${getGradientStartColor(
-                                                    Number(mission.mode)
-                                                )}, ${getGradientEndColor(Number(mission.mode))})`,
-                                            }}
-                                        >
-                                            <div className={styles.PointsEarned}>
-                                                +{convertSecondsToHMS(Number(record.pointsEarned))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            });
-                        }
-                    });
+                    return (
+                        <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
+                            <div className={styles.EntryContent}>
+                                <h3>{formatDate(record.timestamp)}</h3>
+                                <p>Completed the mission: {formattedTitle}</p>
+                                {record.tweetId && record.tweetId.length > 0 && (
+                                    <a
+                                        href={constructTweetUrl(record.tweetId[0] ?? '')}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={styles.TweetLink}
+                                    >
+                                        {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
+                                    </a>
+                                )}
+                            </div>
+                            <div
+                                className={styles.RightSection}
+                                style={{
+                                    background: `linear-gradient(135deg, ${getGradientStartColor(
+                                        Number(mission.mode)
+                                    )}, ${getGradientEndColor(Number(mission.mode))})`,
+                                }}
+                            >
+                                <div className={styles.PointsEarned}>
+                                    +{convertSecondsToHMS(Number(record.pointsEarned))}
+                                </div>
+                            </div>
+                        </div>
+                    );
                 })}
             </>
         );

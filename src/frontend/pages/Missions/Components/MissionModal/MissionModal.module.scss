@@ -201,7 +201,7 @@ button {
 
 .Mission7Desc0 {
   position: absolute;
-  top: 40%;
+  top: 50%;
   width: 60%;
   left: 41%;
   font-weight: 900;
@@ -266,7 +266,7 @@ button {
   width: auto;
   height: 36.75%;
   position: absolute;
-  bottom: 35%;
+  bottom: 37%;
   z-index: 0;
   left: 20%;
   pointer-events: none;
@@ -384,6 +384,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 .toggleButton {
@@ -402,7 +404,7 @@ button {
 }
 
 .scrollableContainer {
-  width: 20vw;
+  width: 16vw;
   margin-top: 10px;
   height: 6vw;
   overflow-y: auto;

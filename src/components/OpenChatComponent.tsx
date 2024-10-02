@@ -44,7 +44,7 @@ const OpenChat: React.FC = () => {
                 try {
                     await initialise(iframe, {
                         targetOrigin: 'https://test.oc.app',
-                        initialPath: '/community/oqo3i-5aaaa-aaaaf-bihcq-cai/channel/178951709979234421787702916290322925779',
+                        initialPath: '/community/oxp54-qyaaa-aaaaf-bihca-cai/channel/193045351996144511302122644121321431833',
                         theme: {
                             name: 'konecta',
                             base: 'dark',
@@ -114,7 +114,7 @@ const OpenChat: React.FC = () => {
                                     canisterId,
                                 })
                                 await actor.addOCProfile(globalID.principalId, userId);
-                                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
                             }
                         },
                         settings: {

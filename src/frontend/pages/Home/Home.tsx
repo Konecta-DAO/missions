@@ -86,7 +86,7 @@ const Home: React.FC = () => {
       }
     };
     extractQueryParams();
-  })
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {

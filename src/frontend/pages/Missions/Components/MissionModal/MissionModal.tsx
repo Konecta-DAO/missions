@@ -10,13 +10,6 @@ import PTWContent from './PTWContent.tsx';
 import TweetEmbed from './TweetEmbed.tsx';
 import Mission7View from './Mission7View.tsx';
 
-enum Mission7State {
-    Step1,
-    Step2,
-    Step3,
-    Done,
-}
-
 declare global {
     interface Window {
         twttr: any;
@@ -38,10 +31,33 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [placestate, setPlacestate] = useState(false);
+    const [currentTimeNano, setCurrentTimeNano] = useState(() => {
+        return BigInt(Date.now()) * 1_000_000n;
+    });
 
     const mission = useMemo(() => {
         return globalID.missions?.find((m: { id: bigint }) => m.id === selectedMissionId);
     }, [globalID.missions, selectedMissionId]);
+
+    useEffect(() => {
+        const updateTime = () => {
+            setCurrentTimeNano(BigInt(Date.now()) * 1_000_000n);
+        };
+
+        updateTime();
+
+        const intervalId = setInterval(updateTime, 1000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (currentTimeNano >= mission?.endDate! && mission?.endDate! !== BigInt(0)) {
+            closeModal();
+        }
+    }, [currentTimeNano]);
+
+
 
     // Redirect if mission not found
     useEffect(() => {

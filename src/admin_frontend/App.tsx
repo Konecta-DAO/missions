@@ -7,6 +7,7 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
 import { SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
 import { idlFactory as ocIdl, canisterId as canisterId2 } from '../declarations/oc/index.js';
+import OpenChatSuccessOverlay from '../frontend/components/OpenChatSuccessOverlay/OpenChatSuccessOverlay.tsx';
 
 type UserArgs = {
   user_id?: Principal[];
@@ -58,8 +59,8 @@ function App() {
     }
   };
 
-
   useEffect(() => {
+
     const fetchData = async () => {
       console.log(identity?.getPrincipal())
       if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
@@ -443,65 +444,67 @@ function App() {
   };
 
   return (
-    <div className={styles.HomeContainer}>
-      {/* Konecta Logo Section */}
-      <div className={styles.KonectaLogoWrapper}>
-        <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
-      </div>
-
-      {/* ConnectWallet Section */}
-      <div className={styles.ConnectWalletWrapper}>
-        <ConnectWallet />
-      </div>
-
-      {/* Buttons Column */}
-      {loaded && (
-        <div className={styles.ButtonsColumn}>
-
-          {/* <button onClick={resetAll}>Nuke Bomb</button> */}
-
-          <button onClick={getUsers}>Save All Users</button>
-
-          <button onClick={getTodo}>Save All Progress</button>
-
-          {/* JSON File Upload */}
-          <div>
-            <input id="hiddenUserFileInput" type="file" accept=".json" onChange={handleUserFileUpload} style={{ display: 'none' }} />
-            <button onClick={handleUserButtonClick}>Upload Users JSON File</button>
-          </div>
-          <div>
-            <input id="hiddenFileInput" type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
-            <button onClick={handleButtonClick}>Upload Progress JSON File</button>
-          </div>
-
-          {/* Image Upload Section */}
-          <div>
-            <input
-              id="hiddenImageInput"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-            />
-            <button onClick={handleImageButtonClick}>Upload Image</button>
-          </div>
-
-          {/* Display Success Text */}
-          {uploadSuccess && <p className={styles.UploadSuccessMessage}>{imageURL}</p>}
-
-          <div>
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="OpenChat Username"
-              className={styles.TextInput}
-            />
-            <button onClick={verifyOpenChat}>Verify OpenChat</button>
-          </div>
+    <>
+      <div className={styles.HomeContainer}>
+        {/* Konecta Logo Section */}
+        <div className={styles.KonectaLogoWrapper}>
+          <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
         </div>
-      )}
-    </div>
+
+        {/* ConnectWallet Section */}
+        <div className={styles.ConnectWalletWrapper}>
+          <ConnectWallet />
+        </div>
+
+        {/* Buttons Column */}
+        {loaded && (
+          <div className={styles.ButtonsColumn}>
+
+            {/* <button onClick={resetAll}>Nuke Bomb</button> */}
+
+            <button onClick={getUsers}>Save All Users</button>
+
+            <button onClick={getTodo}>Save All Progress</button>
+
+            {/* JSON File Upload */}
+            <div>
+              <input id="hiddenUserFileInput" type="file" accept=".json" onChange={handleUserFileUpload} style={{ display: 'none' }} />
+              <button onClick={handleUserButtonClick}>Upload Users JSON File</button>
+            </div>
+            <div>
+              <input id="hiddenFileInput" type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
+              <button onClick={handleButtonClick}>Upload Progress JSON File</button>
+            </div>
+
+            {/* Image Upload Section */}
+            <div>
+              <input
+                id="hiddenImageInput"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
+              <button onClick={handleImageButtonClick}>Upload Image</button>
+            </div>
+
+            {/* Display Success Text */}
+            {uploadSuccess && <p className={styles.UploadSuccessMessage}>{imageURL}</p>}
+
+            <div>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="OpenChat Username"
+                className={styles.TextInput}
+              />
+              <button onClick={verifyOpenChat}>Verify OpenChat</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
