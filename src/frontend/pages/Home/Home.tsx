@@ -24,6 +24,7 @@ import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
+import { AnonymousIdentity } from '@dfinity/agent';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ const Home: React.FC = () => {
         canisterId,
       });
       setIsnfiding(true);
+
       agent.getPrincipal().then((a) => {
         globalID.setPrincipal(a);
 
@@ -57,15 +59,32 @@ const Home: React.FC = () => {
             globalID.setUser(b);
             navigate('/Missions');
           } else {
-            (actor.addUser(a) as Promise<SerializedUser[]>).then((newUser) => {
-              if (userId !== '') {
-                actor.addOCProfile(a, userId);
+
+            const identityAny = identity as any;
+            const delegation = identityAny._delegation;
+
+            if (delegation && delegation.delegations && delegation.delegations.length > 0) {
+              const firstDelegation = delegation.delegations[0];
+              const targets = firstDelegation.delegation.targets;
+
+              if (targets && targets.length > 0) {
+                (actor.addUser(a) as Promise<SerializedUser[]>).then((newUser) => {
+                  if (userId !== '') {
+                    actor.addOCProfile(a, userId);
+                  }
+                  globalID.setPrincipal(a);
+                  globalID.setUser(newUser);
+                  Usergeek.trackEvent("Mission 0: Registered");
+                  navigate('/Missions');
+                })
+
+              } else {
+                alert("You have to use a Non-Anonymous NFID account");
+                disconnect();
+                setIsnfiding(false);
               }
-              globalID.setPrincipal(a);
-              globalID.setUser(newUser);
-              Usergeek.trackEvent("Mission 0: Registered");
-              navigate('/Missions');
-            })
+            };
+
           }
         })
       })

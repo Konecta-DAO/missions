@@ -3,11 +3,10 @@ import styles from './AdminPanel.module.scss';
 import KonectaLogo from '../../public/assets/Konecta Logo.svg';
 import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
 import { Principal } from '@dfinity/principal';
-import { Actor, HttpAgent } from '@dfinity/agent';
+import { Actor, AnonymousIdentity, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
 import { SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
 import { idlFactory as ocIdl, canisterId as canisterId2 } from '../declarations/oc/index.js';
-import OpenChatSuccessOverlay from '../frontend/components/OpenChatSuccessOverlay/OpenChatSuccessOverlay.tsx';
 
 type UserArgs = {
   user_id?: Principal[];
@@ -40,12 +39,13 @@ type UserResponse =
 
 function App() {
 
-  const { identity, user, agent, disconnect } = useIdentityKit();
+  const { identity, user, disconnect } = useIdentityKit();
   const [actor, setActor] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [inputText, setInputText] = useState<string>('');
 
   const setData = async (agent: HttpAgent) => {
+
     if (agent) {
       const actor = Actor.createActor(idlFactory, {
         agent: agent,
