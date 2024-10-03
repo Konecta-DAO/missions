@@ -246,7 +246,7 @@ actor class Backend() {
 
   };
 
-  let oc = actor ("7njde-waaaa-aaaaf-ab2ca-cai") : actor {
+  let oc = actor ("4bkt6-4aaaa-aaaaf-aaaiq-cai") : actor {
     award_external_achievement : (Types.AwardExternalAchievementArgs) -> async Types.AwardExternalAchievementResponse;
   };
 
