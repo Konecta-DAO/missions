@@ -22,25 +22,46 @@ def load_json(file_path):
         print(f"An unexpected error occurred: {e}")
         sys.exit(1)
 
-def open_twitter_profiles(users):
+def open_twitter_profiles(users, batch_size=25):
     """
-    Open Twitter profiles in the default web browser for users with pfpProgress == "loading".
+    Open Twitter profiles in the default web browser in batches.
+    
+    Parameters:
+    - users (list): List of user dictionaries.
+    - batch_size (int): Number of profiles to open in each batch.
     """
-    count = 0
+    # Collect all URLs to open
+    urls = []
     for user in users:
         pfp_progress = user.get('pfpProgress', '').lower()
         if pfp_progress == "loading":
             twitter_handles = user.get('twitterhandle', [])
             for handle in twitter_handles:
-                url = f"https://x.com/{handle}"
-                print(f"Opening: {url}")
-                webbrowser.open_new_tab(url)
-                count += 1
+                if handle:  # Ensure handle is not empty
+                    url = f"https://x.com/{handle}"
+                    urls.append(url)
     
-    if count == 0:
+    total_urls = len(urls)
+    
+    if total_urls == 0:
         print("No users with 'pfpProgress' set to 'loading' were found.")
-    else:
-        print(f"Opened {count} Twitter profile(s) in your browser.")
+        return
+    
+    print(f"Total Twitter profiles to open: {total_urls}")
+    
+    # Open URLs in batches
+    for i in range(0, total_urls, batch_size):
+        batch = urls[i:i + batch_size]
+        print(f"\nOpening batch {i // batch_size + 1}: {len(batch)} profiles...")
+        for url in batch:
+            print(f"Opening: {url}")
+            webbrowser.open_new_tab(url)
+        
+        # If there are more batches to process, wait for user input
+        if i + batch_size < total_urls:
+            input("Press Enter to open the next batch of 25 profiles...")
+    
+    print(f"\nAll {total_urls} Twitter profiles have been opened.")
 
 def main():
     """
@@ -57,7 +78,7 @@ def main():
         print("Error: JSON data is not a list of users.")
         sys.exit(1)
     
-    # Open Twitter profiles
+    # Open Twitter profiles in batches
     open_twitter_profiles(users)
 
 if __name__ == "__main__":
