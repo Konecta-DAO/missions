@@ -16,7 +16,20 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
+
 actor class Backend() {
+
+  private var streakPercentage : TrieMap.TrieMap<Principal, Nat> = TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+  stable var serializedstreakPercentage : [(Principal, Nat)] = [];
+
+  private var streak : TrieMap.TrieMap<Principal, Nat> = TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+  stable var serializedstreak : [(Principal, Nat)] = [];
+
+  private var userStreak : TrieMap.TrieMap<Principal, Types.UserStreak> = TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
+
+  stable var serializedUserStreak : [(Principal, Types.SerializedUserStreak)] = [];
 
   //
 
@@ -35,6 +48,8 @@ actor class Backend() {
   private var terms : TrieMap.TrieMap<Principal, Bool> = TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
 
   stable var serializedTerms : [(Principal, Bool)] = [];
+
+  stable var serializedNuanceUsers : [(Principal, Text)] = [];
 
   public query (msg) func hasAcceptedTerms(userId : Principal) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
@@ -169,6 +184,38 @@ actor class Backend() {
     let termsEntries = terms.entries();
     serializedTerms := Iter.toArray(termsEntries);
 
+    let streakPEntries = streakPercentage.entries();
+    serializedstreakPercentage := Iter.toArray(streakPEntries);
+
+    let streakEntries = streak.entries();
+    serializedstreak := Iter.toArray(streakEntries);
+
+    let serializedUserStreakVec = Vector.new<(Principal, Types.SerializedUserStreak)>();
+
+    let entriesUS = userStreak.entries();
+    for (entryUS in entriesUS) {
+      let (principal, streakMap) = entryUS;
+
+      // Retrieve all entries from the inner UserStreak TrieMap<Int, Nat>
+      let streakEntries = streakMap.entries();
+
+      // Create a Vector to accumulate serialized (Int, Nat) tuples
+      let serializedStreakEntries = Vector.new<(Int, Nat)>();
+
+      // Iterate over each (Int, Nat) pair in the UserStreak
+      for (streakEntry in streakEntries) {
+        let (streakId, streakValue) = streakEntry;
+
+        // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
+        Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
+      };
+
+      // Convert the Vector to an Array and add the (Principal, SerializedUserStreak) tuple to serializedUserStreakVec
+      Vector.add<(Principal, Types.SerializedUserStreak)>(serializedUserStreakVec, (principal, Vector.toArray(serializedStreakEntries)));
+    };
+
+    serializedUserStreak := Vector.toArray(serializedUserStreakVec);
+
   };
 
   // Post-upgrade function to deserialize the user progress
@@ -244,6 +291,236 @@ actor class Backend() {
 
     serializedTerms := [];
 
+    streakPercentage := TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+    for ((principal, natValue) in Iter.fromArray(serializedstreakPercentage)) {
+      streakPercentage.put(principal, natValue);
+    };
+
+    serializedstreakPercentage := [];
+
+    streak := TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+    for ((principal, natValue) in Iter.fromArray(serializedstreak)) {
+      streak.put(principal, natValue);
+    };
+
+    serializedstreak := [];
+
+    userStreak := TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
+
+    for (tuple in Iter.fromArray(serializedUserStreak)) {
+      let principal = tuple.0;
+      let serializedStreak = tuple.1;
+
+      // Initialize a new TrieMap for the UserStreak of the current Principal
+      let streakMap = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+
+      // Iterate over each (Int, Nat) tuple in SerializedUserStreak
+      for (streakTuple in Iter.fromArray(serializedStreak)) {
+        let streakId = streakTuple.0;
+        let streakValue = streakTuple.1;
+
+        // Deserialize and insert into streakMap
+        streakMap.put(streakId, streakValue);
+      };
+
+      // Insert the deserialized streakMap into userStreak TrieMap
+      userStreak.put(principal, streakMap);
+    };
+
+    serializedUserStreak := [];
+
+  };
+
+  stable var streakTime = 15; // Streak reset timer in MINUTES
+  let streakTimeNanos = streakTime * 60 * 1_000_000_000;
+
+  public shared query (msg) func getStreakTime() : async Nat {
+    if (isAdmin(msg.caller) or (not Principal.isAnonymous(msg.caller))) {
+      return streakTimeNanos;
+    };
+    return 0;
+  };
+
+  public shared (msg) func setStreakTime(newNum : Nat) : async () {
+    if (isAdmin(msg.caller)) {
+      streakTime := newNum;
+    };
+  };
+
+  public shared query (msg) func getUserStreakAmount(userId : Principal) : async Nat {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      switch (streak.get(userId)) {
+        case (?value) return value;
+        case null return 0;
+      };
+    };
+    return 0;
+  };
+
+  public shared query (msg) func getUserStreakPercentage(userId : Principal) : async Nat {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      switch (streakPercentage.get(userId)) {
+        case (?value) return value;
+        case null return 0;
+      };
+    };
+    return 0;
+  };
+
+  public shared query (msg) func getUserStreakTime(userId : Principal) : async Int {
+
+    if (isAdmin(msg.caller) or (Principal.isAnonymous(msg.caller))) {
+      var hasStarted = false;
+
+      var lastTimestamp : Int = 0;
+      let mainEntries = streak.entries();
+
+      for (mainEntry in mainEntries) {
+        // Iter if user did start Streak
+        let mainUserId = mainEntry.0;
+        if (userId == mainUserId) {
+          // The user did start
+          hasStarted := true;
+          let entries = userStreak.entries();
+          for (entry in entries) {
+            let theUserId = entry.0;
+            let theUserStreak = entry.1;
+            if (theUserId == userId) {
+              let subEntries = theUserStreak.entries();
+              for (subEntry in subEntries) {
+                let timestampU = subEntry.0;
+                if (timestampU > lastTimestamp) {
+                  lastTimestamp := timestampU;
+                };
+              };
+            };
+
+          };
+        };
+      };
+
+      if (not hasStarted) {
+        // The user is starting first time
+        return 0;
+      } else {
+        return lastTimestamp;
+      };
+    };
+    return 0;
+  };
+
+  public shared (msg) func claimStreak(userId : Principal) : async (Text, Nat) {
+
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+
+      let a = Time.now();
+      var hasStarted = false;
+
+      var lastTimestamp : Int = 0;
+      var lastPointsEarned = 0;
+
+      let mainEntries = streak.entries();
+
+      for (mainEntry in mainEntries) {
+        // Iter if user did start Streak
+        let mainUserId = mainEntry.0;
+        let mainStreak = mainEntry.1;
+        if (userId == mainUserId) {
+          // The user did start
+          hasStarted := true;
+          let entries = userStreak.entries();
+
+          for (entry in entries) {
+            let theUserId = entry.0;
+            let theUserStreak = entry.1;
+
+            if (theUserId == userId) {
+              let subEntries = theUserStreak.entries();
+
+              for (subEntry in subEntries) {
+                let timestampU = subEntry.0;
+                let pointsEarned = subEntry.1;
+
+                if (timestampU > lastTimestamp) {
+                  lastTimestamp := timestampU;
+                  lastPointsEarned := pointsEarned;
+                };
+              };
+
+              if ((lastTimestamp + streakTimeNanos) < a and a < (a + (streakTimeNanos * 2))) {
+                streak.put(userId, (mainStreak + 1));
+                // streakPercentage stays the same
+                let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
+                let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
+                newStreak.put(a, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
+                userStreak.put(userId, newStreak);
+
+                return ("You have earned " # earnedText # "minutes!", (300 + (300 * (mainStreak + 1))));
+              } else {
+                if (a > (a + (streakTimeNanos * 2)) and a < (a + (streakTimeNanos * 3))) {
+                  let decisiveEntries = streakPercentage.entries();
+                  for (decisiveEntry in decisiveEntries) {
+                    let decisiveUser = decisiveEntry.0;
+                    let decisivePercentage = decisiveEntry.1;
+
+                    if (decisiveUser == userId) {
+                      let seed : Blob = await Random.blob();
+                      let decisiveRandomNumber = Random.rangeFrom(100, seed);
+
+                      if (decisiveRandomNumber < decisivePercentage) {
+                        streak.put(userId, (mainStreak + 1));
+                        streakPercentage.put(userId, (decisivePercentage -25));
+                        let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
+                        let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
+                        newStreak.put(a, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
+                        userStreak.put(userId, newStreak);
+                        return ("Your streak is ALIVE! Just try to not do it again. You have earned " # earnedText # "minutes!", (300 + (300 * (mainStreak + 1)))); // Saved
+                      } else {
+                        streak.put(userId, 1);
+                        streakPercentage.put(userId, 80);
+                        let firstStreakAgain : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+                        firstStreakAgain.put(a, 300);
+                        userStreak.put(userId, firstStreakAgain);
+                        return ("Too bad, your past streak died. Starting again with 5 minutes...", 300); // Died
+                      };
+                    };
+                  };
+                } else {
+                  streak.put(userId, 1);
+                  streakPercentage.put(userId, 80);
+                  let firstStreakAgain : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+                  firstStreakAgain.put(a, 300);
+                  userStreak.put(userId, firstStreakAgain);
+                  return ("You have lost your past streak. Starting again with 5 minutes...", 300);
+                };
+              };
+            };
+
+          };
+        };
+      };
+
+      if (not hasStarted) {
+        // The user is starting first time
+
+        streak.put(userId, 1); // 1 Time Streak
+
+        streakPercentage.put(userId, 75); // 75% Success if missed 1 day
+
+        let firstStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+
+        firstStreak.put(a, 300); // 5 minutes first streak
+
+        userStreak.put(userId, firstStreak);
+
+        return ("You have earned 5 minutes!", 300);
+      };
+
+      return ("", 0);
+    };
+    return ("", 0);
   };
 
   let oc = actor ("4bkt6-4aaaa-aaaaf-aaaiq-cai") : actor {
@@ -302,6 +579,13 @@ actor class Backend() {
   public shared query (msg) func getAdminIds() : async [Principal] {
     if (isAdmin(msg.caller)) {
       return adminIds;
+    };
+    return [];
+  };
+
+  public shared query (msg) func getNuanceIds() : async [(Principal, Text)] {
+    if (isAdmin(msg.caller)) {
+      return serializedNuanceUsers;
     };
     return [];
   };
@@ -1712,6 +1996,47 @@ actor class Backend() {
 
       // Check if the response status is 200 (OK)
       return http_response.status == 200;
+    };
+    return false;
+  };
+
+  public shared (msg) func userFollowsNuance(userId : Principal, username : Text) : async Bool {
+    if (isAdmin(msg.caller)) {
+
+      var exists = false;
+
+      for (tuple in Iter.fromArray(serializedNuanceUsers)) {
+        let userNuance = tuple.1;
+        if (userNuance == username) {
+          exists := true;
+          return false;
+        };
+      };
+
+      if (not exists) {
+        let mission = await getMissionById(11);
+        switch mission {
+          case (?mission) {
+            let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
+            let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
+            let newRecord : Types.SerializedMissionRecord = {
+              timestamp = Time.now();
+              pointsEarned = pointsEarnedNat;
+              tweetId = null;
+            };
+
+            let nuanceProgress : Types.SerializedProgress = {
+              completionHistory = [newRecord];
+              usedCodes = [(username, true)];
+            };
+
+            await updateUserProgress(userId, 11, nuanceProgress);
+            serializedNuanceUsers := Array.append<(Principal, Text)>(serializedNuanceUsers, [(userId, username)]);
+            return true;
+          };
+          case null return false;
+        };
+      };
     };
     return false;
   };

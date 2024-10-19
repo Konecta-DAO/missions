@@ -431,6 +431,49 @@ const MissionFunctionsComponent = {
             setLoading(false);
         }
     },
+
+    nuanceMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch(
+                "https://do.konecta.one/nuance",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        principal,
+                        input,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            if (data.message === "Success") {
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                alert(data.message);
+                Usergeek.trackEvent("Mission 9 : Nuance Follow");
+                setLoading(false);
+                navigate('/Missions');
+                closeModal();
+            } else {
+                alert(data.message);
+            }
+
+        } catch (error) {
+            console.error("Error trying to communicate with Nuance", error);
+        }
+
+        setLoading(false);
+    },
 };
 
 export default MissionFunctionsComponent;

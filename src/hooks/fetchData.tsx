@@ -13,6 +13,9 @@ const useFetchData = () => {
         setTimerText,
         setPFPstatus,
         setTwitterHandle,
+        setUserStreakAmount,
+        setUserLastTimeStreak,
+        setStreakResetTime,
     } = useGlobalID();
 
     const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -59,20 +62,25 @@ const useFetchData = () => {
         return userPFPstatus;
     }, [setPFPstatus]);
 
-    const fetchAll = useCallback(async (
-        actor: ActorSubclass,
-        ae: Principal,
-        setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>,
-        setTerms: React.Dispatch<React.SetStateAction<boolean>>
-    ) => {
+    const fetchUserStreak = useCallback(async (actor: ActorSubclass, ae: Principal) => {
+        const userStreak = await actor.getUserStreakAmount(ae) as bigint;
+        setUserStreakAmount(userStreak);
+        const streakResetTime = await actor.getStreakTime() as bigint;
+        setStreakResetTime(streakResetTime);
+        const userLastTimeStreak = await actor.getUserStreakTime(ae) as bigint;
+        setUserLastTimeStreak(userLastTimeStreak);
+        console.log("el streak", userLastTimeStreak);
+    }, [setPFPstatus]);
+
+    const fetchAll = useCallback(async (actor: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
         await hasAccepted(actor, ae, setTerms);
         await fetchMissions(actor);
         await fetchUserProgress(actor, ae);
         await fetchUser(actor, ae);
         await fetchUserSeconds(actor, ae);
-
+        await fetchUserStreak(actor, ae);
         setDataLoaded(true);
-    }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds]);
+    }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds, fetchUserStreak]);
 
     return {
         fetchMissions,
@@ -80,6 +88,7 @@ const useFetchData = () => {
         fetchUser,
         fetchUserSeconds,
         fetchUserPFPstatus,
+        fetchUserStreak,
         fetchAll,
     };
 };

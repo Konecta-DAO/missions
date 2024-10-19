@@ -24,6 +24,12 @@ interface GlobalIDType {
     setCelebOverlay: (value: boolean) => void;
     ocS: string;
     setocS: (text: string) => void;
+    userStreakAmount: bigint;
+    setUserStreakAmount: (value: bigint) => void;
+    userLastTimeStreak: bigint;
+    setUserLastTimeStreak: (value: bigint) => void;
+    streakResetTime: bigint;
+    setStreakResetTime: (value: bigint) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -39,6 +45,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [agent, setAgent] = useState<HttpAgent | null>(null);
     const [celebOverlay, setCelebOverlay] = useState<boolean>(false);
     const [ocS, setocS] = useState<string>('');
+    const [userStreakAmount, setUserStreakAmount] = useState<bigint>(0n);
+    const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(0n);
+    const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
 
     const value = useMemo(() => ({
         principalId,
@@ -60,7 +69,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         celebOverlay,
         setCelebOverlay,
         ocS,
-        setocS
+        setocS,
+        userStreakAmount,
+        setUserStreakAmount,
+        userLastTimeStreak,
+        setUserLastTimeStreak,
+        streakResetTime,
+        setStreakResetTime,
     }), [
         principalId,
         missions,
@@ -71,7 +86,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         userPFPstatus,
         agent,
         celebOverlay,
-        ocS
+        ocS,
+        userStreakAmount,
+        userLastTimeStreak,
+        streakResetTime
     ]);
 
     return (

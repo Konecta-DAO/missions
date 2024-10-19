@@ -20,9 +20,6 @@
       ]
     },
     "stats_frontend": {
-      "dependencies": [
-        "backend"
-      ],
       "type": "assets",
       "source": [
         "dist/stats"

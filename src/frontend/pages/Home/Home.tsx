@@ -24,7 +24,6 @@ import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
-import { AnonymousIdentity } from '@dfinity/agent';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();

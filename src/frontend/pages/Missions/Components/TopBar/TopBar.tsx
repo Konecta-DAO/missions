@@ -9,6 +9,19 @@ import HexagonButton from '../../../../components/HexagonButton/hexagonButton.ts
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import { useNavigate } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
+import DailyStreakButtonComponent from '../DailyStreakButton/DailyStreakButtonComponent.tsx';
+
+import JPBomb from '../DailyStreakButton/JackPotIcons/JPbomb.svg';
+import JPcanister from '../DailyStreakButton/JackPotIcons/JPcanister.svg';
+import JPicp from '../DailyStreakButton/JackPotIcons/JPicp.svg';
+import JPkami from '../DailyStreakButton/JackPotIcons/JPkami.svg';
+import JPkonectaToken from '../DailyStreakButton/JackPotIcons/JPkonectaToken.svg';
+import JPnfid from '../DailyStreakButton/JackPotIcons/JPnfid.svg';
+import JPnuance from '../DailyStreakButton/JackPotIcons/JPnuance.svg';
+import JPopenchat from '../DailyStreakButton/JackPotIcons/JPopenchat.svg';
+import JPvisor from '../DailyStreakButton/JackPotIcons/JPvisor.svg';
+
+const svgList = [JPBomb, JPcanister, JPicp, JPkami, JPkonectaToken, JPnfid, JPnuance, JPopenchat, JPvisor];
 
 interface ButtonItem {
     name: string;
@@ -36,6 +49,14 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
     const navigate = useNavigate();
 
+    const [isClaimClicked, setIsClaimClicked] = useState(false);
+
+    const handleClaimClick = () => {
+        if (!isClaimClicked) {
+            setIsClaimClicked(true);
+        }
+    };
+
     const modalMap: { [key: string]: keyof ModalState } = {
         History: 'isHistoryModalOpen',
         Konecta: 'isKonectaModalOpen',
@@ -57,11 +78,21 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                 <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
                                 <div className={styles.TimerText}>{globalID.timerText}</div>
                             </div>
+                            {/* TopbarLeft Overlay */}
+                            {isClaimClicked && (
+                                <div className={styles.topbarLeftOverlay}></div>
+                            )}
                         </div>
                         <div className={styles.topbarCenter}>
                             <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogo} />
                         </div>
                         <ul className={styles.topbarRight}>
+                            <li
+                                className={`${styles.topbarButtonClaim} ${isClaimClicked ? styles.claimClicked : ''}`}
+                                onClick={handleClaimClick}
+                            >
+                                <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} />
+                            </li>
                             {
                                 buttonList
                                     ?.filter((item) => item.type !== 'mobile')
@@ -152,6 +183,10 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                         )}
                     </>
                 )}
+
+            {isClaimClicked && (
+                <div className={styles.overlayClaim}></div>
+            )}
         </>
     );
 };
