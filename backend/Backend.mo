@@ -334,7 +334,7 @@ actor class Backend() {
   };
 
   stable var streakTime = 15; // Streak reset timer in MINUTES
-  let streakTimeNanos = streakTime * 60 * 1_000_000_000;
+  stable var streakTimeNanos = streakTime * 60 * 1_000_000_000;
 
   public shared query (msg) func getStreakTime() : async Nat {
     if (isAdmin(msg.caller) or (not Principal.isAnonymous(msg.caller))) {
@@ -346,6 +346,7 @@ actor class Backend() {
   public shared (msg) func setStreakTime(newNum : Nat) : async () {
     if (isAdmin(msg.caller)) {
       streakTime := newNum;
+      streakTimeNanos := newNum * 60 * 1_000_000_000;
     };
   };
 
@@ -369,9 +370,60 @@ actor class Backend() {
     return 0;
   };
 
-  public shared query (msg) func getUserStreakTime(userId : Principal) : async Int {
+  public shared query func beta() : async [(Principal, Types.SerializedUserStreak)] {
 
-    if (isAdmin(msg.caller) or (Principal.isAnonymous(msg.caller))) {
+    let serializedUserStreakVecTT = Vector.new<(Principal, Types.SerializedUserStreak)>();
+
+    let entriesUS = userStreak.entries();
+    for (entryUS in entriesUS) {
+      let (principal, streakMap) = entryUS;
+
+      // Retrieve all entries from the inner UserStreak TrieMap<Int, Nat>
+      let streakEntries = streakMap.entries();
+
+      // Create a Vector to accumulate serialized (Int, Nat) tuples
+      let serializedStreakEntries = Vector.new<(Int, Nat)>();
+
+      // Iterate over each (Int, Nat) pair in the UserStreak
+      for (streakEntry in streakEntries) {
+        let (streakId, streakValue) = streakEntry;
+
+        // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
+        Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
+      };
+
+      // Convert the Vector to an Array and add the (Principal, SerializedUserStreak) tuple to serializedUserStreakVec
+      Vector.add<(Principal, Types.SerializedUserStreak)>(serializedUserStreakVecTT, (principal, Vector.toArray(serializedStreakEntries)));
+    };
+
+    return Vector.toArray(serializedUserStreakVecTT);
+  };
+
+  public shared query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      let entriesUS = userStreak.entries();
+      for (entryUS in entriesUS) {
+        let principal = entryUS.0;
+        let totalStreak = entryUS.1;
+        if (principal == userId) {
+          let serializedStreakEntries = Vector.new<(Int, Nat)>();
+          let streakEntries = totalStreak.entries();
+          for (streakEntry in streakEntries) {
+            let (streakId, streakValue) = streakEntry;
+
+            // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
+            Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
+          };
+          return Vector.toArray(serializedStreakEntries);
+        };
+      };
+    };
+    let default = Vector.new<(Int, Nat)>();
+    return Vector.toArray(default);
+  };
+
+  public shared query (msg) func getUserStreakTime(userId : Principal) : async Int {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
       var hasStarted = false;
 
       var lastTimestamp : Int = 0;
@@ -415,11 +467,10 @@ actor class Backend() {
 
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let a = Time.now();
+      let currentTime = Time.now();
       var hasStarted = false;
 
       var lastTimestamp : Int = 0;
-      var lastPointsEarned = 0;
 
       let mainEntries = streak.entries();
 
@@ -441,63 +492,64 @@ actor class Backend() {
 
               for (subEntry in subEntries) {
                 let timestampU = subEntry.0;
-                let pointsEarned = subEntry.1;
 
                 if (timestampU > lastTimestamp) {
                   lastTimestamp := timestampU;
-                  lastPointsEarned := pointsEarned;
                 };
               };
 
-              if ((lastTimestamp + streakTimeNanos) < a and a < (a + (streakTimeNanos * 2))) {
-                streak.put(userId, (mainStreak + 1));
-                // streakPercentage stays the same
+              if ((lastTimestamp + streakTimeNanos) > currentTime) {
+                return ("You can't claim your streak yet.", 0);
+              } else if ((lastTimestamp + streakTimeNanos) <= currentTime and currentTime < (lastTimestamp + (streakTimeNanos * 2))) {
+                // User can claim their streak normally
+                streak.put(userId, mainStreak + 1);
                 let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
                 let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
-                newStreak.put(a, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
+                newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
                 userStreak.put(userId, newStreak);
+                return ("You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1))));
+              } else if ((lastTimestamp + (streakTimeNanos * 2)) <= currentTime and currentTime < (lastTimestamp + (streakTimeNanos * 3))) {
+                let decisiveEntries = streakPercentage.entries();
+                for (decisiveEntry in decisiveEntries) {
+                  let decisiveUser = decisiveEntry.0;
+                  let percentage = decisiveEntry.1;
 
-                return ("You have earned " # earnedText # "minutes!", (300 + (300 * (mainStreak + 1))));
-              } else {
-                if (a > (a + (streakTimeNanos * 2)) and a < (a + (streakTimeNanos * 3))) {
-                  let decisiveEntries = streakPercentage.entries();
-                  for (decisiveEntry in decisiveEntries) {
-                    let decisiveUser = decisiveEntry.0;
-                    let decisivePercentage = decisiveEntry.1;
+                  if (decisiveUser == userId) {
+                    let seed : Blob = await Random.blob();
+                    let randomNumber = Random.rangeFrom(100, seed);
 
-                    if (decisiveUser == userId) {
-                      let seed : Blob = await Random.blob();
-                      let decisiveRandomNumber = Random.rangeFrom(100, seed);
-
-                      if (decisiveRandomNumber < decisivePercentage) {
-                        streak.put(userId, (mainStreak + 1));
-                        streakPercentage.put(userId, (decisivePercentage -25));
-                        let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                        let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
-                        newStreak.put(a, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
-                        userStreak.put(userId, newStreak);
-                        return ("Your streak is ALIVE! Just try to not do it again. You have earned " # earnedText # "minutes!", (300 + (300 * (mainStreak + 1)))); // Saved
-                      } else {
-                        streak.put(userId, 1);
-                        streakPercentage.put(userId, 80);
-                        let firstStreakAgain : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
-                        firstStreakAgain.put(a, 300);
-                        userStreak.put(userId, firstStreakAgain);
-                        return ("Too bad, your past streak died. Starting again with 5 minutes...", 300); // Died
-                      };
+                    if (randomNumber < percentage) {
+                      // Success: continue streak
+                      streak.put(userId, (mainStreak + 1));
+                      streakPercentage.put(userId, (percentage - 25));
+                      let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
+                      let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
+                      newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
+                      userStreak.put(userId, newStreak);
+                      return ("Your streak is ALIVE! Just try to not miss it again. You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1)))); // Saved
+                    } else {
+                      // Failure: reset streak
+                      streak.put(userId, 1);
+                      streakPercentage.put(userId, 80);
+                      let firstStreakAgain : TrieMap.TrieMap<Int, Nat> = theUserStreak;
+                      firstStreakAgain.put(currentTime, 300);
+                      userStreak.put(userId, firstStreakAgain);
+                      return ("Too bad, your past streak died. Starting again with 5 minutes...", 300); // Died
                     };
                   };
-                } else {
-                  streak.put(userId, 1);
-                  streakPercentage.put(userId, 80);
-                  let firstStreakAgain : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
-                  firstStreakAgain.put(a, 300);
-                  userStreak.put(userId, firstStreakAgain);
-                  return ("You have lost your past streak. Starting again with 5 minutes...", 300);
                 };
+              } else if (currentTime >= (lastTimestamp + (streakTimeNanos * 3))) {
+                // Reset streak after third window
+                streak.put(userId, 1);
+                streakPercentage.put(userId, 80);
+                let newStreakMap : TrieMap.TrieMap<Int, Nat> = theUserStreak;
+                newStreakMap.put(currentTime, 300);
+                userStreak.put(userId, newStreakMap);
+                return ("You have lost your past streak. Starting again with 5 minutes...", 300);
+              } else {
+                return ("You can't claim your streak yet.", 0);
               };
             };
-
           };
         };
       };
@@ -506,13 +558,9 @@ actor class Backend() {
         // The user is starting first time
 
         streak.put(userId, 1); // 1 Time Streak
-
-        streakPercentage.put(userId, 75); // 75% Success if missed 1 day
-
+        streakPercentage.put(userId, 80); // 80% Success if missed 1 day
         let firstStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
-
-        firstStreak.put(a, 300); // 5 minutes first streak
-
+        firstStreak.put(currentTime, 300); // 5 minutes first streak
         userStreak.put(userId, firstStreak);
 
         return ("You have earned 5 minutes!", 300);
@@ -1059,6 +1107,19 @@ actor class Backend() {
             // Sum up the pointsEarned from each mission record
             for (missionRecord in Iter.fromArray(completionHistory)) {
               totalPoints += missionRecord.pointsEarned;
+            };
+          };
+
+          let entriesUS = userStreak.entries();
+          for (entryUS in entriesUS) {
+            let principal = entryUS.0;
+            let totalStreak = entryUS.1;
+            if (principal == userId) {
+              let streakEntries = totalStreak.entries();
+              for (streakEntry in streakEntries) {
+                let streakValue = streakEntry.1;
+                totalPoints += streakValue;
+              };
             };
           };
 

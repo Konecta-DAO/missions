@@ -1,5 +1,5 @@
 import { ActorSubclass } from '@dfinity/agent';
-import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
+import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
 import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
@@ -16,6 +16,7 @@ const useFetchData = () => {
         setUserStreakAmount,
         setUserLastTimeStreak,
         setStreakResetTime,
+        setTotalUserStreak
     } = useGlobalID();
 
     const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -69,7 +70,8 @@ const useFetchData = () => {
         setStreakResetTime(streakResetTime);
         const userLastTimeStreak = await actor.getUserStreakTime(ae) as bigint;
         setUserLastTimeStreak(userLastTimeStreak);
-        console.log("el streak", userLastTimeStreak);
+        const totalUserStreak = await actor.getUserAllStreak(ae) as SerializedUserStreak;
+        setTotalUserStreak(totalUserStreak);
     }, [setPFPstatus]);
 
     const fetchAll = useCallback(async (actor: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {

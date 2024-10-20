@@ -1,6 +1,6 @@
 import { Principal } from '@dfinity/principal';
 import React, { createContext, useState, useContext, useMemo } from 'react';
-import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
+import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
 interface GlobalIDType {
@@ -30,6 +30,8 @@ interface GlobalIDType {
     setUserLastTimeStreak: (value: bigint) => void;
     streakResetTime: bigint;
     setStreakResetTime: (value: bigint) => void;
+    totalUserStreak: SerializedUserStreak | null;
+    setTotalUserStreak: (value: SerializedUserStreak | null) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -48,6 +50,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [userStreakAmount, setUserStreakAmount] = useState<bigint>(0n);
     const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(0n);
     const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
+    const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
 
     const value = useMemo(() => ({
         principalId,
@@ -76,6 +79,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setUserLastTimeStreak,
         streakResetTime,
         setStreakResetTime,
+        totalUserStreak,
+        setTotalUserStreak
     }), [
         principalId,
         missions,
@@ -89,7 +94,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ocS,
         userStreakAmount,
         userLastTimeStreak,
-        streakResetTime
+        streakResetTime,
+        totalUserStreak
     ]);
 
     return (

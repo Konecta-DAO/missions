@@ -4,19 +4,30 @@ import { convertSecondsToHMS, formatDate } from '../../../../../components/Utili
 import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.png';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedMission, SerializedMissionRecord, SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
+import { SerializedMission, SerializedMissionRecord, SerializedProgress, SerializedUserStreak } from '../../../../../declarations/backend/backend.did.js';
 
 interface HistoryModalProps {
     closeModal: () => void;
 }
 
-interface AllEntry {
+interface AllEntryBase {
+    timestamp: bigint;
+    pointsEarned: bigint;
+}
+
+interface MissionEntry extends AllEntryBase {
+    type: 'mission';
     missionId: bigint;
     mission: SerializedMission;
     record: SerializedMissionRecord;
     formattedTitle: string;
 }
 
+interface StreakEntry extends AllEntryBase {
+    type: 'streak';
+}
+
+type AllEntry = MissionEntry | StreakEntry;
 const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
     const globalID = useGlobalID();
     const [isClosing, setIsClosing] = useState(false);
@@ -32,81 +43,120 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
 
     const renderProgress = () => {
         const userProgress = globalID.userProgress;
-        if (!userProgress) return <p>No Progress</p>;
+        const totalUserStreak = globalID.totalUserStreak;
 
         const allEntries: AllEntry[] = [];
 
         // Flatten all progress entries into a single array
-        userProgress.forEach((nestedEntry) => {
-            nestedEntry.forEach((innerEntry: any) => {
-                if (Array.isArray(innerEntry) && innerEntry.length === 2) {
-                    const missionId = innerEntry[0] as bigint;
-                    const progress = innerEntry[1] as SerializedProgress;
+        if (userProgress) {
+            userProgress.forEach((nestedEntry) => {
+                nestedEntry.forEach((innerEntry: any) => {
+                    if (Array.isArray(innerEntry) && innerEntry.length === 2) {
+                        const missionId = innerEntry[0] as bigint;
+                        const progress = innerEntry[1] as SerializedProgress;
 
-                    const mission = globalID.missions.find(m => String(m.id) === String(missionId));
-                    if (!mission) {
-                        return;
-                    }
+                        const mission = globalID.missions.find(m => String(m.id) === String(missionId));
+                        if (!mission) {
+                            return;
+                        }
 
-                    const requiredMissionTitle = mission.title || '';
-                    const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
+                        const requiredMissionTitle = mission.title || '';
+                        const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
 
-                    progress.completionHistory.forEach((record) => {
-                        allEntries.push({
-                            missionId,
-                            mission,
-                            record,
-                            formattedTitle,
+                        progress.completionHistory.forEach((record) => {
+                            allEntries.push({
+                                type: 'mission',
+                                timestamp: record.timestamp,
+                                pointsEarned: record.pointsEarned,
+                                missionId,
+                                mission,
+                                record,
+                                formattedTitle,
+                            });
                         });
-                    });
-                }
+                    }
+                });
             });
-        });
+        }
+
+        if (totalUserStreak) {
+            totalUserStreak.forEach(([timestamp, pointsEarned]) => {
+                allEntries.push({
+                    type: 'streak',
+                    timestamp,
+                    pointsEarned,
+                });
+            });
+        }
 
         // Sort the flat array by timestamp (most recent first)
-        allEntries.sort((a, b) => Number(b.record.timestamp) - Number(a.record.timestamp));
+        allEntries.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 
         // Render the sorted entries
         return (
             <>
                 {allEntries.map((entry, index) => {
-                    const { missionId, mission, record, formattedTitle } = entry;
+                    if (entry.type === 'mission') {
+                        const { missionId, mission, record, formattedTitle } = entry as MissionEntry;
 
-                    return (
-                        <div key={`${missionId}-${index}`} className={styles.ProgressEntry}>
-                            <div className={styles.EntryContent}>
-                                <h3>{formatDate(record.timestamp)}</h3>
-                                <p>Completed the mission: {formattedTitle}</p>
-                                {record.tweetId && record.tweetId.length > 0 && (
-                                    <a
-                                        href={constructTweetUrl(record.tweetId[0] ?? '')}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={styles.TweetLink}
-                                    >
-                                        {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
-                                    </a>
-                                )}
-                            </div>
-                            <div
-                                className={styles.RightSection}
-                                style={{
-                                    background: `linear-gradient(135deg, ${getGradientStartColor(
-                                        Number(mission.mode)
-                                    )}, ${getGradientEndColor(Number(mission.mode))})`,
-                                }}
-                            >
-                                <div className={styles.PointsEarned}>
-                                    +{convertSecondsToHMS(Number(record.pointsEarned))}
+                        return (
+                            <div key={`mission-${missionId}-${index}`} className={styles.ProgressEntry}>
+                                <div className={styles.EntryContent}>
+                                    <h3>{formatDate(record.timestamp)}</h3>
+                                    <p>Completed the mission: {formattedTitle}</p>
+                                    {record.tweetId && record.tweetId.length > 0 && (
+                                        <a
+                                            href={constructTweetUrl(record.tweetId[0] ?? '')}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={styles.TweetLink}
+                                        >
+                                            {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
+                                        </a>
+                                    )}
+                                </div>
+                                <div
+                                    className={styles.RightSection}
+                                    style={{
+                                        background: `linear-gradient(135deg, ${getGradientStartColor(
+                                            Number(mission.mode)
+                                        )}, ${getGradientEndColor(Number(mission.mode))})`,
+                                    }}
+                                >
+                                    <div className={styles.PointsEarned}>
+                                        +{convertSecondsToHMS(Number(record.pointsEarned))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    );
+                        );
+                    } else if (entry.type === 'streak') {
+                        const { timestamp, pointsEarned } = entry as StreakEntry;
+
+                        return (
+                            <div key={`streak-${timestamp}-${index}`} className={styles.ProgressEntry}>
+                                <div className={styles.EntryContent}>
+                                    <h3>{formatDate(timestamp)}</h3>
+                                    <p>Claimed the Daily Streak</p>
+                                </div>
+                                <div
+                                    className={styles.RightSection}
+                                    style={{
+                                        background: `linear-gradient(135deg, darkred, red)`,
+                                    }}
+                                >
+                                    <div className={styles.PointsEarned}>
+                                        +{convertSecondsToHMS(Number(pointsEarned))}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    } else {
+                        return null; // Handle unexpected entry types
+                    }
                 })}
             </>
         );
     };
-
 
     return (
         <div className={styles.ModalOverlay}>
