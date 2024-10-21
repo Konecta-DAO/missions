@@ -85,7 +85,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-evenly;
     margin-top: 1vh;
 }
 
@@ -101,6 +101,7 @@
     position: relative;
     display: flex;
     justify-content: flex-end;
+
 }
 
 .hexagonButtonWrapper {
@@ -172,9 +173,26 @@
     transition: all 0.5s ease;
 }
 
+.topbarButtonClaimMobile {
+    min-width: 175px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 14vw;
+    transform: translateY(-9%) scale(1);
+    position: relative;
+    transition: all 0.5s ease;
+}
+
 .claimClicked {
     transform: translate(-31vw, 37vh) scale(2.5);
 }
+
+.claimClickedMobile {
+    transform: translate(-38vw, 15vh) scale(2.5);
+}
+
 
 .CustomHexagonButton {
     scale: 30%;
@@ -243,4 +261,8 @@
     to {
         opacity: 1;
     }
+}
+
+.darkened {
+    filter: brightness(0.33);
 }

@@ -180,7 +180,7 @@ const Missions: React.FC = () => {
 
     const modalComponents: { [key in keyof ModalState]: React.ReactNode } = {
         isHistoryModalOpen: (
-            !isMobileOnly && !isTablet ?
+            !isMobileOnly && !(isTablet && isPortrait) ?
                 <HistoryModal closeModal={() => toggleModal('isHistoryModalOpen')} /> :
                 <HistoryModalMobile closeModal={() => toggleModal('isHistoryModalOpen')} />
         ),

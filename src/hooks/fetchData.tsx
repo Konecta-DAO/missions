@@ -4,6 +4,7 @@ import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
 import { useCallback } from 'react';
+import { set } from 'react-datepicker/dist/date_utils.js';
 
 const useFetchData = () => {
     const {
@@ -16,7 +17,8 @@ const useFetchData = () => {
         setUserStreakAmount,
         setUserLastTimeStreak,
         setStreakResetTime,
-        setTotalUserStreak
+        setTotalUserStreak,
+        setUserStreakPercentage
     } = useGlobalID();
 
     const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -72,6 +74,8 @@ const useFetchData = () => {
         setUserLastTimeStreak(userLastTimeStreak);
         const totalUserStreak = await actor.getUserAllStreak(ae) as SerializedUserStreak;
         setTotalUserStreak(totalUserStreak);
+        const userStreakPercentage = await actor.getUserStreakPercentage(ae) as bigint;
+        setUserStreakPercentage(userStreakPercentage);
     }, [setPFPstatus]);
 
     const fetchAll = useCallback(async (actor: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {

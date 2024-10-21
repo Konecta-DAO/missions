@@ -32,6 +32,8 @@ interface GlobalIDType {
     setStreakResetTime: (value: bigint) => void;
     totalUserStreak: SerializedUserStreak | null;
     setTotalUserStreak: (value: SerializedUserStreak | null) => void;
+    userStreakPercentage: bigint;
+    setUserStreakPercentage: (value: bigint) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -51,6 +53,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(0n);
     const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
     const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
+    const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
 
     const value = useMemo(() => ({
         principalId,
@@ -80,7 +83,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         streakResetTime,
         setStreakResetTime,
         totalUserStreak,
-        setTotalUserStreak
+        setTotalUserStreak,
+        userStreakPercentage,
+        setUserStreakPercentage
     }), [
         principalId,
         missions,
@@ -95,7 +100,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         userStreakAmount,
         userLastTimeStreak,
         streakResetTime,
-        totalUserStreak
+        totalUserStreak,
+        userStreakPercentage
     ]);
 
     return (

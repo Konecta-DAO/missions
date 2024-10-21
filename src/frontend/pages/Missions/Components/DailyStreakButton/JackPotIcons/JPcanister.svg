@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Generator: Adobe Illustrator 28.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 1080 1080" style="enable-background:new 0 0 1080 1080;" xml:space="preserve">
+<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
+	xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	viewBox="0 0 1080 1080" style="enable-background:new 0 0 1080 1080;" xml:space="preserve">
 <style type="text/css">
 	
 		.st0{fill:url(#SVGID_1_);stroke:url(#SVGID_00000018952220752437306310000005483368071928002235_);stroke-width:3.35;stroke-miterlimit:10;}
@@ -381,7 +382,7 @@
 		</g>
 	</g>
 	
-		<radialGradient id="CanisterCuerpo_00000166650114677177997550000012657618237484469134_" cx="541.7554" cy="505.4871" r="468.653" fx="541.7554" fy="190.558" gradientTransform="matrix(1 0 0 -1 0 1080)" gradientUnits="userSpaceOnUse">
+		<radialGradient id="CanisterCuerpo_00000166650114677177997550000012657618237484469134_" cx="541.7554" cy="690.558" r="468.653" fx="541.7554" fy="655.4871" gradientTransform="matrix(1 0 0 -1 0 1080)" gradientUnits="userSpaceOnUse">
 		<stop  offset="0" style="stop-color:#FFFFFF"/>
 		<stop  offset="3.000000e-02" style="stop-color:#EDF3FE"/>
 		<stop  offset="0.14" style="stop-color:#9EC2FA"/>
@@ -392,9 +393,9 @@
 		<stop  offset="0.64" style="stop-color:#7D4FEC"/>
 		<stop  offset="0.71" style="stop-color:#8849EB"/>
 	</radialGradient>
-	<path id="CanisterCuerpo" style="fill:url(#CanisterCuerpo_00000166650114677177997550000012657618237484469134_);" d="M792.1,753
-		V251.4H291.4v500.8c0,0.2,0,0.5,0,0.7v0.2l0,0c0.5,36.8,25.1,73.7,74,101.8c98.1,56.7,256.7,57,354.1,0.7
-		C768.5,827.5,792.7,790.2,792.1,753L792.1,753z"/>
+	<path id="CanisterCuerpo" style="fill:url(#CanisterCuerpo_00000166650114677177997550000012657618237484469134_); mix-blend-mode: color;" d="M792.1,753
+    V251.4H291.4v500.8c0,0.2,0,0.5,0,0.7v0.2l0,0c0.5,36.8,25.1,73.7,74,101.8c98.1,56.7,256.7,57,354.1,0.7
+    C768.5,827.5,792.7,790.2,792.1,753L792.1,753z"/>
 	<path id="CanisterBrillo" class="st5" d="M792.1,753V251.4H291.4v500.8c0,0.2,0,0.5,0,0.7v0.2l0,0c0.5,36.8,25.1,73.7,74,101.8
 		c98.1,56.7,256.7,57,354.1,0.7C768.5,827.5,792.7,790.2,792.1,753L792.1,753z"/>
 	<g id="CanisterSup">

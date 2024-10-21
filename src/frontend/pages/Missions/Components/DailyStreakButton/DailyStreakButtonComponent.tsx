@@ -6,22 +6,28 @@ import { canisterId, idlFactory } from '../../../../../declarations/backend/inde
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
+import { isMobileOnly, isTablet } from 'react-device-detect';
+import { useMediaQuery } from 'react-responsive';
+import { Usergeek } from 'usergeek-ic-js';
 
 type DisplayState = 'CLAIM' | 'CLAIM_FINAL' | 'TIMER' | 'REVIVE';
+type JackpotState = 'DEFAULT' | 'WIN' | 'LOSE';
 
 interface DailyStreakButtonProps {
     setIsClaimClicked: React.Dispatch<React.SetStateAction<boolean>>;
+    setJackpotState: React.Dispatch<React.SetStateAction<JackpotState>>;
 }
 
-const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsClaimClicked }) => {
+const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsClaimClicked, setJackpotState }) => {
     const globalID = useGlobalID();
     const { identity } = useIdentityKit();
     const fetchData = useFetchData();
 
+    const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
+    const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
 
     const [isMoved, setIsMoved] = useState(false);
     const [showContinueButton, setShowContinueButton] = useState(false);
-    const continueButtonTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [showSeparators, setShowSeparators] = useState(false);
     const [remainingTime, setRemainingTime] = useState<bigint>(0n);
     const [displayState, setDisplayState] = useState<DisplayState>('CLAIM');
@@ -31,9 +37,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
     const [tick, setTick] = useState(0);
 
-
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -49,7 +56,14 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
+        if (messageTimeoutRef.current) {
+            clearTimeout(messageTimeoutRef.current);
+            messageTimeoutRef.current = null;
+        }
     };
+
+
+    const isVertical = isMobileOnly || (isTablet && isPortrait);
 
     const determineDisplayState = () => {
         clearExistingTimers();
@@ -143,7 +157,6 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     useEffect(() => {
         return () => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current); // For display state changes
-            if (continueButtonTimeoutRef.current) clearTimeout(continueButtonTimeoutRef.current); // For "Continue" button
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, []);
@@ -177,36 +190,46 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
             console.log("message", message);
             if (message.startsWith("You have earned")) {
+                Usergeek.trackEvent("Daily Streak: Default");
                 await fetchData.fetchUserSeconds(actor, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
                 setResponseState("SUCCESS");
                 setMessageResponse(message);
-
+                setShowContinueButton(true);
 
             } else if (message.startsWith("Your streak is ALIVE!")) {
+                Usergeek.trackEvent("Daily Streak: Survived");
+                setIsLoading(false);
+                setShowSeparators(true);
+                setJackpotState('WIN');
                 await fetchData.fetchUserSeconds(actor, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
-                setMessageResponse(message);
-
+                messageTimeoutRef.current = setTimeout(() => {
+                    setMessageResponse(message);
+                    setShowContinueButton(true);
+                }, 6000);
 
             } else if (message.startsWith("Too bad, your past streak")) {
+                Usergeek.trackEvent("Daily Streak: Died");
+                setIsLoading(false);
+                setShowSeparators(true);
+                setJackpotState('LOSE');
                 await fetchData.fetchUserSeconds(actor, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
-                setMessageResponse(message);
-
+                messageTimeoutRef.current = setTimeout(() => {
+                    setMessageResponse(message);
+                    setShowContinueButton(true);
+                }, 6000);
 
             } else if (message.startsWith("You have lost your past streak")) {
+                Usergeek.trackEvent("Daily Streak: Forgot");
                 await fetchData.fetchUserSeconds(actor, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
                 setResponseState("CLAIMED");
                 setMessageResponse(message);
-
+                setShowContinueButton(true);
             }
 
-            if (continueButtonTimeoutRef.current) clearTimeout(continueButtonTimeoutRef.current);
-            continueButtonTimeoutRef.current = setTimeout(() => {
-                setShowContinueButton(true);
-            }, 1000);
         } finally {
             setIsLoading(false);
         }
@@ -226,6 +249,8 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
         setResponseState('');
         setIsLoading(false);
         determineDisplayState();
+        setShowSeparators(false);
+        setJackpotState('DEFAULT');
     };
 
     useEffect(() => {
@@ -233,7 +258,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
             // Start a 30-second timer to auto-continue
             autoContinueTimeoutRef.current = setTimeout(() => {
                 handleContinue();
-            }, 30000); // 30,000 milliseconds = 30 seconds
+            }, 45000); // 45,000 milliseconds = 45 seconds
         }
 
         // Cleanup the timer if showContinueButton changes or component unmounts
@@ -436,6 +461,16 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                     -moz-user-select: none;
                     -ms-user-select: none;
                     }
+
+                    .loadingText {
+                        animation: pulseOpacity 2s infinite;
+                    }
+
+                    @keyframes pulseOpacity {
+                        0% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                        100% { opacity: 1; }
+                    }
                 `}
                 </style>
                 <g id="KamiArriba_00000178892341235780403320000013665810626276377230_">
@@ -541,22 +576,24 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
                 <g id="Tab" style={{
                     fill: 'url(#Tab_00000181085521850192996330000012133393721873589662_)',
-                    stroke: '#000000',
-                    strokeWidth: 6,
-                    strokeMiterlimit: 10,
                     transform: displayState === 'REVIVE' ? 'translateY(-8%)' : 'translateY(0%)',
                     transition: 'transform 0.3s ease',
                 }}>
-                    <path
-                        id="Tab"
-                        d="M1224.3,461.9H826.9c-27.5,0-53.8,6.2-72.9,17.3l-111.5,64.2h766.2l-111.5-64.2C1278,468.2,1251.7,461.9,1224.3,461.9z"
-                    />
+                    <path id="Tab"
+                        style={{
+                            fill: 'url(#Tab_00000181085521850192996330000012133393721873589662_)',
+                            stroke: '#000000',
+                            strokeWidth: 6,
+                            strokeMiterlimit: 10
+                        }}
 
-                    {isRevive && (
+                        d="M1224.3,461.9H826.9c-27.5,0-53.8,6.2-72.9,17.3l-111.5,64.2h766.2l-111.5-64.2C1278,468.2,1251.7,461.9,1224.3,461.9z" />
+
+                    {isRevive && !isMoved && (
                         <text
                             x="1023"
                             y="507"
-                            fontSize="75px"
+                            fontSize="70px"
                             fill="#FFFFFF"
                             textAnchor="middle"
                             dominantBaseline="middle"
@@ -566,16 +603,24 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                             {formatTimeRemaining(endDate)}
                         </text>
                     )}
-                </g>
-                <path id="Tab"
-                    style={{
-                        fill: 'url(#Tab_00000181085521850192996330000012133393721873589662_)',
-                        stroke: '#000000',
-                        strokeWidth: 6,
-                        strokeMiterlimit: 10
-                    }}
 
-                    d="M1224.3,461.9H826.9c-27.5,0-53.8,6.2-72.9,17.3l-111.5,64.2h766.2l-111.5-64.2C1278,468.2,1251.7,461.9,1224.3,461.9z" />
+                    {isRevive && isMoved && (
+                        <text
+                            x="1023"
+                            y="507"
+                            fontSize="50px"
+                            fill="#FFFFFF"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontFamily="Inter, sans-serif"
+                            fontWeight="bold"
+                        >
+                            Revive Chance: {Number(globalID.userStreakPercentage)}%
+                        </text>
+                    )}
+
+                </g>
+
 
                 <g id="VisorBlanco">
                     <path
@@ -647,6 +692,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                             dominantBaseline="middle"
                             fontFamily="Inter, sans-serif"
                             fontWeight="bold"
+                            className="loadingText"
                         >
                             LOADING
                         </text>
@@ -697,45 +743,47 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 <div
                     style={{
                         position: 'absolute',
-                        bottom: '-2.5vw',
-                        transform: 'translateX(3%)',
-                        color: '#fff',
+                        bottom: isVertical ? '-14.5vw' : '-4.5vw',
+                        left: '50%',
+                        transform: isVertical ? 'translateX(-32%)' : 'translateX(-40%)',
+                        width: isVertical ? '36vw' : '23vw',
                         textAlign: 'center',
-                        width: '75vw',
-                        wordWrap: 'break-word',
-                        marginBottom: '10px', // Space between message and button
-                        fontSize: '0.67vw', // Adjust font size as needed
                     }}
                 >
-                    {messageResponse}
+                    <div
+                        style={{
+                            color: '#fff',
+                            overflowWrap: 'break-word',
+                            marginBottom: '10px',
+                            fontSize: isVertical ? '1.5vw' : '0.67vw',
+                            lineHeight: isVertical ? '20px' : '12px',
+                        }}
+                    >
+                        {messageResponse}
+                    </div>
+                    <button
+                        style={{
+                            transform: 'translateY(6%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: isVertical ? '1.75vw' : '0.75vw',
+                            color: '#fff',
+                            background: 'linear-gradient(to right, #34AADC, #337FF5)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            opacity: isMoved ? 1 : 0,
+                            transition: 'opacity 0.5s ease',
+                            width: '100%',
+                            height: '2vw',
+                        }}
+                        onClick={handleContinue}
+                    >
+                        Continue
+                    </button>
                 </div>
             )}
 
-            {showContinueButton && (
-                <button
-                    style={{
-                        position: 'absolute',
-                        bottom: '-50%',
-                        left: '47%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75vw',
-                        color: '#fff',
-                        background: 'linear-gradient(to right, #34AADC, #337FF5)',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        opacity: isMoved ? 1 : 0,
-                        transition: 'opacity 0.5s ease',
-                        width: '5vw',
-                        height: '2vw',
-                    }}
-                    onClick={handleContinue}
-                >
-                    Continue
-                </button>
-            )}
         </>
     );
 };

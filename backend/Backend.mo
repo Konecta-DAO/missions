@@ -527,7 +527,7 @@ actor class Backend() {
                       let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
                       newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
                       userStreak.put(userId, newStreak);
-                      return ("Your streak is ALIVE! Just try to not miss it again. You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1)))); // Saved
+                      return ("Your streak is ALIVE! Try to not miss it again. You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1)))); // Saved
                     } else {
                       // Failure: reset streak
                       streak.put(userId, 1);

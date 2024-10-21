@@ -5,17 +5,11 @@ interface JackpotRollerProps {
     targetNumber: number; // Number between 1 and 9
     svgList: string[]; // Array of 9 SVGs
     size?: number; // Size in pixels (optional, default: 200)
-    rollingDuration?: number; // Duration of the rolling in milliseconds (optional, default: 3000)
+    rollingDuration?: number; // Duration of the rolling in milliseconds (optional, default: 5000)
     rollingInterval?: number; // Interval between rolls in milliseconds (optional, default: 100)
 }
 
-const JackpotRoller: React.FC<JackpotRollerProps> = ({
-    targetNumber,
-    svgList,
-    size = 300,
-    rollingDuration = 3000,
-    rollingInterval = 100,
-}) => {
+const JackpotRoller: React.FC<JackpotRollerProps> = ({ targetNumber, svgList, size = 300, rollingDuration = 5000, rollingInterval = 100, }) => {
     // Validate props
     if (targetNumber < 1 || targetNumber > 9) {
         throw new Error('targetNumber must be between 1 and 9.');
@@ -58,8 +52,6 @@ const JackpotRoller: React.FC<JackpotRollerProps> = ({
                 height: `${size}px`,
                 overflow: 'hidden',
                 position: 'relative',
-                border: '2px solid #000', // Optional: add a border
-                borderRadius: '10px', // Optional: rounded corners
             }}
         >
             <div
