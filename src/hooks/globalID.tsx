@@ -1,6 +1,6 @@
 import { Principal } from '@dfinity/principal';
 import React, { createContext, useState, useContext, useMemo } from 'react';
-import { SerializedMission, SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
+import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
 interface GlobalIDType {
@@ -24,6 +24,16 @@ interface GlobalIDType {
     setCelebOverlay: (value: boolean) => void;
     ocS: string;
     setocS: (text: string) => void;
+    userStreakAmount: bigint;
+    setUserStreakAmount: (value: bigint) => void;
+    userLastTimeStreak: bigint;
+    setUserLastTimeStreak: (value: bigint) => void;
+    streakResetTime: bigint;
+    setStreakResetTime: (value: bigint) => void;
+    totalUserStreak: SerializedUserStreak | null;
+    setTotalUserStreak: (value: SerializedUserStreak | null) => void;
+    userStreakPercentage: bigint;
+    setUserStreakPercentage: (value: bigint) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -39,6 +49,11 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [agent, setAgent] = useState<HttpAgent | null>(null);
     const [celebOverlay, setCelebOverlay] = useState<boolean>(false);
     const [ocS, setocS] = useState<string>('');
+    const [userStreakAmount, setUserStreakAmount] = useState<bigint>(0n);
+    const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(0n);
+    const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
+    const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
+    const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
 
     const value = useMemo(() => ({
         principalId,
@@ -60,7 +75,17 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         celebOverlay,
         setCelebOverlay,
         ocS,
-        setocS
+        setocS,
+        userStreakAmount,
+        setUserStreakAmount,
+        userLastTimeStreak,
+        setUserLastTimeStreak,
+        streakResetTime,
+        setStreakResetTime,
+        totalUserStreak,
+        setTotalUserStreak,
+        userStreakPercentage,
+        setUserStreakPercentage
     }), [
         principalId,
         missions,
@@ -71,7 +96,12 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         userPFPstatus,
         agent,
         celebOverlay,
-        ocS
+        ocS,
+        userStreakAmount,
+        userLastTimeStreak,
+        streakResetTime,
+        totalUserStreak,
+        userStreakPercentage
     ]);
 
     return (

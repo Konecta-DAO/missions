@@ -167,11 +167,6 @@ const Missions: React.FC = () => {
             src: '/assets/konecta_button.svg',
         },
         {
-            name: 'Kami',
-            src: '/assets/kami_button.svg',
-            onClick: () => { window.open('https://chatgpt.com/g/g-S0vONPiGL-kami', '_blank'); },
-        },
-        {
             name: 'Info',
             src: '/assets/question_button.svg',
         },
@@ -185,7 +180,7 @@ const Missions: React.FC = () => {
 
     const modalComponents: { [key in keyof ModalState]: React.ReactNode } = {
         isHistoryModalOpen: (
-            !isMobileOnly && !isTablet ?
+            !isMobileOnly && !(isTablet && isPortrait) ?
                 <HistoryModal closeModal={() => toggleModal('isHistoryModalOpen')} /> :
                 <HistoryModalMobile closeModal={() => toggleModal('isHistoryModalOpen')} />
         ),

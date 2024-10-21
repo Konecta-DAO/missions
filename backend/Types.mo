@@ -97,6 +97,10 @@ module Types {
 
   public type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
 
+  public type UserStreak = TrieMap.TrieMap<Int, Nat>;
+
+  public type SerializedUserStreak = [(Int, Nat)];
+
   public type AwardExternalAchievementArgs = {
     achievement_id : Nat32;
     user_id : Principal;
@@ -179,9 +183,16 @@ module Types {
     body : Blob;
   };
 
-  // public type UserResponse = {
-  //   following : Bool;
-  //   id : Nat;
-  //   username : Text;
-  // };
+  public type FollowerRecord = {
+    bio : Text;
+    socialChannelsUrls : [Text];
+    principal : Text;
+    displayName : Text;
+    followersCount : Text;
+    website : Text;
+    handle : Text;
+    fontType : Text;
+    avatar : Text;
+  };
+
 };

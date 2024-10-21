@@ -31,6 +31,8 @@
     "@dfinity/principal": "^2.1.1",
     "@dfinity/utils": "2.5.0",
     "@nfid/identitykit": "^0.0.3",
+    "@nivo/core": "^0.87.0",
+    "@nivo/heatmap": "^0.87.0",
     "@open-ic/openchat-xframe": "^1.0.6",
     "@peculiar/webcrypto": "1.5.0",
     "@types/react-datepicker": "^7.0.0",
@@ -45,6 +47,7 @@
     "react-responsive": "^10.0.0",
     "react-router-dom": "^6.26.2",
     "react-tooltip": "^5.28.0",
+    "recharts": "^2.13.0",
     "rollup-plugin-polyfill-node": "^0.13.0",
     "usergeek-ic-js": "^1.0.6"
   },
