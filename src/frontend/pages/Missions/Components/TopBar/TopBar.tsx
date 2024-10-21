@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './TopBar.module.scss';
 import KonectaLogo from '../../../../../../public/assets/Konecta Logo.svg';
 import TimeCapsule from '../../../../../../public/assets/Time Capsule.svg';
@@ -47,15 +47,27 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
     const { disconnect } = useIdentityKit();
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
+    const [currentTime, setCurrentTime] = useState(BigInt(Date.now()) * 1_000_000n);
     const navigate = useNavigate();
 
     const [isClaimClicked, setIsClaimClicked] = useState(false);
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+          setCurrentTime(BigInt(Date.now()) * 1_000_000n);
+        }, 1000); // Update every second
+      
+        return () => clearInterval(interval); // Clean up on unmount
+      }, []);
+
     const handleClaimClick = () => {
+        console.log("entre");
         if (!isClaimClicked) {
             setIsClaimClicked(true);
         }
     };
+
+    const isDisabled = currentTime < (globalID.userLastTimeStreak + globalID.streakResetTime);
 
     const modalMap: { [key: string]: keyof ModalState } = {
         History: 'isHistoryModalOpen',
@@ -89,7 +101,7 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                         <ul className={styles.topbarRight}>
                             <li
                                 className={`${styles.topbarButtonClaim} ${isClaimClicked ? styles.claimClicked : ''}`}
-                                onClick={handleClaimClick}
+                                onClick={!isDisabled ? handleClaimClick : undefined}
                             >
                                 <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} />
                             </li>

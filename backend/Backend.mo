@@ -16,6 +16,7 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
+import Nat8 "mo:base/Nat8";
 
 actor class Backend() {
 
@@ -516,7 +517,7 @@ actor class Backend() {
 
                   if (decisiveUser == userId) {
                     let seed : Blob = await Random.blob();
-                    let randomNumber = Random.rangeFrom(100, seed);
+                    let randomNumber = Nat8.toNat(Random.byteFrom(seed) % 100);
 
                     if (randomNumber < percentage) {
                       // Success: continue streak

@@ -17,6 +17,8 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     const globalID = useGlobalID();
     const { identity } = useIdentityKit();
     const fetchData = useFetchData();
+
+
     const [isMoved, setIsMoved] = useState(false);
     const [showContinueButton, setShowContinueButton] = useState(false);
     const continueButtonTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -27,8 +29,16 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     const [messageResponse, setMessageResponse] = useState<string>('');
     const [endDate, setEndDate] = useState<bigint>(0n);
 
+    const [tick, setTick] = useState(0);
+
+
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [isLoading, setIsLoading] = useState(false);
+
+    const autoContinueTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
     const clearExistingTimers = () => {
         if (timeoutRef.current) {
@@ -73,7 +83,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 newDisplayState = 'REVIVE';
                 newEndDate = t3;
                 nextChangeInNs = t3 - nowNsInitial; // Next state change after (t3 - nowNs)
-                setReviveRemainingTime(nextChangeInNs);
+                setReviveRemainingTime(t3);
             } else if (nowNsInitial >= t1) {
                 // State: CLAIM
                 newDisplayState = 'CLAIM';
@@ -107,12 +117,16 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                     if (newEndDate) {
                         const newRemaining = newEndDate - nowNs;
                         if (newDisplayState === 'REVIVE') {
-                            setReviveRemainingTime(newRemaining > 0n ? newRemaining : 0n);
+                            // Update tick to trigger re-render
+                            setTick(t => t + 1);
+                            if (newRemaining <= 0n) {
+                                determineDisplayState();
+                            }
                         } else {
                             setRemainingTime(newRemaining > 0n ? newRemaining : 0n);
-                        }
-                        if (newRemaining <= 0n) {
-                            determineDisplayState();
+                            if (newRemaining <= 0n) {
+                                determineDisplayState();
+                            }
                         }
                     }
                 }, 1000);
@@ -145,46 +159,93 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     const isRevive = displayState === 'REVIVE';
     const [reviveRemainingTime, setReviveRemainingTime] = useState<bigint>(0n);
 
+    const isClickable = !isMoved && displayState !== 'TIMER';
 
     const handleClick = async () => {
         setIsMoved(true);
-        const agent = HttpAgent.createSync({ identity });
-        const actor = Actor.createActor(idlFactory, {
-            agent: agent,
-            canisterId,
-        });
-        const b = await actor.claimStreak(globalID.principalId) as [string, bigint];
+        setIsLoading(true);
 
-        const message = b[0]; // string part
-        console.log("message", message);
-        if (message.startsWith("You have earned")) {
-            fetchData.fetchAll;
-            setResponseState("SUCCESS");
-            setMessageResponse(message);
+        try {
+            const agent = HttpAgent.createSync({ identity });
+            const actor = Actor.createActor(idlFactory, {
+                agent: agent,
+                canisterId,
+            });
+            const b = await actor.claimStreak(globalID.principalId) as [string, bigint];
 
+            const message = b[0]; // string part
 
-        } else if (message.startsWith("Your streak is ALIVE!")) {
-            fetchData.fetchAll;
-            setMessageResponse(message);
-
-
-        } else if (message.startsWith("Too bad, your past streak")) {
-            fetchData.fetchAll;
-            setMessageResponse(message);
+            console.log("message", message);
+            if (message.startsWith("You have earned")) {
+                await fetchData.fetchUserSeconds(actor, globalID.principalId!);
+                await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                setResponseState("SUCCESS");
+                setMessageResponse(message);
 
 
-        } else if (message.startsWith("You have lost your past streak")) {
-            fetchData.fetchAll;
-            setResponseState("SUCCESS");
-            setMessageResponse(message);
+            } else if (message.startsWith("Your streak is ALIVE!")) {
+                await fetchData.fetchUserSeconds(actor, globalID.principalId!);
+                await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                setMessageResponse(message);
 
+
+            } else if (message.startsWith("Too bad, your past streak")) {
+                await fetchData.fetchUserSeconds(actor, globalID.principalId!);
+                await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                setMessageResponse(message);
+
+
+            } else if (message.startsWith("You have lost your past streak")) {
+                await fetchData.fetchUserSeconds(actor, globalID.principalId!);
+                await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                setResponseState("CLAIMED");
+                setMessageResponse(message);
+
+            }
+
+            if (continueButtonTimeoutRef.current) clearTimeout(continueButtonTimeoutRef.current);
+            continueButtonTimeoutRef.current = setTimeout(() => {
+                setShowContinueButton(true);
+            }, 1000);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleContinue = () => {
+        // Clear the auto-continue timer if it's still active
+        if (autoContinueTimeoutRef.current) {
+            clearTimeout(autoContinueTimeoutRef.current);
+            autoContinueTimeoutRef.current = null;
         }
 
-        if (continueButtonTimeoutRef.current) clearTimeout(continueButtonTimeoutRef.current);
-        continueButtonTimeoutRef.current = setTimeout(() => {
-            setShowContinueButton(true);
-        }, 1500);
+        // Reset states
+        setIsMoved(false);
+        setIsClaimClicked(false);
+        setShowContinueButton(false);
+        setResponseState('');
+        setIsLoading(false);
+        determineDisplayState();
     };
+
+    useEffect(() => {
+        if (showContinueButton) {
+            // Start a 30-second timer to auto-continue
+            autoContinueTimeoutRef.current = setTimeout(() => {
+                handleContinue();
+            }, 30000); // 30,000 milliseconds = 30 seconds
+        }
+
+        // Cleanup the timer if showContinueButton changes or component unmounts
+        return () => {
+            if (autoContinueTimeoutRef.current) {
+                clearTimeout(autoContinueTimeoutRef.current);
+                autoContinueTimeoutRef.current = null;
+            }
+        };
+    }, [showContinueButton]);
+
+
 
     const displayStreakAmount =
         displayState === 'CLAIM_FINAL'
@@ -209,9 +270,9 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 y="0px"
                 viewBox="0 0 1564.6 1080"
                 xmlSpace="preserve"
-                onClick={!isMoved ? handleClick : undefined}
+                onClick={isClickable ? handleClick : undefined}
                 style={{
-                    cursor: isMoved ? 'default' : 'pointer',
+                    cursor: isClickable ? 'pointer' : 'default',
                     transition: 'transform 0.3s ease',
                 }}
             >
@@ -502,7 +563,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                             fontFamily="Inter, sans-serif"
                             fontWeight="bold"
                         >
-                            {formatTimeRemaining(reviveRemainingTime)}
+                            {formatTimeRemaining(endDate)}
                         </text>
                     )}
                 </g>
@@ -538,9 +599,11 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 <g id="VisorNegro">
                     <path
                         style={{
-                            fill: isRevive
-                                ? 'url(#SVGID_00000154385756331280414030000011338415581356711597_)'
-                                : 'url(#SVGID_00000074424352097243448040000001515703629981409440_)',
+                            fill: isMoved
+                                ? 'url(#SVGID_00000074424352097243448040000001515703629981409440_)'
+                                : isRevive
+                                    ? 'url(#SVGID_00000154385756331280414030000011338415581356711597_)'
+                                    : 'url(#SVGID_00000074424352097243448040000001515703629981409440_)',
                             transition: 'fill 0.5s ease',
                         }}
                         d="M655.5,498.9h740.2
@@ -574,6 +637,19 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                                 {renderDisplayState}
                             </text>
                         )
+                    ) : isLoading ? (
+                        <text
+                            x="1025"
+                            y="655"
+                            fontSize="180"
+                            fill="#FFFFFF"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontFamily="Inter, sans-serif"
+                            fontWeight="bold"
+                        >
+                            LOADING
+                        </text>
                     ) : (
                         <text
                             x="1025"
@@ -616,13 +692,34 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                         width="9.7" height="229.7" />
                 </g>
             </svg>
+
+            {showContinueButton && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: '-2.5vw',
+                        transform: 'translateX(3%)',
+                        color: '#fff',
+                        textAlign: 'center',
+                        width: '75vw',
+                        wordWrap: 'break-word',
+                        marginBottom: '10px', // Space between message and button
+                        fontSize: '0.67vw', // Adjust font size as needed
+                    }}
+                >
+                    {messageResponse}
+                </div>
+            )}
+
             {showContinueButton && (
                 <button
                     style={{
                         position: 'absolute',
                         bottom: '-50%',
                         left: '47%',
-                        padding: '10px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         fontSize: '0.75vw',
                         color: '#fff',
                         background: 'linear-gradient(to right, #34AADC, #337FF5)',
@@ -634,13 +731,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                         width: '5vw',
                         height: '2vw',
                     }}
-                    onClick={() => {
-                        setIsMoved(false);
-                        setIsClaimClicked(false);
-                        setShowContinueButton(false);
-                        setResponseState('');
-                        determineDisplayState();
-                    }}
+                    onClick={handleContinue}
                 >
                     Continue
                 </button>
