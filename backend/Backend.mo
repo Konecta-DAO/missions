@@ -522,7 +522,7 @@ actor class Backend() {
                     if (randomNumber < percentage) {
                       // Success: continue streak
                       streak.put(userId, (mainStreak + 1));
-                      streakPercentage.put(userId, (percentage - 25));
+                      streakPercentage.put(userId, Nat.max(percentage - 25, 1));
                       let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
                       let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
                       newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
