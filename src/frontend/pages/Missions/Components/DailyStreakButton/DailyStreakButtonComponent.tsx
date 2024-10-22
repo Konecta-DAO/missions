@@ -756,7 +756,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                             overflowWrap: 'break-word',
                             marginBottom: '10px',
                             fontSize: isVertical ? '1.5vw' : '0.67vw',
-                            lineHeight: isVertical ? '20px' : '12px',
+                            lineHeight: isVertical ? '12px' : '20px',
                         }}
                     >
                         {messageResponse}
