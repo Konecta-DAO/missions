@@ -3,18 +3,46 @@ import styles from './AdminPanel.module.scss';
 import KonectaLogo from '../../public/assets/Konecta Logo.svg';
 import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
 import { Principal } from '@dfinity/principal';
-import { Actor, HttpAgent } from '@dfinity/agent';
+import { Actor, AnonymousIdentity, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
-import { canisterId as canistedIdNFID, idlFactory as idlFactoryNFID } from '../declarations/nfid/index.js';
 import { SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
-import { SerializedUser as SerializedUserNFID } from '../declarations/nfid/nfid.did.js';
+import { idlFactory as ocIdl, canisterId as canisterId2 } from '../declarations/oc/index.js';
+
+type UserArgs = {
+  user_id?: Principal[];
+  username?: string[];
+};
+
+type DiamondMembershipStatus =
+  | { Inactive: null }
+  | { Active: null }
+  | { Lifetime: null };
+
+type UserSummary = {
+  user_id: Principal;
+  username: string;
+  display_name?: string;
+  avatar_id?: bigint;
+  is_bot: boolean;
+  suspended: boolean;
+  diamond_member: boolean;
+  diamond_membership_status: DiamondMembershipStatus;
+  total_chit_earned: number;
+  chit_balance: number;
+  streak: number;
+  is_unique_person: boolean;
+};
+
+type UserResponse =
+  | { Success: UserSummary }
+  | { UserNotFound: null };
 
 function App() {
 
   const { identity, user, disconnect } = useIdentityKit();
   const [actor, setActor] = useState<any>(null);
-  const [actorNfid, setActorNfid] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
+  const [inputText, setInputText] = useState<string>('');
 
   const setData = async (agent: HttpAgent) => {
 
@@ -24,11 +52,6 @@ function App() {
         canisterId,
       });
       setActor(actor);
-      const actorNfid = Actor.createActor(idlFactoryNFID, {
-        agent: agent,
-        canisterId: canistedIdNFID,
-      });
-      setActorNfid(actorNfid);
       const b = await actor.trisAdmin(user?.principal!);
       if (b) {
         setLoaded(true);
@@ -60,6 +83,7 @@ function App() {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
 
+
     const file = event.target.files?.[0];
 
     if (file) {
@@ -74,6 +98,8 @@ function App() {
       reader.onload = async (e) => {
         const arrayBuffer = e.target?.result as ArrayBuffer;
         const uint8Array = new Uint8Array(arrayBuffer);
+
+
 
         console.log('Uint8Array size:', uint8Array.length, 'bytes');
 
@@ -371,6 +397,11 @@ function App() {
     }
   };
 
+  const resetAll = () => {
+    actor.resetall();
+    console.log("All data successfully reset.");
+  };
+
   const handleUserButtonClick = () => {
     const input = document.getElementById('hiddenUserFileInput') as HTMLInputElement;
     input.click();
@@ -382,118 +413,33 @@ function App() {
     input.click();
   };
 
-  const handleCSVButtonClick = () => {
-    const input = document.getElementById('hiddenCSVInput') as HTMLInputElement;
-    if (input) {
-      input.click();
-    }
-  };
+  const verifyOpenChat = async () => {
+    console.log("Input Text:", inputText);
+    const agent = HttpAgent.createSync({ identity });
+    const actor2 = Actor.createActor(ocIdl, {
+      agent: agent,
+      canisterId: canisterId2,
+    })
+    console.log("Hay actor 2", actor2)
 
-
-  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if (file) {
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        try {
-          const csvString = e.target?.result as string;
-
-          // Parse the CSV string
-          const lines = csvString.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-          if (lines.length < 2) {
-            console.error('CSV file is empty or missing data.');
-            return;
-          }
-
-          // Parse header
-          const headers = lines[0].split(',').map(h => h.trim());
-          // Expected headers: Timestamp,Telegram,Discord,OpenChat,X,NFID_Wallet,NNS_Principal
-
-          const users: SerializedUserNFID[] = [];
-
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i];
-            const values = line.split(',').map(v => v.trim());
-
-            if (values.length !== headers.length) {
-              console.warn(`Line ${i + 1} has ${values.length} values, expected ${headers.length}. Skipping.`);
-              continue;
-            }
-
-            const entry: { [key: string]: string } = {};
-            for (let j = 0; j < headers.length; j++) {
-              entry[headers[j]] = values[j];
-            }
-
-            // Now create SerializedUserNFID object
-            const idText = entry['NFID_Wallet'];
-            if (!idText) {
-              console.warn(`Line ${i + 1} missing NFID_Wallet. Skipping.`);
-              continue;
-            }
-            let id: Principal;
-            try {
-              id = Principal.fromText(idText);
-            } catch (e) {
-              console.warn(`Line ${i + 1} has invalid NFID_Wallet: ${idText}. Skipping.`);
-              continue;
-            }
-
-            let nnsPrincipal: Principal | undefined;
-            const nnsPrincipalText = entry['NNS_Principal'];
-            if (nnsPrincipalText) {
-              try {
-                nnsPrincipal = Principal.fromText(nnsPrincipalText);
-              } catch (e) {
-                console.warn(`Line ${i + 1} has invalid NNS_Principal: ${nnsPrincipalText}. Ignoring.`);
-              }
-            }
-
-            const creationTimeText = entry['Timestamp'];
-            let creationTime: bigint;
-            if (creationTimeText) {
-              try {
-                creationTime = BigInt(creationTimeText);
-              } catch (e) {
-                console.warn(`Line ${i + 1} has invalid Timestamp: ${creationTimeText}. Setting to 0.`);
-                creationTime = BigInt(0);
-              }
-            } else {
-              console.warn(`Line ${i + 1} missing Timestamp. Setting to 0.`);
-              creationTime = BigInt(0);
-            }
-
-            const telegramUser = entry['Telegram'] ? entry['Telegram'] : null;
-            const ocProfile = entry['OpenChat'] ? entry['OpenChat'] : null;
-
-            const user: SerializedUserNFID = {
-              id: id,
-              ocCompleted: false,
-              telegramUser: telegramUser ? [telegramUser] : [],
-              ocProfile: ocProfile ? [ocProfile] : [],
-              discordUser: [],
-              creationTime: creationTime,
-              twitterhandle: [],
-              pfpProgress: "false",
-              twitterid: [],
-              nnsPrincipal: nnsPrincipal ? [nnsPrincipal] : [],
-              totalPoints: BigInt(0)
-            };
-
-            users.push(user);
-          }
-
-          await actorNfid.addPlaceholderUsers(users);
-          console.log('NFID users successfully uploaded.');
-
-        } catch (error) {
-          console.error('Error processing NFID CSV file:', error);
-        }
+    try {
+      const args: UserArgs = {
+        user_id: [],
+        username: [inputText],
       };
 
-      reader.readAsText(file);
+      const c: UserResponse = await actor2.user(args) as UserResponse;
+
+      if ("Success" in c) {
+        const d = await actor.setOCMissionEnabled(c.Success.user_id);
+        if (d) {
+          console.log("Done");
+        } else {
+          console.log("Not found");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
     }
   };
 
@@ -530,12 +476,6 @@ function App() {
               <button onClick={handleButtonClick}>Upload Progress JSON File</button>
             </div>
 
-            {/* CSV File Upload */}
-            <div>
-              <input id="hiddenCSVInput" type="file" accept=".csv" onChange={handleCSVUpload} style={{ display: 'none' }} />
-              <button onClick={handleCSVButtonClick}>Upload NFID CSV</button>
-            </div>
-
             {/* Image Upload Section */}
             <div>
               <input
@@ -551,6 +491,16 @@ function App() {
             {/* Display Success Text */}
             {uploadSuccess && <p className={styles.UploadSuccessMessage}>{imageURL}</p>}
 
+            <div>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="OpenChat Username"
+                className={styles.TextInput}
+              />
+              <button onClick={verifyOpenChat}>Verify OpenChat</button>
+            </div>
           </div>
         )}
       </div>

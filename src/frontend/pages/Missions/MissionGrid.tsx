@@ -1,7 +1,9 @@
 import styles from './Missions.module.scss';
 import Mission from './Components/Mission/Mission.tsx';
+import MissionNfid from './Components/Mission/MissionNfid.tsx';
 import { useState } from 'react';
 import MissionModal from './Components/MissionModal/MissionModal.tsx';
+import MissionModalNfid from './Components/MissionModal/MissionModalNfid.tsx';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 
@@ -15,6 +17,8 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
     const navigate = useNavigate();
+
+    const isNfid = globalID.nfid === true;
 
     const handleMouseMove = (e: React.MouseEvent, content: string | null) => {
         const { clientX, clientY } = e;
@@ -37,12 +41,17 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
         navigate('/Missions');
     }
 
+    const missionsToDisplay = isNfid ? globalID.missionsnfid : globalID.missions;
+
+    const MissionComponent = isNfid ? MissionNfid : Mission;
+    const MissionModalComponent = isNfid ? MissionModalNfid : MissionModal;
+
     return (
         <div className={styles.MissionGrid}>
-            {globalID?.missions
+            {missionsToDisplay
                 ?.sort((a: any, b: any) => Number(a.id) - Number(b.id))
                 .map((mission: any) => (
-                    <Mission
+                    <MissionComponent
                         key={mission.id}
                         mission={mission}
                         handleCardClick={() => handleMissionClick(mission)}
@@ -58,7 +67,7 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
             )}
 
             {selectedMission && selectedMission?.id !== undefined && (
-                <MissionModal
+                <MissionModalComponent
                     selectedMissionId={BigInt(selectedMission.id)}
                     closeModal={closeModal}
                 />

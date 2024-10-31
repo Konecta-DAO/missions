@@ -1,10 +1,10 @@
 import { ActorSubclass } from '@dfinity/agent';
 import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
+import { SerializedMission as SerializedMissionNFID, SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID, SerializedUserStreak as SerializedUsedStreakNFID } from '../declarations/nfid/nfid.did.js';
 import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
 import { useCallback } from 'react';
-import { set } from 'react-datepicker/dist/date_utils.js';
 
 const useFetchData = () => {
     const {
@@ -18,7 +18,11 @@ const useFetchData = () => {
         setUserLastTimeStreak,
         setStreakResetTime,
         setTotalUserStreak,
-        setUserStreakPercentage
+        setUserStreakPercentage,
+        setMissionsnfid,
+        setUserProgressnfid,
+        setUsernfid,
+        setPointsnfid
     } = useGlobalID();
 
     const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -28,34 +32,48 @@ const useFetchData = () => {
         }
     }, []);
 
+    const isVerifiedNfid = useCallback(async (actorNfid: ActorSubclass, ae: Principal, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
+        const isVerifiedNfid = await actorNfid.hasVerified(ae) as boolean;
+        if (!isVerifiedNfid) {
+            setVerified(false);
+        }
+    }, []);
+
     // Fetch missions
-    const fetchMissions = useCallback(async (actor: ActorSubclass) => {
+    const fetchMissions = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass) => {
         const missions: SerializedMission[] = await actor.getAllMissions() as SerializedMission[];
         setMissions(missions);
+        const nfidmissions: SerializedMissionNFID[] = await actorNFID.getAllMissions() as SerializedMissionNFID[];
+        setMissionsnfid(nfidmissions);
     }, [setMissions]);
 
 
     // Fetch user progress
-    const fetchUserProgress = useCallback(async (actor: ActorSubclass, ae: Principal) => {
+    const fetchUserProgress = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         const userProgress: [bigint, SerializedProgress][] = await actor.getUserProgress(ae) as [bigint, SerializedProgress][];
         setUserProgress(userProgress);
+        const userProgressNFID: [bigint, SerializedProgressNFID][] = await actorNFID.getUserProgress(ae) as [bigint, SerializedProgressNFID][];
+        setUserProgressnfid(userProgressNFID);
     }, [setUserProgress]);
 
     // Fetch user details
-    const fetchUser = useCallback(async (actor: ActorSubclass, ae: Principal) => {
+    const fetchUser = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         if (setUser) {
             const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
             setUser(user);
+            const usernfid: SerializedUserNFID[] = await actorNFID.getUser(ae) as SerializedUserNFID[];
+            setUsernfid(usernfid);
             setPFPstatus(user[0]?.pfpProgress || '');
             setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
         }
     }, [setUser, setPFPstatus, setTwitterHandle]);
 
     // Fetch user seconds
-    const fetchUserSeconds = useCallback(async (actor: ActorSubclass, ae: Principal) => {
+    const fetchUserSeconds = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         const userSeconds: bigint = await actor.getTotalSecondsForUser(ae) as bigint;
-
         setTimerText(convertSecondsToHMS(Number(userSeconds)));
+        const points: bigint = await actorNFID.getTotalSecondsForUser(ae) as bigint;
+        setPointsnfid(points);
     }, [setTimerText]);
 
     // Fetch user PFP status
@@ -78,13 +96,14 @@ const useFetchData = () => {
         setUserStreakPercentage(userStreakPercentage);
     }, [setPFPstatus]);
 
-    const fetchAll = useCallback(async (actor: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const fetchAll = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
         await hasAccepted(actor, ae, setTerms);
-        await fetchMissions(actor);
-        await fetchUserProgress(actor, ae);
-        await fetchUser(actor, ae);
-        await fetchUserSeconds(actor, ae);
+        await isVerifiedNfid(actorNFID, ae, setVerified);
+        await fetchUserProgress(actor, actorNFID, ae);
+        await fetchMissions(actor, actorNFID);
         await fetchUserStreak(actor, ae);
+        await fetchUserSeconds(actor, actorNFID, ae);
+        await fetchUser(actor, actorNFID, ae);
         setDataLoaded(true);
     }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds, fetchUserStreak]);
 

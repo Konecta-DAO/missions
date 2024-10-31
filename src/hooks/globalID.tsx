@@ -1,6 +1,7 @@
 import { Principal } from '@dfinity/principal';
 import React, { createContext, useState, useContext, useMemo } from 'react';
 import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
+import { SerializedMission as SerializedMissionNFID, SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../declarations/nfid/nfid.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
 interface GlobalIDType {
@@ -34,6 +35,16 @@ interface GlobalIDType {
     setTotalUserStreak: (value: SerializedUserStreak | null) => void;
     userStreakPercentage: bigint;
     setUserStreakPercentage: (value: bigint) => void;
+    nfid: boolean;
+    setNfid: (value: boolean) => void;
+    missionsnfid: SerializedMissionNFID[];
+    setMissionsnfid: (missions: SerializedMissionNFID[]) => void;
+    userProgressnfid: Array<[bigint, SerializedProgressNFID]> | null;
+    setUserProgressnfid: (progress: Array<[bigint, SerializedProgressNFID]> | null) => void;
+    usernfid: SerializedUserNFID[] | null;
+    setUsernfid: (user: SerializedUserNFID[]) => void;
+    pointsnfid: bigint;
+    setPointsnfid: (value: bigint) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -54,6 +65,11 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
     const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
     const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
+    const [nfid, setNfid] = useState<boolean>(false);
+    const [missionsnfid, setMissionsnfid] = useState<SerializedMissionNFID[]>([]);
+    const [userProgressnfid, setUserProgressnfid] = useState<Array<[bigint, SerializedProgressNFID]> | null>([]);
+    const [usernfid, setUsernfid] = useState<SerializedUserNFID[] | null>([]);
+    const [pointsnfid, setPointsnfid] = useState<bigint>(0n);
 
     const value = useMemo(() => ({
         principalId,
@@ -85,7 +101,17 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         totalUserStreak,
         setTotalUserStreak,
         userStreakPercentage,
-        setUserStreakPercentage
+        setUserStreakPercentage,
+        nfid,
+        setNfid,
+        missionsnfid,
+        setMissionsnfid,
+        userProgressnfid,
+        setUserProgressnfid,
+        usernfid,
+        setUsernfid,
+        pointsnfid,
+        setPointsnfid
     }), [
         principalId,
         missions,
@@ -101,7 +127,12 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         userLastTimeStreak,
         streakResetTime,
         totalUserStreak,
-        userStreakPercentage
+        userStreakPercentage,
+        nfid,
+        missionsnfid,
+        userProgressnfid,
+        usernfid,
+        pointsnfid
     ]);
 
     return (

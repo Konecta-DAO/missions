@@ -1,8 +1,11 @@
 import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
+import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../declarations/nfid/index.js';
 import { Usergeek } from "usergeek-ic-js";
 import { convertSecondsToHMS } from "../../../../components/Utilities.tsx";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
+import { SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
+import { Principal } from "@dfinity/principal";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
@@ -51,7 +54,13 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -85,7 +94,13 @@ const MissionFunctionsComponent = {
         } else {
             alert("PFP status already set successfully. You will soon be manually verified");
         }
-        await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+
+        const actorNFID = Actor.createActor(idlFactoryNFID, {
+            agent: globalID.agent,
+            canisterId: canisterIdNFID,
+        });
+
+        await fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
         setLoading(false);
         closeModal();
     },
@@ -138,7 +153,12 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -208,7 +228,12 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -275,7 +300,12 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 if (input != 'a') {
                     closeModal();
@@ -342,7 +372,12 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
             }
 
@@ -391,10 +426,17 @@ const MissionFunctionsComponent = {
             canisterId,
         })
 
+
+
         const a = await actor.submitCode(globalID.principalId, missionid, input);
         if (a) {
             alert("Success");
-            await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+            const actorNFID = Actor.createActor(idlFactoryNFID, {
+                agent: globalID.agent,
+                canisterId: canisterIdNFID,
+            });
+
+            fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
             setLoading(false);
             closeModal();
         } else {
@@ -458,7 +500,12 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                await fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 alert(data.message);
                 Usergeek.trackEvent("Mission 9 : Nuance Follow");
                 setLoading(false);
@@ -470,6 +517,203 @@ const MissionFunctionsComponent = {
 
         } catch (error) {
             console.error("Error trying to communicate with Nuance", error);
+        }
+
+        setLoading(false);
+    },
+
+    followNFIDTwitter: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, setTwitterVerified: any) => {
+
+        const principal = globalID.principalId;
+        try {
+            const response = await fetch("https://dotest.konecta.one/requestTwitterAuth-v2-nfid/", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ principal }),
+            });
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
+            let authSuccess = false;
+
+            const handleEvent = (event: MessageEvent<any>) => {
+                if (event.origin !== "https://dotest.konecta.one") return;
+
+                const { accessToken, refreshToken, result } = event.data;
+                if (result === 'true') {
+                    alert("Success!")
+                    setTwitterVerified(true);
+                } else {
+                    if (result === 'false') {
+                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    } else {
+                        alert("You can't use the same twitter account in two different principals.")
+                    }
+                }
+
+                authSuccess = true;
+
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                setLoading(false);
+            }
+
+
+            window.addEventListener("message", handleEvent);
+
+
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
+
+        } catch (error) {
+            console.error("Error fetching Twitter auth URL:", error);
+        }
+    },
+    discordMission: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, setDiscordVerified: any) => {
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch("https://dotest.konecta.one/requestDiscordAuth/", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ principal }),
+            });
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "DiscordAuth", "width=600,height=800");
+
+            let authSuccess = false;
+
+            const handleEvent = (event: MessageEvent<any>) => {
+                if (event.origin !== "https://dotest.konecta.one") return;
+
+                const { accessToken, refreshToken, result } = event.data;
+                if (result === 'true') {
+                    alert("Success!")
+                    setDiscordVerified(true);
+                } else {
+                    if (result === 'error') {
+                        alert("We broke the roof! Discord API has reached its limit for our Dev account. Please try again later.")
+                    } else {
+                        if (result === 'fake') {
+                            alert("You can't use the same discord account in two different principals.")
+                        }
+                        alert("User is not a member of the Discord Server")
+                    }
+                }
+
+                authSuccess = true;
+
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                setLoading(false);
+            }
+
+
+            window.addEventListener("message", handleEvent);
+
+
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Discord authorization window.");
+                }
+            }, 300);
+
+        } catch (error) {
+            console.error("Error fetching Discord auth URL:", error);
+        }
+    },
+    nfidMain: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, user: SerializedUserNFID, setIsVisible: any) => {
+        const principal = globalID.principalId;
+        const tg = user.telegramUser;
+        const oc = user.ocProfile;
+        const nns = user.nnsPrincipal;
+        try {
+            const response = await fetch(
+                "https://dotest.konecta.one/nfidMain",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        principal,
+                        tg,
+                        oc,
+                        nns,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            if (data.message === "Success") {
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                alert(data.message);
+                setLoading(false);
+                setIsVisible(false);
+            } else {
+                alert(data.message);
+                setLoading(false);
+            }
+
+        } catch (error) {
+            console.error("Error", error);
         }
 
         setLoading(false);

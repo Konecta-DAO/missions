@@ -4,6 +4,7 @@ import { Actor } from '@dfinity/agent';
 import { idlFactory } from '../declarations/backend/backend.did.js';
 import { useGlobalID } from '../hooks/globalID.tsx';
 import { canisterId } from '../declarations/backend/index.js';
+import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../declarations/nfid/index.js';
 import useFetchData from '../hooks/fetchData.tsx';
 
 const OpenChat: React.FC = () => {
@@ -114,7 +115,14 @@ const OpenChat: React.FC = () => {
                                     canisterId,
                                 })
                                 await actor.addOCProfile(globalID.principalId, userId);
-                                fetchData.fetchAll(actor, globalID.principalId, setPlacestate, setPlacestate);
+
+                                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                                    agent: globalID.agent,
+                                    canisterId: canisterIdNFID,
+                                });
+
+                                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+
                             }
                         },
                         settings: {

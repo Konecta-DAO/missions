@@ -371,35 +371,6 @@ actor class Backend() {
     return 0;
   };
 
-  public shared query func beta() : async [(Principal, Types.SerializedUserStreak)] {
-
-    let serializedUserStreakVecTT = Vector.new<(Principal, Types.SerializedUserStreak)>();
-
-    let entriesUS = userStreak.entries();
-    for (entryUS in entriesUS) {
-      let (principal, streakMap) = entryUS;
-
-      // Retrieve all entries from the inner UserStreak TrieMap<Int, Nat>
-      let streakEntries = streakMap.entries();
-
-      // Create a Vector to accumulate serialized (Int, Nat) tuples
-      let serializedStreakEntries = Vector.new<(Int, Nat)>();
-
-      // Iterate over each (Int, Nat) pair in the UserStreak
-      for (streakEntry in streakEntries) {
-        let (streakId, streakValue) = streakEntry;
-
-        // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
-        Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
-      };
-
-      // Convert the Vector to an Array and add the (Principal, SerializedUserStreak) tuple to serializedUserStreakVec
-      Vector.add<(Principal, Types.SerializedUserStreak)>(serializedUserStreakVecTT, (principal, Vector.toArray(serializedStreakEntries)));
-    };
-
-    return Vector.toArray(serializedUserStreakVecTT);
-  };
-
   public shared query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
       let entriesUS = userStreak.entries();
@@ -1948,7 +1919,6 @@ actor class Backend() {
       userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
       return;
     };
-
   };
 
   public shared (msg) func resetallProgress() : async () {

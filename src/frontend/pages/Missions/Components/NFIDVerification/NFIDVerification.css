@@ -1,0 +1,178 @@
+.overlayV {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.form {
+    position: relative;
+    max-width: 500px;
+    width: 100%;
+    background-color: #27272a;
+    border-radius: 8px;
+    padding-top: 35px;
+    padding-bottom: 50px;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+.form::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 46%;
+    background-image: linear-gradient(to right, #0D9948, #2DD4BF, #0D9948);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #00000042;
+    z-index: -1;
+    bottom: -15px;
+}
+
+.radialGradient {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    z-index: 0;
+}
+
+.topGradient {
+    top: 0;
+}
+
+.bottomGradient {
+    bottom: 0;
+}
+
+.formGroup {
+    margin-bottom: 1.25vh;
+    position: relative;
+}
+
+.formT {
+    font-weight: 700;
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 40px;
+    user-select: none;
+}
+
+.label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: normal;
+    user-select: none;
+}
+
+.readOnly {
+    display: block;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: transparent;
+    border-radius: 8px;
+    color: #888;
+    font-size: 14px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.input {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 8px;
+    padding: 14px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: transparent;
+    font-size: 14px;
+}
+
+.error {
+    color: red;
+    font-size: 12px;
+}
+
+.verificationSection {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3.5vh;
+    margin-top: 3.5vh;
+    position: relative;
+}
+
+.verificationGroup {
+    width: 48%;
+}
+
+.buttonFF {
+    width: 100%;
+    padding: 10px;
+    background-color: #18181B;
+    color: #fff;
+    border: 2px solid #14B8A6;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.buttonFFDisabled {
+    width: 100%;
+    padding: 10px;
+    background-color: #18181B;
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    cursor: not-allowed;
+    font-size: 16px;
+}
+
+.description {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #EEE;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.67em;
+}
+
+.submitButton {
+    width: 100%;
+    padding: 12px;
+    color: #fff;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    border: 2px solid #14B8A6;
+    background: radial-gradient(#174845, #18181B);
+}
+
+.submitButtonDisabled {
+    width: 100%;
+    padding: 12px;
+    background-color: #18181B;
+    color: #888;
+    border: none;
+    border-radius: 25px;
+    cursor: not-allowed;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.requiredNFID {
+    color: red;
+}
+
+.linkForm {
+    color: #2DD4BF;
+}

@@ -9,6 +9,7 @@ import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
+import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../declarations/nfid/index.js';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import MissionGridComponent from './MissionGrid.tsx';
 import TopBar from './Components/TopBar/TopBar.tsx';
@@ -21,6 +22,11 @@ import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
 import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
 import OpenChatSuccessOverlay from '../../components/OpenChatSuccessOverlay/OpenChatSuccessOverlay.tsx';
+
+import SVG1 from '../../../../public/assets/NFIDlogin.svg';
+import SVG3 from '../../../../public/assets/NFIDearn.svg';
+import LottieAnimationComponent2 from './LottieAnimationComponent2.tsx';
+import NFIDVerification from './Components/NFIDVerification/NFIDVerification.tsx';
 
 interface ButtonItem {
     name: string;
@@ -42,7 +48,7 @@ const Missions: React.FC = () => {
     const navigate = useNavigate();
     const fetchData = useFetchData();
     const [dataloaded, setDataloaded] = useState(false);
-    const { loadingPercentage, loadingComplete } = useLoadingProgress({ totalTime: 3000 });
+    const { loadingPercentage, loadingComplete } = useLoadingProgress({ totalTime: 4000 });
     const { disconnect } = useIdentityKit();
     const [modalState, setModalState] = useState<ModalState>({
         isHistoryModalOpen: false,
@@ -53,8 +59,12 @@ const Missions: React.FC = () => {
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
     const [acceptedTerms, setAcceptedTerms] = useState(true);
+    const [isVerified, setIsVerified] = useState(true);
     const [isTermsModalVisible, setIsTermsModalVisible] = useState<boolean>(false);
+    const [isVerifyModalVisible, setIsVerifyModalVisible] = useState<boolean>(false);
     const [showOverlay, setShowOverlay] = useState(false);
+
+    const isNfid = globalID.nfid === true;
 
     const handleCloseOverlay = () => {
         setShowOverlay(false);
@@ -79,12 +89,28 @@ const Missions: React.FC = () => {
     }, [acceptedTerms]);
 
     useEffect(() => {
+        console.log("isVerified:", isVerified, "isNfid:", isNfid);
+    }, [isVerified, isNfid]);
+
+    useEffect(() => {
+        if (!isVerified && isNfid) {
+            setIsVerifyModalVisible(true);
+        }
+    }, [isVerified, isNfid]);
+
+    useEffect(() => {
         if (globalID.ocS != '') {
             const actor = Actor.createActor(idlFactory, {
                 agent: globalID.agent!,
                 canisterId,
             });
-            fetchData.fetchUserProgress(actor, globalID.principalId!);
+
+            const actorNFID = Actor.createActor(idlFactoryNFID, {
+                agent: globalID.agent!,
+                canisterId: canisterIdNFID,
+            });
+
+            fetchData.fetchUserProgress(actor, actorNFID, globalID.principalId!);
             setShowOverlay(true);
         }
     }, [globalID.ocS]);
@@ -132,7 +158,12 @@ const Missions: React.FC = () => {
                 });
                 const principal = await agent.getPrincipal();
 
-                await fetchData.fetchAll(actor, principal, setDataloaded, setAcceptedTerms);
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: agent,
+                    canisterId: canisterIdNFID,
+                });
+
+                await fetchData.fetchAll(actor, actorNFID, principal, setDataloaded, setAcceptedTerms, setIsVerified);
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -219,6 +250,7 @@ const Missions: React.FC = () => {
 
                     <div className={styles.MissionsContainer}>
                         <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
+                        <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible}/>
                         <div className={styles.TopBarWrapper}>
                             <TopBar
                                 buttonList={buttonList}
@@ -235,9 +267,42 @@ const Missions: React.FC = () => {
                             ) : (
                                 <div>Loading missions...</div>
                             )}
-                            <div className={styles.OpenChatWrapper}>
-                                <OpenChat />
-                            </div>
+                            {!isNfid ? (
+                                <div className={styles.OpenChatWrapper}>
+                                    <OpenChat />
+                                </div>
+                            ) : (
+                                <div className={styles.NFIDWrapper}>
+                                    <div className={styles.customRow}>
+                                        <img src={SVG1} alt="SVG1" className={styles.customImage} />
+                                        <div>
+                                            <p className={styles.lightP}>1/3</p>
+                                            <p className={styles.mediumP}>Join the Airdrop</p>
+                                            <p className={styles.lastP}>Login with NFID and start participating</p>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.customRow}>
+                                        <div>
+                                            <p className={styles.lightP}>2/3</p>
+                                            <p className={styles.mediumP}>Do Missions</p>
+                                            <p className={styles.lastP}>Click on the cards and follow the instructions to earn points</p>
+                                        </div>
+                                        <div className={styles.customImage} >
+                                            <LottieAnimationComponent2 />
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.customRow}>
+                                        <img src={SVG3} alt="SVG3" className={styles.customImage} />
+                                        <div>
+                                            <p className={styles.lightP}>3/3</p>
+                                            <p className={styles.mediumP}>Earn Tokens</p>
+                                            <p className={styles.lastP}>Accumulating points raises your chances to join the 1,000 winners</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -335,9 +400,11 @@ const Missions: React.FC = () => {
                                         ) : (
                                             <div>Loading missions...</div>
                                         )}
-                                        <div className={styles.OpenChatWrapper}>
-                                            <OpenChat />
-                                        </div>
+                                        {!isNfid && (
+                                            <div className={styles.OpenChatWrapper}>
+                                                <OpenChat />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </>

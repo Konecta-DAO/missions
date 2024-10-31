@@ -38,6 +38,7 @@
     "@types/react-datepicker": "^7.0.0",
     "chart.js": "^4.4.4",
     "check-peer-dependencies": "^4.3.0",
+    "lottie-react": "^2.4.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-datepicker": "^7.4.0",

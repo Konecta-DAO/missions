@@ -17,8 +17,16 @@
     padding: 20px 2.5% 0 2.5%;
     position: relative;
     width: 95%;
-    height: 100%;
     z-index: 10;
+}
+
+.topbarSvg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    z-index: -1;
 }
 
 .topbarMobile {
@@ -41,17 +49,17 @@
     gap: 0.5rem;
     justify-content: flex-start;
     width: 25%;
+    transform: translateY(-2.25vh);
 }
 
 .topbarCenter {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 3vw;
     justify-content: center;
-    display: flex;
     text-align: center;
     width: 50%;
-    transform: translateX(6%);
+    transform: translate(7%, -4vh);
 }
 
 .topbarRight {
@@ -70,6 +78,7 @@
     width: 30vw;
     gap: 1rem;
     z-index: 1;
+    transform: translateY(-2.25vh);
 }
 
 .topbarTop {
@@ -122,12 +131,27 @@
     height: auto;
 }
 
+.PointsNfidSVG {
+    width: 12vw;
+    height: auto;
+}
+
 .TimerText {
     color: black;
     font-size: 0.75vw;
     pointer-events: none;
     position: absolute;
     font-weight: bold;
+}
+
+.PointsNfid {
+    color: black;
+    font-size: 1.15vw;
+    pointer-events: none;
+    font-weight: 600;
+    position: absolute;
+    left: 4.33vw;
+    text-align: left;
 }
 
 .TimeCapsuleMobile {
@@ -144,7 +168,7 @@
 }
 
 .KonectaLogo {
-    width: 13.5vw;
+    width: 10vw;
     height: auto;
 }
 
@@ -171,6 +195,61 @@
     transform: translateY(-9%) scale(1);
     position: relative;
     transition: all 0.5s ease;
+}
+
+.nfidDisconnect {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 4vw;
+    transform: translateY(-23%) scale(1);
+    position: relative;
+    transition: all 0.5s ease;
+    max-width: 100px;
+}
+
+.NFIDLogout {
+    margin-top: 4.33vw;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    /* Optional: Smooth transitions */
+
+    &.pressed {
+        animation: bounce 0.3s cubic-bezier(.5, .05, .1, .94);
+        transform: scale(0.85);
+        filter: brightness(0.75) saturate(1.8);
+    }
+
+    &:not(.pressed) {
+        animation: bounceBack 0.4s cubic-bezier(.25, .46, .45, .94);
+        transform: scale(1);
+        /* Ensure it scales back to original */
+    }
+}
+
+
+@keyframes bounce {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(0.85);
+    }
+}
+
+@keyframes bounceBack {
+    0% {
+        transform: scale(0.85);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .topbarButtonClaimMobile {
