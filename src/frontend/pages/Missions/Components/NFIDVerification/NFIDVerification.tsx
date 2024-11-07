@@ -7,22 +7,22 @@ import { canisterId as canistedIdNFID, idlFactory as idlFactoryNFID } from '../.
 import { Actor, HttpAgent } from '@dfinity/agent';
 import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
+import { useMediaQuery } from 'react-responsive';
 
 interface NFIDVerificationProps {
     isVisible: boolean;
     identity: any;
     setIsVisible: any;
+    setIsVerified: any;
 }
 
-const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity, setIsVisible }) => {
-
-
+const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity, setIsVisible, setIsVerified }) => {
 
     const globalID = useGlobalID();
     const fetchData = useFetchData();
-
+    const { nfid, setNfid } = globalID;
     const [user, setUser] = useState<SerializedUserNFID | null>(null);
-
+    const minForm = useMediaQuery({ query: '(max-width: 950px)' });
     const [telegramUser, setTelegramUser] = useState<string>('');
     const [openChatUser, setOpenChatUser] = useState<string>('');
     const [nnsPrincipal, setNnsPrincipal] = useState<string>('');
@@ -35,6 +35,7 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
     const [placestate, setPlacestate] = useState<boolean>(false);
 
     const [nnsValid, setNnsValid] = useState<boolean>(false);
+    const [nnsContainsSpaces, setNnsContainsSpaces] = useState<boolean>(false);
 
 
 
@@ -115,13 +116,19 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
     };
 
     // Handler for NNS Principal input
-    const handleNnsPrincipalChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const handleNnsPrincipalChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
         setNnsPrincipal(value);
+
+        // Check if it contains spaces
+        const containsSpaces = /\s/.test(value);
+        setNnsContainsSpaces(containsSpaces);
+
         // Validate NNS Principal
         const regex = /^([a-z0-9]{5}-){10}[a-z0-9]{3}$/;
-        setNnsValid(regex.test(value));
+        setNnsValid(regex.test(value) && !containsSpaces);
     };
+
 
     // Handler for Verify Twitter button
     const handleVerifyTwitter = async () => {
@@ -130,6 +137,7 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
             await missionFunctions.followNFIDTwitter(globalID, fetchData, setTwitterLoading, setPlacestate, setTwitterVerified);
         } catch (error) {
             console.error(`Error verifying Twitter`, error);
+            setTwitterLoading(false);
         }
     };
 
@@ -138,9 +146,10 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
     const handleVerifyDiscord = async () => {
         setDiscordLoading(true);
         try {
-            await missionFunctions.discordMission(globalID, fetchData, setTwitterLoading, setPlacestate, setDiscordVerified);
+            await missionFunctions.discordMission(globalID, fetchData, setDiscordLoading, setPlacestate, setDiscordVerified);
         } catch (error) {
             console.error(`Error verifying Discord`, error);
+            setDiscordLoading(false);
         }
     };
 
@@ -151,7 +160,12 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
         setSubmitLoading(true);
 
         if (!nnsValid) {
-            alert('Please enter a valid NNS Principal.');
+            if (nnsContainsSpaces) {
+                alert("NNS can't contain spaces.");
+            } else {
+                alert('Please enter a valid NNS Principal.');
+            }
+            setSubmitLoading(false);
             return;
         }
 
@@ -176,11 +190,8 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
             nnsPrincipal: [principal],
         };
 
-        // Log the updated SerializedUser object
-        console.log('Submitted SerializedUser:', updatedUser);
-
         try {
-            await missionFunctions.nfidMain(globalID, fetchData, setSubmitLoading, setPlacestate, updatedUser, setIsVisible);
+            await missionFunctions.nfidMain(globalID, fetchData, setSubmitLoading, setPlacestate, updatedUser, setIsVisible, setIsVerified);
         } catch (error) {
             console.error(`Error verifying Discord`, error);
         }
@@ -207,163 +218,242 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
 
     return (
         <div className="overlayV">
-            <form onSubmit={handleSubmit} className="form">
+            <div className="formWrapper">
+                <form onSubmit={handleSubmit} className="form">
+                    <div className="closeButton" onClick={() => (setNfid(false), setIsVisible(false))}>X</div>
+                    {/* SVG Horizontal Line */}
+                    <svg className="horizontalLineF" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="horizontalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="rgba(45, 212, 191, 0)" />
+                                <stop offset="50%" stopColor="#0D9948" />
+                                <stop offset="100%" stopColor="rgba(45, 212, 191, 0)" />
+                            </linearGradient>
+                        </defs>
+                        <line x1="0" y1="0" x2="100%" y2="2" stroke="url(#horizontalGradient)" strokeWidth="2" />
+                    </svg>
 
-                {/* SVG Radial Gradients */}
-                <svg className="radialGradient topGradient" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <radialGradient id="topRadialGradient" cx="50%" cy="0%" r="100%">
-                            <stop offset="0%" stopColor="#223e30" />
-                            <stop offset="100%" stopColor="transparent" />
-                        </radialGradient>
-                    </defs>
-                    <rect width="100%" height="57%" fill="url(#topRadialGradient)" />
-                </svg>
+                    {/* SVG Radial Gradients */}
+                    <svg className="radialGradient topGradient" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="topRadialGradient" cx="50%" cy="0%" r="100%">
+                                <stop offset="0%" stopColor="#223e30" />
+                                <stop offset="100%" stopColor="transparent" />
+                            </radialGradient>
+                        </defs>
+                        <rect width="100%" height="57%" fill="url(#topRadialGradient)" />
+                    </svg>
 
-                <svg className="radialGradient bottomGradient" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <radialGradient id="bottomRadialGradient" cx="50%" cy="100%" r="100%">
-                            <stop offset="0%" stopColor="#223e30" />
-                            <stop offset="100%" stopColor="transparent" />
-                        </radialGradient>
-                    </defs>
-                    <rect y="43%" width="100%" height="57%" fill="url(#bottomRadialGradient)" />
-                </svg>
+                    <svg className="radialGradient bottomGradient" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="bottomRadialGradient" cx="50%" cy="100%" r="100%">
+                                <stop offset="0%" stopColor="#223e30" />
+                                <stop offset="100%" stopColor="transparent" />
+                            </radialGradient>
+                        </defs>
+                        <rect y="43%" width="100%" height="57%" fill="url(#bottomRadialGradient)" />
+                    </svg>
 
-
-                <div className="formGroup">
-                    <h2 className="formT">NFID Airdrop Data</h2>
-                </div>
-                {/* NFID Principal Id (Non-editable) */}
-                <div className="formGroup">
-                    <label className="label">NFID Principal ID</label>
-                    <span className="readOnly">
-                        {user.id ? user.id.toText() : 'ID not available'}
-                    </span>
-                </div>
-
-                {/* Telegram User */}
-                <div className="formGroup">
-                    <label htmlFor="telegramUser" className="label">
-                        Telegram User (Optional)
-                    </label>
-                    <input
-                        type="text"
-                        id="telegramUser"
-                        value={telegramUser}
-                        onChange={handleTelegramChange}
-                        className="input"
-                        placeholder="Enter Telegram username"
-                    />
-                </div>
-
-                {/* OpenChat User */}
-                <div className="formGroup">
-                    <label htmlFor="openChatUser" className="label">
-                        OpenChat User (Optional)
-                    </label>
-                    <input
-                        type="text"
-                        id="openChatUser"
-                        value={openChatUser}
-                        onChange={handleOpenChatChange}
-                        className="input"
-                        placeholder="Enter OpenChat username"
-                    />
-                </div>
-
-                {/* NNS Principal */}
-                <div className="formGroup">
-                    <label htmlFor="nnsPrincipal" className="label">
-                        NNS Principal <span className="requiredNFID">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        id="nnsPrincipal"
-                        value={nnsPrincipal}
-                        onChange={handleNnsPrincipalChange}
-                        className="input"
-                        placeholder="Enter NNS Principal"
-                    />
-                    {!nnsValid && nnsPrincipal.length > 0 && (
-                        <span className="error">Invalid NNS Principal format.</span>
-                    )}
-                </div>
-
-                {/* Verification Buttons */}
-                <div className="verificationSection">
-                    {/* Verify Twitter */}
-                    <div className="verificationGroup">
-                        <button
-                            type="button"
-                            onClick={handleVerifyTwitter}
-                            disabled={twitterVerified || twitterLoading}
-                            className={twitterVerified || twitterLoading ? 'buttonFFDisabled' : 'buttonFF'}
-                        >
-                            {twitterLoading
-                                ? 'Loading...'
-                                : twitterVerified
-                                    ? 'Twitter Verified'
-                                    : 'Verify Twitter'}
-                        </button>
-                        <small className="description">
-                            Click to verify your Twitter account. It will confirm that you follow the{' '}
-                            <a
-                                href="https://x.com/IdentityMaxis/status/1846577159235588270"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="linkForm"
-                            >
-                                Mission 1
-                            </a>{' '}
-                            accounts and have retweeted. If not, these steps will be done automatically.
-                        </small>
-                    </div>
-
-                    {/* Verify Discord */}
-                    <div className="verificationGroup">
-                        <button
-                            type="button"
-                            onClick={handleVerifyDiscord}
-                            disabled={discordVerified || discordLoading}
-                            className={discordVerified || discordLoading ? 'buttonFFDisabled' : 'buttonFF'}
-                        >
-                            {discordLoading
-                                ? 'Loading...'
-                                : discordVerified
-                                    ? 'Discord Verified'
-                                    : 'Verify Discord'}
-                        </button>
-                        <small className="description">
-                            Click to verify your Discord account. It will also verify that you're on the NFID Labs Discord Channel.{' '}
-                            <a
-                                href="https://discord.gg/a9BFNrYJ99"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="linkForm"
-                            >
-                                Click here
-                            </a>{' '}
-                            to join in case you haven't yet.
-                        </small>
-                    </div>
-                </div>
-
-                {/* Submit Button */}
-                <div className="formGroup">
-                    <button
-                        type="submit"
-                        disabled={buttonDisabled}
-                        className={
-                            buttonDisabled
-                                ? 'submitButtonDisabled'
-                                : 'submitButton'
-                        }
+                    {/*  SVG Path */}
+                    <svg
+                        className="customPath"
+                        viewBox="0 0 600 4000"
+                        xmlns="http://www.w3.org/2000/svg"
                     >
-                        {buttonText}
-                    </button>
-                </div>
-            </form>
+                        <defs>
+                            <linearGradient id="customPathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#0D9948" />
+                                <stop offset="100%" stopColor="#2DD4BF" />
+                            </linearGradient>
+                            <filter id="blurFilter" x="-5%" y="-5%" width="110%" height="110%">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
+                            </filter>
+                            <filter id="superblurFilter" x="-5%" y="-5%" width="110%" height="110%">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
+                            </filter>
+                        </defs>
+                        {/* Super Blurred Rectangle */}
+                        <rect
+                            x="25"
+                            y="0"
+                            width="550"
+                            height="3975"
+                            rx="10"
+                            ry="10"
+                            stroke="url(#customPathGradient)"
+                            strokeWidth="4"
+                            fill="none"
+                            filter="url(#superblurFilter)"
+                        />
+                        {/* Blurred Rectangle */}
+                        <rect
+                            x="25"
+                            y="0"
+                            width="550"
+                            height="3975"
+                            rx="10"
+                            ry="10"
+                            stroke="url(#customPathGradient)"
+                            strokeWidth="4"
+                            fill="none"
+                            filter="url(#blurFilter)"
+                        />
+                        {/* Original Rectangle */}
+                        <rect
+                            x="25"
+                            y="0"
+                            width="550"
+                            height="3975"
+                            rx="10"
+                            ry="10"
+                            stroke="url(#customPathGradient)"
+                            strokeWidth="4"
+                            fill="none"
+                        />
+                    </svg>
+
+                    <div className="formGroup">
+                        <h2 className="formT">NFID Wallet Airdrop Form</h2>
+                    </div>
+                    {/* NFID Principal Id (Non-editable) */}
+                    <div className="formGroup">
+                        <label className="label">NFID Wallet Principal Address</label>
+                        <span className="readOnly">
+                            {user.id ? user.id.toText() : 'Adress not available'}
+                        </span>
+                    </div>
+
+                    {/* Telegram User */}
+                    <div className="formGroup">
+                        <label htmlFor="telegramUser" className="label">
+                            Telegram User (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            id="telegramUser"
+                            value={telegramUser}
+                            onChange={handleTelegramChange}
+                            className="input"
+                            placeholder="Enter Telegram username"
+                        />
+                    </div>
+
+                    {/* OpenChat User */}
+                    <div className="formGroup">
+                        <label htmlFor="openChatUser" className="label">
+                            OpenChat User (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            id="openChatUser"
+                            value={openChatUser}
+                            onChange={handleOpenChatChange}
+                            className="input"
+                            placeholder="Enter OpenChat username"
+                        />
+                    </div>
+
+                    {/* NNS Principal */}
+                    <div className="formGroup">
+                        <label htmlFor="nnsPrincipal" className="label">
+                            NNS Principal <span className="requiredNFID">*</span>
+                        </label>
+                        <textarea
+                            id="nnsPrincipal"
+                            value={nnsPrincipal}
+                            onChange={handleNnsPrincipalChange}
+                            className="input"
+                            placeholder="Enter NNS Principal"
+                        />
+                        {!nnsValid && nnsPrincipal.length > 0 && (
+                            <span className="error">
+                                {nnsContainsSpaces
+                                    ? "NNS can't contain spaces."
+                                    : "Invalid NNS Principal format."}
+                            </span>
+                        )}
+
+                    </div>
+                    {/* Verification Buttons */}
+                    <div className="verificationSection">
+                        {/* Verify Twitter */}
+                        <div className="verificationGroup">
+                            <button
+                                type="button"
+                                onClick={handleVerifyTwitter}
+                                disabled={twitterVerified || twitterLoading}
+                                className={twitterVerified || twitterLoading ? 'buttonFFDisabled' : 'buttonFF'}
+                            >
+                                {twitterLoading
+                                    ? 'Loading...'
+                                    : twitterVerified
+                                        ? 'X Verified'
+                                        : 'Verify X'}
+                            </button>
+
+                            {(!minForm) &&
+                                <small className="description">
+                                    Click to verify your X account. It will confirm that you follow the{' '}
+                                    <a
+                                        href="https://x.com/IdentityMaxis/status/1846577159235588270"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="linkForm"
+                                    >
+                                        Mission 1
+                                    </a>{' '}
+                                    accounts and have retweeted. If not, these steps will be done automatically.
+                                </small>
+                            }
+                        </div>
+
+                        {/* Verify Discord */}
+                        <div className="verificationGroup">
+                            <button
+                                type="button"
+                                onClick={handleVerifyDiscord}
+                                disabled={discordVerified || discordLoading}
+                                className={discordVerified || discordLoading ? 'buttonFFDisabled' : 'buttonFF'}
+                            >
+                                {discordLoading
+                                    ? 'Loading...'
+                                    : discordVerified
+                                        ? 'Discord Verified'
+                                        : 'Verify Discord'}
+                            </button>
+                            {(!minForm) &&
+                                <small className="description">
+                                    Click to verify your Discord account. It will also verify that you're on the NFID Labs Discord Channel.{' '}
+                                    <a
+                                        href="https://discord.gg/a9BFNrYJ99"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="linkForm"
+                                    >
+                                        Click here
+                                    </a>{' '}
+                                    to join in case you haven't yet.
+                                </small>
+                            }
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="formGroup">
+                        <button
+                            type="submit"
+                            disabled={buttonDisabled}
+                            className={
+                                buttonDisabled
+                                    ? 'submitButtonDisabled'
+                                    : 'submitButton'
+                            }
+                        >
+                            {buttonText}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

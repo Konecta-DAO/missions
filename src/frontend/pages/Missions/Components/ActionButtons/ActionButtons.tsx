@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import HexagonButton from '../../../../components/HexagonButton/hexagonButton.tsx';
 import styles from './ActionButtons.module.scss';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 
 interface ButtonItem {
   name: string;
@@ -24,6 +25,9 @@ type ModalState = {
 const ActionButtons: React.FC<ActionButtonsProps> = ({ buttonList, toggleModal }) => {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  const globalID = useGlobalID();
+  const isNfid = globalID.nfid === true;
 
   const modalMap: { [key: string]: keyof ModalState } = {
     History: 'isHistoryModalOpen',
@@ -60,11 +64,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ buttonList, toggleModal }
       ></div>
 
       {/* Action Buttons */}
-      <div className={styles.collapseWrapper}>
+      <div className={styles.collapseWrapperNfid}>
         <ul
-          className={`${styles.collapsedButtons} ${
-            isMenuOpen || isAnimating ? styles.active : ''
-          }`}
+          className={`${styles.collapsedButtons} ${isMenuOpen || isAnimating ? styles.active : ''
+            }`}
         >
           {buttonList
             ?.filter((item) => item.type !== 'desktop')
@@ -76,9 +79,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ buttonList, toggleModal }
 
               return (
                 <li
-                  className={`${styles.collapsedButton} ${
-                    isMenuOpen ? styles.buttonVisible : ''
-                  }`}
+                  className={`${styles.collapsedButton} ${isMenuOpen ? styles.buttonVisible : ''
+                    }`}
                   key={item.name}
                   style={{ transitionDelay: `${delay}s` }}
                 >
@@ -89,8 +91,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ buttonList, toggleModal }
                       item.onClick
                         ? item.onClick
                         : () => {
-                            toggleModal(modalName);
-                          }
+                          toggleModal(modalName);
+                        }
                     }
                   />
                 </li>

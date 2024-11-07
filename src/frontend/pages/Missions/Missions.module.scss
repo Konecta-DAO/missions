@@ -33,10 +33,10 @@
     overflow-y: hidden;
 }
 
-.MissionsBody2 {
+.MissionsBody2nfid {
     position: relative;
     width: 100%;
-    height: 61%;
+    height: 50%;
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -452,6 +452,22 @@
     color: rgb(216 255 248);
     line-height: 1.75rem;
     overflow-wrap: break-word;
+}
+
+.ToggleMissionWrapperL {
+    display: flex;
+    justify-content: flex-start;
+    width: 90%;
+    position: relative;
+    left: 5%;
+}
+
+.ToggleMissionWrapperR {
+    display: flex;
+    justify-content: flex-end;
+    width: 90%;
+    position: relative;
+    left: 5%;
 }
 
 @media (max-width: 1280px) {

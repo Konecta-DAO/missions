@@ -50,6 +50,7 @@ type ModalState = {
 
 const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
     const globalID = useGlobalID();
+    const isNfid = globalID.nfid;
     const { nfid, setNfid } = globalID;
     const { disconnect } = useIdentityKit();
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
@@ -469,7 +470,6 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                         ) : (
 
                             <div className={styles.nfidDisconnect}>
-
                                 <img src={NFIDLogout} alt="Logout" className={`${styles.NFIDLogout} ${isPressed ? styles.pressed : ''}`} onMouseDown={handleMouseDown}
                                     onMouseUp={handleMouseUp}
                                     onMouseLeave={handleMouseLeave} />
@@ -488,68 +488,83 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             <nav className={styles.topbarMobile}>
                                 <div className={styles.topbarTop}>
                                     <div className={`${styles.topbarLeftMobile} ${isClaimClicked ? styles.darkened : ''}`}>
-                                        <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogoMobile} />
+                                        <img src={isNfid ? NFIDLogo : KonectaLogo} alt="Logo" className={styles.KonectaLogoMobile} />
                                     </div>
                                     <div className={`${styles.topbarRightMobile} ${isClaimClicked ? styles.darkened : ''}`}>
                                         <div className={styles.hexagonButtonWrapper}>
-                                            <HexagonButton name="Log Out" src="/assets/logout_button.svg" onClick={handleDC} />
+                                            <HexagonButton
+                                                name="Log Out"
+                                                src={isNfid ? "/assets/NFIDlogout.svg" : "/assets/logout_button.svg"}
+                                                onClick={handleDC}
+                                            />
                                         </div>
                                     </div>
                                 </div>
-                                <div className={styles.topbarBottom}>
-                                    <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
-                                        <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsuleMobile} />
-                                        <div className={styles.TimerTextMobile}>{globalID.timerText}</div>
-                                    </div>
-                                    <ul className={styles.topbarRightMobile}>
-                                        <li
-                                            className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
-                                            onClick={!isDisabled ? handleClaimClick : undefined}
-                                        >
-                                            <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
+                                <div className={isNfid ? styles.topbarBottomNfid : styles.topbarBottom}>
 
-                                            {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
-                                                <>
-                                                    {showFirstRoller && (
-                                                        <div
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '58.5px',
-                                                                left: '68px',
-                                                                pointerEvents: 'none',
-                                                            }}
-                                                        >
-                                                            <JackpotRoller targetNumber={targetNumbers[0]} svgList={svgList} size={25} />
-                                                        </div>
-                                                    )}
-                                                    {showSecondRoller && (
-                                                        <div
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '58.5px',
-                                                                left: '102px',
-                                                                pointerEvents: 'none',
-                                                            }}
-                                                        >
-                                                            <JackpotRoller targetNumber={targetNumbers[1]} svgList={svgList} size={25} />
-                                                        </div>
-                                                    )}
-                                                    {showThirdRoller && (
-                                                        <div
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '58.5px',
-                                                                left: '136px',
-                                                                pointerEvents: 'none',
-                                                            }}
-                                                        >
-                                                            <JackpotRoller targetNumber={targetNumbers[2]} svgList={svgList} size={25} />
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </li>
-                                    </ul>
+                                    {!nfid ? (
+                                        <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                            <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsuleMobile} />
+                                            <div className={styles.TimerTextMobile}>{globalID.timerText}</div>
+                                        </div>
+                                    ) : (
+                                        <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                            <img src={NFIDPoints} alt="Nfid Points" className={styles.PointsNfidSVGMobile} />
+                                            <div className={styles.PointsNfidMobile}>Points: {Number(globalID.pointsnfid)}</div>
+                                        </div>
+                                    )}
+
+                                    {!nfid && (
+                                        <ul className={styles.topbarRightMobile}>
+                                            <li
+                                                className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
+                                                onClick={!isDisabled ? handleClaimClick : undefined}
+                                            >
+                                                <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
+
+                                                {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
+                                                    <>
+                                                        {showFirstRoller && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '58.5px',
+                                                                    left: '68px',
+                                                                    pointerEvents: 'none',
+                                                                }}
+                                                            >
+                                                                <JackpotRoller targetNumber={targetNumbers[0]} svgList={svgList} size={25} />
+                                                            </div>
+                                                        )}
+                                                        {showSecondRoller && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '58.5px',
+                                                                    left: '102px',
+                                                                    pointerEvents: 'none',
+                                                                }}
+                                                            >
+                                                                <JackpotRoller targetNumber={targetNumbers[1]} svgList={svgList} size={25} />
+                                                            </div>
+                                                        )}
+                                                        {showThirdRoller && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '58.5px',
+                                                                    left: '136px',
+                                                                    pointerEvents: 'none',
+                                                                }}
+                                                            >
+                                                                <JackpotRoller targetNumber={targetNumbers[2]} svgList={svgList} size={25} />
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </li>
+                                        </ul>
+                                    )}
                                 </div>
                             </nav>
                         </>
@@ -562,68 +577,83 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             <nav className={styles.topbarMobile}>
                                 <div className={styles.topbarTop}>
                                     <div className={`${styles.topbarLeftMobile} ${isClaimClicked ? styles.darkened : ''}`}>
-                                        <img src={KonectaLogo} alt="Konecta Logo" className={styles.KonectaLogoMobile} />
+                                        <img src={isNfid ? NFIDLogo : KonectaLogo} alt="Logo" className={styles.KonectaLogoMobile} />
                                     </div>
                                     <div className={`${styles.topbarRightMobile} ${isClaimClicked ? styles.darkened : ''}`}>
                                         <div className={styles.hexagonButtonWrapper}>
-                                            <HexagonButton name="Log Out" src="/assets/logout_button.svg" onClick={handleDC} />
+                                            <HexagonButton
+                                                name="Log Out"
+                                                src={isNfid ? "/assets/NFIDlogout.svg" : "/assets/logout_button.svg"}
+                                                onClick={handleDC}
+                                            />
                                         </div>
                                     </div>
                                 </div>
-                                <div className={styles.topbarBottom}>
-                                    <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
-                                        <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsuleMobile} />
-                                        <div className={styles.TimerTextMobile}>{globalID.timerText}</div>
-                                    </div>
-                                    <ul className={styles.topbarRightMobile}>
-                                        <li
-                                            className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
-                                            onClick={!isDisabled ? handleClaimClick : undefined}
-                                        >
-                                            <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
+                                <div className={isNfid ? styles.topbarBottomNfid : styles.topbarBottom}>
 
-                                            {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
-                                                <>
-                                                    {showFirstRoller && (
-                                                        <div
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '58.5px',
-                                                                left: '68px',
-                                                                pointerEvents: 'none',
-                                                            }}
-                                                        >
-                                                            <JackpotRoller targetNumber={targetNumbers[0]} svgList={svgList} size={25} />
-                                                        </div>
-                                                    )}
-                                                    {showSecondRoller && (
-                                                        <div
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '58.5px',
-                                                                left: '102px',
-                                                                pointerEvents: 'none',
-                                                            }}
-                                                        >
-                                                            <JackpotRoller targetNumber={targetNumbers[1]} svgList={svgList} size={25} />
-                                                        </div>
-                                                    )}
-                                                    {showThirdRoller && (
-                                                        <div
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '58.5px',
-                                                                left: '136px',
-                                                                pointerEvents: 'none',
-                                                            }}
-                                                        >
-                                                            <JackpotRoller targetNumber={targetNumbers[2]} svgList={svgList} size={25} />
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </li>
-                                    </ul>
+                                    {!nfid ? (
+                                        <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                            <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsuleMobile} />
+                                            <div className={styles.TimerTextMobile}>{globalID.timerText}</div>
+                                        </div>
+                                    ) : (
+                                        <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                            <img src={NFIDPoints} alt="Nfid Points" className={styles.PointsNfidSVGMobile} />
+                                            <div className={styles.PointsNfidMobile}>Points: {Number(globalID.pointsnfid)}</div>
+                                        </div>
+                                    )}
+
+                                    {!nfid && (
+                                        <ul className={styles.topbarRightMobile}>
+                                            <li
+                                                className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
+                                                onClick={!isDisabled ? handleClaimClick : undefined}
+                                            >
+                                                <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
+
+                                                {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
+                                                    <>
+                                                        {showFirstRoller && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '58.5px',
+                                                                    left: '68px',
+                                                                    pointerEvents: 'none',
+                                                                }}
+                                                            >
+                                                                <JackpotRoller targetNumber={targetNumbers[0]} svgList={svgList} size={25} />
+                                                            </div>
+                                                        )}
+                                                        {showSecondRoller && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '58.5px',
+                                                                    left: '102px',
+                                                                    pointerEvents: 'none',
+                                                                }}
+                                                            >
+                                                                <JackpotRoller targetNumber={targetNumbers[1]} svgList={svgList} size={25} />
+                                                            </div>
+                                                        )}
+                                                        {showThirdRoller && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '58.5px',
+                                                                    left: '136px',
+                                                                    pointerEvents: 'none',
+                                                                }}
+                                                            >
+                                                                <JackpotRoller targetNumber={targetNumbers[2]} svgList={svgList} size={25} />
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </li>
+                                        </ul>
+                                    )}
                                 </div>
                             </nav>
                         </>

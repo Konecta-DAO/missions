@@ -98,6 +98,17 @@
     margin-top: 1vh;
 }
 
+.topbarBottomNfid {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 1vh;
+    margin-left: 1vh;
+}
+
 .topbarLeftMobile {
     display: flex;
     align-items: center;
@@ -131,14 +142,32 @@
     height: auto;
 }
 
+.TimeCapsuleMobile {
+    width: 28vw;
+    height: auto;
+}
+
 .PointsNfidSVG {
     width: 12vw;
+    height: auto;
+}
+
+.PointsNfidSVGMobile {
+    width: 40vw;
     height: auto;
 }
 
 .TimerText {
     color: black;
     font-size: 0.75vw;
+    pointer-events: none;
+    position: absolute;
+    font-weight: bold;
+}
+
+.TimerTextMobile {
+    color: black;
+    font-size: 3.25vw;
     pointer-events: none;
     position: absolute;
     font-weight: bold;
@@ -154,18 +183,16 @@
     text-align: left;
 }
 
-.TimeCapsuleMobile {
-    width: 28vw;
-    height: auto;
+.PointsNfidMobile {
+    color: black;
+    font-size: 3.15vw;
+    pointer-events: none;
+    font-weight: 600;
+    position: absolute;
+    left: 14.33vw;
+    text-align: left;
 }
 
-.TimerTextMobile {
-    color: black;
-    font-size: 3.25vw;
-    pointer-events: none;
-    position: absolute;
-    font-weight: bold;
-}
 
 .KonectaLogo {
     width: 10vw;
@@ -173,7 +200,7 @@
 }
 
 .KonectaLogoMobile {
-    width: 28.5vw;
+    width: 33vw;
     height: auto;
 }
 

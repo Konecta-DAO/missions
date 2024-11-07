@@ -48,7 +48,7 @@
     "react-responsive": "^10.0.0",
     "react-router-dom": "^6.26.2",
     "react-tooltip": "^5.28.0",
-    "recharts": "^2.13.0",
+    "recharts": "^2.13.3",
     "rollup-plugin-polyfill-node": "^0.13.0",
     "usergeek-ic-js": "^1.0.6"
   },

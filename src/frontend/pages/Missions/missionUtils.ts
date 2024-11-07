@@ -66,8 +66,6 @@ export const checkMissionCompletionNfid = (userProgress: any, mission: Serialize
     }
     const a = userProgress[0]?.some(([progressId, progress]: [bigint, SerializedProgressNFID]) => {
 
-
-
         if (!mission.recursive) {
             if (progressId === mission.id) {
                 return true;
@@ -139,9 +137,9 @@ export const checkRequiredMissionCompletionNFID = (globalID: any, mission: any) 
     // Check if the required mission is not the same as the current mission
     if (requiredMissionId !== undefined && BigInt(requiredMissionId) !== BigInt(mission.id)) {
         const requiredMissionBigInt = BigInt(requiredMissionId);
-        const requiredMission = globalID.missions.find((m: any) => BigInt(m.id) === requiredMissionBigInt);
+        const requiredMission = globalID.missionsnfid.find((m: any) => BigInt(m.id) === requiredMissionBigInt);
         requiredMissionTitle = requiredMission?.title ?? '';
-        const b = globalID?.userProgress[0]?.some(([progressId, progress]: [bigint, SerializedProgressNFID]) => {
+        const b = globalID?.userProgressnfid[0]?.some(([progressId, progress]: [bigint, SerializedProgressNFID]) => {
             if (progressId === requiredMission.id) {
                 return true;
             } else {

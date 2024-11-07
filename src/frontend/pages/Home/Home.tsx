@@ -20,6 +20,7 @@ import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
+import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../declarations/nfid/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
@@ -38,23 +39,37 @@ const Home: React.FC = () => {
   const [isnfiding, setIsnfiding] = useState(false);
   const [userId, setUserId] = useState('');
 
+
   const setData = async (agent: HttpAgent) => {
     if (agent) {
       const actor = Actor.createActor(idlFactory, {
         agent: agent!,
         canisterId,
       });
+      const actornfid = Actor.createActor(idlFactoryNFID, {
+        agent: agent!,
+        canisterId: canisterIdNFID,
+      });
       setIsnfiding(true);
 
       agent.getPrincipal().then((a) => {
         globalID.setPrincipal(a);
 
-        (actor.getUser(a) as Promise<SerializedUser[]>).then((b) => {
+        (actor.getUser(a) as Promise<SerializedUser[]>).then(async (b) => {
           if (Array.isArray(b) && b.length !== 0) {
             if (userId !== '' && b[0].ocProfile.length > 0) {
               actor.addOCProfile(a, userId);
             }
             globalID.setPrincipal(a);
+
+            const nfiduser = await actornfid.getUser(a);
+            if (Array.isArray(nfiduser) && nfiduser.length !== 0) {
+              // User exists in actornfid canister
+            } else {
+              // Add user to actornfid canister
+              await actornfid.addUser(a);
+            }
+
             globalID.setUser(b);
             navigate('/Missions');
           } else {
@@ -67,12 +82,20 @@ const Home: React.FC = () => {
               const targets = firstDelegation.delegation.targets;
 
               if (targets && targets.length > 0) {
-                (actor.addUser(a) as Promise<SerializedUser[]>).then((newUser) => {
+                (actor.addUser(a) as Promise<SerializedUser[]>).then(async (newUser) => {
                   if (userId !== '') {
                     actor.addOCProfile(a, userId);
                   }
                   globalID.setPrincipal(a);
                   globalID.setUser(newUser);
+
+                  const nfiduser = await actornfid.getUser(a);
+                  if (Array.isArray(nfiduser) && nfiduser.length !== 0) {
+                    // User exists in actornfid canister
+                  } else {
+                    // Add user to actornfid canister
+                    await actornfid.addUser(a);
+                  }
                   Usergeek.trackEvent("Mission 0: Registered");
                   navigate('/Missions');
                 })

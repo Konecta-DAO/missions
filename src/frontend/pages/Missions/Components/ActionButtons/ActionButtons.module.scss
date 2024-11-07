@@ -6,18 +6,24 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #000; /* Black background */
-    opacity: 0; /* Start fully transparent */
+    background-color: #000;
+    /* Black background */
+    opacity: 0;
+    /* Start fully transparent */
     transition: opacity 0.3s ease;
-    pointer-events: none; /* Disable interaction when not active */
-    z-index: 98; /* Just below the action buttons */
-  
+    pointer-events: none;
+    /* Disable interaction when not active */
+    z-index: 98;
+    /* Just below the action buttons */
+
     &.active {
-      opacity: 0.50; /* dark overlay */
-      pointer-events: auto; /* Enable interaction when active */
+        opacity: 0.50;
+        /* dark overlay */
+        pointer-events: auto;
+        /* Enable interaction when active */
     }
-  }
-  
+}
+
 /* Individual button styling */
 .collapsedButton {
     display: flex;
@@ -40,9 +46,10 @@
 }
 
 /* Main collapse wrapper */
-.collapseWrapper {
+
+.collapseWrapperNfid {
     position: absolute;
-    bottom: 16vh;
+    bottom: 30vh;
     right: 7vw;
     z-index: 99;
     display: flex;

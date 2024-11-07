@@ -1,5 +1,5 @@
 import { Principal } from '@dfinity/principal';
-import React, { createContext, useState, useContext, useMemo } from 'react';
+import React, { createContext, useState, useContext, useMemo, useEffect } from 'react';
 import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
 import { SerializedMission as SerializedMissionNFID, SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../declarations/nfid/nfid.did.js';
 import { HttpAgent } from '@dfinity/agent';
@@ -54,7 +54,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [missions, setMissions] = useState<SerializedMission[]>([]);
     const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgress]> | null>([]);
     const [user, setUser] = useState<SerializedUser[] | null>([]);
-    const [timerText, setTimerText] = useState<string>('12:34:56');
+    const [timerText, setTimerText] = useState<string>('00:00:00');
     const [twitterhandle, setTwitterHandle] = useState<string | null>('');
     const [userPFPstatus, setPFPstatus] = useState<string>('');
     const [agent, setAgent] = useState<HttpAgent | null>(null);
@@ -65,7 +65,19 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
     const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
     const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
-    const [nfid, setNfid] = useState<boolean>(false);
+    
+    const [nfid, setNfid] = useState<boolean>(() => {
+        const storedValue = localStorage.getItem('nfid');
+        return storedValue ? JSON.parse(storedValue) : false;
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('nfid', JSON.stringify(nfid));
+        } catch (error) {
+            console.error('Failed to set nfid in localStorage:', error);
+        }
+    }, [nfid]);
     const [missionsnfid, setMissionsnfid] = useState<SerializedMissionNFID[]>([]);
     const [userProgressnfid, setUserProgressnfid] = useState<Array<[bigint, SerializedProgressNFID]> | null>([]);
     const [usernfid, setUsernfid] = useState<SerializedUserNFID[] | null>([]);

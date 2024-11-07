@@ -41,40 +41,87 @@ const useFetchData = () => {
 
     // Fetch missions
     const fetchMissions = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass) => {
+        const [missions, nfidmissions] = await Promise.all([
+            actor.getAllMissions() as Promise<SerializedMission[]>,
+            actorNFID.getAllMissions() as Promise<SerializedMissionNFID[]>,
+        ]);
+        setMissions(missions);
+        setMissionsnfid(nfidmissions);
+    }, [setMissions, setMissionsnfid]);
+
+    const fetchMissionsKonecta = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass) => {
         const missions: SerializedMission[] = await actor.getAllMissions() as SerializedMission[];
         setMissions(missions);
-        const nfidmissions: SerializedMissionNFID[] = await actorNFID.getAllMissions() as SerializedMissionNFID[];
-        setMissionsnfid(nfidmissions);
     }, [setMissions]);
 
+    const fetchMissionsNfid = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass) => {
+        const nfidmissions: SerializedMissionNFID[] = await actorNFID.getAllMissions() as SerializedMissionNFID[];
+        setMissionsnfid(nfidmissions);
+    }, [setMissionsnfid]);
 
     // Fetch user progress
     const fetchUserProgress = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
+        const [userProgress, userProgressNFID] = await Promise.all([
+            actor.getUserProgress(ae) as Promise<[bigint, SerializedProgress][]>,
+            actorNFID.getUserProgress(ae) as Promise<[bigint, SerializedProgressNFID][]>,
+        ]);
+        setUserProgress(userProgress);
+        setUserProgressnfid(userProgressNFID);
+    }, [setUserProgress, setUserProgressnfid]);
+
+    const fetchUserProgressKonecta = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         const userProgress: [bigint, SerializedProgress][] = await actor.getUserProgress(ae) as [bigint, SerializedProgress][];
         setUserProgress(userProgress);
+    }, [setUserProgress]);
+
+    const fetchUserProgressNfid = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         const userProgressNFID: [bigint, SerializedProgressNFID][] = await actorNFID.getUserProgress(ae) as [bigint, SerializedProgressNFID][];
         setUserProgressnfid(userProgressNFID);
-    }, [setUserProgress]);
+    }, [setUserProgressnfid]);
 
     // Fetch user details
     const fetchUser = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
-        if (setUser) {
-            const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
-            setUser(user);
-            const usernfid: SerializedUserNFID[] = await actorNFID.getUser(ae) as SerializedUserNFID[];
-            setUsernfid(usernfid);
-            setPFPstatus(user[0]?.pfpProgress || '');
-            setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
-        }
+        const [user, usernfid] = await Promise.all([
+            actor.getUser(ae) as Promise<SerializedUser[]>,
+            actorNFID.getUser(ae) as Promise<SerializedUserNFID[]>,
+        ]);
+        setUser(user);
+        setUsernfid(usernfid);
+        setPFPstatus(user[0]?.pfpProgress || '');
+        setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
+    }, [setUser, setUsernfid, setPFPstatus, setTwitterHandle]);
+
+    const fetchUserKonecta = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
+        const user: SerializedUser[] = await actor.getUser(ae) as SerializedUser[];
+        setUser(user);
+        setPFPstatus(user[0]?.pfpProgress || '');
+        setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
     }, [setUser, setPFPstatus, setTwitterHandle]);
+
+    const fetchUserNfid = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
+        const usernfid: SerializedUserNFID[] = await actorNFID.getUser(ae) as SerializedUserNFID[];
+        setUsernfid(usernfid);
+    }, [setUsernfid]);
 
     // Fetch user seconds
     const fetchUserSeconds = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
+        const [userSeconds, points] = await Promise.all([
+            actor.getTotalSecondsForUser(ae) as Promise<bigint>,
+            actorNFID.getTotalSecondsForUser(ae) as Promise<bigint>,
+        ]);
+        setTimerText(convertSecondsToHMS(Number(userSeconds)));
+        setPointsnfid(points);
+    }, [setTimerText, setPointsnfid]);
+
+    const fetchUserSecondsKonecta = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         const userSeconds: bigint = await actor.getTotalSecondsForUser(ae) as bigint;
         setTimerText(convertSecondsToHMS(Number(userSeconds)));
+    }, [setTimerText]);
+
+    const fetchUserSecondsNfid = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal) => {
         const points: bigint = await actorNFID.getTotalSecondsForUser(ae) as bigint;
         setPointsnfid(points);
-    }, [setTimerText]);
+    }, [setPointsnfid]);
 
     // Fetch user PFP status
     const fetchUserPFPstatus = useCallback(async (actor: ActorSubclass, ae: Principal) => {
@@ -94,18 +141,39 @@ const useFetchData = () => {
         setTotalUserStreak(totalUserStreak);
         const userStreakPercentage = await actor.getUserStreakPercentage(ae) as bigint;
         setUserStreakPercentage(userStreakPercentage);
-    }, [setPFPstatus]);
+    }, [setUserStreakAmount, setStreakResetTime, setUserLastTimeStreak, setTotalUserStreak, setUserStreakPercentage]);
 
     const fetchAll = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
-        await hasAccepted(actor, ae, setTerms);
-        await isVerifiedNfid(actorNFID, ae, setVerified);
-        await fetchUserProgress(actor, actorNFID, ae);
-        await fetchMissions(actor, actorNFID);
-        await fetchUserStreak(actor, ae);
-        await fetchUserSeconds(actor, actorNFID, ae);
-        await fetchUser(actor, actorNFID, ae);
+        await Promise.all([
+            fetchUserProgress(actor, actorNFID, ae),
+            fetchUserSeconds(actor, actorNFID, ae),
+            fetchUserStreak(actor, ae),
+            fetchMissions(actor, actorNFID),
+            fetchUser(actor, actorNFID, ae),
+        ]);
         setDataLoaded(true);
     }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds, fetchUserStreak]);
+
+    const fetchAllKonecta = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
+        await Promise.all([
+            fetchUserProgressKonecta(actor, actorNFID, ae),
+            fetchUserSecondsKonecta(actor, actorNFID, ae),
+            fetchUserStreak(actor, ae),
+            fetchMissionsKonecta(actor, actorNFID),
+            fetchUserKonecta(actor, actorNFID, ae),
+        ]);
+        setDataLoaded(true);
+    }, [fetchMissionsKonecta, fetchUserProgressKonecta, fetchUserKonecta, fetchUserSecondsKonecta, fetchUserStreak]);
+
+    const fetchAllNfid = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
+        await Promise.all([
+            fetchUserProgressNfid(actor, actorNFID, ae),
+            fetchUserSecondsNfid(actor, actorNFID, ae),
+            fetchMissionsNfid(actor, actorNFID),
+            fetchUserNfid(actor, actorNFID, ae),
+        ]);
+        setDataLoaded(true);
+    }, [fetchMissionsNfid, fetchUserProgressNfid, fetchUserNfid, fetchUserSecondsNfid]);
 
     return {
         fetchMissions,
@@ -115,6 +183,10 @@ const useFetchData = () => {
         fetchUserPFPstatus,
         fetchUserStreak,
         fetchAll,
+        hasAccepted,
+        isVerifiedNfid,
+        fetchAllKonecta,
+        fetchAllNfid
     };
 };
 

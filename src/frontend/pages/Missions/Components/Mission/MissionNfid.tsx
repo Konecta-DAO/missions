@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../../Missions.module.scss';
 import { useLocation } from 'react-router-dom';
-import { checkRecursiveMission, checkMissionCompletionNfid, checkRequiredMissionCompletionNFID } from '../../missionUtils.ts';
+import { checkMissionCompletionNfid, checkRequiredMissionCompletionNFID } from '../../missionUtils.ts';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { convertSecondsToHMS } from '../../../../../components/Utilities.tsx';
 import { SerializedMission as SerializedMissionNFID } from '../../../../../declarations/nfid/nfid.did.ts';
 
 interface MissionProps {
@@ -33,16 +32,12 @@ const MissionNfid: React.FC<MissionProps> = ({ mission, handleCardClick, handleM
     );
     const { requiredMissionCompleted, requiredMissionTitle } =
         checkRequiredMissionCompletionNFID(globalID, mission);
-    const { isRecursiveMissionDarkened } =
-        checkRecursiveMission(mission, missionCompleted);
 
     // Determine mission availability and tooltip text
     const isAvailableMission = !missionCompleted && requiredMissionCompleted;
     const displayTooltip = !requiredMissionCompleted && !missionCompleted;
-    const formattedRequiredTitle =
-        requiredMissionTitle.split(':')[1]?.trim() ?? '';
     const tooltipText = displayTooltip
-        ? `You Must Complete the "${formattedRequiredTitle}" Mission before being able to complete this one`
+        ? `You Must Complete the "${requiredMissionTitle}" Mission before being able to complete this one`
         : null;
 
     // Determine if the mission is recursive and completed

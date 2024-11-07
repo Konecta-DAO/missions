@@ -23,10 +23,11 @@ import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
 import OpenChatSuccessOverlay from '../../components/OpenChatSuccessOverlay/OpenChatSuccessOverlay.tsx';
 
-import SVG1 from '../../../../public/assets/NFIDlogin.svg';
-import SVG3 from '../../../../public/assets/NFIDearn.svg';
+import LottieAnimationComponent1 from './LottieAnimationComponent1.tsx';
 import LottieAnimationComponent2 from './LottieAnimationComponent2.tsx';
+import LottieAnimationComponent3 from './LottieAnimationComponent3.tsx';
 import NFIDVerification from './Components/NFIDVerification/NFIDVerification.tsx';
+import ToggleMissionsComponent from './Components/ToggleMissionsComponent/ToggleMissionsComponent.tsx';
 
 interface ButtonItem {
     name: string;
@@ -83,14 +84,10 @@ const Missions: React.FC = () => {
     };
 
     useEffect(() => {
-        if (!acceptedTerms) {
+        if (!acceptedTerms && !isNfid) {
             setIsTermsModalVisible(true);
         }
     }, [acceptedTerms]);
-
-    useEffect(() => {
-        console.log("isVerified:", isVerified, "isNfid:", isNfid);
-    }, [isVerified, isNfid]);
 
     useEffect(() => {
         if (!isVerified && isNfid) {
@@ -162,7 +159,8 @@ const Missions: React.FC = () => {
                     agent: agent,
                     canisterId: canisterIdNFID,
                 });
-
+                await fetchData.isVerifiedNfid(actorNFID, principal, setIsVerified);
+                await fetchData.hasAccepted(actor, principal, setAcceptedTerms);
                 await fetchData.fetchAll(actor, actorNFID, principal, setDataloaded, setAcceptedTerms, setIsVerified);
             }
         } catch (error) {
@@ -250,7 +248,7 @@ const Missions: React.FC = () => {
 
                     <div className={styles.MissionsContainer}>
                         <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
-                        <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible}/>
+                        <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                         <div className={styles.TopBarWrapper}>
                             <TopBar
                                 buttonList={buttonList}
@@ -274,11 +272,13 @@ const Missions: React.FC = () => {
                             ) : (
                                 <div className={styles.NFIDWrapper}>
                                     <div className={styles.customRow}>
-                                        <img src={SVG1} alt="SVG1" className={styles.customImage} />
+                                        <div className={styles.customImage} >
+                                            <LottieAnimationComponent1 />
+                                        </div>
                                         <div>
                                             <p className={styles.lightP}>1/3</p>
                                             <p className={styles.mediumP}>Join the Airdrop</p>
-                                            <p className={styles.lastP}>Login with NFID and start participating</p>
+                                            <p className={styles.lastP}>Connect your NFID Wallet and join the Community</p>
                                         </div>
                                     </div>
 
@@ -286,7 +286,7 @@ const Missions: React.FC = () => {
                                         <div>
                                             <p className={styles.lightP}>2/3</p>
                                             <p className={styles.mediumP}>Do Missions</p>
-                                            <p className={styles.lastP}>Click on the cards and follow the instructions to earn points</p>
+                                            <p className={styles.lastP}>Follow the Instructions on the cards to complete each on-chain task</p>
                                         </div>
                                         <div className={styles.customImage} >
                                             <LottieAnimationComponent2 />
@@ -294,7 +294,9 @@ const Missions: React.FC = () => {
                                     </div>
 
                                     <div className={styles.customRow}>
-                                        <img src={SVG3} alt="SVG3" className={styles.customImage} />
+                                        <div className={styles.customImage} >
+                                            <LottieAnimationComponent3 />
+                                        </div>
                                         <div>
                                             <p className={styles.lightP}>3/3</p>
                                             <p className={styles.mediumP}>Earn Tokens</p>
@@ -313,13 +315,15 @@ const Missions: React.FC = () => {
                         {isPortrait && (
                             <>
                                 <div className={styles.MissionsContainer}>
+                                    <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
+                                    <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                                     <div className={styles.TopBarWrapperMobile}>
                                         <TopBar
                                             buttonList={buttonList}
                                             toggleModal={toggleModal}
                                         />
                                     </div>
-                                    <div className={styles.MissionsBody2}>
+                                    <div className={styles.MissionsBody2nfid}>
                                         {dataloaded ? (
                                             <div className={styles.MissionsGridWrapper}>
                                                 <MissionGridComponent
@@ -330,13 +334,17 @@ const Missions: React.FC = () => {
                                             <div>Loading missions...</div>
                                         )}
                                     </div>
-                                    <div>
+                                    {(!isNfid) && (
                                         <ActionButtons
                                             buttonList={buttonList}
                                             toggleModal={toggleModal}
                                         />
+                                    )}
+                                    <div className={isNfid ? styles.ToggleMissionWrapperL : styles.ToggleMissionWrapperR}>
+                                        <ToggleMissionsComponent />
                                     </div>
                                 </div>
+
                             </>
                         )}
                         {isLandscape && (
@@ -355,13 +363,15 @@ const Missions: React.FC = () => {
                         {isPortrait && (
                             <>
                                 <div className={styles.MissionsContainer}>
+                                    <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
+                                    <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                                     <div className={styles.TopBarWrapperMobile}>
                                         <TopBar
                                             buttonList={buttonList}
                                             toggleModal={toggleModal}
                                         />
                                     </div>
-                                    <div className={styles.MissionsBody2}>
+                                    <div className={styles.MissionsBody2nfid}>
                                         {dataloaded ? (
                                             <div className={styles.MissionsGridWrapper}>
                                                 <MissionGridComponent
@@ -372,42 +382,80 @@ const Missions: React.FC = () => {
                                             <div>Loading missions...</div>
                                         )}
                                     </div>
-                                    <div>
+                                    {(!isNfid) && (
                                         <ActionButtons
                                             buttonList={buttonList}
                                             toggleModal={toggleModal}
                                         />
+                                    )}
+                                    <div className={isNfid ? styles.ToggleMissionWrapperL : styles.ToggleMissionWrapperR}>
+                                        <ToggleMissionsComponent />
                                     </div>
                                 </div>
                             </>
                         )}
                         {isLandscape && (
-                            <>
-                                <div className={styles.MissionsContainer}>
-                                    <div className={styles.TopBarWrapper}>
-                                        <TopBar
-                                            buttonList={buttonList}
-                                            toggleModal={toggleModal}
-                                        />
-                                    </div>
-                                    <div className={styles.MissionsBody}>
-                                        {dataloaded ? (
-                                            <div className={styles.MissionsGridWrapper}>
-                                                <MissionGridComponent
-                                                    handleCardClick={handleCardClick}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div>Loading missions...</div>
-                                        )}
-                                        {!isNfid && (
-                                            <div className={styles.OpenChatWrapper}>
-                                                <OpenChat />
-                                            </div>
-                                        )}
-                                    </div>
+                            <div className={styles.MissionsContainer}>
+                                <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
+                                <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
+                                <div className={styles.TopBarWrapper}>
+                                    <TopBar
+                                        buttonList={buttonList}
+                                        toggleModal={toggleModal}
+                                    />
                                 </div>
-                            </>
+                                <div className={styles.MissionsBody}>
+                                    {dataloaded ? (
+                                        <div className={styles.MissionsGridWrapper}>
+                                            <MissionGridComponent
+                                                handleCardClick={handleCardClick}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div>Loading missions...</div>
+                                    )}
+                                    {!isNfid ? (
+                                        <div className={styles.OpenChatWrapper}>
+                                            <OpenChat />
+                                        </div>
+                                    ) : (
+                                        <div className={styles.NFIDWrapper}>
+                                            <div className={styles.customRow}>
+                                                <div className={styles.customImage} >
+                                                    <LottieAnimationComponent1 />
+                                                </div>
+                                                <div>
+                                                    <p className={styles.lightP}>1/3</p>
+                                                    <p className={styles.mediumP}>Join the Airdrop</p>
+                                                    <p className={styles.lastP}>Connect your NFID Wallet and join the Community</p>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.customRow}>
+                                                <div>
+                                                    <p className={styles.lightP}>2/3</p>
+                                                    <p className={styles.mediumP}>Do Missions</p>
+                                                    <p className={styles.lastP}>Follow the Instructions on the cards to complete each on-chain task</p>
+                                                </div>
+                                                <div className={styles.customImage} >
+                                                    <LottieAnimationComponent2 />
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.customRow}>
+                                                <div className={styles.customImage} >
+                                                    <LottieAnimationComponent3 />
+                                                </div>
+                                                <div>
+                                                    <p className={styles.lightP}>3/3</p>
+                                                    <p className={styles.mediumP}>Earn Tokens</p>
+                                                    <p className={styles.lastP}>Accumulating points raises your chances to join the 1,000 winners</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </>
                 )

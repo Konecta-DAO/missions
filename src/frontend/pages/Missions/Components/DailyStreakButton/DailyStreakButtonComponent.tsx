@@ -191,7 +191,6 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
             const message = b[0]; // string part
 
-            console.log("message", message);
             if (message.startsWith("You have earned")) {
                 Usergeek.trackEvent("Daily Streak: Default");
                 await fetchData.fetchUserSeconds(actor, actorNFID, globalID.principalId!);

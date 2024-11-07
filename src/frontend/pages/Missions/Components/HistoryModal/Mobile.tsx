@@ -3,7 +3,7 @@ import styles from './HistoryModalMobile.module.scss';
 import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { SerializedProgress, SerializedUserStreak, SerializedMission, SerializedMissionRecord } from '../../../../../declarations/backend/backend.did.js';
-import TopImage from '../../../../../../public/assets/HistoryKamiBanner.png';
+import TopImage from '../../../../../../public/assets/HistoryKamiBanner.webp';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 
 interface HistoryModalProps {

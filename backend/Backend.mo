@@ -1700,15 +1700,46 @@ actor class Backend() {
   // Http Request Function
 
   public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
-
     let path = req.url;
 
     // Check if the path is directly in missionAssets (which includes the full path)
     switch (missionAssets.get(path)) {
       case (?fileBlob) {
+        // Extract the file extension from the path
+        let partsIter = Text.split(path, #char '.');
+        let parts = Iter.toArray(partsIter);
+
+        let extension = switch (Array.size(parts) > 1) {
+          case true {
+            Text.toLowercase(parts[Array.size(parts) - 1]) // Get the last part as the extension and convert to lowercase
+          };
+          case false {
+            ""; // No extension found
+          };
+        };
+
+        // Set the Content-Type based on the file extension
+        let contentType = switch (extension) {
+          case "png" {
+            "image/png";
+          };
+          case "jpg" {
+            "image/jpeg";
+          };
+          case "jpeg" {
+            "image/jpeg";
+          };
+          case "webp" {
+            "image/webp";
+          };
+          case _ {
+            "application/octet-stream" // Default content type
+          };
+        };
+
         return {
           status_code = 200;
-          headers = [("Content-Type", "image/png")];
+          headers = [("Content-Type", contentType)];
           body = fileBlob;
         };
       };

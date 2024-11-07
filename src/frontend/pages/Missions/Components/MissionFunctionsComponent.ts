@@ -4,8 +4,7 @@ import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../.
 import { Usergeek } from "usergeek-ic-js";
 import { convertSecondsToHMS } from "../../../../components/Utilities.tsx";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
-import { SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
-import { Principal } from "@dfinity/principal";
+import { SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
@@ -60,7 +59,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -100,7 +99,7 @@ const MissionFunctionsComponent = {
             canisterId: canisterIdNFID,
         });
 
-        await fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+        await fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
         setLoading(false);
         closeModal();
     },
@@ -158,7 +157,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -233,7 +232,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -305,7 +304,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
                 if (input != 'a') {
                     closeModal();
@@ -377,7 +376,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
             }
 
@@ -436,7 +435,7 @@ const MissionFunctionsComponent = {
                 canisterId: canisterIdNFID,
             });
 
-            fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+            fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
             setLoading(false);
             closeModal();
         } else {
@@ -505,7 +504,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 alert(data.message);
                 Usergeek.trackEvent("Mission 9 : Nuance Follow");
                 setLoading(false);
@@ -526,7 +525,7 @@ const MissionFunctionsComponent = {
 
         const principal = globalID.principalId;
         try {
-            const response = await fetch("https://dotest.konecta.one/requestTwitterAuth-v2-nfid/", {
+            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-nfid/", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -543,7 +542,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -573,7 +572,7 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                //fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
             }
 
@@ -598,7 +597,7 @@ const MissionFunctionsComponent = {
         const principal = globalID.principalId;
 
         try {
-            const response = await fetch("https://dotest.konecta.one/requestDiscordAuth/", {
+            const response = await fetch("https://do.konecta.one/requestDiscordAuth/", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -615,7 +614,7 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
                 if (result === 'true') {
@@ -648,14 +647,11 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                //fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 setLoading(false);
             }
 
-
             window.addEventListener("message", handleEvent);
-
-
 
             const popupInterval = setInterval(() => {
                 if (popup && popup.closed && !authSuccess) {
@@ -669,14 +665,14 @@ const MissionFunctionsComponent = {
             console.error("Error fetching Discord auth URL:", error);
         }
     },
-    nfidMain: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, user: SerializedUserNFID, setIsVisible: any) => {
+    nfidMain: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, user: SerializedUserNFID, setIsVisible: any, setIsVerified: any) => {
         const principal = globalID.principalId;
         const tg = user.telegramUser;
         const oc = user.ocProfile;
         const nns = user.nnsPrincipal;
         try {
             const response = await fetch(
-                "https://dotest.konecta.one/nfidMain",
+                "https://do.konecta.one/nfidMain",
                 {
                     method: "POST",
                     credentials: "include",
@@ -694,6 +690,7 @@ const MissionFunctionsComponent = {
 
             const data = await response.json();
             if (data.message === "Success") {
+                Usergeek.trackEvent("NFID Mission 0: Joined the Airdrop");
                 const actor = Actor.createActor(idlFactory, {
                     agent: globalID.agent,
                     canisterId,
@@ -703,10 +700,188 @@ const MissionFunctionsComponent = {
                     canisterId: canisterIdNFID,
                 });
 
-                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                await fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+
+                const tempP = globalID.userProgressnfid as Array<[bigint, SerializedProgressNFID]>;
+
+                const has1 = tempP.some(([id, _]) => id === 1n);
+                const has2 = tempP.some(([id, _]) => id === 2n);
+
+                if (has1) {
+                    Usergeek.trackEvent("NFID Mission 1: Created an NFID Vault");
+                }
+
+                if (has2) {
+                    Usergeek.trackEvent("NFID Mission 2: Topped up an NFID Vault");
+                }
+
                 alert(data.message);
                 setLoading(false);
                 setIsVisible(false);
+                setIsVerified(true);
+            } else {
+                alert(data.message);
+                setLoading(false);
+            }
+
+        } catch (error) {
+            console.error("Error", error);
+        }
+
+        setLoading(false);
+    },
+
+    goNFIDV: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const url = 'https://nfidvaults.com/';
+        window.open(url, '_blank');
+        setLoading(false);
+    },
+
+    verNFIDVault: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch(
+                "https://do.konecta.one/nfidVault",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        principal,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            if (data.message === "Success") {
+                Usergeek.trackEvent("NFID Mission 1: Created an NFID Vault");
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+                await fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+
+                const tempP = globalID.userProgressnfid as Array<[bigint, SerializedProgressNFID]>;
+                const has2 = tempP.some(([id, _]) => id === 2n);
+                if (has2) {
+                    Usergeek.trackEvent("NFID Mission 2: Topped up an NFID Vault");
+                }
+                alert(data.message);
+                setLoading(false);
+                navigate('/Missions/NFID');
+                closeModal();
+            } else {
+                alert(data.message);
+                setLoading(false);
+            }
+
+        } catch (error) {
+            console.error("Error", error);
+        }
+
+        setLoading(false);
+    },
+
+    goITU: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const url = 'https://icptopup.com/';
+        window.open(url, '_blank');
+        setLoading(false);
+    },
+
+    verNFIDVaultTopUp: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch(
+                "https://do.konecta.one/nfidVaultTopUp",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        principal,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            if (data.message === "Success") {
+                Usergeek.trackEvent("NFID Mission 2: Topped up an NFID Vault");
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+                fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+
+                alert(data.message);
+                setLoading(false);
+                navigate('/Missions/NFID');
+                closeModal();
+            } else {
+                alert(data.message);
+                setLoading(false);
+            }
+
+        } catch (error) {
+            console.error("Error", error);
+        }
+
+        setLoading(false);
+    },
+
+    goWTN: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const url = 'https://waterneuron.fi/';
+        window.open(url, '_blank');
+        setLoading(false);
+    },
+
+    nfidWTN: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch(
+                "https://do.konecta.one/nfidWTN",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        principal,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            if (data.message === "Success") {
+                Usergeek.trackEvent("NFID Mission 3: Staked ICP on Waterneuron");
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdNFID,
+                });
+                fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                alert(data.message);
+                setLoading(false);
+                navigate('/Missions/NFID');
+                closeModal();
             } else {
                 alert(data.message);
                 setLoading(false);
@@ -719,5 +894,6 @@ const MissionFunctionsComponent = {
         setLoading(false);
     },
 };
+
 
 export default MissionFunctionsComponent;

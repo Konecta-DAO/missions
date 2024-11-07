@@ -6,8 +6,6 @@ import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletionNfid, checkRequiredMissionCompletionNFID } from '../../missionUtils.ts';
-import PTWContent from './PTWContent.tsx';
-import TweetEmbed from './TweetEmbed.tsx';
 
 declare global {
     interface Window {
@@ -299,10 +297,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
                     <p>{mission.description}</p>
-                    {/* Tweet Component */}
-                    <PTWContent missionId={Number(missionId)} />
-                    {/* Retweet Embed Component */}
-                    <TweetEmbed missionId={Number(missionId)} />
                 </div>
 
                 <div className={styles.ButtonInputs}>
