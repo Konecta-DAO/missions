@@ -21,10 +21,13 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDFINITY } from '../../../declarations/dfinity_backend/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
+
+const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -50,6 +53,11 @@ const Home: React.FC = () => {
         agent: agent!,
         canisterId: canisterIdNFID,
       });
+      const actordfinity = Actor.createActor(idlFactoryDFINITY, {
+        agent: agent!,
+        canisterId: canisterIdDFINITY,
+      });
+
       setIsnfiding(true);
 
       agent.getPrincipal().then((a) => {
@@ -62,6 +70,7 @@ const Home: React.FC = () => {
             }
             globalID.setPrincipal(a);
 
+            // Check if user exists in actornfid canister
             const nfiduser = await actornfid.getUser(a);
             if (Array.isArray(nfiduser) && nfiduser.length !== 0) {
               // User exists in actornfid canister
@@ -70,48 +79,78 @@ const Home: React.FC = () => {
               await actornfid.addUser(a);
             }
 
+            // Check if user exists in actordfinity canister
+            const dfinityUser = await actordfinity.getUser(a);
+            if (Array.isArray(dfinityUser) && dfinityUser.length !== 0) {
+              // User exists in actordfinity canister
+            } else {
+              // Add user to actordfinity canister
+              await actordfinity.addUser(a);
+            }
+
             globalID.setUser(b);
             navigate('/Missions');
           } else {
-
             const identityAny = identity as any;
             const delegation = identityAny._delegation;
 
-            if (delegation && delegation.delegations && delegation.delegations.length > 0) {
+            if (
+              delegation &&
+              delegation.delegations &&
+              delegation.delegations.length > 0
+            ) {
               const firstDelegation = delegation.delegations[0];
               const targets = firstDelegation.delegation.targets;
 
               if (targets && targets.length > 0) {
-                (actor.addUser(a) as Promise<SerializedUser[]>).then(async (newUser) => {
-                  if (userId !== '') {
-                    actor.addOCProfile(a, userId);
-                  }
-                  globalID.setPrincipal(a);
-                  globalID.setUser(newUser);
+                (actor.addUser(a) as Promise<SerializedUser[]>).then(
+                  async (newUser) => {
+                    if (userId !== '') {
+                      actor.addOCProfile(a, userId);
+                    }
+                    globalID.setPrincipal(a);
+                    globalID.setUser(newUser);
 
-                  const nfiduser = await actornfid.getUser(a);
-                  if (Array.isArray(nfiduser) && nfiduser.length !== 0) {
-                    // User exists in actornfid canister
-                  } else {
-                    // Add user to actornfid canister
-                    await actornfid.addUser(a);
-                  }
-                  Usergeek.trackEvent("Mission 0: Registered");
-                  navigate('/Missions');
-                })
+                    // Check if user exists in actornfid canister
+                    const nfiduser = await actornfid.getUser(a);
+                    if (
+                      Array.isArray(nfiduser) &&
+                      nfiduser.length !== 0
+                    ) {
+                      // User exists in actornfid canister
+                    } else {
+                      // Add user to actornfid canister
+                      await actornfid.addUser(a);
+                    }
 
+                    // Check if user exists in actordfinity canister
+                    const dfinityUser = await actordfinity.getUser(a);
+                    if (
+                      Array.isArray(dfinityUser) &&
+                      dfinityUser.length !== 0
+                    ) {
+                      // User exists in actordfinity canister
+                    } else {
+                      // Add user to actordfinity canister
+                      await actordfinity.addUser(a);
+                    }
+
+                    Usergeek.trackEvent('Mission 0: Registered');
+                    navigate('/Missions');
+                  }
+                );
               } else {
-                alert("You have to use a Non-Anonymous NFID account");
+                alert('You have to use a Non-Anonymous NFID account');
                 disconnect();
                 setIsnfiding(false);
               }
-            };
-
+            }
           }
-        })
-      })
+        });
+      });
     }
   };
+
 
   useEffect(() => {
     const extractQueryParams = () => {

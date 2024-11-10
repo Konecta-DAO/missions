@@ -26,9 +26,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ buttonList, toggleModal }
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const globalID = useGlobalID();
-  const isNfid = globalID.nfid === true;
-
   const modalMap: { [key: string]: keyof ModalState } = {
     History: 'isHistoryModalOpen',
     Konecta: 'isKonectaModalOpen',

@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { act, useEffect, useRef, useState } from 'react';
 
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { formatTimeRemaining } from '../../../../../components/Utilities.tsx';
 import { canisterId, idlFactory } from '../../../../../declarations/backend/index.js';
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDFINITY } from '../../../../../declarations/dfinity_backend/index.js';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
@@ -18,6 +19,8 @@ interface DailyStreakButtonProps {
     setIsClaimClicked: React.Dispatch<React.SetStateAction<boolean>>;
     setJackpotState: React.Dispatch<React.SetStateAction<JackpotState>>;
 }
+
+const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsClaimClicked, setJackpotState }) => {
     const globalID = useGlobalID();
@@ -187,13 +190,19 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 agent: globalID.agent!,
                 canisterId: canisterIdNFID,
             });
+
+            const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
+                agent: globalID.agent!,
+                canisterId: canisterIdDFINITY,
+            })
+
             const b = await actor.claimStreak(globalID.principalId) as [string, bigint];
 
             const message = b[0]; // string part
 
             if (message.startsWith("You have earned")) {
                 Usergeek.trackEvent("Daily Streak: Default");
-                await fetchData.fetchUserSeconds(actor, actorNFID, globalID.principalId!);
+                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
                 setResponseState("SUCCESS");
                 setMessageResponse(message);
@@ -204,7 +213,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 setIsLoading(false);
                 setShowSeparators(true);
                 setJackpotState('WIN');
-                await fetchData.fetchUserSeconds(actor, actorNFID, globalID.principalId!);
+                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
                 messageTimeoutRef.current = setTimeout(() => {
                     setMessageResponse(message);
@@ -216,7 +225,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 setIsLoading(false);
                 setShowSeparators(true);
                 setJackpotState('LOSE');
-                await fetchData.fetchUserSeconds(actor, actorNFID, globalID.principalId!);
+                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
                 messageTimeoutRef.current = setTimeout(() => {
                     setMessageResponse(message);
@@ -225,7 +234,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
             } else if (message.startsWith("You have lost your past streak")) {
                 Usergeek.trackEvent("Daily Streak: Forgot");
-                await fetchData.fetchUserSeconds(actor, actorNFID, globalID.principalId!);
+                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
                 await fetchData.fetchUserStreak(actor, globalID.principalId!);
                 setResponseState("CLAIMED");
                 setMessageResponse(message);

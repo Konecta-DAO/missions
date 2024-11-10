@@ -14,6 +14,8 @@ import Missions from './pages/Missions/Missions.tsx';
 import UsergeekProvider from '../components/UsergeekProvider.tsx';
 import { IdentityKitAuthType } from "@nfid/identitykit"
 import NFIDSetter from './components/NFIDSetter.tsx';
+import DFINITYSetter from './components/DFINITYSetter.tsx';
+
 
 const frontId = process.env.CANISTER_ID_FRONTEND
 
@@ -22,13 +24,14 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalProvider>
       <BrowserRouter>
-        <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId, backnfid], idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+        <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId, backnfid, "2mg2s-uqaaa-aaaag-qna5a-cai"], idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
           <UsergeekProvider>
             <RadialBackground>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/Missions" element={<Missions />} />
                 <Route path="/Missions/NFID" element={<NFIDSetter />} />
+                <Route path="/Missions/NFID" element={<DFINITYSetter />} />
                 <Route path="/Missions/:missionId" element={<Missions />} />
               </Routes>
             </RadialBackground>

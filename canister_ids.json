@@ -7,6 +7,9 @@
     "ic": "onpqf-diaaa-aaaag-qkeda-cai",
     "test": "ynkdv-7qaaa-aaaag-qkluq-cai"
   },
+  "dfinity_backend": {
+    "ic": "2mg2s-uqaaa-aaaag-qna5a-cai"
+  },
   "frontend": {
     "ic": "okowr-oqaaa-aaaag-qkedq-cai",
     "test": "y7mum-taaaa-aaaag-qklxq-cai"

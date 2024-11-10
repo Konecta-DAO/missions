@@ -63,3 +63,21 @@
       #0f766e 0%,
       black 100%);
 }
+
+.background-dfinity-mobile {
+  background: radial-gradient(circle at center -15%,
+      #3b00b9 0%,
+      #3500a7 25%,
+      #32009d 50%,
+      #290082 75%,
+      #000000 100%);
+}
+
+.background-dfinity-desktop {
+  background: radial-gradient(circle at center -67%,
+      #3b00b9 0%,
+      #3500a7 25%,
+      #32009d 50%,
+      #290082 75%,
+      #000000 100%);
+}

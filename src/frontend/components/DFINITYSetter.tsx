@@ -2,14 +2,14 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MissionPage, useGlobalID } from '../../hooks/globalID.tsx';
 
-const NFIDSetter: React.FC = () => {
+const DFINITYSetter: React.FC = () => {
     const navigate = useNavigate();
     const globalID = useGlobalID();
     useEffect(() => {
-        globalID.setCurrentMissionPage(MissionPage.NFID);
+        globalID.setCurrentMissionPage(MissionPage.DFINITY);
         navigate('/Missions');
     }, [globalID, navigate]);
     return null;
 };
 
-export default NFIDSetter;
+export default DFINITYSetter;

@@ -1,10 +1,13 @@
 import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDFINITY } from '../../../../declarations/dfinity_backend/index.js';
 import { Usergeek } from "usergeek-ic-js";
 import { convertSecondsToHMS } from "../../../../components/Utilities.tsx";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
 import { SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
+
+const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
@@ -892,6 +895,25 @@ const MissionFunctionsComponent = {
         }
 
         setLoading(false);
+    },
+
+    dfinityMissionOne: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const actor = Actor.createActor(idlFactoryDFINITY, {
+            agent: globalID.agent,
+            canisterId: canisterIdDFINITY,
+        })
+        console.log(input);
+        const a = await actor.missionOne(globalID.principalId, input);
+        if (a === "Success") {
+            Usergeek.trackEvent("Dfinity Mission One: Hello World");
+            fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+        } else {
+            alert(a);
+            setLoading(false);
+        }
     },
 };
 

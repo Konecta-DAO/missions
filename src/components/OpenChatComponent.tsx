@@ -5,7 +5,10 @@ import { idlFactory } from '../declarations/backend/backend.did.js';
 import { useGlobalID } from '../hooks/globalID.tsx';
 import { canisterId } from '../declarations/backend/index.js';
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDFINITY } from '../declarations/dfinity_backend/index.js';
 import useFetchData from '../hooks/fetchData.tsx';
+
+const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const OpenChat: React.FC = () => {
     const globalID = useGlobalID();
@@ -121,7 +124,12 @@ const OpenChat: React.FC = () => {
                                     canisterId: canisterIdNFID,
                                 });
 
-                                fetchData.fetchAll(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                                const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
+                                    agent: globalID.agent,
+                                    canisterId: canisterIdDFINITY,
+                                })
+
+                                fetchData.fetchAll(actor, actorNFID, actorDfinity, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
 
                             }
                         },

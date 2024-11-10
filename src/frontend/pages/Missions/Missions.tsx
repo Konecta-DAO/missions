@@ -5,11 +5,12 @@ import OpenChat from '../../../components/OpenChatComponent.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useFetchData from '../../../hooks/fetchData.tsx';
-import { useGlobalID } from '../../../hooks/globalID.tsx';
+import { MissionPage, useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDFINITY } from '../../../declarations/dfinity_backend/index.js';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import MissionGridComponent from './MissionGrid.tsx';
 import TopBar from './Components/TopBar/TopBar.tsx';
@@ -43,6 +44,8 @@ type ModalState = {
     isOpenChatModalOpen: boolean;
 };
 
+const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
+
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const { user, identity } = useIdentityKit();
@@ -65,8 +68,6 @@ const Missions: React.FC = () => {
     const [isVerifyModalVisible, setIsVerifyModalVisible] = useState<boolean>(false);
     const [showOverlay, setShowOverlay] = useState(false);
 
-    const isNfid = globalID.nfid === true;
-
     const handleCloseOverlay = () => {
         setShowOverlay(false);
         globalID.setocS('');
@@ -84,16 +85,16 @@ const Missions: React.FC = () => {
     };
 
     useEffect(() => {
-        if (!acceptedTerms && !isNfid) {
+        if (!acceptedTerms && globalID.currentMissionPage === MissionPage.MAIN) {
             setIsTermsModalVisible(true);
         }
-    }, [acceptedTerms]);
+    }, [acceptedTerms, globalID.currentMissionPage]);
 
     useEffect(() => {
-        if (!isVerified && isNfid) {
+        if (!isVerified && globalID.currentMissionPage === MissionPage.NFID) {
             setIsVerifyModalVisible(true);
         }
-    }, [isVerified, isNfid]);
+    }, [isVerified, globalID.currentMissionPage]);
 
     useEffect(() => {
         if (globalID.ocS != '') {
@@ -107,7 +108,11 @@ const Missions: React.FC = () => {
                 canisterId: canisterIdNFID,
             });
 
-            fetchData.fetchUserProgress(actor, actorNFID, globalID.principalId!);
+            const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
+                agent: globalID.agent!,
+                canisterId: canisterIdDFINITY,
+            })
+            fetchData.fetchUserProgress(actor, actorNFID, actorDfinity, globalID.principalId!);
             setShowOverlay(true);
         }
     }, [globalID.ocS]);
@@ -159,9 +164,15 @@ const Missions: React.FC = () => {
                     agent: agent,
                     canisterId: canisterIdNFID,
                 });
+
+                const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
+                    agent: agent,
+                    canisterId: canisterIdDFINITY,
+                })
+
                 await fetchData.isVerifiedNfid(actorNFID, principal, setIsVerified);
                 await fetchData.hasAccepted(actor, principal, setAcceptedTerms);
-                await fetchData.fetchAll(actor, actorNFID, principal, setDataloaded, setAcceptedTerms, setIsVerified);
+                await fetchData.fetchAll(actor, actorNFID, actorDfinity, principal, setDataloaded, setAcceptedTerms, setIsVerified);
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -265,11 +276,11 @@ const Missions: React.FC = () => {
                             ) : (
                                 <div>Loading missions...</div>
                             )}
-                            {!isNfid ? (
+                            {globalID.currentMissionPage === MissionPage.MAIN ? (
                                 <div className={styles.OpenChatWrapper}>
                                     <OpenChat />
                                 </div>
-                            ) : (
+                            ) : globalID.currentMissionPage === MissionPage.NFID ? (
                                 <div className={styles.NFIDWrapper}>
                                     <div className={styles.customRow}>
                                         <div className={styles.customImage} >
@@ -304,6 +315,41 @@ const Missions: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className={styles.NFIDWrapper}>
+                                    <div className={styles.customRow}>
+                                        <div className={styles.customImage} >
+                                            <LottieAnimationComponent1 />
+                                        </div>
+                                        <div>
+                                            <p className={styles.lightP}>1/3</p>
+                                            <p className={styles.mediumP}>Do Motoko Missions</p>
+                                            <p className={styles.lastP}>Text and more and more text and don't forget text</p>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.customRow}>
+                                        <div>
+                                            <p className={styles.lightP}>2/3</p>
+                                            <p className={styles.mediumP}>Learn While Coding</p>
+                                            <p className={styles.lastP}>Text and more and more text and don't forget text</p>
+                                        </div>
+                                        <div className={styles.customImage} >
+                                            <LottieAnimationComponent2 />
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.customRow}>
+                                        <div className={styles.customImage} >
+                                            <LottieAnimationComponent3 />
+                                        </div>
+                                        <div>
+                                            <p className={styles.lightP}>3/3</p>
+                                            <p className={styles.mediumP}>Earn ICP</p>
+                                            <p className={styles.lastP}>Text and more and more text and don't forget text</p>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -334,13 +380,13 @@ const Missions: React.FC = () => {
                                             <div>Loading missions...</div>
                                         )}
                                     </div>
-                                    {(!isNfid) && (
+                                    {(globalID.currentMissionPage === MissionPage.MAIN) && (
                                         <ActionButtons
                                             buttonList={buttonList}
                                             toggleModal={toggleModal}
                                         />
                                     )}
-                                    <div className={isNfid ? styles.ToggleMissionWrapperL : styles.ToggleMissionWrapperR}>
+                                    <div className={globalID.currentMissionPage === MissionPage.NFID ? styles.ToggleMissionWrapperL : styles.ToggleMissionWrapperR}>
                                         <ToggleMissionsComponent />
                                     </div>
                                 </div>
@@ -382,13 +428,13 @@ const Missions: React.FC = () => {
                                             <div>Loading missions...</div>
                                         )}
                                     </div>
-                                    {(!isNfid) && (
+                                    {(globalID.currentMissionPage) && (
                                         <ActionButtons
                                             buttonList={buttonList}
                                             toggleModal={toggleModal}
                                         />
                                     )}
-                                    <div className={isNfid ? styles.ToggleMissionWrapperL : styles.ToggleMissionWrapperR}>
+                                    <div className={globalID.currentMissionPage === MissionPage.NFID ? styles.ToggleMissionWrapperL : styles.ToggleMissionWrapperR}>
                                         <ToggleMissionsComponent />
                                     </div>
                                 </div>
@@ -414,7 +460,7 @@ const Missions: React.FC = () => {
                                     ) : (
                                         <div>Loading missions...</div>
                                     )}
-                                    {!isNfid ? (
+                                    {globalID.currentMissionPage === MissionPage.MAIN ? (
                                         <div className={styles.OpenChatWrapper}>
                                             <OpenChat />
                                         </div>

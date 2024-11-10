@@ -4,6 +4,12 @@ import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserSt
 import { SerializedMission as SerializedMissionNFID, SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../declarations/nfid/nfid.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
+export enum MissionPage {
+    MAIN = 'main',
+    NFID = 'nfid',
+    DFINITY = 'dfinity',
+}
+
 interface GlobalIDType {
     principalId: Principal | null;
     setPrincipal: (value: Principal) => void;
@@ -35,8 +41,10 @@ interface GlobalIDType {
     setTotalUserStreak: (value: SerializedUserStreak | null) => void;
     userStreakPercentage: bigint;
     setUserStreakPercentage: (value: bigint) => void;
-    nfid: boolean;
-    setNfid: (value: boolean) => void;
+    currentMissionPage: MissionPage;
+    setCurrentMissionPage: (page: MissionPage) => void;
+    previousMissionPage: MissionPage;
+    setPreviousMissionPage: (page: MissionPage) => void;
     missionsnfid: SerializedMissionNFID[];
     setMissionsnfid: (missions: SerializedMissionNFID[]) => void;
     userProgressnfid: Array<[bigint, SerializedProgressNFID]> | null;
@@ -45,6 +53,14 @@ interface GlobalIDType {
     setUsernfid: (user: SerializedUserNFID[]) => void;
     pointsnfid: bigint;
     setPointsnfid: (value: bigint) => void;
+    missionsdfinity: SerializedMissionNFID[];
+    setMissionsdfinity: (missions: SerializedMissionNFID[]) => void;
+    userProgressdfinity: Array<[bigint, SerializedProgressNFID]> | null;
+    setUserProgressdfinity: (progress: Array<[bigint, SerializedProgressNFID]> | null) => void;
+    userdfinity: SerializedUserNFID[] | null;
+    setUserdfinity: (user: SerializedUserNFID[]) => void;
+    pointsdfinity: bigint;
+    setPointsdfinity: (value: bigint) => void;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -65,23 +81,38 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
     const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
     const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
-    
-    const [nfid, setNfid] = useState<boolean>(() => {
-        const storedValue = localStorage.getItem('nfid');
-        return storedValue ? JSON.parse(storedValue) : false;
+
+    const [currentMissionPage, setCurrentMissionPage] = useState<MissionPage>(() => {
+        const storedPage = localStorage.getItem('currentMissionPage');
+        return storedPage as MissionPage || MissionPage.MAIN;
+    });
+
+    const [previousMissionPage, setPreviousMissionPage] = useState<MissionPage>(() => {
+        const storedPreviousPage = localStorage.getItem('previousMissionPage');
+        return (storedPreviousPage as MissionPage) || MissionPage.MAIN;
     });
 
     useEffect(() => {
         try {
-            localStorage.setItem('nfid', JSON.stringify(nfid));
+            localStorage.setItem('currentMissionPage', currentMissionPage);
         } catch (error) {
-            console.error('Failed to set nfid in localStorage:', error);
+            console.error('Failed to set currentMissionPage in localStorage:', error);
         }
-    }, [nfid]);
+    }, [currentMissionPage]);
+
+    const handleSetCurrentMissionPage = (page: MissionPage) => {
+        setPreviousMissionPage(currentMissionPage);
+        setCurrentMissionPage(page);
+    };
+
     const [missionsnfid, setMissionsnfid] = useState<SerializedMissionNFID[]>([]);
     const [userProgressnfid, setUserProgressnfid] = useState<Array<[bigint, SerializedProgressNFID]> | null>([]);
     const [usernfid, setUsernfid] = useState<SerializedUserNFID[] | null>([]);
     const [pointsnfid, setPointsnfid] = useState<bigint>(0n);
+    const [missionsdfinity, setMissionsdfinity] = useState<SerializedMissionNFID[]>([]);
+    const [userProgressdfinity, setUserProgressdfinity] = useState<Array<[bigint, SerializedProgressNFID]> | null>([]);
+    const [userdfinity, setUserdfinity] = useState<SerializedUserNFID[] | null>([]);
+    const [pointsdfinity, setPointsdfinity] = useState<bigint>(0n);
 
     const value = useMemo(() => ({
         principalId,
@@ -114,8 +145,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTotalUserStreak,
         userStreakPercentage,
         setUserStreakPercentage,
-        nfid,
-        setNfid,
+        currentMissionPage,
+        setCurrentMissionPage: handleSetCurrentMissionPage,
+        previousMissionPage,
+        setPreviousMissionPage,
         missionsnfid,
         setMissionsnfid,
         userProgressnfid,
@@ -123,7 +156,15 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         usernfid,
         setUsernfid,
         pointsnfid,
-        setPointsnfid
+        setPointsnfid,
+        missionsdfinity,
+        setMissionsdfinity,
+        userProgressdfinity,
+        setUserProgressdfinity,
+        userdfinity,
+        setUserdfinity,
+        pointsdfinity,
+        setPointsdfinity
     }), [
         principalId,
         missions,
@@ -140,11 +181,16 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         streakResetTime,
         totalUserStreak,
         userStreakPercentage,
-        nfid,
+        currentMissionPage,
+        previousMissionPage,
         missionsnfid,
         userProgressnfid,
         usernfid,
-        pointsnfid
+        pointsnfid,
+        missionsdfinity,
+        userProgressdfinity,
+        userdfinity,
+        pointsdfinity
     ]);
 
     return (

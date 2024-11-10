@@ -20,7 +20,6 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
 
     const globalID = useGlobalID();
     const fetchData = useFetchData();
-    const { nfid, setNfid } = globalID;
     const [user, setUser] = useState<SerializedUserNFID | null>(null);
     const minForm = useMediaQuery({ query: '(max-width: 950px)' });
     const [telegramUser, setTelegramUser] = useState<string>('');
@@ -220,7 +219,7 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
         <div className="overlayV">
             <div className="formWrapper">
                 <form onSubmit={handleSubmit} className="form">
-                    <div className="closeButton" onClick={() => (setNfid(false), setIsVisible(false))}>X</div>
+                    <div className="closeButton" onClick={() => (globalID.setCurrentMissionPage(globalID.previousMissionPage), setIsVisible(false))}>X</div>
                     {/* SVG Horizontal Line */}
                     <svg className="horizontalLineF" xmlns="http://www.w3.org/2000/svg">
                         <defs>

@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import styles from './TopBar.module.scss';
 import KonectaLogo from '../../../../../../public/assets/Konecta Logo.svg';
 import NFIDLogo from '../../../../../../public/assets/NFID_Airdrop.svg';
+import DFINITYLogo from '../../../../../../public/assets/ICP2LinesLogo.svg';
 import TimeCapsule from '../../../../../../public/assets/Time Capsule.svg';
 import NFIDPoints from '../../../../../../public/assets/NFIDpoints.svg';
 import NFIDLogout from '../../../../../../public/assets/NFIDlogout.svg';
-import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import DFINITYPoints from '../../../../../../public/assets/Dfinitypoints.svg';
+import DFINITYLogout from '../../../../../../public/assets/DFINITYlogout.svg';
+import { useGlobalID, MissionPage } from '../../../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import HexagonButton from '../../../../components/HexagonButton/hexagonButton.tsx';
 import { isMobileOnly, isTablet } from 'react-device-detect';
@@ -50,8 +53,6 @@ type ModalState = {
 
 const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
     const globalID = useGlobalID();
-    const isNfid = globalID.nfid;
-    const { nfid, setNfid } = globalID;
     const { disconnect } = useIdentityKit();
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
@@ -67,6 +68,7 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
     const [isClaimClicked, setIsClaimClicked] = useState(false);
 
     const [isHoveringOverNFIDLogo, setIsHoveringOverNFIDLogo] = useState(false);
+    const [isHoveringOverDFINITYLogo, setIsHoveringOverDFINITYLogo] = useState(false);
     const [isHoveringOverKonectaLogo, setIsHoveringOverKonectaLogo] = useState(false);
 
     const [isPressed, setIsPressed] = useState(false);
@@ -205,14 +207,73 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                 <stop offset=".96" stopColor="#0d9488" />
                             </radialGradient>
                             <radialGradient
+                                id="Degradado_sin_nombre_purple"
+                                data-name="Degradado sin nombre purple"
+                                cx="951.31"
+                                cy="1120.81"
+                                fx="951.31"
+                                fy="1438.94"
+                                r="368.9"
+                                gradientTransform="translate(0 -958)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".41" stopColor="#4D00F1" />
+                                <stop offset=".52" stopColor="#4400D5" />
+                                <stop offset=".68" stopColor="#4100CB" />
+                                <stop offset=".83" stopColor="#3B00B9" />
+                                <stop offset=".96" stopColor="#3500A7" />
+                            </radialGradient>
+                            <radialGradient
                                 id="Degradado_sin_nombre_2_blue"
                                 data-name="Degradado sin nombre 2"
-                                cx="951.11"
-                                cy="1122.79"
-                                fx="951.11"
-                                fy="1423.75"
-                                r="368.92"
-                                gradientTransform="translate(0 -958)"
+                                cx="960.2"
+                                cy="58.125"
+                                fx="960.7092"
+                                fy="732.1002"
+                                r="680.2068"
+                                gradientTransform="matrix(1 0 0 1.0045 0 -0.2607)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#2e68ff" />
+                                <stop offset=".29" stopColor="#2d65f7" />
+                                <stop offset=".36" stopColor="#2a54ca" />
+                                <stop offset=".43" stopColor="#2746a1" />
+                                <stop offset=".51" stopColor="#253a7f" />
+                                <stop offset=".6" stopColor="#233064" />
+                                <stop offset=".69" stopColor="#21284e" />
+                                <stop offset=".8" stopColor="#201f36" />
+                                <stop offset=".96" stopColor="#201f34" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_2_blue_1"
+                                data-name="Degradado sin nombre 2"
+                                cx="703.548"
+                                cy="60.7654"
+                                fx="690.919"
+                                fy="60.852"
+                                r="99.7718"
+                                gradientTransform="matrix(-1.219150e-02 -0.9997 0.2583 -1.259791e-02 822.6259 764.8698)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#2e68ff" />
+                                <stop offset=".29" stopColor="#2d65f7" />
+                                <stop offset=".36" stopColor="#2a54ca" />
+                                <stop offset=".43" stopColor="#2746a1" />
+                                <stop offset=".51" stopColor="#253a7f" />
+                                <stop offset=".6" stopColor="#233064" />
+                                <stop offset=".69" stopColor="#21284e" />
+                                <stop offset=".8" stopColor="#201f36" />
+                                <stop offset=".96" stopColor="#201f34" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_2_blue_2"
+                                data-name="Degradado sin nombre 2"
+                                cx="1225.5222"
+                                cy="60.7654"
+                                fx="1212.8932"
+                                fy="60.852"
+                                r="99.7718"
+                                gradientTransform="matrix(-1.219150e-02 -0.9997 0.2583 -1.259791e-02 1089.9766 1286.6887)"
                                 gradientUnits="userSpaceOnUse"
                             >
                                 <stop offset=".25" stopColor="#2e68ff" />
@@ -228,12 +289,12 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             <radialGradient
                                 id="Degradado_sin_nombre_2_green"
                                 data-name="Degradado sin nombre 2"
-                                cx="951.11"
-                                cy="1122.79"
-                                fx="951.11"
-                                fy="1423.75"
-                                r="368.92"
-                                gradientTransform="translate(0 -958)"
+                                cx="960.2"
+                                cy="58.125"
+                                fx="960.7092"
+                                fy="732.1002"
+                                r="680.2068"
+                                gradientTransform="matrix(1 0 0 1.0045 0 -0.2607)"
                                 gradientUnits="userSpaceOnUse"
                             >
                                 <stop offset=".25" stopColor="#2dd4bf" />
@@ -247,14 +308,119 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                 <stop offset=".96" stopColor="#201f34" />
                             </radialGradient>
                             <radialGradient
+                                id="Degradado_sin_nombre_2_green_1"
+                                data-name="Degradado sin nombre 2"
+                                cx="703.548"
+                                cy="60.7654"
+                                fx="690.919"
+                                fy="60.852"
+                                r="99.7718"
+                                gradientTransform="matrix(-1.219150e-02 -0.9997 0.2583 -1.259791e-02 822.6259 764.8698)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#2dd4bf" />
+                                <stop offset=".29" stopColor="#2ab4a6" />
+                                <stop offset=".36" stopColor="#278c88" />
+                                <stop offset=".43" stopColor="#256a6e" />
+                                <stop offset=".51" stopColor="#234f58" />
+                                <stop offset=".6" stopColor="#213948" />
+                                <stop offset=".69" stopColor="#202a3c" />
+                                <stop offset=".8" stopColor="#202136" />
+                                <stop offset=".96" stopColor="#201f34" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_2_green_2"
+                                data-name="Degradado sin nombre 2"
+                                cx="1225.5222"
+                                cy="60.7654"
+                                fx="1212.8932"
+                                fy="60.852"
+                                r="99.7718"
+                                gradientTransform="matrix(-1.219150e-02 -0.9997 0.2583 -1.259791e-02 1089.9766 1286.6887)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#2dd4bf" />
+                                <stop offset=".29" stopColor="#2ab4a6" />
+                                <stop offset=".36" stopColor="#278c88" />
+                                <stop offset=".43" stopColor="#256a6e" />
+                                <stop offset=".51" stopColor="#234f58" />
+                                <stop offset=".6" stopColor="#213948" />
+                                <stop offset=".69" stopColor="#202a3c" />
+                                <stop offset=".8" stopColor="#202136" />
+                                <stop offset=".96" stopColor="#201f34" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_2_purple"
+                                data-name="Degradado sin nombre 2"
+                                cx="960.2"
+                                cy="58.125"
+                                fx="960.7092"
+                                fy="732.1002"
+                                r="680.2068"
+                                gradientTransform="matrix(1 0 0 1.0045 0 -0.2607)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#2E25B2" />
+                                <stop offset=".29" stopColor="#2C24A1" />
+                                <stop offset=".36" stopColor="#32009d" />
+                                <stop offset=".43" stopColor="#282380" />
+                                <stop offset=".51" stopColor="#252164" />
+                                <stop offset=".6" stopColor="#23204F" />
+                                <stop offset=".69" stopColor="#212040" />
+                                <stop offset=".8" stopColor="#201F37" />
+                                <stop offset=".96" stopColor="#201F34" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_2_purple_1"
+                                data-name="Degradado sin nombre 2"
+                                cx="703.548"
+                                cy="60.7654"
+                                fx="690.919"
+                                fy="60.852"
+                                r="99.7718"
+                                gradientTransform="matrix(-1.219150e-02 -0.9997 0.2583 -1.259791e-02 822.6259 764.8698)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#3b00b9" />
+                                <stop offset=".29" stopColor="#3500a7" />
+                                <stop offset=".36" stopColor="#32009d" />
+                                <stop offset=".43" stopColor="#290082" />
+                                <stop offset=".51" stopColor="#4100cb" />
+                                <stop offset=".6" stopColor="#4400d5" />
+                                <stop offset=".69" stopColor="#4d00f1" />
+                                <stop offset=".8" stopColor="#4d00f1" />
+                                <stop offset=".96" stopColor="#4d00f1" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_2_purple_2"
+                                data-name="Degradado sin nombre 2"
+                                cx="1225.5222"
+                                cy="60.7654"
+                                fx="1212.8932"
+                                fy="60.852"
+                                r="99.7718"
+                                gradientTransform="matrix(-1.219150e-02 -0.9997 0.2583 -1.259791e-02 1089.9766 1286.6887)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".25" stopColor="#3b00b9" />
+                                <stop offset=".29" stopColor="#3500a7" />
+                                <stop offset=".36" stopColor="#32009d" />
+                                <stop offset=".43" stopColor="#290082" />
+                                <stop offset=".51" stopColor="#4100cb" />
+                                <stop offset=".6" stopColor="#4400d5" />
+                                <stop offset=".69" stopColor="#4d00f1" />
+                                <stop offset=".8" stopColor="#4d00f1" />
+                                <stop offset=".96" stopColor="#4d00f1" />
+                            </radialGradient>
+                            <radialGradient
                                 id="Degradado_sin_nombre_3"
                                 data-name="Degradado sin nombre 3"
-                                cx="832.44"
-                                cy="1490.31"
-                                fx="832.44"
-                                fy="1362.27"
-                                r="162.94"
-                                gradientTransform="translate(0 -944.85) scale(1 .66)"
+                                cx="692.8792"
+                                cy="23.7698"
+                                fx="692.7229"
+                                fy="-89.5898"
+                                r="162.0266"
+                                gradientTransform="matrix(1 0 0 0.661 0 8.0588)"
                                 gradientUnits="userSpaceOnUse"
                             >
                                 <stop offset=".2" stopColor="#2e68ff" />
@@ -270,12 +436,12 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             <radialGradient
                                 id="Degradado_sin_nombre_4"
                                 data-name="Degradado sin nombre 4"
-                                cx="1089.1"
-                                cy="1469.13"
-                                fx="1089.1"
-                                fy="1365.57"
-                                r="168.85"
-                                gradientTransform="translate(0 -952.03) scale(1 .66)"
+                                cx="963.0492"
+                                cy="22.5106"
+                                fx="963.7968"
+                                fy="-92.8114"
+                                r="160.4552"
+                                gradientTransform="matrix(1 0 0 0.661 0 7.6319)"
                                 gradientUnits="userSpaceOnUse"
                             >
                                 <stop offset=".32" stopColor="#0d9488" />
@@ -285,6 +451,21 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                 <stop offset=".76" stopColor="#0d9488" stopOpacity=".16" />
                                 <stop offset=".88" stopColor="#0d9488" stopOpacity=".04" />
                                 <stop offset=".96" stopColor="#0d9488" stopOpacity="0" />
+                            </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_4_DF"
+                                data-name="Degradado sin nombre 4"
+                                cx="1232.3883"
+                                cy="20.8544"
+                                fx="1232.2583"
+                                fy="-85.7569"
+                                r="157.9582"
+                                gradientTransform="matrix(1 0 0 0.6956 0 6.3478)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".2028" stopColor="#EBB351" />
+                                <stop offset=".2043" stopColor="#EBB351" stopOpacity=".998" />
+                                <stop offset=".9611" stopColor="#EBB351" stopOpacity="0" />
                             </radialGradient>
                             <linearGradient
                                 id="Degradado_sin_nombre_5"
@@ -332,65 +513,127 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                 <stop offset=".74" stopColor="#16a698" />
                                 <stop offset=".96" stopColor="#0d9488" />
                             </radialGradient>
+                            <radialGradient
+                                id="Degradado_sin_nombre_6_purple"
+                                data-name="Degradado sin nombre 6"
+                                cx="6.92"
+                                cy="15.61"
+                                fx="-5.71"
+                                fy="15.61"
+                                r="99.77"
+                                gradientTransform="translate(956.27 67.54) rotate(-90.7) scale(1 .26) skewX(.54)"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset=".16" stop-color="#3b00b9" />
+                                <stop offset=".74" stop-color="#4400d5" />
+                                <stop offset=".96" stop-color="#4d00f1" />
+                            </radialGradient>
                         </defs>
                         <g id="Navbar">
                             <path
                                 id="Border"
-                                d="M1920.4,14.9v3h-656.1c-18.5,0-34.6,11.9-40.2,29.5l-11.9,37.8c-6.4,20.3-24.9,33.9-46.2,33.9h-412c-21.3,0-39.8-13.6-46.2-33.9l-11.9-37.8c-5.5-17.6-21.7-29.5-40.2-29.5H0v-3s1920.4,0,1920.4,0Z"
-                                fill={`url(#${nfid ? 'Degradado_sin_nombre_green' : 'Degradado_sin_nombre_blue'})`}
+                                d="M1920.4,15v3h-500.2 c-17.6,0-33.5,11.1-39.6,27.6L1365,87.9c-6.9,18.8-25.1,31.4-45.1,31.4H599.7c-20,0-38.1-12.6-45.1-31.4L539,45.6 c-6.1-16.5-22-27.6-39.6-27.6H0v-3H1920.4z"
+                                fill={`url(#${globalID.currentMissionPage === MissionPage.MAIN
+                                    ? 'Degradado_sin_nombre_blue'
+                                    : globalID.currentMissionPage === MissionPage.NFID
+                                        ? 'Degradado_sin_nombre_green'
+                                        : 'Degradado_sin_nombre_purple'
+                                    })`}
                                 strokeWidth="0"
                             />
                             <path
                                 id="Shape"
-                                d="M1920,0v14.9h-655.7c-19.7,0-37.1,12.8-43,31.6l-11.9,37.8c-5.9,18.9-23.5,31.8-43.3,31.8h-412.1c-19.8,0-37.4-12.9-43.3-31.8l-11.9-37.8c-5.9-18.8-23.3-31.6-43-31.6H0V0h1920Z"
-                                fill={`url(#${nfid ? 'Degradado_sin_nombre_2_green' : 'Degradado_sin_nombre_2_blue'})`}
+                                d="M1920.4,0v15h-500.2 c-5.5,0-10.8,1-15.8,2.9c-12.1,4.5-22,14.1-26.6,26.7l-15.7,42.3c-6.5,17.7-23.4,29.4-42.2,29.4H599.7c-18.8,0-35.7-11.7-42.2-29.4 l-15.6-42.3c-4.7-12.6-14.5-22.2-26.6-26.7c-5-1.9-10.3-2.9-15.8-2.9H0V0H1920.4z"
+                                fill={`url(#${globalID.currentMissionPage === MissionPage.MAIN
+                                    ? 'Degradado_sin_nombre_2_blue'
+                                    : globalID.currentMissionPage === MissionPage.NFID
+                                        ? 'Degradado_sin_nombre_2_green'
+                                        : 'Degradado_sin_nombre_2_purple'
+                                    })`}
                                 strokeWidth="0"
                             />
                         </g>
-                        {(!nfid || isHoveringOverKonectaLogo) && (
+                        {(globalID.currentMissionPage === MissionPage.MAIN || isHoveringOverKonectaLogo) && (
                             <path
                                 id="BlueGradient"
-                                d="M1920,0v14.9h-655.7c-19.7,0-37.1,12.8-43,31.6l-11.9,37.8c-5.9,18.9-23.5,31.8-43.3,31.8h-412.1c-19.8,0-37.4-12.9-43.3-31.8l-11.9-37.8c-5.9-18.8-23.3-31.6-43-31.6H0V0h1920Z"
+                                d="M1920.4,0v15h-500.2
+	c-5.5,0-10.8,1-15.8,2.9c-12.1,4.5-22,14.1-26.6,26.7l-15.7,42.3c-6.5,17.7-23.4,29.4-42.2,29.4H599.7c-18.8,0-35.7-11.7-42.2-29.4
+	l-15.6-42.3c-4.7-12.6-14.5-22.2-26.6-26.7c-5-1.9-10.3-2.9-15.8-2.9H0V0H1920.4z"
                                 fill="url(#Degradado_sin_nombre_3)"
                                 strokeWidth="0"
                             />
                         )}
-                        {(nfid || isHoveringOverNFIDLogo) && (
+                        {(globalID.currentMissionPage === MissionPage.NFID || isHoveringOverNFIDLogo) && (
                             <path
                                 id="GreenGradient"
-                                d="M1920,0v14.9h-655.7c-19.7,0-37.1,12.8-43,31.6l-11.9,37.8c-5.9,18.9-23.5,31.8-43.3,31.8h-412.1c-19.8,0-37.4-12.9-43.3-31.8l-11.9-37.8c-5.9-18.8-23.3-31.6-43-31.6H0V0h1920Z"
+                                d="M1920.4,0v15h-500.2
+	c-5.5,0-10.8,1-15.8,2.9c-12.1,4.5-22,14.1-26.6,26.7l-15.7,42.3c-6.5,17.7-23.4,29.4-42.2,29.4H599.7c-18.8,0-35.7-11.7-42.2-29.4
+	l-15.6-42.3c-4.7-12.6-14.5-22.2-26.6-26.7c-5-1.9-10.3-2.9-15.8-2.9H0V0H1920.4z"
                                 fill="url(#Degradado_sin_nombre_4)"
                                 strokeWidth="0"
                             />
                         )}
+                        {(globalID.currentMissionPage === MissionPage.DFINITY || isHoveringOverDFINITYLogo) && (
+                            <path
+                                id="PurpleGradient"
+                                d="M1920.4,0v15h-500.2
+	c-5.5,0-10.8,1-15.8,2.9c-12.1,4.5-22,14.1-26.6,26.7l-15.7,42.3c-6.1,16.6-21.3,27.9-38.7,29.3c-1.2,0.1-2.3,0.1-3.5,0.1H599.7
+	c-18.8,0-35.7-11.7-42.2-29.4l-15.6-42.3c-4.7-12.6-14.5-22.2-26.6-26.7c-5-1.9-10.3-2.9-15.8-2.9H0V0H1920.4z"
+                                fill="url(#Degradado_sin_nombre_4_DF)"
+                                strokeWidth="0"
+                            />
+                        )}
                         <path
-                            id="Divider"
-                            d="M959.7,9.8h0c1.1,0,1.9.9,1.9,1.9v94.4c0,1.1-.9,1.9-1.9,1.9h0c-1.1,0-1.9-.9-1.9-1.9V11.7c0-1,.9-1.9,1.9-1.9Z"
-                            fill={`url(#${nfid ? 'Degradado_sin_nombre_6_green' : 'Degradado_sin_nombre_6_blue'})`}
+                            id="Divider1"
+                            d="M829.3,108.2 L829.3,108.2c-1.1,0-1.9-0.9-1.9-1.9V11.8c0-1.1,0.9-1.9,1.9-1.9l0,0c1.1,0,1.9,0.9,1.9,1.9v94.4 C831.2,107.3,830.4,108.2,829.3,108.2z"
+                            fill={`url(#${globalID.currentMissionPage === MissionPage.MAIN
+                                ? 'Degradado_sin_nombre_2_blue_1'
+                                : globalID.currentMissionPage === MissionPage.NFID
+                                    ? 'Degradado_sin_nombre_2_green_1'
+                                    : 'Degradado_sin_nombre_2_purple_1'
+                                })`}
+                            strokeWidth="0"
+                        />
+                        <path
+                            id="Divider2"
+                            d="M1090.3,108.2L1090.3,108.2c-1.1,0-1.9-0.9-1.9-1.9V11.8c0-1.1,0.9-1.9,1.9-1.9l0,0c1.1,0,1.9,0.9,1.9,1.9v94.4 C1092.2,107.3,1091.3,108.2,1090.3,108.2z"
+                            fill={`url(#${globalID.currentMissionPage === MissionPage.MAIN
+                                ? 'Degradado_sin_nombre_2_blue_2'
+                                : globalID.currentMissionPage === MissionPage.NFID
+                                    ? 'Degradado_sin_nombre_2_green_2'
+                                    : 'Degradado_sin_nombre_2_purple_2'
+                                })`}
                             strokeWidth="0"
                         />
                     </svg>
 
                     <div className={styles.topbarLeft}>
-                        {!nfid ? (
-                            <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
-                                <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
-                                <div className={styles.TimerText}>{globalID.timerText}</div>
-                            </div>
-                        ) : (
-                            <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
-                                <img src={NFIDPoints} alt="Nfid Points" className={styles.PointsNfidSVG} />
-                                <div className={styles.PointsNfid}>Points: {Number(globalID.pointsnfid)}</div>
-                            </div>
-                        )}
+                        {
+                            globalID.currentMissionPage === MissionPage.MAIN ? (
+                                <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                    <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsule} />
+                                    <div className={styles.TimerText}>{globalID.timerText}</div>
+                                </div>
+                            ) : globalID.currentMissionPage === MissionPage.NFID ? (
+                                <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                    <img src={NFIDPoints} alt="NFID Points" className={styles.PointsNfidSVG} />
+                                    <div className={styles.PointsNfid}>Points: {Number(globalID.pointsnfid)}</div>
+                                </div>
+                            ) : (
+                                <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
+                                    <img src={DFINITYPoints} alt="DFINITY Points" className={styles.PointsNfidSVG} />
+                                    <div className={styles.PointsNfid}>Points: {Number(globalID.pointsdfinity)}</div>
+                                </div>
+                            )
+                        }
                     </div>
                     <div className={`${styles.topbarCenter} ${isClaimClicked ? styles.darkened : ''}`}>
                         <img
                             src={KonectaLogo}
                             alt="Konecta Logo"
                             className={styles.KonectaLogo}
-                            style={{ cursor: nfid ? 'pointer' : 'default' }}
-                            onClick={nfid ? () => setNfid(false) : undefined}
+                            style={{ cursor: globalID.currentMissionPage === MissionPage.MAIN ? 'default' : 'pointer' }}
+                            onClick={globalID.currentMissionPage === MissionPage.MAIN ? undefined : () => globalID.setCurrentMissionPage(MissionPage.MAIN)}
                             onMouseEnter={() => setIsHoveringOverKonectaLogo(true)}
                             onMouseLeave={() => setIsHoveringOverKonectaLogo(false)}
                         />
@@ -398,15 +641,24 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             src={NFIDLogo}
                             alt="NFID Logo"
                             className={styles.KonectaLogo}
-                            style={{ cursor: !nfid ? 'pointer' : 'default' }}
-                            onClick={!nfid ? () => setNfid(true) : undefined}
+                            style={{ cursor: globalID.currentMissionPage === MissionPage.NFID ? 'default' : 'pointer' }}
+                            onClick={globalID.currentMissionPage === MissionPage.NFID ? undefined : () => globalID.setCurrentMissionPage(MissionPage.NFID)}
                             onMouseEnter={() => setIsHoveringOverNFIDLogo(true)}
                             onMouseLeave={() => setIsHoveringOverNFIDLogo(false)}
+                        />
+                        <img
+                            src={DFINITYLogo}
+                            alt="DFINITY Logo"
+                            className={styles.KonectaLogo}
+                            style={{ cursor: globalID.currentMissionPage === MissionPage.DFINITY ? 'default' : 'pointer' }}
+                            onClick={globalID.currentMissionPage === MissionPage.DFINITY ? undefined : () => globalID.setCurrentMissionPage(MissionPage.DFINITY)}
+                            onMouseEnter={() => setIsHoveringOverDFINITYLogo(true)}
+                            onMouseLeave={() => setIsHoveringOverDFINITYLogo(false)}
                         />
                     </div>
                     <ul className={styles.topbarRight}>
 
-                        {!nfid ? (
+                        {globalID.currentMissionPage === MissionPage.MAIN ? (
                             <>
                                 <li
                                     className={`${styles.topbarButtonClaim} ${isClaimClicked ? styles.claimClicked : ''}`}
@@ -467,12 +719,30 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                         })
                                 }
                             </>
+                        ) : globalID.currentMissionPage === MissionPage.NFID ? (
+
+                            <div className={styles.nfidDisconnect}>
+                                <img
+                                    src={NFIDLogout}
+                                    alt="Logout"
+                                    className={`${styles.NFIDLogout} ${isPressed ? styles.pressed : ''}`}
+                                    onMouseDown={handleMouseDown}
+                                    onMouseUp={handleMouseUp}
+                                    onMouseLeave={handleMouseLeave}
+                                />
+                            </div>
+
                         ) : (
 
                             <div className={styles.nfidDisconnect}>
-                                <img src={NFIDLogout} alt="Logout" className={`${styles.NFIDLogout} ${isPressed ? styles.pressed : ''}`} onMouseDown={handleMouseDown}
+                                <img
+                                    src={DFINITYLogout}
+                                    alt="DFINITY Logout"
+                                    className={`${styles.NFIDLogout} ${isPressed ? styles.pressed : ''}`}
+                                    onMouseDown={handleMouseDown}
                                     onMouseUp={handleMouseUp}
-                                    onMouseLeave={handleMouseLeave} />
+                                    onMouseLeave={handleMouseLeave}
+                                />
                             </div>
 
                         )}
@@ -488,21 +758,29 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             <nav className={styles.topbarMobile}>
                                 <div className={styles.topbarTop}>
                                     <div className={`${styles.topbarLeftMobile} ${isClaimClicked ? styles.darkened : ''}`}>
-                                        <img src={isNfid ? NFIDLogo : KonectaLogo} alt="Logo" className={styles.KonectaLogoMobile} />
+                                        <img src={globalID.currentMissionPage === MissionPage.MAIN
+                                            ? KonectaLogo
+                                            : globalID.currentMissionPage === MissionPage.NFID
+                                                ? NFIDLogo
+                                                : DFINITYLogo
+                                        } alt="Logo" className={styles.KonectaLogoMobile} />
                                     </div>
                                     <div className={`${styles.topbarRightMobile} ${isClaimClicked ? styles.darkened : ''}`}>
                                         <div className={styles.hexagonButtonWrapper}>
                                             <HexagonButton
                                                 name="Log Out"
-                                                src={isNfid ? "/assets/NFIDlogout.svg" : "/assets/logout_button.svg"}
+                                                src={globalID.currentMissionPage === MissionPage.NFID ? "/assets/NFIDlogout.svg"
+                                                    : globalID.currentMissionPage === MissionPage.DFINITY
+                                                        ? "/assets/DFINITYlogout.svg"
+                                                        : "/assets/logout_button.svg"}
                                                 onClick={handleDC}
                                             />
                                         </div>
                                     </div>
                                 </div>
-                                <div className={isNfid ? styles.topbarBottomNfid : styles.topbarBottom}>
+                                <div className={globalID.currentMissionPage === MissionPage.NFID ? styles.topbarBottomNfid : styles.topbarBottom}>
 
-                                    {!nfid ? (
+                                    {globalID.currentMissionPage === MissionPage.MAIN ? (
                                         <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
                                             <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsuleMobile} />
                                             <div className={styles.TimerTextMobile}>{globalID.timerText}</div>
@@ -514,7 +792,7 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                         </div>
                                     )}
 
-                                    {!nfid && (
+                                    {globalID.currentMissionPage === MissionPage.MAIN && (
                                         <ul className={styles.topbarRightMobile}>
                                             <li
                                                 className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
@@ -577,21 +855,29 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                             <nav className={styles.topbarMobile}>
                                 <div className={styles.topbarTop}>
                                     <div className={`${styles.topbarLeftMobile} ${isClaimClicked ? styles.darkened : ''}`}>
-                                        <img src={isNfid ? NFIDLogo : KonectaLogo} alt="Logo" className={styles.KonectaLogoMobile} />
+                                        <img src={globalID.currentMissionPage === MissionPage.MAIN
+                                            ? KonectaLogo
+                                            : globalID.currentMissionPage === MissionPage.NFID
+                                                ? NFIDLogo
+                                                : DFINITYLogo
+                                        } alt="Logo" className={styles.KonectaLogoMobile} />
                                     </div>
                                     <div className={`${styles.topbarRightMobile} ${isClaimClicked ? styles.darkened : ''}`}>
                                         <div className={styles.hexagonButtonWrapper}>
                                             <HexagonButton
                                                 name="Log Out"
-                                                src={isNfid ? "/assets/NFIDlogout.svg" : "/assets/logout_button.svg"}
+                                                src={globalID.currentMissionPage === MissionPage.NFID ? "/assets/NFIDlogout.svg"
+                                                    : globalID.currentMissionPage === MissionPage.DFINITY
+                                                        ? "/assets/DFINITYlogout.svg"
+                                                        : "/assets/logout_button.svg"}
                                                 onClick={handleDC}
                                             />
                                         </div>
                                     </div>
                                 </div>
-                                <div className={isNfid ? styles.topbarBottomNfid : styles.topbarBottom}>
+                                <div className={globalID.currentMissionPage === MissionPage.NFID ? styles.topbarBottomNfid : styles.topbarBottom}>
 
-                                    {!nfid ? (
+                                    {globalID.currentMissionPage === MissionPage.MAIN ? (
                                         <div className={`${styles.timeCapsuleWrapper} ${isClaimClicked ? styles.darkened : ''}`}>
                                             <img src={TimeCapsule} alt="Time Capsule" className={styles.TimeCapsuleMobile} />
                                             <div className={styles.TimerTextMobile}>{globalID.timerText}</div>
@@ -603,7 +889,7 @@ const TopBar: React.FC<TopBarProps> = ({ buttonList, toggleModal }) => {
                                         </div>
                                     )}
 
-                                    {!nfid && (
+                                    {globalID.currentMissionPage === MissionPage.MAIN && (
                                         <ul className={styles.topbarRightMobile}>
                                             <li
                                                 className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}

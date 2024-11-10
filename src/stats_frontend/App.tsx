@@ -26,6 +26,9 @@ const App: React.FC = () => {
   const [missionCompletionData, setMissionCompletionData] = useState<Array<{ missionId: string; missionName: string; count: number }>>([]);
   const [missionCompletionOverTimeData, setMissionCompletionOverTimeData] = useState<Array<{ date: string;[missionName: string]: number | string }>>([]);
   const [leaderBoardData, setLeaderBoardData] = useState<Array<{ principal: string; totalPoints: bigint }>>([]);
+  const [usersWithVerifiedTwitterAndDiscordCount, setUsersWithVerifiedTwitterAndDiscordCount] = useState(0);
+  const [usersWithTwitterOnlyCount, setUsersWithTwitterOnlyCount] = useState(0);
+  const [usersWithDiscordOnlyCount, setUsersWithDiscordOnlyCount] = useState(0);
 
 
 
@@ -201,8 +204,16 @@ const App: React.FC = () => {
   useEffect(() => {
     if (loaded && users.length > 0) {
       processUserCreationData();
+      const usersWithBoth = users.filter(user => user.twitterhandle.length > 0 && user.discordUser.length > 0).length;
+      const usersWithTwitterOnly = users.filter(user => user.twitterhandle.length > 0 && user.discordUser.length === 0).length;
+      const usersWithDiscordOnly = users.filter(user => user.twitterhandle.length === 0 && user.discordUser.length > 0).length;
+      setUsersWithVerifiedTwitterAndDiscordCount(usersWithBoth);
+      setUsersWithTwitterOnlyCount(usersWithTwitterOnly);
+      setUsersWithDiscordOnlyCount(usersWithDiscordOnly);
     }
   }, [loaded, users]);
+  
+
 
   useEffect(() => {
     if (userProgressData.length > 0) {
@@ -221,7 +232,10 @@ const App: React.FC = () => {
       </div>
       {loaded && (
         <div style={{ marginTop: '40px', width: '75vw' }}>
-          <h2 style={{ marginBottom: '10px' }}>Users Registered Over Time. Total: {users.length}</h2>
+          <h2 style={{ marginBottom: '10px' }}>Total Users Registered Over Time: {users.length}</h2>
+          <h2>Users with Verified Twitter and Discord: {usersWithVerifiedTwitterAndDiscordCount}</h2>
+          <h2>Users with Verified Twitter only: {usersWithTwitterOnlyCount}</h2>
+          <h2>Users with Verified Discord only: {usersWithDiscordOnlyCount}</h2>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart
               data={userCreationData}

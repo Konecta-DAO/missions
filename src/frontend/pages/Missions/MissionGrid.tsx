@@ -1,11 +1,13 @@
 import styles from './Missions.module.scss';
 import Mission from './Components/Mission/Mission.tsx';
 import MissionNfid from './Components/Mission/MissionNfid.tsx';
+import MissionDfinity from './Components/Mission/MissionDfinity.tsx';
 import { useState } from 'react';
 import MissionModal from './Components/MissionModal/MissionModal.tsx';
 import MissionModalNfid from './Components/MissionModal/MissionModalNfid.tsx';
+import MissionModalDfinity from './Components/MissionModal/MissionModalDfinity.tsx';
 import { useNavigate } from 'react-router-dom';
-import { useGlobalID } from '../../../hooks/globalID.tsx';
+import { MissionPage, useGlobalID } from '../../../hooks/globalID.tsx';
 
 interface MissionGridProps {
     handleCardClick: (id: string) => void;
@@ -17,8 +19,6 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
     const navigate = useNavigate();
-
-    const isNfid = globalID.nfid === true;
 
     const handleMouseMove = (e: React.MouseEvent, content: string | null) => {
         const { clientX, clientY } = e;
@@ -41,10 +41,23 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
         navigate('/Missions');
     }
 
-    const missionsToDisplay = isNfid ? globalID.missionsnfid : globalID.missions;
+    const missionsToDisplay = globalID.currentMissionPage === MissionPage.NFID
+        ? globalID.missionsnfid
+        : globalID.currentMissionPage === MissionPage.DFINITY
+            ? globalID.missionsdfinity
+            : globalID.missions;
 
-    const MissionComponent = isNfid ? MissionNfid : Mission;
-    const MissionModalComponent = isNfid ? MissionModalNfid : MissionModal;
+    const MissionComponent = globalID.currentMissionPage === MissionPage.NFID
+        ? MissionNfid
+        : globalID.currentMissionPage === MissionPage.DFINITY
+            ? MissionDfinity
+            : Mission;
+
+    const MissionModalComponent = globalID.currentMissionPage === MissionPage.NFID
+        ? MissionModalNfid
+        : globalID.currentMissionPage === MissionPage.DFINITY
+            ? MissionModalDfinity
+            : MissionModal;
 
     return (
         <div className={styles.MissionGrid}>
