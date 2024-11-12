@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent.tsx';
+import OpenChatDF from '../../../components/OpenChatComponentDFINITY.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useFetchData from '../../../hooks/fetchData.tsx';
@@ -316,39 +317,8 @@ const Missions: React.FC = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className={styles.NFIDWrapper}>
-                                    <div className={styles.customRow}>
-                                        <div className={styles.customImage} >
-                                            <LottieAnimationComponent1 />
-                                        </div>
-                                        <div>
-                                            <p className={styles.lightP}>1/3</p>
-                                            <p className={styles.mediumP}>Do Motoko Missions</p>
-                                            <p className={styles.lastP}>Text and more and more text and don't forget text</p>
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.customRow}>
-                                        <div>
-                                            <p className={styles.lightP}>2/3</p>
-                                            <p className={styles.mediumP}>Learn While Coding</p>
-                                            <p className={styles.lastP}>Text and more and more text and don't forget text</p>
-                                        </div>
-                                        <div className={styles.customImage} >
-                                            <LottieAnimationComponent2 />
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.customRow}>
-                                        <div className={styles.customImage} >
-                                            <LottieAnimationComponent3 />
-                                        </div>
-                                        <div>
-                                            <p className={styles.lightP}>3/3</p>
-                                            <p className={styles.mediumP}>Earn ICP</p>
-                                            <p className={styles.lastP}>Text and more and more text and don't forget text</p>
-                                        </div>
-                                    </div>
+                                <div className={styles.OpenChatWrapper}>
+                                    <OpenChatDF />
                                 </div>
                             )}
                         </div>
@@ -464,7 +434,7 @@ const Missions: React.FC = () => {
                                         <div className={styles.OpenChatWrapper}>
                                             <OpenChat />
                                         </div>
-                                    ) : (
+                                    ) : globalID.currentMissionPage === MissionPage.NFID ? (
                                         <div className={styles.NFIDWrapper}>
                                             <div className={styles.customRow}>
                                                 <div className={styles.customImage} >
@@ -498,6 +468,10 @@ const Missions: React.FC = () => {
                                                     <p className={styles.lastP}>Accumulating points raises your chances to join the 1,000 winners</p>
                                                 </div>
                                             </div>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.OpenChatWrapper}>
+                                            <OpenChatDF />
                                         </div>
                                     )}
                                 </div>

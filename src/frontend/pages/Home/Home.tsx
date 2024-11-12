@@ -102,48 +102,43 @@ const Home: React.FC = () => {
               const firstDelegation = delegation.delegations[0];
               const targets = firstDelegation.delegation.targets;
 
-              if (targets && targets.length > 0) {
-                (actor.addUser(a) as Promise<SerializedUser[]>).then(
-                  async (newUser) => {
-                    if (userId !== '') {
-                      actor.addOCProfile(a, userId);
-                    }
-                    globalID.setPrincipal(a);
-                    globalID.setUser(newUser);
-
-                    // Check if user exists in actornfid canister
-                    const nfiduser = await actornfid.getUser(a);
-                    if (
-                      Array.isArray(nfiduser) &&
-                      nfiduser.length !== 0
-                    ) {
-                      // User exists in actornfid canister
-                    } else {
-                      // Add user to actornfid canister
-                      await actornfid.addUser(a);
-                    }
-
-                    // Check if user exists in actordfinity canister
-                    const dfinityUser = await actordfinity.getUser(a);
-                    if (
-                      Array.isArray(dfinityUser) &&
-                      dfinityUser.length !== 0
-                    ) {
-                      // User exists in actordfinity canister
-                    } else {
-                      // Add user to actordfinity canister
-                      await actordfinity.addUser(a);
-                    }
-
-                    Usergeek.trackEvent('Mission 0: Registered');
-                    navigate('/Missions');
+              (actor.addUser(a) as Promise<SerializedUser[]>).then(
+                async (newUser) => {
+                  if (userId !== '') {
+                    actor.addOCProfile(a, userId);
                   }
-                );
-              } else {
-                alert('You have to use a Non-Anonymous NFID account');
-                disconnect();
-                setIsnfiding(false);
-              }
+                  globalID.setPrincipal(a);
+                  globalID.setUser(newUser);
+
+                  // Check if user exists in actornfid canister
+                  const nfiduser = await actornfid.getUser(a);
+                  if (
+                    Array.isArray(nfiduser) &&
+                    nfiduser.length !== 0
+                  ) {
+                    // User exists in actornfid canister
+                  } else {
+                    // Add user to actornfid canister
+                    await actornfid.addUser(a);
+                  }
+
+                  // Check if user exists in actordfinity canister
+                  const dfinityUser = await actordfinity.getUser(a);
+                  if (
+                    Array.isArray(dfinityUser) &&
+                    dfinityUser.length !== 0
+                  ) {
+                    // User exists in actordfinity canister
+                  } else {
+                    // Add user to actordfinity canister
+                    await actordfinity.addUser(a);
+                  }
+
+                  Usergeek.trackEvent('Mission 0: Registered');
+                  navigate('/Missions');
+                }
+              );
+
             }
           }
         });

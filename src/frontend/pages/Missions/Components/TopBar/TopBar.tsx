@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styles from './TopBar.module.scss';
 import KonectaLogo from '../../../../../../public/assets/Konecta Logo.svg';
 import NFIDLogo from '../../../../../../public/assets/NFID_Airdrop.svg';
-import DFINITYLogo from '../../../../../../public/assets/ICP2LinesLogo.svg';
+import DFINITYLogo from '../../../../../../public/assets/DFINITYW.png';
 import TimeCapsule from '../../../../../../public/assets/Time Capsule.svg';
 import NFIDPoints from '../../../../../../public/assets/NFIDpoints.svg';
 import NFIDLogout from '../../../../../../public/assets/NFIDlogout.svg';

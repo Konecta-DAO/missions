@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import styles from './MissionModal.module.scss';
+import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
 import missionFunctions from '../MissionFunctionsComponent.ts';
@@ -296,7 +297,16 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 </div>
                 {/* Mission Content */}
                 <div className={styles.MissionContent}>
-                    <p>{mission.description}</p>
+                    <ReactMarkdown
+                        children={mission.description}
+                        components={{
+                            a: ({ node, ...props }) => (
+                                <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: gradientColors.end }}>
+                                    {props.children}
+                                </a>
+                            ),
+                        }}
+                    />
                 </div>
 
                 <div className={styles.ButtonInputs}>

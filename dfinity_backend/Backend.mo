@@ -15,6 +15,8 @@ import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
 import Nat8 "mo:base/Nat8";
+import Random "mo:base/Random";
+import Char "mo:base/Char";
 
 actor class Backend() {
 
@@ -43,6 +45,15 @@ actor class Backend() {
   stable var twitterVerifiedNFID : [Principal] = [];
 
   stable var discordVerifiedNFID : [Principal] = [];
+
+  stable var mission2Text : Text = "";
+
+  public shared (msg) func getMission2Text() : async Text {
+    if (not Principal.isAnonymous(msg.caller)) {
+      return mission2Text;
+    };
+    return "";
+  };
 
   public shared (msg) func addNfidVault(userId : Principal, vault : Principal) : async () {
     if (isAdmin(msg.caller)) {
@@ -1238,28 +1249,107 @@ actor class Backend() {
   public shared (msg) func missionOne(userId : Principal, canisterId : Text) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
       try {
-          let canister = actor (canisterId) : actor {
-            helloWorld : query () -> async Text;
+        let canister = actor (canisterId) : actor {
+          helloWorld : query () -> async Text;
+        };
+        let result = await canister.helloWorld();
+        if (result == "Hello World") {
+          let firstMissionRecord : Types.MissionRecord = {
+            var timestamp = Time.now();
+            var pointsEarned = 100;
+            var tweetId = null;
           };
-          let result = await canister.helloWorld();
-          if (result == "Hello World") {
-            let firstMissionRecord : Types.MissionRecord = {
-              var timestamp = Time.now();
-              var pointsEarned = 100;
-              var tweetId = null;
-            };
-            let firstMissionProgress : Types.Progress = {
-              var completionHistory = [firstMissionRecord];
-              var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-            };
-            let tempP = Serialization.serializeProgress(firstMissionProgress);
-            await updateUserProgress(userId, 0, tempP);
-            return "Success";
-          } else {
-            return "Your canister doesn't have the method as described";
+          let firstMissionProgress : Types.Progress = {
+            var completionHistory = [firstMissionRecord];
+            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
           };
+          let tempP = Serialization.serializeProgress(firstMissionProgress);
+          await updateUserProgress(userId, 0, tempP);
+          return "Success";
+        } else {
+          return "Your canister doesn't have the method as described";
+        };
       } catch (_e) {
         return "You're not a controller of the given canister";
+      };
+    };
+    return "";
+  };
+
+  public shared (msg) func missionTwo(userId : Principal, canisterId : Text) : async Text {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      try {
+        let canister = actor (canisterId) : actor {
+          interCanisterCall : query () -> async Text;
+        };
+
+        var randomText = "";
+        var seed = Random.Finite(await Random.blob());
+
+        for (i in Iter.range(0, 30)) {
+          switch (seed.byte()) {
+            case (?b) {
+              randomText #= Char.toText(Char.fromNat32(Nat32.fromNat(Nat8.toNat(b) % 26 + 97)));
+            };
+            case null {
+              seed := Random.Finite(await Random.blob());
+            };
+          };
+        };
+
+        mission2Text := randomText;
+
+        let result = await canister.interCanisterCall();
+        if (result == mission2Text) {
+          let firstMissionRecord : Types.MissionRecord = {
+            var timestamp = Time.now();
+            var pointsEarned = 100;
+            var tweetId = null;
+          };
+          let firstMissionProgress : Types.Progress = {
+            var completionHistory = [firstMissionRecord];
+            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+          };
+          let tempP = Serialization.serializeProgress(firstMissionProgress);
+          await updateUserProgress(userId, 1, tempP);
+          return "Success";
+        } else {
+          return "Your canister doesn't have the method as described";
+        };
+      } catch (_e) {
+        return "You're not a controller of the given canister";
+      };
+    };
+    return "";
+  };
+
+  public shared (msg) func missionOpenChat(userId : Principal) : async Text {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      let user = await getUser(userId);
+      switch (user) {
+        case (?user) {
+          let oc = user.ocProfile;
+          switch (oc) {
+            case (?oc) {
+              if (oc != "") {
+                let firstMissionRecord : Types.MissionRecord = {
+                  var timestamp = Time.now();
+                  var pointsEarned = 100;
+                  var tweetId = null;
+                };
+                let firstMissionProgress : Types.Progress = {
+                  var completionHistory = [firstMissionRecord];
+                  var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+                };
+                let tempP = Serialization.serializeProgress(firstMissionProgress);
+                await updateUserProgress(userId, 4, tempP);
+                return "Success";
+              };
+            };
+            case null return "Hasn't joined";
+          };
+        };
+        case null return "Hasn't joined";
       };
     };
     return "";

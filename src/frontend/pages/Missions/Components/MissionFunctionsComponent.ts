@@ -897,12 +897,80 @@ const MissionFunctionsComponent = {
         setLoading(false);
     },
 
+    dfinityFollowTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+
+        const principal = globalID.principalId;
+        try {
+            const response = await fetch("https://dotest.konecta.one/requestTwitterAuth-v2-follow-df/", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ principal }),
+            });
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
+            let authSuccess = false;
+
+            const handleEvent = (event: MessageEvent<any>) => {
+                if (event.origin !== "https://dotest.konecta.one") return;
+
+                const { accessToken, refreshToken, result } = event.data;
+                if (result === 'true') {
+                    Usergeek.trackEvent("Dfinity Mission Three: Follow");
+                    alert("Success!")
+                } else {
+                    if (result === 'false') {
+                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    } else {
+                        alert("You can't use the same twitter account in two different principals.")
+                    }
+                }
+
+                authSuccess = true;
+
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+                const actor = Actor.createActor(idlFactoryDFINITY, {
+                    agent: globalID.agent,
+                    canisterId: canisterIdDFINITY,
+                })
+                fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+                setLoading(false);
+                closeModal();
+            }
+
+
+            window.addEventListener("message", handleEvent);
+
+
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
+
+        } catch (error) {
+            console.error("Error fetching Twitter auth URL:", error);
+        }
+    },
+
     dfinityMissionOne: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
         const actor = Actor.createActor(idlFactoryDFINITY, {
             agent: globalID.agent,
             canisterId: canisterIdDFINITY,
         })
-        console.log(input);
         const a = await actor.missionOne(globalID.principalId, input);
         if (a === "Success") {
             Usergeek.trackEvent("Dfinity Mission One: Hello World");
@@ -915,7 +983,104 @@ const MissionFunctionsComponent = {
             setLoading(false);
         }
     },
-};
 
+    dfinityMissionTwo: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const actor = Actor.createActor(idlFactoryDFINITY, {
+            agent: globalID.agent,
+            canisterId: canisterIdDFINITY,
+        })
+        const a = await actor.missionTwo(globalID.principalId, input);
+        if (a === "Success") {
+            Usergeek.trackEvent("Dfinity Mission Two: Inter-Canister Call");
+            fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+        } else {
+            alert(a);
+            setLoading(false);
+        }
+    },
+
+    dfinityDiscord: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const principal = globalID.principalId;
+
+        try {
+            const response = await fetch("https://dotest.konecta.one/requestDiscordAuthDF/", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ principal }),
+            });
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "DiscordAuth", "width=600,height=800");
+
+            let authSuccess = false;
+
+            const handleEvent = (event: MessageEvent<any>) => {
+                if (event.origin !== "https://dotest.konecta.one") return;
+
+                const { accessToken, refreshToken, result } = event.data;
+                if (result === 'true') {
+                    alert("Success!")
+                    const actor = Actor.createActor(idlFactoryDFINITY, {
+                        agent: globalID.agent,
+                        canisterId: canisterIdDFINITY,
+                    })
+                    fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+                    setLoading(false);
+                    closeModal();
+                } else {
+                    if (result === 'error') {
+                        alert("We broke the roof! Discord API has reached its limit for our Dev account. Please try again later.")
+                    } else {
+                        if (result === 'fake') {
+                            alert("You can't use the same discord account in two different principals.")
+                        }
+                        alert("User is not a member of the Discord Server")
+                    }
+                }
+
+                authSuccess = true;
+                popup?.close();
+                setLoading(false);
+            }
+
+            window.addEventListener("message", handleEvent);
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Discord authorization window.");
+                }
+            }, 300);
+        } catch (error) {
+            console.error("Error fetching Discord auth URL:", error);
+        }
+    },
+    dfinityOpenChat: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+        const actor = Actor.createActor(idlFactoryDFINITY, {
+            agent: globalID.agent,
+            canisterId: canisterIdDFINITY,
+        })
+        const a = await actor.missionOpenChat(globalID.principalId);
+        if (a === "Success") {
+            Usergeek.trackEvent("Dfinity Mission Five: OpenChat");
+            fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+        } else {
+            alert(a);
+            setLoading(false);
+        }
+    },
+};
 
 export default MissionFunctionsComponent;
