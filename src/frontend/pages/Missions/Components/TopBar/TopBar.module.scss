@@ -14,9 +14,8 @@
 .topbar {
     display: flex;
     align-items: center;
-    padding: 20px 2.5% 0 2.5%;
     position: relative;
-    width: 95%;
+    width: 100%;
     z-index: 10;
 }
 
@@ -49,7 +48,9 @@
     gap: 0.5rem;
     justify-content: flex-start;
     width: 25%;
-    transform: translateY(-2.25vh);
+    transform: translateY(0.75vw);
+    left: 4vw;
+    position: relative;
 }
 
 .topbarCenter {
@@ -59,26 +60,16 @@
     justify-content: center;
     text-align: center;
     width: 50%;
-    transform: translate(7%, -4vh);
+    transform: translateY(0.95vw);
 }
 
 .topbarRight {
-    display: flex;
-    justify-content: space-between;
-    list-style-type: none;
-    display: flex;
-    justify-content: space-between;
-    flex-direction: row;
-    list-style-type: none;
-    justify-content: flex-end;
     margin: 0;
     padding: 0;
-    width: 25%;
-    gap: 1rem;
-    width: 30vw;
-    gap: 1rem;
     z-index: 1;
-    transform: translateY(-2.25vh);
+    transform: translateY(0.2vw);
+    position: absolute;
+    right: 17.37vw;
 }
 
 .topbarTop {
@@ -213,13 +204,12 @@
 }
 
 .topbarButtonClaim {
-    min-width: 100px;
+    min-width: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    width: 14vw;
-    transform: translateY(-9%) scale(1);
+    width: 12vw;
     position: relative;
     transition: all 0.5s ease;
 }

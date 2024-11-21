@@ -1,9 +1,20 @@
 export const convertSecondsToHMS = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    const formattedHours = hours.toString().padStart(2, '0');
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+    const formattedSeconds = secs.toString().padStart(2, '0');
+
+    if (days > 0) {
+        return `${days}d:${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    } else {
+        return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    }
 };
+
 
 export const formatDate = (timestamp: bigint) => {
     const date = new Date(Number(timestamp) / 1e6); // Convert nanoseconds to milliseconds

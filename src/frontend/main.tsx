@@ -13,31 +13,52 @@ import Home from './pages/Home/Home.tsx';
 import Missions from './pages/Missions/Missions.tsx';
 import UsergeekProvider from '../components/UsergeekProvider.tsx';
 import { IdentityKitAuthType } from "@nfid/identitykit"
-import NFIDSetter from './components/NFIDSetter.tsx';
-import DFINITYSetter from './components/DFINITYSetter.tsx';
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { idlFactory } from '../declarations/index/index.js';
+import { SerializedProjectMissions } from '../declarations/index/index.did.js';
 
 
 const frontId = process.env.CANISTER_ID_FRONTEND
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+const fetchTargets = async (): Promise<string[]> => {
 
-  <React.StrictMode>
-    <GlobalProvider>
-      <BrowserRouter>
-        <IdentityKitProvider signers={[NFIDW, InternetIdentity]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId, backnfid, "2mg2s-uqaaa-aaaag-qna5a-cai"], idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
-          <UsergeekProvider>
-            <RadialBackground>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/Missions" element={<Missions />} />
-                <Route path="/Missions/NFID" element={<NFIDSetter />} />
-                <Route path="/Missions/NFID" element={<DFINITYSetter />} />
-                <Route path="/Missions/:missionId" element={<Missions />} />
-              </Routes>
-            </RadialBackground>
-          </UsergeekProvider>
-        </IdentityKitProvider>
-      </BrowserRouter>
-    </GlobalProvider>
-  </React.StrictMode>,
-);
+  const agent = HttpAgent.createSync();
+
+  const actor = Actor.createActor(idlFactory, {
+    agent: agent!,
+    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+  });
+
+  const projects = await actor.getAllProjectMissions() as SerializedProjectMissions[];
+  const targets: string[] = projects.map(project => project.canisterId.toText());
+  return targets;
+};
+
+(async () => {
+
+  // Fetch the targets from the endpoint
+  const fetchedTargets = await fetchTargets();
+  console.log(fetchedTargets);
+
+  ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+
+    <React.StrictMode>
+      <GlobalProvider>
+        <BrowserRouter>
+          <IdentityKitProvider signers={[NFIDW, InternetIdentity]} featuredSigner={InternetIdentity} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId, backnfid, "2mg2s-uqaaa-aaaag-qna5a-cai"], idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+            <UsergeekProvider>
+              <RadialBackground>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/Missions" element={<Missions />} />
+                  <Route path="/Missions/:missionId" element={<Missions />} />
+                </Routes>
+              </RadialBackground>
+            </UsergeekProvider>
+          </IdentityKitProvider>
+        </BrowserRouter>
+      </GlobalProvider>
+    </React.StrictMode>,
+  );
+
+})();

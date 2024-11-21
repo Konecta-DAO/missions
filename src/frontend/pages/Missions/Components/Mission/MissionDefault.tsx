@@ -4,16 +4,17 @@ import { useLocation } from 'react-router-dom';
 import { checkMissionCompletionNfid, checkRequiredMissionCompletionNFID } from '../../missionUtils.ts';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedMission as SerializedMissionDfinity } from '../../../../../declarations/nfid/nfid.did.ts';
+import { SerializedMission } from '../../../../../declarations/nfid/nfid.did.ts';
+import { SerializedMissionRecord } from '../../../../../declarations/dfinity_backend/dfinity_backend.did.js';
 
 interface MissionProps {
-    mission: SerializedMissionDfinity;
+    mission: SerializedMission;
     handleCardClick: (id: string) => void;
     handleMouseMove: (e: React.MouseEvent, content: string | null) => void;
     handleMouseLeave: () => void;
 }
 
-const MissionDfinity: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave, }) => {
+const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave, }) => {
     // Hooks are called unconditionally at the top level
     const location = useLocation();
     const globalID = useGlobalID();
@@ -27,7 +28,7 @@ const MissionDfinity: React.FC<MissionProps> = ({ mission, handleCardClick, hand
 
     // Check mission statuses
     const missionCompleted = checkMissionCompletionNfid(
-        globalID.userProgressdfinity,
+        globalID.userProgress, // AQUI
         mission
     );
     const { requiredMissionCompleted, requiredMissionTitle } =
@@ -309,4 +310,4 @@ const MissionDfinity: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     );
 };
 
-export default MissionDfinity;
+export default MissionDefault;

@@ -219,7 +219,7 @@ const NFIDVerification: React.FC<NFIDVerificationProps> = ({ isVisible, identity
         <div className="overlayV">
             <div className="formWrapper">
                 <form onSubmit={handleSubmit} className="form">
-                    <div className="closeButton" onClick={() => (globalID.setCurrentMissionPage(globalID.previousMissionPage), setIsVisible(false))}>X</div>
+                    {/*<div className="closeButton" onClick={() => (globalID.setCurrentMissionPage(globalID.previousMissionPage), setIsVisible(false))}>X</div>*/}
                     {/* SVG Horizontal Line */}
                     <svg className="horizontalLineF" xmlns="http://www.w3.org/2000/svg">
                         <defs>

@@ -14,6 +14,13 @@
         "node_compatibility": true
       }
     },
+    "index": {
+      "type": "motoko",
+      "main": "index_canister/Backend.mo",
+      "declarations": {
+        "node_compatibility": true
+      }
+    },
     "frontend": {
       "type": "assets",
       "source": [
