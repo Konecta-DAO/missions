@@ -6,12 +6,7 @@ import Serialization "Serialization";
 import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Vector "mo:vector";
-import Blob "mo:base/Blob";
-import Int "mo:base/Int";
-import Hash "mo:base/Hash";
-import TrieMap "mo:base/TrieMap";
 import Iter "mo:base/Iter";
-import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
 
@@ -20,25 +15,89 @@ actor class Backend() {
   stable var projects : Vector.Vector<Types.ProjectMissions> = Vector.new<Types.ProjectMissions>();
 
   public shared query (msg) func getAllProjectMissions() : async [Types.SerializedProjectMissions] {
-    if (not Principal.isAnonymous(msg.caller)) {
-      if (isAdmin(msg.caller)) {
-        return Array.map<Types.ProjectMissions, Types.SerializedProjectMissions>(Vector.toArray(projects), Serialization.serializeProjectMissions);
-      } else {
-        let allProjects = Vector.toArray(projects);
-        let activeProjects = Array.filter(
-          allProjects,
-          func(p : Types.ProjectMissions) : Bool {
-            return p.status != "offline";
-          },
-        );
-        return Array.map<Types.ProjectMissions, Types.SerializedProjectMissions>(
-          activeProjects,
-          Serialization.serializeProjectMissions,
-        );
-      };
-
+    if (isAdmin(msg.caller)) {
+      return Array.map<Types.ProjectMissions, Types.SerializedProjectMissions>(Vector.toArray(projects), Serialization.serializeProjectMissions);
+    } else {
+      let allProjects = Vector.toArray(projects);
+      let activeProjects = Array.filter(
+        allProjects,
+        func(p : Types.ProjectMissions) : Bool {
+          return p.status != "offline";
+        },
+      );
+      return Array.map<Types.ProjectMissions, Types.SerializedProjectMissions>(
+        activeProjects,
+        Serialization.serializeProjectMissions,
+      );
     };
-    return [];
+  };
+
+  public shared (msg) func addProjectMissions(canisterId : Principal, name : Text, icon : Text) : async () {
+    if (isAdmin(msg.caller)) {
+      let newProject : Types.ProjectMissions = {
+        var canisterId = canisterId;
+        var name = name;
+        var creationTime = Time.now();
+        var status = "offline";
+        var icon = icon;
+      };
+      Vector.add(projects, newProject);
+    };
+  };
+
+  public shared (msg) func updateIconLink(canisterId : Principal, icon : Text) : async () {
+    if (isAdmin(msg.caller)) {
+      var i = 0;
+      while (i < Vector.size(projects)) {
+        switch (Vector.getOpt(projects, i)) {
+          case (?project) {
+            if (project.canisterId == canisterId) {
+              let updatedProject : Types.ProjectMissions = {
+                var canisterId = project.canisterId;
+                var name = project.name;
+                var creationTime = project.creationTime;
+                var status = project.status;
+                var icon = icon;
+              };
+              Vector.put(projects, i, updatedProject);
+              return;
+            };
+          };
+          case _ {};
+        };
+        i += 1;
+      };
+    };
+  };
+
+  public shared (msg) func setProjectStatus(canisterId : Principal, status : Text) : async Text {
+    if (status != "online" and status != "offline") {
+      return "Invalid Status";
+    } else {
+      if (isAdmin(msg.caller)) {
+        let size = Vector.size(projects);
+        for (i in Iter.range(0, size - 1)) {
+          let existingProjectOpt = Vector.get(projects, i); // This returns ?Mission
+          switch (existingProjectOpt) {
+            case (project) {
+              // Unwrap the Mission
+              if (project.canisterId == canisterId) {
+                let updatedProject : Types.ProjectMissions = {
+                  var canisterId = project.canisterId;
+                  var name = project.name;
+                  var creationTime = project.creationTime;
+                  var status = status;
+                  var icon = project.icon;
+                };
+                Vector.put(projects, i, updatedProject);
+                return "Success";
+              };
+            };
+          };
+        };
+      };
+    };
+    return "callern't";
   };
 
   stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
@@ -83,39 +142,16 @@ actor class Backend() {
     return [];
   };
 
-  // Pre-upgrade function to serialize the user progress
+  // Pre-upgrade function
 
   system func preupgrade() {
 
-    // Serialize user progress
-
   };
 
-  // Post-upgrade function to deserialize the user progress
+  // Post-upgrade function
 
   system func postupgrade() {
 
-    // Iterate over the serialized user progress data
-
-  };
-
-  // public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMission {
-
-  //};
-
-  private func serializeTextArrayToJson(arr : [Text]) : Text {
-
-    var jsonText = "[";
-    var isFirst = true;
-    for (text in arr.vals()) {
-      if (not isFirst) {
-        jsonText #= ",";
-      };
-      jsonText #= "\"" # text # "\"";
-      isFirst := false;
-    };
-    jsonText #= "]";
-    return jsonText;
   };
 
   public query func availableCycles() : async Nat {

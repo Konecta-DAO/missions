@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../../Missions.module.scss';
 import { useLocation } from 'react-router-dom';
-import { checkMissionCompletionNfid, checkRequiredMissionCompletionNFID } from '../../missionUtils.ts';
+import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { SerializedMission } from '../../../../../declarations/nfid/nfid.did.ts';
@@ -12,9 +12,10 @@ interface MissionProps {
     handleCardClick: (id: string) => void;
     handleMouseMove: (e: React.MouseEvent, content: string | null) => void;
     handleMouseLeave: () => void;
+    canisterId: string;
 }
 
-const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave, }) => {
+const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouseMove, handleMouseLeave, canisterId }) => {
     // Hooks are called unconditionally at the top level
     const location = useLocation();
     const globalID = useGlobalID();
@@ -27,12 +28,13 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     const endDateMs = Number(mission.endDate) !== 0 ? Number(mission.endDate) / 1_000_000 : 0;
 
     // Check mission statuses
-    const missionCompleted = checkMissionCompletionNfid(
-        globalID.userProgress, // AQUI
+    const missionCompleted = checkMissionCompletionDefault(
+        globalID.userProgressMap,
+        canisterId,
         mission
     );
     const { requiredMissionCompleted, requiredMissionTitle } =
-        checkRequiredMissionCompletionNFID(globalID, mission);
+        checkRequiredMissionCompletionDefault(globalID, canisterId, mission);
 
     // Determine mission availability and tooltip text
     const isAvailableMission = !missionCompleted && requiredMissionCompleted;

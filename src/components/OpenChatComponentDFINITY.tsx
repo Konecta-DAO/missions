@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { initialise } from '@open-ic/openchat-xframe';
 import { Actor } from '@dfinity/agent';
 import { idlFactory } from '../declarations/backend/backend.did.js';
-import { useGlobalID } from '../hooks/globalID.tsx';
+import { ProjectData, useGlobalID } from '../hooks/globalID.tsx';
 import { canisterId } from '../declarations/backend/index.js';
-import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../declarations/nfid/index.js';
-import { idlFactory as idlFactoryDFINITY } from '../declarations/dfinity_backend/index.js';
 import useFetchData from '../hooks/fetchData.tsx';
+import { useIdentityKit } from '@nfid/identitykit/react';
+import { useNavigate } from 'react-router-dom';
+import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../declarations/index/index.did.js';
+import { idlFactory as idlFactoryDefault } from '../declarations/nfid/index.js';
 
 const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
@@ -14,6 +16,8 @@ const OpenChatDF: React.FC = () => {
     const globalID = useGlobalID();
     const fetchData = useFetchData();
     const [placestate, setPlacestate] = useState(false);
+    const { disconnect } = useIdentityKit();
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (globalID.agent == null || globalID.principalId == null) {
@@ -125,21 +129,36 @@ const OpenChatDF: React.FC = () => {
                                 const actor = Actor.createActor(idlFactory, {
                                     agent: globalID.agent,
                                     canisterId,
-                                });
+                                })
+                                await actor.addOCProfile(globalID.principalId, userId);
 
-                                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                                const actorIndex = Actor.createActor(idlFactoryIndex, {
                                     agent: globalID.agent,
-                                    canisterId: canisterIdNFID,
+                                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                                 });
 
-                                const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
-                                    agent: globalID.agent,
-                                    canisterId: canisterIdDFINITY,
-                                });
+                                const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
+                                const targets: string[] = projects.map(project => project.canisterId.toText());
 
-                                await actorDfinity.addOCProfile(globalID.principalId, userId);
+                                if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
+                                    disconnect();
+                                    navigate('/');
+                                } else {
+                                    const mappedProjects: ProjectData[] = projects.map((project) => ({
+                                        id: project.canisterId.toText(),
+                                        name: project.name,
+                                        icon: project.icon,
+                                    }));
 
-                                fetchData.fetchAll(actor, actorNFID, actorDfinity, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                                    globalID.setProjects(mappedProjects);
+                                    const actors = targets.map(targetCanisterId => {
+                                        return Actor.createActor(idlFactoryDefault, {
+                                            agent: globalID.agent!,
+                                            canisterId: targetCanisterId,
+                                        });
+                                    });
+                                    fetchData.fetchAll(actor, actors, targets, globalID.principalId, setPlacestate, setPlacestate);
+                                }
 
                             }
                         },

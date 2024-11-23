@@ -465,7 +465,7 @@ const MissionFunctionsComponent = {
                 const firstProgress = c[0];
                 const pointsEarnedStr = firstProgress.completionHistory[0].pointsEarned;
                 const pointsEarned = Number(pointsEarnedStr);
-                await globalID.setocS(convertSecondsToHMS(pointsEarned));
+             //   await globalID.setocS(convertSecondsToHMS(pointsEarned));
 
             }
             setLoading(false);

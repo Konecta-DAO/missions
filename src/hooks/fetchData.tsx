@@ -1,12 +1,10 @@
 import { ActorSubclass } from '@dfinity/agent';
 import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMission as SerializedMissionNFID, SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../declarations/nfid/nfid.did.js';
-import { SerializedMission as SerializedMissionDfinity, SerializedProgress as SerializedProgressDfinity, SerializedUser as SerializedUserDfinity } from '../declarations/dfinity_backend/dfinity_backend.did.js';
+import { SerializedMission as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/nfid/nfid.did.js';
 import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
 import { useCallback } from 'react';
-import { set } from 'react-datepicker/dist/date_utils.js';
 
 const useFetchData = () => {
     const {
@@ -21,6 +19,10 @@ const useFetchData = () => {
         setStreakResetTime,
         setTotalUserStreak,
         setUserStreakPercentage,
+        setMissionsForProject,
+        setUserProgressForProject,
+        setPointsForProject,
+        setUserForProject
     } = useGlobalID();
 
     const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -30,55 +32,82 @@ const useFetchData = () => {
         }
     }, []);
 
-    const isVerifiedNfid = useCallback(async (actorNfid: ActorSubclass, ae: Principal, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
-        const isVerifiedNfid = await actorNfid.hasVerified(ae) as boolean;
-        if (!isVerifiedNfid) {
-            setVerified(false);
-        }
-    }, []);
-
     // Fetch missions
-    const fetchMissions = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, actorDfinity: ActorSubclass) => {
-        const [missions, nfidmissions, dfinitymissions] = await Promise.all([
-            actor.getAllMissions() as Promise<SerializedMission[]>,
-            actorNFID.getAllMissions() as Promise<SerializedMissionNFID[]>,
-            actorDfinity.getAllMissions() as Promise<SerializedMissionDfinity[]>,
-        ]);
-        setMissions(missions);
-    }, [setMissions]);
+    const fetchMissions = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[]) => {
+        // Start fetching all missions from the primary actor
+        const missionsPromise = actor.getAllMissions() as Promise<SerializedMission[]>;
 
-    // Fetch user progress
-    const fetchUserProgress = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, actorDfinity: ActorSubclass, ae: Principal) => {
-        const [userProgress, userProgressNFID, userProgressdfinity] = await Promise.all([
-            actor.getUserProgress(ae) as Promise<[bigint, SerializedProgress][]>,
-            actorNFID.getUserProgress(ae) as Promise<[bigint, SerializedProgressNFID][]>,
-            actorDfinity.getUserProgress(ae) as Promise<[bigint, SerializedProgressDfinity][]>
-        ]);
+        // Start fetching missions for each actor
+        const projectMissionsPromises = actors.map(async (a, index) => {
+            const projectMissions = await a.getAllMissions() as SerializedMissionDefault[];
+            const projectId = targets[index];
+            setMissionsForProject(projectId, projectMissions);
+        });
+
+        // Wait for all missions to be fetched
+        const missions = await missionsPromise;
+        await Promise.all(projectMissionsPromises);
+
+        // Update the state with the primary missions
+        setMissions(missions);
+    }, [setMissions, setMissionsForProject]);
+
+    const fetchUserProgress = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
+        // Start fetching user progress from the primary actor
+        const userProgressPromise = actor.getUserProgress(ae) as Promise<[bigint, SerializedProgress][]>;
+
+        // Start fetching user progress for each actor
+        const projectUserProgressPromises = actors.map(async (a, index) => {
+            const projectUserProgress = await a.getUserProgress(ae) as [bigint, SerializedProgressDefault][];
+            const projectId = targets[index];
+            setUserProgressForProject(projectId, projectUserProgress);
+        });
+
+        // Wait for all promises to resolve
+        const userProgress = await userProgressPromise;
+        await Promise.all(projectUserProgressPromises);
+
+        // Update the state with the primary user progress
         setUserProgress(userProgress);
-    }, [setUserProgress]);
+    }, [setUserProgress, setUserProgressForProject]);
 
     // Fetch user details
-    const fetchUser = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, actorDfinity: ActorSubclass, ae: Principal) => {
-        const [user, usernfid, userdfinity] = await Promise.all([
-            actor.getUser(ae) as Promise<SerializedUser[]>,
-            actorNFID.getUser(ae) as Promise<SerializedUserNFID[]>,
-            actorDfinity.getUser(ae) as Promise<SerializedUserDfinity[]>
-        ]);
-        setUser(user);
+    const fetchUser = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
 
+        const userPromise = actor.getUser(ae) as Promise<SerializedUser[]>;
+
+        const projectUserPromises = actors.map(async (a, index) => {
+            const projectUser = await a.getUser(ae) as SerializedUserDefault[];
+            const projectId = targets[index];
+            setUserForProject(projectId, projectUser);
+        });
+
+        const user = await userPromise;
+        await Promise.all(projectUserPromises);
+
+        setUser(user);
         setPFPstatus(user[0]?.pfpProgress || '');
         setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
-    }, [setUser, setPFPstatus, setTwitterHandle]);
+    }, [setUser, setPFPstatus, setTwitterHandle, setUserForProject]);
 
-    // Fetch user seconds
-    const fetchUserSeconds = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, actorDfinity: ActorSubclass, ae: Principal) => {
-        const [userSeconds, points, pointsDfinity] = await Promise.all([
-            actor.getTotalSecondsForUser(ae) as Promise<bigint>,
-            actorNFID.getTotalSecondsForUser(ae) as Promise<bigint>,
-            actorDfinity.getTotalSecondsForUser(ae) as Promise<bigint>
-        ]);
+    const fetchUserSeconds = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
+        // Start fetching total seconds for user from the primary actor
+        const userSecondsPromise = actor.getTotalSecondsForUser(ae) as Promise<bigint>;
+
+        // Start fetching total seconds for each actor
+        const projectUserSecondsPromises = actors.map(async (a, index) => {
+            const projectUserSeconds = await a.getTotalSecondsForUser(ae) as bigint;
+            const projectId = targets[index];
+            setPointsForProject(projectId, projectUserSeconds);
+        });
+
+        // Wait for all promises to resolve
+        const userSeconds = await userSecondsPromise;
+        await Promise.all(projectUserSecondsPromises);
+
+        // Update the state with the primary user's total seconds
         setTimerText(convertSecondsToHMS(Number(userSeconds)));
-    }, [setTimerText]);
+    }, [setTimerText, setPointsForProject]);
 
     // Fetch user PFP status
     const fetchUserPFPstatus = useCallback(async (actor: ActorSubclass, ae: Principal) => {
@@ -100,13 +129,13 @@ const useFetchData = () => {
         setUserStreakPercentage(userStreakPercentage);
     }, [setUserStreakAmount, setStreakResetTime, setUserLastTimeStreak, setTotalUserStreak, setUserStreakPercentage]);
 
-    const fetchAll = useCallback(async (actor: ActorSubclass, actorNFID: ActorSubclass, actorDFINITY: ActorSubclass, ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>, setVerified: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const fetchAll = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
         await Promise.all([
-            fetchUserProgress(actor, actorNFID, actorDFINITY, ae),
-            fetchUserSeconds(actor, actorNFID, actorDFINITY, ae),
+            fetchUserProgress(actor, actors, targets, ae),
+            fetchUserSeconds(actor, actors, targets, ae),
             fetchUserStreak(actor, ae),
-            fetchMissions(actor, actorNFID, actorDFINITY),
-            fetchUser(actor, actorNFID, actorDFINITY, ae),
+            fetchMissions(actor, actors, targets),
+            fetchUser(actor, actors, targets, ae),
         ]);
         setDataLoaded(true);
     }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds, fetchUserStreak]);
@@ -120,7 +149,6 @@ const useFetchData = () => {
         fetchUserStreak,
         fetchAll,
         hasAccepted,
-        isVerifiedNfid,
     };
 };
 

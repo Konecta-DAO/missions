@@ -6,12 +6,11 @@ import OpenChatDF from '../../../components/OpenChatComponentDFINITY.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useFetchData from '../../../hooks/fetchData.tsx';
-import { useGlobalID } from '../../../hooks/globalID.tsx';
+import { ProjectData, useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../declarations/nfid/index.js';
-import { idlFactory as idlFactoryDFINITY } from '../../../declarations/dfinity_backend/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../declarations/nfid/index.js';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import MissionGridComponent from './MissionGrid.tsx';
 import TopBar from './Components/TopBar/TopBar.tsx';
@@ -23,9 +22,7 @@ import InfoModal from './Components/InfoModal/InfoModal.tsx';
 import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
 import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
-import OpenChatSuccessOverlay from '../../components/OpenChatSuccessOverlay/OpenChatSuccessOverlay.tsx';
-
-import NFIDVerification from './Components/NFIDVerification/NFIDVerification.tsx';
+import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../declarations/index/index.did.js';
 
 interface ButtonItem {
     name: string;
@@ -42,7 +39,7 @@ type ModalState = {
     isProfileModalOpen: boolean;
 };
 
-const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
+//const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
@@ -62,15 +59,7 @@ const Missions: React.FC = () => {
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
     const [acceptedTerms, setAcceptedTerms] = useState(true);
-    const [isVerified, setIsVerified] = useState(true);
     const [isTermsModalVisible, setIsTermsModalVisible] = useState<boolean>(false);
-    const [isVerifyModalVisible, setIsVerifyModalVisible] = useState<boolean>(false);
-    const [showOverlay, setShowOverlay] = useState(false);
-
-    const handleCloseOverlay = () => {
-        setShowOverlay(false);
-        globalID.setocS('');
-    };
 
     const handleAccept = async () => {
 
@@ -90,37 +79,10 @@ const Missions: React.FC = () => {
     }, [acceptedTerms]);
 
     useEffect(() => {
-        if (!isVerified) {
-            setIsVerifyModalVisible(true);
-        }
-    }, [isVerified]);
-
-    useEffect(() => {
-        if (globalID.ocS != '') {
-            const actor = Actor.createActor(idlFactory, {
-                agent: globalID.agent!,
-                canisterId,
-            });
-
-            const actorNFID = Actor.createActor(idlFactoryNFID, {
-                agent: globalID.agent!,
-                canisterId: canisterIdNFID,
-            });
-
-            const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
-                agent: globalID.agent!,
-                canisterId: canisterIdDFINITY,
-            })
-            fetchData.fetchUserProgress(actor, actorNFID, actorDfinity, globalID.principalId!);
-            setShowOverlay(true);
-        }
-    }, [globalID.ocS]);
-
-    useEffect(() => {
         let isMounted = true;
 
         // Introduce a delay before checking authentication state
-        const timeoutId = setTimeout(() => {
+        const timeoutId = setTimeout(async () => {
             if (!isMounted) return;
 
             if (
@@ -134,12 +96,34 @@ const Missions: React.FC = () => {
                 if (process.env.NODE_ENV !== 'production') {
                     agent.fetchRootKey();
                 }
-                globalID.setAgent(agent);
-                globalID.setPrincipal(user.principal);
-                fetchUserData(agent);
+
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: agent!,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+
+                const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
+                const targets: string[] = projects.map(project => project.canisterId.toText());
+
+                if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                    disconnect();
+                    navigate('/');
+                } else {
+                    const mappedProjects: ProjectData[] = projects.map((project) => ({
+                        id: project.canisterId.toText(),
+                        name: project.name,
+                        icon: project.icon,
+                    }));
+
+                    globalID.setProjects(mappedProjects);
+                    globalID.setAgent(agent);
+                    globalID.setPrincipal(user.principal);
+                    fetchUserData(agent);
+                }
+
             } else {
                 // User is not logged in; redirect to home page
-                //  navigate('/'); AQUIIIIIIIIIIIII
+                navigate('/');
             }
         }, 1000); // Wait for 1000ms before proceeding
 
@@ -151,37 +135,43 @@ const Missions: React.FC = () => {
 
 
     const fetchUserData = async (agent: HttpAgent) => {
-        try {
-            if (fetchData) {
-                const actor = Actor.createActor(idlFactory, {
-                    agent: agent,
-                    canisterId,
+        if (fetchData) {
+            const actor = Actor.createActor(idlFactory, {
+                agent: agent,
+                canisterId,
+            });
+            const principal = await agent.getPrincipal();
+            await fetchData.hasAccepted(actor, principal, setAcceptedTerms);
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: agent!,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
+            const targets: string[] = projects.map(project => project.canisterId.toText());
+            const mappedProjects: ProjectData[] = projects.map((project) => ({
+                id: project.canisterId.toText(),
+                name: project.name,
+                icon: project.icon,
+            }));
+
+            globalID.setProjects(mappedProjects);
+            globalID.setCanisterIds(targets);
+
+            const actors = targets.map(targetCanisterId => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: agent!,
+                    canisterId: targetCanisterId,
                 });
-                const principal = await agent.getPrincipal();
+            });
 
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
-                    agent: agent,
-                    canisterId: canisterIdNFID,
-                });
+            await fetchData.fetchAll(actor, actors, targets, principal, setDataloaded, setAcceptedTerms);
 
-                const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
-                    agent: agent,
-                    canisterId: canisterIdDFINITY,
-                })
-
-                await fetchData.isVerifiedNfid(actorNFID, principal, setIsVerified);
-                await fetchData.hasAccepted(actor, principal, setAcceptedTerms);
-                await fetchData.fetchAll(actor, actorNFID, actorDfinity, principal, setDataloaded, setAcceptedTerms, setIsVerified);
-            }
-        } catch (error) {
-            console.error('Error fetching user data:', error);
-            // Optionally, navigate to '/' or show an error message
-            navigate('/');
         }
     };
 
     const handleCardClick = (missionId: string) => {
-        navigate(`/Missions/${missionId}`);
+        // navigate(`/Missions/${missionId}`); AQUI
     };
 
     const toggleModal = (modalName: keyof ModalState) => {
@@ -240,9 +230,6 @@ const Missions: React.FC = () => {
 
     return (
         <>
-            {showOverlay && (
-                <OpenChatSuccessOverlay message={globalID.ocS} onClose={handleCloseOverlay} />
-            )}
             {
                 !loadingComplete &&
                 <div className={styles.loadingOverlayWrapper}>
@@ -262,7 +249,6 @@ const Missions: React.FC = () => {
 
                     <div className={styles.MissionsContainer}>
                         <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
-                        <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                         <div className={styles.TopBarWrapper}>
                             <TopBar
                                 toggleModal={toggleModal}
@@ -297,7 +283,6 @@ const Missions: React.FC = () => {
                         {isPortrait && (
                             <div className={styles.MissionsContainer}>
                                 <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
-                                <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                                 <div className={styles.TopBarWrapperMobile}>
                                     <TopBar
                                         toggleModal={toggleModal}
@@ -336,7 +321,6 @@ const Missions: React.FC = () => {
                         {isPortrait && (
                             <div className={styles.MissionsContainer}>
                                 <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
-                                <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                                 <div className={styles.TopBarWrapperMobile}>
                                     <TopBar
                                         toggleModal={toggleModal}
@@ -362,7 +346,6 @@ const Missions: React.FC = () => {
                         {isLandscape && (
                             <div className={styles.MissionsContainer}>
                                 <TermsModal isVisible={isTermsModalVisible} onAccept={handleAccept} />
-                                <NFIDVerification isVisible={isVerifyModalVisible} identity={identity} setIsVisible={setIsVerifyModalVisible} setIsVerified={setIsVerified} />
                                 <div className={styles.TopBarWrapper}>
                                     <TopBar
                                         toggleModal={toggleModal}

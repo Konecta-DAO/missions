@@ -16,18 +16,19 @@ import HelpButton from '../../components/HelpButton/HelpButton.tsx';
 import SpeechBubble from '../../components/SpeechBubble/SpeechBubble.tsx';
 import "@nfid/identitykit/react/styles.css"
 import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
-import { useGlobalID } from '../../../hooks/globalID.tsx';
+import { ProjectData, useGlobalID } from '../../../hooks/globalID.tsx';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
+import { idlFactory as idlFactoryIndex } from '../../../declarations/index/index.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../declarations/nfid/index.js';
-import { idlFactory as idlFactoryDFINITY } from '../../../declarations/dfinity_backend/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../declarations/nfid/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
+import { SerializedProjectMissions } from '../../../declarations/index/index.did.js';
 
-const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
+// const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -45,17 +46,33 @@ const Home: React.FC = () => {
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
+
+      const actorIndex = Actor.createActor(idlFactoryIndex, {
+        agent: agent!,
+        canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+      });
+
+      const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
+      const targets: string[] = projects.map(project => project.canisterId.toText());
+      const mappedProjects: ProjectData[] = projects.map((project) => ({
+        id: project.canisterId.toText(),
+        name: project.name,
+        icon: project.icon,
+      }));
+
+      globalID.setProjects(mappedProjects);
+      globalID.setCanisterIds(targets);
+
       const actor = Actor.createActor(idlFactory, {
         agent: agent!,
         canisterId,
       });
-      const actornfid = Actor.createActor(idlFactoryNFID, {
-        agent: agent!,
-        canisterId: canisterIdNFID,
-      });
-      const actordfinity = Actor.createActor(idlFactoryDFINITY, {
-        agent: agent!,
-        canisterId: canisterIdDFINITY,
+
+      const actors = targets.map(targetCanisterId => {
+        return Actor.createActor(idlFactoryDefault, {
+          agent: agent!,
+          canisterId: targetCanisterId,
+        });
       });
 
       setIsnfiding(true);
@@ -70,22 +87,13 @@ const Home: React.FC = () => {
             }
             globalID.setPrincipal(a);
 
-            // Check if user exists in actornfid canister
-            const nfiduser = await actornfid.getUser(a);
-            if (Array.isArray(nfiduser) && nfiduser.length !== 0) {
-              // User exists in actornfid canister
-            } else {
-              // Add user to actornfid canister
-              await actornfid.addUser(a);
-            }
-
-            // Check if user exists in actordfinity canister
-            const dfinityUser = await actordfinity.getUser(a);
-            if (Array.isArray(dfinityUser) && dfinityUser.length !== 0) {
-              // User exists in actordfinity canister
-            } else {
-              // Add user to actordfinity canister
-              await actordfinity.addUser(a);
+            for (const actorM of actors) {
+              const user = await actorM.getUser(a);
+              if (Array.isArray(user) && user.length !== 0) {
+                // User exists in canister
+              } else {
+                await actorM.addUser(a);
+              }
             }
 
             globalID.setUser(b);
@@ -110,28 +118,13 @@ const Home: React.FC = () => {
                   globalID.setPrincipal(a);
                   globalID.setUser(newUser);
 
-                  // Check if user exists in actornfid canister
-                  const nfiduser = await actornfid.getUser(a);
-                  if (
-                    Array.isArray(nfiduser) &&
-                    nfiduser.length !== 0
-                  ) {
-                    // User exists in actornfid canister
-                  } else {
-                    // Add user to actornfid canister
-                    await actornfid.addUser(a);
-                  }
-
-                  // Check if user exists in actordfinity canister
-                  const dfinityUser = await actordfinity.getUser(a);
-                  if (
-                    Array.isArray(dfinityUser) &&
-                    dfinityUser.length !== 0
-                  ) {
-                    // User exists in actordfinity canister
-                  } else {
-                    // Add user to actordfinity canister
-                    await actordfinity.addUser(a);
+                  for (const actorM of actors) {
+                    const user = await actorM.getUser(a);
+                    if (Array.isArray(user) && user.length !== 0) {
+                      // User exists in canister
+                    } else {
+                      await actorM.addUser(a);
+                    }
                   }
 
                   Usergeek.trackEvent('Mission 0: Registered');

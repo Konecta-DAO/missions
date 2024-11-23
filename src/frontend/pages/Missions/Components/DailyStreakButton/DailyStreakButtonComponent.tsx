@@ -1,16 +1,17 @@
 import React, { act, useEffect, useRef, useState } from 'react';
 
-import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { formatTimeRemaining } from '../../../../../components/Utilities.tsx';
 import { canisterId, idlFactory } from '../../../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../../declarations/nfid/index.js';
-import { idlFactory as idlFactoryDFINITY } from '../../../../../declarations/dfinity_backend/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../../../declarations/nfid/index.js';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import { useMediaQuery } from 'react-responsive';
 import { Usergeek } from 'usergeek-ic-js';
+import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../../declarations/index/index.did.js';
+import { useNavigate } from 'react-router-dom';
 
 type DisplayState = 'CLAIM' | 'CLAIM_FINAL' | 'TIMER' | 'REVIVE';
 type JackpotState = 'DEFAULT' | 'WIN' | 'LOSE';
@@ -24,9 +25,9 @@ const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsClaimClicked, setJackpotState }) => {
     const globalID = useGlobalID();
-    const { identity } = useIdentityKit();
+    const { identity, disconnect } = useIdentityKit();
     const fetchData = useFetchData();
-
+    const navigate = useNavigate();
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
 
@@ -186,61 +187,82 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 agent: agent,
                 canisterId,
             });
-            const actorNFID = Actor.createActor(idlFactoryNFID, {
-                agent: globalID.agent!,
-                canisterId: canisterIdNFID,
+
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: agent!,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
             });
 
-            const actorDfinity = Actor.createActor(idlFactoryDFINITY, {
-                agent: globalID.agent!,
-                canisterId: canisterIdDFINITY,
-            })
+            const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
+            const targets: string[] = projects.map(project => project.canisterId.toText());
 
-            const b = await actor.claimStreak(globalID.principalId) as [string, bigint];
+            if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
+                disconnect();
+                navigate('/');
+            } else {
 
-            const message = b[0]; // string part
+                const mappedProjects: ProjectData[] = projects.map((project) => ({
+                    id: project.canisterId.toText(),
+                    name: project.name,
+                    icon: project.icon,
+                }));
 
-            if (message.startsWith("You have earned")) {
-                Usergeek.trackEvent("Daily Streak: Default");
-                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
-                await fetchData.fetchUserStreak(actor, globalID.principalId!);
-                setResponseState("SUCCESS");
-                setMessageResponse(message);
-                setShowContinueButton(true);
+                globalID.setProjects(mappedProjects);
 
-            } else if (message.startsWith("Your streak is ALIVE!")) {
-                Usergeek.trackEvent("Daily Streak: Survived");
-                setIsLoading(false);
-                setShowSeparators(true);
-                setJackpotState('WIN');
-                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
-                await fetchData.fetchUserStreak(actor, globalID.principalId!);
-                messageTimeoutRef.current = setTimeout(() => {
+                const actors = targets.map(targetCanisterId => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: agent!,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+
+
+                const b = await actor.claimStreak(globalID.principalId) as [string, bigint];
+
+                const message = b[0]; // string part
+
+                if (message.startsWith("You have earned")) {
+                    Usergeek.trackEvent("Daily Streak: Default");
+                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
+                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    setResponseState("SUCCESS");
                     setMessageResponse(message);
                     setShowContinueButton(true);
-                }, 6000);
 
-            } else if (message.startsWith("Too bad, your past streak")) {
-                Usergeek.trackEvent("Daily Streak: Died");
-                setIsLoading(false);
-                setShowSeparators(true);
-                setJackpotState('LOSE');
-                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
-                await fetchData.fetchUserStreak(actor, globalID.principalId!);
-                messageTimeoutRef.current = setTimeout(() => {
+                } else if (message.startsWith("Your streak is ALIVE!")) {
+                    Usergeek.trackEvent("Daily Streak: Survived");
+                    setIsLoading(false);
+                    setShowSeparators(true);
+                    setJackpotState('WIN');
+                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
+                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    messageTimeoutRef.current = setTimeout(() => {
+                        setMessageResponse(message);
+                        setShowContinueButton(true);
+                    }, 6000);
+
+                } else if (message.startsWith("Too bad, your past streak")) {
+                    Usergeek.trackEvent("Daily Streak: Died");
+                    setIsLoading(false);
+                    setShowSeparators(true);
+                    setJackpotState('LOSE');
+                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
+                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    messageTimeoutRef.current = setTimeout(() => {
+                        setMessageResponse(message);
+                        setShowContinueButton(true);
+                    }, 6000);
+
+                } else if (message.startsWith("You have lost your past streak")) {
+                    Usergeek.trackEvent("Daily Streak: Forgot");
+                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
+                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    setResponseState("CLAIMED");
                     setMessageResponse(message);
                     setShowContinueButton(true);
-                }, 6000);
-
-            } else if (message.startsWith("You have lost your past streak")) {
-                Usergeek.trackEvent("Daily Streak: Forgot");
-                await fetchData.fetchUserSeconds(actor, actorNFID, actorDfinity, globalID.principalId!);
-                await fetchData.fetchUserStreak(actor, globalID.principalId!);
-                setResponseState("CLAIMED");
-                setMessageResponse(message);
-                setShowContinueButton(true);
+                }
             }
-
         } finally {
             setIsLoading(false);
         }

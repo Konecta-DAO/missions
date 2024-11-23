@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.scss';
 import { canisterId as backId } from '../declarations/backend/index.js';
-import { canisterId as backnfid } from '../declarations/nfid/index.js';
+import { canisterId as indexId } from '../declarations/index/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
 import { NFIDW, InternetIdentity } from "@nfid/identitykit"
@@ -31,27 +31,26 @@ const fetchTargets = async (): Promise<string[]> => {
 
   const projects = await actor.getAllProjectMissions() as SerializedProjectMissions[];
   const targets: string[] = projects.map(project => project.canisterId.toText());
-  return targets;
+  return [backId, 'tui2b-giaaa-aaaag-qnbpq-cai', ...targets];
 };
 
 (async () => {
 
   // Fetch the targets from the endpoint
   const fetchedTargets = await fetchTargets();
-  console.log(fetchedTargets);
 
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
     <React.StrictMode>
       <GlobalProvider>
         <BrowserRouter>
-          <IdentityKitProvider signers={[NFIDW, InternetIdentity]} featuredSigner={InternetIdentity} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: [backId, backnfid, "2mg2s-uqaaa-aaaag-qna5a-cai"], idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+          <IdentityKitProvider signers={[NFIDW, InternetIdentity]} featuredSigner={InternetIdentity} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
             <UsergeekProvider>
               <RadialBackground>
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/Missions" element={<Missions />} />
-                  <Route path="/Missions/:missionId" element={<Missions />} />
+                  {/*<Route path="/Missions/:missionId" element={<Missions />} />*/}
                 </Routes>
               </RadialBackground>
             </UsergeekProvider>

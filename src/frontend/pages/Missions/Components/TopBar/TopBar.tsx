@@ -303,7 +303,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                 />
                             </g>
                             <g id="Botones">
-                                <g id="HistoryIcon" style={{ cursor: 'pointer' }} onClick={() => toggleModal('isHistoryModalOpen')}>
+                                <g id="HistoryIcon" style={{ cursor: 'pointer' }} >
                                     <path
                                         d="M1610.37,35.33h18.02c.51,0,.94.43.94.94v19.44c0,.51-.43.94-.94.94h-18.02c-.51,0-.94-.43-.94-.94v-19.44c0-.51.43-.94.94-.94Z"
                                         fill="none"
@@ -346,7 +346,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         strokeWidth={1.14}
                                     />
                                 </g>
-                                <g id="KonectaIcon" style={{ cursor: 'pointer' }} onClick={() => toggleModal('isKonectaModalOpen')}>
+                                <g id="KonectaIcon" style={{ cursor: 'pointer' }} >
 
                                     <path
                                         d="M1679.75,45.43c.98.35,1,.38,1.02,1.35,0,.33,0,.67,0,1,0,.5.04.99-.46,1.35-.18.13-.25.46-.31.72-.63,2.34-3.06,4.61-6.14,4.59-4.62-.03-9.23.01-13.85-.01-2.87-.02-5.22-1.78-6.09-4.51-.12-.39-.24-.73-.54-1.04-.18-.18-.23-.54-.26-.83-.04-.4-.02-.8-.01-1.2.02-1,.08-1.08,1.06-1.44.85-1.75,2.17-3.02,4.1-3.53.73-.2,1.51-.29,2.27-.3,4.25-.03,8.5,0,12.75-.02,2.91-.01,5.08,1.18,6.47,3.87h0ZM1667.11,50.75h0c.7,0,1.41,0,2.11,0,.97,0,1.94.02,2.91,0,1.13-.03,2.07-.76,2.41-1.8.36-1.12.01-2.24-.9-2.96-.55-.43-1.2-.58-1.88-.58-1.04-.01-2.08,0-3.11,0-2.08,0-4.15,0-6.22,0-.94,0-1.8.25-2.41,1.02-.69.86-.77,1.85-.33,2.83.43.96,1.25,1.48,2.31,1.49,1.71.03,3.41,0,5.12,0h0Z"
@@ -360,7 +360,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                     />
 
                                 </g>
-                                <g id="QuestionMark" style={{ cursor: 'pointer' }} onClick={() => toggleModal('isInfoModalOpen')}>
+                                <g id="QuestionMark" style={{ cursor: 'pointer' }} >
                                     <text
                                         transform="translate(1704.59 57.89)"
                                         fill="#fff"
@@ -373,7 +373,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         </tspan>
                                     </text>
                                 </g>
-                                <g id="IconoPuerta" style={{ cursor: 'pointer' }} onClick={() => disconnect()}>
+                                <g id="IconoPuerta" style={{ cursor: 'pointer' }} >
                                     <g>
                                         <path
                                             d="M1810.02,47.59h-3.13c0,.51,0,1.03,0,1.54,0,.56-.12,1.08-.47,1.53-.58.75-1.5,1.03-2.41.73-.85-.27-1.44-1.04-1.47-1.96-.02-.79,0-1.58,0-2.37,0-.57,0-1.14,0-1.72h0c0-1.39-.02-2.78,0-4.17.02-.86.43-1.53,1.22-1.88.8-.36,1.6-.29,2.31.27.62.49.83,1.19.83,1.96v1.23h3.13c0-.92,0-1.85,0-2.77,0-.62-.08-1.25-.24-1.85-.42-1.57-1.45-2.64-2.88-3.34-.29-.8-.35-.85-1.17-.87-.33,0-.66-.02-.98,0-.24.03-.53.06-.68.21-.25.25-.53.34-.85.44-2.22.71-3.66,2.62-3.67,4.96-.02,3.76.01,7.52-.01,11.28-.02,2.51,1.83,4.48,3.74,5,.21.06.47.11.58.25.3.4.69.38,1.1.37.27,0,.55,0,.82,0,.78-.01.81-.03,1.1-.83h0c2.18-1.13,3.16-2.9,3.15-5.27,0-.92,0-1.85,0-2.77Z"
@@ -450,6 +450,59 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                 height={33.88}
                                 fill="url(#Degradado_sin_nombre_108-4)"
                                 strokeWidth={0}
+                            />
+                        </g>
+                        <g id="LogoutArea">
+                            <path
+                                d="M1830.03,39.77v10.54c0,8.28-6.71,15-15,15h-31.6V24.76h31.6c8.29,0,15,6.72,15,15.01Z"
+                                fill="transparent"
+                                style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                strokeWidth={0}
+                                onClick={() => disconnect()}
+                            />
+                        </g>
+                        <g id="ProfileArea">
+                            <rect
+                                x={1736.83}
+                                y={24.76}
+                                width={46.6}
+                                height={40.55}
+                                fill="transparent"
+                                style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                strokeWidth={0}
+                            />
+                        </g>
+                        <g id="QuestionArea">
+                            <rect
+                                x={1690.23}
+                                y={24.76}
+                                width={46.6}
+                                height={40.55}
+                                fill="transparent"
+                                style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                strokeWidth={0}
+                                onClick={() => toggleModal('isInfoModalOpen')}
+                            />
+                        </g>
+                        <g id="KonectaArea">
+                            <rect
+                                x={1643.63}
+                                y={24.76}
+                                width={46.6}
+                                height={40.55}
+                                fill="transparent"
+                                onClick={() => toggleModal('isKonectaModalOpen')}
+                                style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                strokeWidth={0}
+                            />
+                        </g>
+                        <g id="HistoryArea">
+                            <path
+                                d="M1643.63,24.76v40.55h-31.6c-8.29,0-15.01-6.72-15.01-15v-10.54c0-8.29,6.72-15.01,15.01-15.01h31.6Z"
+                                strokeWidth={0}
+                                fill="transparent"
+                                style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                onClick={() => toggleModal('isHistoryModalOpen')}
                             />
                         </g>
                     </svg>

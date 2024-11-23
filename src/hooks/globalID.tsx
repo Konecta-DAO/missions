@@ -1,17 +1,13 @@
 import { Principal } from '@dfinity/principal';
-import React, { createContext, useState, useContext, useMemo, useEffect } from 'react';
+import React, { createContext, useState, useContext, useMemo } from 'react';
 import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
 import { SerializedMission as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/nfid/nfid.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
-interface ProjectData {
+export interface ProjectData {
     id: string;
     name: string;
     icon: string;
-    missions: SerializedMissionDefault[]; // Array of missions
-    user: SerializedUserDefault[] | null; // User information
-    userProgress: Array<[bigint, SerializedProgressDefault]> | null; // User progress data
-    points: bigint; // Points accumulated
 }
 
 interface GlobalIDType {
@@ -33,8 +29,6 @@ interface GlobalIDType {
     setAgent: (agent: HttpAgent) => void;
     celebOverlay: boolean;
     setCelebOverlay: (value: boolean) => void;
-    ocS: string;
-    setocS: (text: string) => void;
     userStreakAmount: bigint;
     setUserStreakAmount: (value: bigint) => void;
     userLastTimeStreak: bigint;
@@ -47,11 +41,17 @@ interface GlobalIDType {
     setUserStreakPercentage: (value: bigint) => void;
     isOisy: boolean;
     setIsOisy: (value: boolean) => void;
+    canisterIds: string[] | null;
+    setCanisterIds: (canisterIds: string[]) => void;
     projects: ProjectData[];
-    setProjectData: (projectData: ProjectData) => void;
+    setProjects: React.Dispatch<React.SetStateAction<ProjectData[]>>;
+    missionsMap: { [key: string]: SerializedMissionDefault[] };
     setMissionsForProject: (projectId: string, missions: SerializedMissionDefault[]) => void;
+    userMap: { [key: string]: SerializedUserDefault[] | null };
     setUserForProject: (projectId: string, user: SerializedUserDefault[] | null) => void;
+    userProgressMap: { [key: string]: Array<[bigint, SerializedProgressDefault]> | null };
     setUserProgressForProject: (projectId: string, progress: Array<[bigint, SerializedProgressDefault]> | null) => void;
+    pointsMap: { [key: string]: bigint };
     setPointsForProject: (projectId: string, points: bigint) => void;
 }
 
@@ -67,7 +67,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [userPFPstatus, setPFPstatus] = useState<string>('');
     const [agent, setAgent] = useState<HttpAgent | null>(null);
     const [celebOverlay, setCelebOverlay] = useState<boolean>(false);
-    const [ocS, setocS] = useState<string>('');
     const [userStreakAmount, setUserStreakAmount] = useState<bigint>(0n);
     const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(0n);
     const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
@@ -75,10 +74,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
 
     const [isOisy, setIsOisy] = useState<boolean>(false);
+    const [canisterIds, setCanisterIds] = useState<string[] | null>([]);
     const [projects, setProjects] = useState<ProjectData[]>([]);
-    const setProjectData = (projectData: ProjectData) => {
-        setProjects((prevProjects) => [...prevProjects, projectData]);
-    };    
     const [missionsMap, setMissionsMap] = useState<{ [key: string]: SerializedMissionDefault[] }>({});
     const [userMap, setUserMap] = useState<{ [key: string]: SerializedUserDefault[] | null }>({});
     const [userProgressMap, setUserProgressMap] = useState<{ [key: string]: Array<[bigint, SerializedProgressDefault]> | null }>({});
@@ -119,8 +116,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setAgent,
         celebOverlay,
         setCelebOverlay,
-        ocS,
-        setocS,
         userStreakAmount,
         setUserStreakAmount,
         userLastTimeStreak,
@@ -133,8 +128,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setUserStreakPercentage,
         isOisy,
         setIsOisy,
+        canisterIds,
+        setCanisterIds,
         projects,
-        setProjectData,
+        setProjects,
         missionsMap,
         setMissionsForProject,
         userMap,
@@ -153,13 +150,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         userPFPstatus,
         agent,
         celebOverlay,
-        ocS,
         userStreakAmount,
         userLastTimeStreak,
         streakResetTime,
         totalUserStreak,
         userStreakPercentage,
         isOisy,
+        canisterIds,
         projects,
         missionsMap,
         userMap,

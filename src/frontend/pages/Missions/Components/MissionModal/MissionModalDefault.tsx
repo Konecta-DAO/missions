@@ -6,7 +6,8 @@ import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../
 import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { checkMissionCompletionNfid, checkRequiredMissionCompletionNFID } from '../../missionUtils.ts';
+import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
+import { SerializedMission as SerializedMissionDefault } from '../../../../../declarations/nfid/nfid.did.js';
 
 declare global {
     interface Window {
@@ -18,11 +19,12 @@ declare global {
 interface MissionModalProps {
     closeModal: () => void;
     selectedMissionId: bigint;
+    canisterId: string;
 }
 
 const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
 
-const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId }) => {
+const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, canisterId }) => {
     const globalID = useGlobalID();
     const navigate = useNavigate();
     const fetchData = useFetchData();
@@ -34,8 +36,17 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     });
 
     const mission = useMemo(() => {
-        return globalID.missionsdfinity?.find((m: { id: bigint }) => m.id === selectedMissionId);
-    }, [globalID.missionsdfinity, selectedMissionId]);
+
+        for (const missionsArray of Object.values(globalID.missionsMap)) {
+            const foundMission = missionsArray.find(
+                (m: SerializedMissionDefault) => m.id === selectedMissionId
+            );
+            if (foundMission) {
+                return foundMission;
+            }
+        }
+
+    }, [globalID.missionsMap, selectedMissionId]);
 
     useEffect(() => {
         const updateTime = () => {
@@ -54,8 +65,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
             closeModal();
         }
     }, [currentTimeNano]);
-
-
 
     // Redirect if mission not found
     useEffect(() => {
@@ -82,13 +91,11 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         end: getGradientEndColor(Number(mission.mode)),
     }), [mission.mode]);
 
-    const missionCompleted = useMemo(() => checkMissionCompletionNfid(globalID.userProgressdfinity, mission), [globalID.userProgressdfinity, missionId]);
-
+    const missionCompleted = useMemo(() => checkMissionCompletionDefault(globalID.userProgressMap, canisterId, mission), [globalID.userProgressMap, mission]);
 
     // Memoize mission completion checks
 
-
-    const { requiredMissionCompleted } = useMemo(() => checkRequiredMissionCompletionNFID(globalID, mission), [globalID, mission]);
+    const { requiredMissionCompleted } = useMemo(() => checkRequiredMissionCompletionDefault(globalID, canisterId, mission), [globalID, mission]);
 
     // Redirect if mission requirements not met
     useEffect(() => {

@@ -45,10 +45,38 @@
 .MissionsGridWrapper {
     position: relative;
     display: flex;
+    flex-direction: column;
     width: 80%;
     height: 100%;
     padding: 0px 4vw 0px 4vw;
     overflow-y: auto;
+    gap: 25px;
+}
+
+.ButtonActiveMission {
+    color: aqua;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-right: 15px;
+}
+
+.ButtonMission {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-right: 15px;
+}
+
+.ButtonBar {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5vw;
+}
+
+.MissionIconB {
+    height: 1.67vw;
+    padding-right: 0.33vw;
 }
 
 .OpenChatWrapper {
