@@ -61,7 +61,7 @@ export const checkMissionCompletionDefault = (userProgressMap: { [key: string]: 
     // Explicitly specify the type of progressList after flattening
     const progressListFlattened = (progressListNested as any).flat();
 
-    return progressListFlattened.some((entry: any) => {
+    return progressListFlattened?.some((entry: any) => {
         // Ensure 'entry' is an array with exactly two elements
         if (Array.isArray(entry) && entry.length === 2) {
             const [progressId, progress] = entry;
@@ -82,9 +82,7 @@ export const checkMissionCompletionDefault = (userProgressMap: { [key: string]: 
                 progress.completionHistory.length > 0
             ) {
                 // Determine if any completion record is after the mission's 'startDate'
-                return progress.completionHistory.some(
-                    (record: any) => BigInt(record.timestamp) > mission.startDate
-                );
+                return progress.completionHistory.some((record: any) => BigInt(record.timestamp) > mission.startDate);
             }
         }
 
