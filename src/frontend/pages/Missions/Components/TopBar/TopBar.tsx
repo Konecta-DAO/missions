@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styles from './TopBar.module.scss';
 import KonectaLogo from '../../../../../../public/assets/Konecta Logo.svg';
-import NFIDLogo from '../../../../../../public/assets/NFID_Airdrop.svg';
-import DFINITYLogo from '../../../../../../public/assets/DFINITYW.png';
 import TimeCapsule from '../../../../../../public/assets/TimeCapsuleExtend.svg';
 
-import NFIDPoints from '../../../../../../public/assets/NFIDpoints.svg';
-import NFIDLogout from '../../../../../../public/assets/NFIDlogout.svg';
-import DFINITYPoints from '../../../../../../public/assets/Dfinitypoints.svg';
-import DFINITYLogout from '../../../../../../public/assets/DFINITYlogout.svg';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import HexagonButton from '../../../../components/HexagonButton/hexagonButton.tsx';
@@ -128,7 +122,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
 
     const handleDC = () => {
         disconnect(); // Call disconnect if it's defined
-        navigate('/'); // Navigate to the home page
+        navigate('/konnect'); // Navigate to the login page
     };
 
     return (

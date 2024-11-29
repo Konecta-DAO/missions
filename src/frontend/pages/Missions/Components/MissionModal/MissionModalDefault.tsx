@@ -8,6 +8,7 @@ import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
 import { SerializedMission as SerializedMissionDefault } from '../../../../../declarations/nfid/nfid.did.js';
+import { useIdentityKit } from '@nfid/identitykit/react';
 
 declare global {
     interface Window {
@@ -30,6 +31,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const fetchData = useFetchData();
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const { disconnect } = useIdentityKit();
     const [placestate, setPlacestate] = useState(false);
     const [currentTimeNano, setCurrentTimeNano] = useState(() => {
         return BigInt(Date.now()) * 1_000_000n;
@@ -48,6 +50,8 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 
     }, [globalID.missionsMap, selectedMissionId]);
 
+    if (!mission) return null;
+
     useEffect(() => {
         const updateTime = () => {
             setCurrentTimeNano(BigInt(Date.now()) * 1_000_000n);
@@ -65,15 +69,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
             closeModal();
         }
     }, [currentTimeNano]);
-
-    // Redirect if mission not found
-    useEffect(() => {
-        if (!mission) {
-            navigate('/Missions');
-        }
-    }, [mission, navigate]);
-
-    if (!mission) return null;
 
     // Memoize background click handler
     const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -100,7 +95,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     // Redirect if mission requirements not met
     useEffect(() => {
         if (!requiredMissionCompleted && !missionCompleted) {
-            navigate('/Missions');
+            navigate('/');
         }
     }, [requiredMissionCompleted, missionCompleted, navigate]);
 
@@ -124,7 +119,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
             setLoading(true);
             try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate);
+                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, disconnect);
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
             }

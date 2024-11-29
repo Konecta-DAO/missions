@@ -9,16 +9,17 @@ import MissionDefault from './Components/Mission/MissionDefault.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo Icon.svg';
 
 interface MissionGridProps {
-    handleCardClick: (id: string) => void;
+    selectedProject: string | null;
+    toggleProjectSelection: (projectId: string | null) => void;
+    missionSlug?: string;
 }
 
-const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) => {
+const MissionGridComponent: React.FC<MissionGridProps> = ({ selectedProject, toggleProjectSelection, missionSlug }) => {
     const globalID = useGlobalID();
 
     const [selectedMission, setSelectedMission] = useState<{ mission: any; isDefault: boolean; key?: string } | null>(null);
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
     const navigate = useNavigate();
 
     const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
@@ -31,9 +32,40 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
 
     const handleMissionClick = (mission: any, isDefault: boolean, missionKey?: string) => {
         setSelectedMission({ mission, isDefault, key: missionKey });
-        handleCardClick(`${missionKey}-${mission.id}`);
-    };
 
+        const missionTitleWords: string[] = mission.title
+            .split(' ')
+            .slice(0, 3)
+            .map((word: string) =>
+                word.replace(/[^a-zA-Z0-9]/g, '')
+            );
+        let missionSlug = `${missionTitleWords.join('-').toLowerCase()}-${mission.id}`;
+
+        if (selectedProject === 'konecta') {
+            navigate(`/konecta/${missionSlug}`);
+        } else if (selectedProject) {
+            const project = globalID.projects.find((p) => p.id === selectedProject);
+            if (project) {
+                navigate(`/${project.name}/${missionSlug}`);
+            } else {
+                navigate(`/`);
+            }
+        } else {
+            // When selectedProject is null
+            if (missionKey) {
+                // It's a project mission
+                const project = globalID.projects.find((p) => p.id === missionKey);
+                if (project) {
+                    navigate(`/${project.name}/${missionSlug}`);
+                } else {
+                    navigate(`/`);
+                }
+            } else {
+                // It's a Konecta mission
+                navigate(`/konecta/${missionSlug}`);
+            }
+        }
+    };
     const handleMouseLeave = () => {
         setTooltipContent(null);
         setTooltipPosition(null);
@@ -41,16 +73,64 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
 
     const closeModal = () => {
         setSelectedMission(null);
-        navigate('/Missions');
-    }
+        if (selectedProject === 'konecta') {
+            navigate('/konecta');
+        } else if (selectedProject) {
+            const project = globalID.projects.find((p) => p.id === selectedProject);
+            if (project) {
+                navigate(`/${project.name}`);
+            } else {
+                navigate('/');
+            }
+        } else {
+            navigate('/');
+        }
+    };
 
     const missionsFromMap = Object.entries(globalID.missionsMap || {}).flatMap(([key, missionsArray]) =>
         missionsArray.map(mission => ({ ...mission, key }))
     );
 
-    const toggleProjectSelection = (projectId: string | null) => {
-        setSelectedProject(prev => (prev === projectId ? null : projectId));
-    };
+    useEffect(() => {
+        if (missionSlug) {
+            const missionIdMatch = missionSlug.match(/-(\d+)$/);
+            const missionIdStr = missionIdMatch ? missionIdMatch[1] : null;
+            const missionId = missionIdStr ? parseInt(missionIdStr, 10) : NaN;
+
+            if (isNaN(missionId)) {
+                console.warn('Invalid mission ID in URL:', missionSlug);
+                return;
+            }
+
+            let foundMission: any = null;
+            let isDefault = false;
+            let missionKey: string | undefined;
+
+            if ((selectedProject === 'konecta' || selectedProject === null) && globalID.missions?.length > 0) {
+                foundMission = globalID.missions.find((m) => Number(m.id) === missionId);
+                if (foundMission) {
+                    isDefault = false;
+                }
+            }
+            if (!foundMission && missionsFromMap?.length > 0) {
+                foundMission = missionsFromMap.find(
+                    (m) => Number(m.id) === missionId && (selectedProject === null || m.key === selectedProject)
+                );
+                if (foundMission) {
+                    isDefault = true;
+                    missionKey = foundMission.key;
+                }
+            }
+
+            if (foundMission) {
+                setSelectedMission({ mission: foundMission, isDefault, key: missionKey });
+            } else {
+                console.warn('Mission not found for ID:', missionId);
+            }
+        } else {
+            setSelectedMission(null);
+        }
+    }, [missionSlug, globalID.missions, missionsFromMap, selectedProject]);
 
     return (
         <>
@@ -104,7 +184,7 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ handleCardClick }) =
                                 key={`${mission.key}-${mission.id.toString()}`}
                                 mission={mission}
                                 canisterId={mission.key}
-                                handleCardClick={() => handleMissionClick(mission, true)}
+                                handleCardClick={() => handleMissionClick(mission, true, mission.key)}
                                 handleMouseMove={handleMouseMove}
                                 handleMouseLeave={handleMouseLeave}
                             />

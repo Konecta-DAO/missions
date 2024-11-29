@@ -133,7 +133,7 @@ const OpenChat: React.FC = () => {
 
                                 if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
                                     disconnect();
-                                    navigate('/');
+                                    navigate('/konnect');
                                 } else {
                                     const mappedProjects: ProjectData[] = projects.map((project) => ({
                                         id: project.canisterId.toText(),

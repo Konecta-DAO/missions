@@ -223,7 +223,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
         if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
             setLoading(true);
             try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate);
+                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, setPlacestate); //disconnect
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
             }

@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.scss';
 import { canisterId as backId } from '../declarations/backend/index.js';
-import { canisterId as indexId } from '../declarations/index/index.js';
 import { BrowserRouter } from 'react-router-dom';
 import { IdentityKitProvider } from "@nfid/identitykit/react"
 import { NFIDW, InternetIdentity } from "@nfid/identitykit"
@@ -48,9 +47,10 @@ const fetchTargets = async (): Promise<string[]> => {
             <UsergeekProvider>
               <RadialBackground>
                 <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/Missions" element={<Missions />} />
-                  {/*<Route path="/Missions/:missionId" element={<Missions />} />*/}
+                  <Route path="/" element={<Missions />} />
+                  <Route path="/:projectSlug/:missionSlug" element={<Missions />} />
+                  <Route path="/:projectSlug" element={<Missions />} />
+                  <Route path="/konnect" element={<Home />} />
                 </Routes>
               </RadialBackground>
             </UsergeekProvider>

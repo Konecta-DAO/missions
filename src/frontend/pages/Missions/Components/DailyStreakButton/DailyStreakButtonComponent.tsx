@@ -198,7 +198,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
             if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
                 disconnect();
-                navigate('/');
+                navigate('/konnect');
             } else {
 
                 const mappedProjects: ProjectData[] = projects.map((project) => ({

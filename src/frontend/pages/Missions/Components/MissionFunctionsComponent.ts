@@ -3,14 +3,16 @@ import { canisterId, idlFactory } from "../../../../declarations/backend/index.j
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../declarations/nfid/index.js';
 import { idlFactory as idlFactoryDFINITY } from '../../../../declarations/dfinity_backend/index.js';
 import { Usergeek } from "usergeek-ic-js";
-import { convertSecondsToHMS } from "../../../../components/Utilities.tsx";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
 import { SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
+import { InterfaceFactory } from "@dfinity/candid/lib/cjs/idl.js";
+import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../declarations/index/index.did.js';
+import { idlFactory as idlFactoryDefault } from '../../../../declarations/nfid/index.js';
 
 const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const MissionFunctionsComponent = {
-    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -57,12 +59,31 @@ const MissionFunctionsComponent = {
                     canisterId,
                 })
 
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
 
-                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, principal, setPlacestate, setPlacestate);
+
                 setLoading(false);
                 closeModal();
             }
@@ -85,7 +106,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -97,17 +118,35 @@ const MissionFunctionsComponent = {
             alert("PFP status already set successfully. You will soon be manually verified");
         }
 
-        const actorNFID = Actor.createActor(idlFactoryNFID, {
+        const actorIndex = Actor.createActor(idlFactoryIndex, {
             agent: globalID.agent,
-            canisterId: canisterIdNFID,
+            canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
         });
 
-        await fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+        actorIndex.getAllProjectMissions()
+            .then((result) => {
+                const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                const targets: string[] = projects.map(project => project.canisterId.toText());
+                if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                    alert("A new project has been added to Konecta! Refreshing the page...");
+                    disconnect();
+                    navigate('/konnect');
+                }
+            })
+
+        const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+            return Actor.createActor(idlFactoryDefault, {
+                agent: globalID.agent,
+                canisterId: targetCanisterId,
+            });
+        });
+
+        fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
         setLoading(false);
         closeModal();
     },
 
-    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
@@ -155,12 +194,30 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
 
-                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -181,7 +238,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -230,12 +287,30 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
 
-                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -256,7 +331,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
 
@@ -302,12 +377,30 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
 
-                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 if (input != 'a') {
                     closeModal();
@@ -328,7 +421,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verMRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    verMRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
 
@@ -374,12 +467,30 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
 
-                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
             }
 
@@ -399,7 +510,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -410,19 +521,19 @@ const MissionFunctionsComponent = {
         setLoading(false);
     },
 
-    twPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    twPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const url = 'https://twitter.com/intent/tweet?text=Leveling%20up%20my%20profile%20with%20%23KonectaPFP%21%20Time%E2%80%99s%20on%20my%20side%20now.%20%24ICP%20%E2%8F%B3';
         window.open(url, '_blank');
         setLoading(false);
     },
 
-    gTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+    gTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const url = 'https://twitter.com/intent/tweet';
         window.open(url, '_blank');
         setLoading(false);
     },
 
-    submitCode: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    submitCode: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -433,12 +544,30 @@ const MissionFunctionsComponent = {
         const a = await actor.submitCode(globalID.principalId, missionid, input);
         if (a) {
             alert("Success");
-            const actorNFID = Actor.createActor(idlFactoryNFID, {
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: globalID.agent,
-                canisterId: canisterIdNFID,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
             });
 
-            fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             setLoading(false);
             closeModal();
         } else {
@@ -448,7 +577,7 @@ const MissionFunctionsComponent = {
 
     },
 
-    ocMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    ocMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
@@ -465,18 +594,18 @@ const MissionFunctionsComponent = {
                 const firstProgress = c[0];
                 const pointsEarnedStr = firstProgress.completionHistory[0].pointsEarned;
                 const pointsEarned = Number(pointsEarnedStr);
-             //   await globalID.setocS(convertSecondsToHMS(pointsEarned));
+                //   await globalID.setocS(convertSecondsToHMS(pointsEarned));
 
             }
             setLoading(false);
-            navigate('/Missions');
+            navigate('/');
             closeModal();
         } else {
             setLoading(false);
         }
     },
 
-    nuanceMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    nuanceMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
 
@@ -502,16 +631,34 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId,
                 })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
 
-                fetchData.fetchAllKonecta(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 alert(data.message);
                 Usergeek.trackEvent("Mission 9 : Nuance Follow");
                 setLoading(false);
-                navigate('/Missions');
+                navigate('/');
                 closeModal();
             } else {
                 alert(data.message);
@@ -778,7 +925,7 @@ const MissionFunctionsComponent = {
                 }
                 alert(data.message);
                 setLoading(false);
-                navigate('/Missions/NFID');
+                // navigate('/Missions/NFID');
                 closeModal();
             } else {
                 alert(data.message);
@@ -831,7 +978,7 @@ const MissionFunctionsComponent = {
 
                 alert(data.message);
                 setLoading(false);
-                navigate('/Missions/NFID');
+                // navigate('/Missions/NFID');
                 closeModal();
             } else {
                 alert(data.message);
@@ -883,7 +1030,7 @@ const MissionFunctionsComponent = {
                 fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
                 alert(data.message);
                 setLoading(false);
-                navigate('/Missions/NFID');
+                // navigate('/Missions/NFID');
                 closeModal();
             } else {
                 alert(data.message);
@@ -897,7 +1044,7 @@ const MissionFunctionsComponent = {
         setLoading(false);
     },
 
-    dfinityFollowTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    dfinityFollowTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -943,7 +1090,30 @@ const MissionFunctionsComponent = {
                     agent: globalID.agent,
                     canisterId: canisterIdDFINITY,
                 })
-                fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -966,7 +1136,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    dfinityMissionOne: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    dfinityMissionOne: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactoryDFINITY, {
             agent: globalID.agent,
             canisterId: canisterIdDFINITY,
@@ -974,7 +1144,30 @@ const MissionFunctionsComponent = {
         const a = await actor.missionOne(globalID.principalId, input);
         if (a === "Success") {
             Usergeek.trackEvent("Dfinity Mission One: Hello World");
-            fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -984,7 +1177,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    dfinityMissionTwo: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    dfinityMissionTwo: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactoryDFINITY, {
             agent: globalID.agent,
             canisterId: canisterIdDFINITY,
@@ -992,7 +1185,30 @@ const MissionFunctionsComponent = {
         const a = await actor.missionTwo(globalID.principalId, input);
         if (a === "Success") {
             Usergeek.trackEvent("Dfinity Mission Two: Inter-Canister Call");
-            fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1002,7 +1218,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    dfinityDiscord: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    dfinityDiscord: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const principal = globalID.principalId;
 
         try {
@@ -1032,7 +1248,30 @@ const MissionFunctionsComponent = {
                         agent: globalID.agent,
                         canisterId: canisterIdDFINITY,
                     })
-                    fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+                    const actorIndex = Actor.createActor(idlFactoryIndex, {
+                        agent: globalID.agent,
+                        canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                    });
+
+                    actorIndex.getAllProjectMissions()
+                        .then((result) => {
+                            const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                            const targets: string[] = projects.map(project => project.canisterId.toText());
+                            if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                                alert("A new project has been added to Konecta! Refreshing the page...");
+                                disconnect();
+                                navigate('/konnect');
+                            }
+                        })
+
+                    const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                        return Actor.createActor(idlFactoryDefault, {
+                            agent: globalID.agent,
+                            canisterId: targetCanisterId,
+                        });
+                    });
+
+                    fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                     setLoading(false);
                     closeModal();
                 } else {
@@ -1064,7 +1303,7 @@ const MissionFunctionsComponent = {
             console.error("Error fetching Discord auth URL:", error);
         }
     },
-    dfinityOpenChat: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
+    dfinityOpenChat: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactoryDFINITY, {
             agent: globalID.agent,
             canisterId: canisterIdDFINITY,
@@ -1072,7 +1311,30 @@ const MissionFunctionsComponent = {
         const a = await actor.missionOpenChat(globalID.principalId);
         if (a === "Success") {
             Usergeek.trackEvent("Dfinity Mission Five: OpenChat");
-            fetchData.fetchAllDfinity(actor, globalID.principalId, setPlacestate);
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();

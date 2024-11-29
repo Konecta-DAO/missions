@@ -9,6 +9,7 @@ import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../mi
 import PTWContent from './PTWContent.tsx';
 import TweetEmbed from './TweetEmbed.tsx';
 import Mission7View from './Mission7View.tsx';
+import { useIdentityKit } from '@nfid/identitykit/react';
 
 declare global {
     interface Window {
@@ -31,6 +32,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [placestate, setPlacestate] = useState(false);
+    const { disconnect } = useIdentityKit();
     const [currentTimeNano, setCurrentTimeNano] = useState(() => {
         return BigInt(Date.now()) * 1_000_000n;
     });
@@ -38,6 +40,8 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const mission = useMemo(() => {
         return globalID.missions?.find((m: { id: bigint }) => m.id === selectedMissionId);
     }, [globalID.missions, selectedMissionId]);
+
+    if (!mission) return null;
 
     useEffect(() => {
         const updateTime = () => {
@@ -56,15 +60,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
             closeModal();
         }
     }, [currentTimeNano]);
-
-
-
-    // Redirect if mission not found
-    useEffect(() => {
-        if (!mission) {
-            navigate('/Missions');
-        }
-    }, [mission, navigate]);
 
     if (!mission) return null;
 
@@ -140,7 +135,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     // Redirect if mission requirements not met
     useEffect(() => {
         if (!requiredMissionCompleted && !missionCompleted) {
-            navigate('/Missions');
+            navigate('/');
         }
     }, [requiredMissionCompleted, missionCompleted, navigate]);
 
@@ -166,7 +161,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
             setLoading(true);
             try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate);
+                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, disconnect);
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
             }

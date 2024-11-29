@@ -97,7 +97,7 @@ const Home: React.FC = () => {
             }
 
             globalID.setUser(b);
-            navigate('/Missions');
+            navigate('/');
           } else {
             const identityAny = identity as any;
             const delegation = identityAny._delegation;
@@ -128,7 +128,7 @@ const Home: React.FC = () => {
                   }
 
                   Usergeek.trackEvent('Mission 0: Registered');
-                  navigate('/Missions');
+                  navigate('/');
                 }
               );
 

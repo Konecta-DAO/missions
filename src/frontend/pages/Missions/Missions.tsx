@@ -23,6 +23,7 @@ import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
 import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../declarations/index/index.did.js';
+import { useParams } from 'react-router-dom';
 
 interface ButtonItem {
     name: string;
@@ -45,6 +46,9 @@ const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const { user, identity } = useIdentityKit();
     const navigate = useNavigate();
+
+
+
     const fetchData = useFetchData();
     const [dataloaded, setDataloaded] = useState(false);
     const { loadingPercentage, loadingComplete } = useLoadingProgress({ totalTime: 4000 });
@@ -71,6 +75,8 @@ const Missions: React.FC = () => {
         await actor.acceptTerms(globalID.principalId);
         setIsTermsModalVisible(false);
     };
+
+    const { projectSlug, missionSlug } = useParams<{ projectSlug?: string; missionSlug?: string }>();
 
     useEffect(() => {
         if (!acceptedTerms) {
@@ -107,7 +113,7 @@ const Missions: React.FC = () => {
 
                 if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
                     disconnect();
-                    navigate('/');
+                    navigate('/konnect');
                 } else {
                     const mappedProjects: ProjectData[] = projects.map((project) => ({
                         id: project.canisterId.toText(),
@@ -123,7 +129,7 @@ const Missions: React.FC = () => {
 
             } else {
                 // User is not logged in; redirect to home page
-                navigate('/');
+                navigate('/konnect');
             }
         }, 1000); // Wait for 1000ms before proceeding
 
@@ -133,6 +139,45 @@ const Missions: React.FC = () => {
         };
     }, [user, identity]);
 
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (projectSlug) {
+            if (projectSlug.toLowerCase() === 'konecta') {
+                setSelectedProject('konecta');
+            } else {
+                const project = globalID.projects.find(
+                    (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
+                );
+                if (project) {
+                    setSelectedProject(project.id);
+                } else {
+                    setSelectedProject(null);
+                }
+            }
+        } else {
+            setSelectedProject(null);
+        }
+    }, [projectSlug, globalID.projects]);
+
+    const toggleProjectSelection = (projectId: string | null) => {
+        setSelectedProject((prev) => (prev === projectId ? null : projectId));
+        if (projectId !== null) {
+            if (projectId === 'konecta') {
+                navigate('/konecta');
+            } else {
+                // Find project name by ID
+                const project = globalID.projects.find((p) => p.id === projectId);
+                if (project) {
+                    navigate(`/${project.name}`);
+                } else {
+                    navigate('/');
+                }
+            }
+        } else {
+            navigate('/');
+        }
+    };
 
     const fetchUserData = async (agent: HttpAgent) => {
         if (fetchData) {
@@ -168,10 +213,6 @@ const Missions: React.FC = () => {
             await fetchData.fetchAll(actor, actors, targets, principal, setDataloaded, setAcceptedTerms);
 
         }
-    };
-
-    const handleCardClick = (missionId: string) => {
-        // navigate(`/Missions/${missionId}`); AQUI
     };
 
     const toggleModal = (modalName: keyof ModalState) => {
@@ -258,7 +299,9 @@ const Missions: React.FC = () => {
                             {dataloaded ? (
                                 <div className={styles.MissionsGridWrapper}>
                                     <MissionGridComponent
-                                        handleCardClick={handleCardClick}
+                                        selectedProject={selectedProject}
+                                        toggleProjectSelection={toggleProjectSelection}
+                                        missionSlug={missionSlug}
                                     />
                                 </div>
                             ) : (
@@ -292,7 +335,8 @@ const Missions: React.FC = () => {
                                     {dataloaded ? (
                                         <div className={styles.MissionsGridWrapper}>
                                             <MissionGridComponent
-                                                handleCardClick={handleCardClick}
+                                                selectedProject={selectedProject}
+                                                toggleProjectSelection={toggleProjectSelection}
                                             />
                                         </div>
                                     ) : (
@@ -330,7 +374,8 @@ const Missions: React.FC = () => {
                                     {dataloaded ? (
                                         <div className={styles.MissionsGridWrapper}>
                                             <MissionGridComponent
-                                                handleCardClick={handleCardClick}
+                                                selectedProject={selectedProject}
+                                                toggleProjectSelection={toggleProjectSelection}
                                             />
                                         </div>
                                     ) : (
@@ -355,7 +400,8 @@ const Missions: React.FC = () => {
                                     {dataloaded ? (
                                         <div className={styles.MissionsGridWrapper}>
                                             <MissionGridComponent
-                                                handleCardClick={handleCardClick}
+                                                selectedProject={selectedProject}
+                                                toggleProjectSelection={toggleProjectSelection}
                                             />
                                         </div>
                                     ) : (

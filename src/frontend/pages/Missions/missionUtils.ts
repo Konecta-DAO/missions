@@ -27,7 +27,7 @@ export const checkMissionCompletion = (userProgress: any, mission: SerializedMis
                     progress.completionHistory.length > 0
                 ) {
                     // Check if any record has a timestamp greater than mission.startDate
-                    const hasRecentCompletion = progress.completionHistory.some(
+                    const hasRecentCompletion = progress.completionHistory?.some(
                         (record) => record.timestamp > mission.startDate
                     );
 
@@ -82,7 +82,7 @@ export const checkMissionCompletionDefault = (userProgressMap: { [key: string]: 
                 progress.completionHistory.length > 0
             ) {
                 // Determine if any completion record is after the mission's 'startDate'
-                return progress.completionHistory.some((record: any) => BigInt(record.timestamp) > mission.startDate);
+                return progress.completionHistory?.some((record: any) => BigInt(record.timestamp) > mission.startDate);
             }
         }
 
@@ -131,8 +131,8 @@ export const checkRequiredMissionCompletionDefault = (globalID: any, canisterId:
 
         const progressListNested = globalID?.userProgressMap[canisterId];
 
-        requiredMissionCompleted = progressListNested.some((progressList: any[]) =>
-            progressList.some((entry: any[]) => {
+        requiredMissionCompleted = progressListNested?.some((progressList: any[]) =>
+            progressList?.some((entry: any[]) => {
                 if (Array.isArray(entry) && entry.length === 2) {
                     const [progressId, progress] = entry;
 
@@ -148,7 +148,7 @@ export const checkRequiredMissionCompletionDefault = (globalID: any, canisterId:
                             progress.completionHistory.length > 0
                         ) {
                             // Determine if any completion record is after the mission's startDate
-                            return progress.completionHistory.some((record: any) =>
+                            return progress.completionHistory?.some((record: any) =>
                                 BigInt(record.timestamp) > BigInt(requiredMission.startDate)
                             );
                         }
