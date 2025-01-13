@@ -114,12 +114,6 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
 
     const isDisabled = currentTime < (globalID.userLastTimeStreak + globalID.streakResetTime);
 
-    const modalMap: { [key: string]: keyof ModalState } = {
-        History: 'isHistoryModalOpen',
-        Konecta: 'isKonectaModalOpen',
-        Info: 'isInfoModalOpen',
-    };
-
     const handleDC = () => {
         disconnect(); // Call disconnect if it's defined
         navigate('/konnect'); // Navigate to the login page

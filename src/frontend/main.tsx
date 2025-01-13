@@ -15,6 +15,7 @@ import { IdentityKitAuthType } from "@nfid/identitykit"
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory } from '../declarations/index/index.js';
 import { SerializedProjectMissions } from '../declarations/index/index.did.js';
+import { ConsoleView } from 'react-device-detect';
 
 
 const frontId = process.env.CANISTER_ID_FRONTEND
@@ -37,13 +38,14 @@ const fetchTargets = async (): Promise<string[]> => {
 
   // Fetch the targets from the endpoint
   const fetchedTargets = await fetchTargets();
+  console.log("tarjetas" + fetchedTargets);
 
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
     <React.StrictMode>
       <GlobalProvider>
         <BrowserRouter>
-          <IdentityKitProvider signers={[NFIDW, InternetIdentity]} featuredSigner={InternetIdentity} signerClientOptions={{ derivationOrigin: "https://" + frontId + ".icp0.io", targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+          <IdentityKitProvider signers={[NFIDW, InternetIdentity]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://y7mum-taaaa-aaaag-qklxq-cai.icp0.io/", targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
             <UsergeekProvider>
               <RadialBackground>
                 <Routes>
