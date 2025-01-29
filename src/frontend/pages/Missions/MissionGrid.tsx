@@ -1,28 +1,99 @@
 import styles from './Missions.module.scss';
 import Mission from './Components/Mission/Mission.tsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import MissionModal from './Components/MissionModal/MissionModal.tsx';
 import MissionModalDefault from './Components/MissionModal/MissionModalDefault.tsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import MissionDefault from './Components/Mission/MissionDefault.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo Icon.svg';
+import { SerializedMission as KonectaSerializedMission } from '../../../declarations/backend/backend.did.js';
+import { SerializedMission as ProjectSerializedMission } from '../../../declarations/dfinity_backend/dfinity_backend.did.js';
+import { Principal } from '@dfinity/principal';
 
-interface MissionGridProps {
-    selectedProject: string | null;
-    toggleProjectSelection: (projectId: string | null) => void;
-    missionSlug?: string;
+type AnyMission = KonectaSerializedMission | ProjectSerializedMission;
+
+function isKonectaMission(
+    mission: AnyMission
+): mission is KonectaSerializedMission {
+    return 'mintime' in mission && 'maxtime' in mission;
 }
 
-const MissionGridComponent: React.FC<MissionGridProps> = ({ selectedProject, toggleProjectSelection, missionSlug }) => {
-    const globalID = useGlobalID();
+function isProjectMission(
+    mission: AnyMission
+): mission is ProjectSerializedMission {
+    return 'points' in mission;
+}
 
-    const [selectedMission, setSelectedMission] = useState<{ mission: any; isDefault: boolean; key?: string } | null>(null);
+const MissionGridComponent: React.FC = () => {
+    const globalID = useGlobalID();
+    const { projectSlug, missionSlug } = useParams<{ projectSlug?: string; missionSlug?: string }>();
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
     const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
+
+    useEffect(() => {
+        if (projectSlug) {
+            if (projectSlug.toLowerCase() === 'konecta') {
+                setSelectedProject('konecta');
+            } else {
+                const project = globalID.projects.find(
+                    (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
+                );
+                if (project) {
+                    setSelectedProject(project.name);
+                } else {
+                    setSelectedProject(null);
+                }
+            }
+        } else {
+            setSelectedProject(null);
+        }
+    }, [projectSlug, globalID.projects]);
+
+    const project = useMemo(() => {
+        if (!projectSlug) return null;
+        if (projectSlug.toLowerCase() === 'konecta') {
+            return 'konecta';
+        } else {
+            // see if there's a matching project by name
+            return globalID.projects.find(
+                (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
+            ) || null;
+        }
+    }, [projectSlug, globalID.projects]);
+
+    const parsedMissionId = useMemo(() => {
+        if (!missionSlug) return null;
+
+        // e.g. "my-mission-title-123" => we get "123"
+        const match = missionSlug.match(/-(\d+)$/);
+        return match ? parseInt(match[1], 10) : null;
+    }, [missionSlug]);
+
+    const openMission = useMemo(() => {
+        if (parsedMissionId == null) return null;
+        // If we're on Konecta or if `project` is the literal string 'konecta'
+        if (project === 'konecta' || project == null) {
+            return globalID.missions?.find((m) => Number(m.id) === parsedMissionId) || null;
+        }
+
+        // Otherwise we look up the project’s canister ID, etc.
+        if (project && typeof project !== 'string') {
+            // The user has a real project object from globalID.projects
+            // We'll find the mission in the missionsMap
+            const canisterId = project.id;
+            const missionsForThisProject = globalID.missionsMap[canisterId] || [];
+            return missionsForThisProject.find((m) => Number(m.id) === parsedMissionId) || null;
+        }
+
+        return null;
+    }, [project, parsedMissionId, globalID]);
 
     const handleMouseMove = (e: React.MouseEvent, content: string | null) => {
         const { clientX, clientY } = e;
@@ -30,166 +101,138 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ selectedProject, tog
         setTooltipPosition({ top: clientY + 10, left: clientX + 10 });
     };
 
-    const handleMissionClick = (mission: any, isDefault: boolean, missionKey?: string) => {
-        setSelectedMission({ mission, isDefault, key: missionKey });
+    const handleMissionClick = (mission: AnyMission, projectId: string) => {
+        const shortSlug = mission.title.split(' ').slice(0, 3)
+            .map((word) => word.replace(/[^a-zA-Z0-9]/g, ''))
+            .join('-')
+            .toLowerCase();
 
-        const missionTitleWords: string[] = mission.title
-            .split(' ')
-            .slice(0, 3)
-            .map((word: string) =>
-                word.replace(/[^a-zA-Z0-9]/g, '')
-            );
-        let missionSlug = `${missionTitleWords.join('-').toLowerCase()}-${mission.id}`;
+        const routeSlug = `${shortSlug}-${mission.id.toString()}`;
 
-        if (selectedProject === 'konecta') {
-            navigate(`/konecta/${missionSlug}`);
-        } else if (selectedProject) {
-            const project = globalID.projects.find((p) => p.id === selectedProject);
-            if (project) {
-                navigate(`/${project.name}/${missionSlug}`);
-            } else {
-                navigate(`/`);
-            }
+        if (isKonectaMission(mission)) {
+            navigate(`/konecta/${routeSlug}`);
         } else {
-            // When selectedProject is null
-            if (missionKey) {
-                // It's a project mission
-                const project = globalID.projects.find((p) => p.id === missionKey);
-                if (project) {
-                    navigate(`/${project.name}/${missionSlug}`);
-                } else {
-                    navigate(`/`);
-                }
+            const proj = globalID.projects.find((p) => p.id === projectId);
+            if (proj) {
+                navigate(`/${proj.name}/${routeSlug}`);
             } else {
-                // It's a Konecta mission
-                navigate(`/konecta/${missionSlug}`);
+                navigate('/');
             }
         }
     };
+
     const handleMouseLeave = () => {
         setTooltipContent(null);
         setTooltipPosition(null);
     };
 
     const closeModal = () => {
-        setSelectedMission(null);
         if (selectedProject === 'konecta') {
             navigate('/konecta');
         } else if (selectedProject) {
-            const project = globalID.projects.find((p) => p.id === selectedProject);
-            if (project) {
-                navigate(`/${project.name}`);
-            } else {
-                navigate('/');
-            }
+            navigate(`/${selectedProject}`);
         } else {
             navigate('/');
         }
     };
 
-    const missionsFromMap = Object.entries(globalID.missionsMap || {}).flatMap(([key, missionsArray]) =>
-        missionsArray.map(mission => ({ ...mission, key }))
-    );
-
-    useEffect(() => {
-        if (missionSlug) {
-            const missionIdMatch = missionSlug.match(/-(\d+)$/);
-            const missionIdStr = missionIdMatch ? missionIdMatch[1] : null;
-            const missionId = missionIdStr ? parseInt(missionIdStr, 10) : NaN;
-
-            if (isNaN(missionId)) {
-                console.warn('Invalid mission ID in URL:', missionSlug);
-                return;
-            }
-
-            let foundMission: any = null;
-            let isDefault = false;
-            let missionKey: string | undefined;
-
-            if ((selectedProject === 'konecta' || selectedProject === null) && globalID.missions?.length > 0) {
-                foundMission = globalID.missions.find((m) => Number(m.id) === missionId);
-                if (foundMission) {
-                    isDefault = false;
-                }
-            }
-            if (!foundMission && missionsFromMap?.length > 0) {
-                foundMission = missionsFromMap.find(
-                    (m) => Number(m.id) === missionId && (selectedProject === null || m.key === selectedProject)
-                );
-                if (foundMission) {
-                    isDefault = true;
-                    missionKey = foundMission.key;
-                }
-            }
-
-            if (foundMission) {
-                setSelectedMission({ mission: foundMission, isDefault, key: missionKey });
-            } else {
-                console.warn('Mission not found for ID:', missionId);
-            }
+    const handleProjectSelection = (projectId: string) => {
+        if (selectedProject === projectId) {
+            // Deselect the project and navigate to the home page
+            setSelectedProject(null);
+            navigate('/');
         } else {
-            setSelectedMission(null);
+            // Select the project and navigate to its route
+            setSelectedProject(projectId);
+            navigate(`/${projectId}`);
         }
-    }, [missionSlug, globalID.missions, missionsFromMap, selectedProject]);
+    };
+
+    const displayedMissions: Array<{ mission: AnyMission; projectId: string }> = useMemo(() => {
+        if (selectedProject === 'konecta') {
+            return globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
+        } else if (selectedProject) {
+            const projectObj = globalID.projects.find(
+                (p) => p.name.toLowerCase() === selectedProject.toLowerCase()
+            );
+            if (projectObj) {
+                return (globalID.missionsMap[projectObj.id] ?? []).map(m => ({ mission: m, projectId: projectObj.id }));
+            }
+            return [];
+        } else {
+            const allProjectMissions = Object.entries(globalID.missionsMap).flatMap(([projId, missions]) =>
+                missions.map(m => ({ mission: m, projectId: projId }))
+            );
+            const konectaMissions = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
+            return [...konectaMissions, ...allProjectMissions];
+        }
+    }, [selectedProject, globalID.missions, globalID.missionsMap, globalID.projects]);
 
     return (
         <>
-
             <div className={styles.ButtonBar}>
                 {/* Konecta */}
                 <button
                     className={selectedProject === 'konecta' ? styles.ButtonActiveMission : styles.ButtonMission}
-                    onClick={() => toggleProjectSelection('konecta')}
+                    onClick={() => handleProjectSelection('konecta')}
                 >
                     <img src={KonectaLogo} alt="Konecta logo" className={styles.MissionIconB} />
                     Konecta
                 </button>
                 {/* Projects */}
-                {globalID.projects.map((project) => (
-                    <button
-                        key={project.id}
-                        className={selectedProject === project.id ? styles.ButtonActiveMission : styles.ButtonMission}
-                        onClick={() => toggleProjectSelection(project.id)}
-                    >
-                        <img src={'https://' + BASE_URL + '.raw.icp0.io' + project.icon} className={styles.MissionIconB} />
-                        {project.name}
-                    </button>
-                ))}
+                {globalID.projects.map((proj) => {
+                    const isOisy = proj.name === "OISY";
+                    const isOisyWalletValid = globalID.oisyWallet instanceof Principal;
+                    return (
+                        <button
+                            key={proj.id}
+                            className={selectedProject === proj.name ? styles.ButtonActiveMission : styles.ButtonMission}
+                            onClick={() => {
+                                if (isOisy && !isOisyWalletValid) {
+                                    return;
+                                }
+                                handleProjectSelection(proj.name);
+                            }}
+                            disabled={isOisy && !isOisyWalletValid}
+                        >
+                            <img src={'https://' + BASE_URL + '.raw.icp0.io' + proj.icon} className={styles.MissionIconB} />
+                            {proj.name}
+                        </button>
+                    );
+                })}
             </div>
             <div className={styles.MissionGrid}>
 
                 {/* Missions Bar */}
 
                 {/* Konecta Missions */}
-                {(selectedProject === 'konecta' || selectedProject === null) && globalID.missions?.length > 0 && (
-                    globalID.missions
-                        .sort((a: any, b: any) => Number(a.id) - Number(b.id))
-                        .map((mission: any) => (
+                {displayedMissions.map(({ mission, projectId }) => {
+                    if (isKonectaMission(mission)) {
+
+                        // Renders a "Konecta" mission card
+                        return (
                             <Mission
-                                key={`konecta-${mission.id.toString()}`}
+                                key={`kon-${mission.id.toString()}`}
                                 mission={mission}
-                                handleCardClick={() => handleMissionClick(mission, false)} // isDefault is false
+                                handleCardClick={() => handleMissionClick(mission, 'konecta')}
                                 handleMouseMove={handleMouseMove}
                                 handleMouseLeave={handleMouseLeave}
                             />
-                        ))
-                )}
-                {/* Project Missions */}
-                {selectedProject !== 'konecta' && missionsFromMap?.length > 0 && (
-                    missionsFromMap
-                        .filter((mission: any) => selectedProject === null || mission.key === selectedProject)
-                        .sort((a: any, b: any) => Number(a.id) - Number(b.id))
-                        .map((mission: any) => (
+                        );
+                    } else {
+                        // Renders a "project" mission card
+                        return (
                             <MissionDefault
-                                key={`${mission.key}-${mission.id.toString()}`}
+                                key={`proj-${projectId}-${mission.id.toString()}`}
                                 mission={mission}
-                                canisterId={mission.key}
-                                handleCardClick={() => handleMissionClick(mission, true, mission.key)}
+                                canisterId={projectId}
+                                handleCardClick={() => handleMissionClick(mission, projectId)}
                                 handleMouseMove={handleMouseMove}
                                 handleMouseLeave={handleMouseLeave}
                             />
-                        ))
-                )}
+                        );
+                    }
+                })}
                 {/* Tooltip */}
                 {tooltipContent && tooltipPosition && (
                     <div className={styles.Tooltip} style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
@@ -197,16 +240,21 @@ const MissionGridComponent: React.FC<MissionGridProps> = ({ selectedProject, tog
                     </div>
                 )}
                 {/* Mission Modals */}
-                {selectedMission && selectedMission.mission?.id !== undefined && (
-                    selectedMission.isDefault ? (
-                        <MissionModalDefault
-                            selectedMissionId={BigInt(selectedMission.mission.id)}
-                            canisterId={selectedMission.key!}
+                {openMission && (
+                    isKonectaMission(openMission) ? (
+                        <MissionModal
+                            selectedMissionId={BigInt(openMission.id)}
                             closeModal={closeModal}
                         />
                     ) : (
-                        <MissionModal
-                            selectedMissionId={BigInt(selectedMission.mission.id)}
+                        // Otherwise it's a Project mission
+                        <MissionModalDefault
+                            selectedMissionId={BigInt(openMission.id)}
+                            canisterId={
+                                project && typeof project !== 'string'
+                                    ? project.id
+                                    : ''
+                            }
                             closeModal={closeModal}
                         />
                     )

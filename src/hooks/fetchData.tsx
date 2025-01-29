@@ -11,6 +11,10 @@ const useFetchData = () => {
         setMissions,
         setUserProgress,
         setUser,
+        setNfidToIIStatus,
+        setIIToNFIDStatus,
+        setLinkedAccount,
+        setOisyWallet,
         setTimerText,
         setPFPstatus,
         setTwitterHandle,
@@ -41,6 +45,7 @@ const useFetchData = () => {
         const projectMissionsPromises = actors.map(async (a, index) => {
             const projectMissions = await a.getAllMissions() as SerializedMissionDefault[];
             const projectId = targets[index];
+
             setMissionsForProject(projectId, projectMissions);
         });
 
@@ -71,10 +76,23 @@ const useFetchData = () => {
         setUserProgress(userProgress);
     }, [setUserProgress, setUserProgressForProject]);
 
+    const fetchUserOisy = useCallback(async (actor: ActorSubclass, ae: Principal) => {
+        const oisyWalletPromise = actor.getUserOisyWallet(ae) as Promise<Principal[] | []>;
+        const oisyWallet = await oisyWalletPromise;
+        if (oisyWallet != null) {
+            setOisyWallet(oisyWallet[0]);
+        }
+    }, [setOisyWallet]);
+
     // Fetch user details
     const fetchUser = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
 
         const userPromise = actor.getUser(ae) as Promise<SerializedUser[]>;
+        const oisyWalletPromise = actor.getUserOisyWallet(ae) as Promise<Principal[] | []>;
+
+        const linkedAccPromise = actor.getLinkedAccount(ae) as Promise<Principal | null>;
+        const nfidToIIPromise = actor.isLinkingNFIDtoII(ae) as Promise<[boolean, Principal | null]>;
+        const iiToNFIDPromise = actor.isLinkingIItoNFID(ae) as Promise<[boolean, Principal | null]>;
 
         const projectUserPromises = actors.map(async (a, index) => {
             const projectUser = await a.getUser(ae) as SerializedUserDefault[];
@@ -83,9 +101,22 @@ const useFetchData = () => {
         });
 
         const user = await userPromise;
+        const [nfidLinking, nfidtoIITarget] = await nfidToIIPromise;
+        setNfidToIIStatus([nfidLinking, nfidtoIITarget!]);
+        const [iiLinking, iitoNFIDTarget] = await iiToNFIDPromise;
+        setIIToNFIDStatus([iiLinking, iitoNFIDTarget!]);
+        const maybeLinked = await linkedAccPromise;
+        if (maybeLinked != null) {
+            setLinkedAccount(maybeLinked);
+        }
+
+        const oisyWallet = await oisyWalletPromise;
         await Promise.all(projectUserPromises);
 
         setUser(user);
+        if (oisyWallet != null) {
+            setOisyWallet(oisyWallet[0]);
+        }
         setPFPstatus(user[0]?.pfpProgress || '');
         setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
     }, [setUser, setPFPstatus, setTwitterHandle, setUserForProject]);
@@ -144,6 +175,7 @@ const useFetchData = () => {
         fetchMissions,
         fetchUserProgress,
         fetchUser,
+        fetchUserOisy,
         fetchUserSeconds,
         fetchUserPFPstatus,
         fetchUserStreak,

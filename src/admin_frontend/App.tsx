@@ -39,7 +39,6 @@ function App() {
   useEffect(() => {
 
     const fetchData = async () => {
-      console.log(identity?.getPrincipal())
       if (user?.principal && user?.principal !== Principal.fromText("2vxsx-fae") && identity !== undefined) {
         if (identity.getPrincipal().toText() !== "2vxsx-fae") {
           const agent = HttpAgent.createSync({ identity });
@@ -206,6 +205,60 @@ function App() {
     } catch (error) {
       console.error("An error occurred while fetching user progress:", error);
       alert("Failed to download progress data. Please try again later.");
+    }
+  };
+
+  const getAllUsersStreak = async () => {
+    try {
+      // Call your new canister function
+      const data: [Principal, Array<[number, bigint]>][] = await actor.getAllUsersStreak();
+      // data is [(Principal, [(Int, Nat)])] in Motoko,
+      // which in JS means Array<[Principal, Array<[number, bigint]>]>
+
+      // Convert Principals to .toText() and BigInts to strings before JSON.
+      // We'll do that with a replacer in JSON.stringify:
+      const jsonString: string = JSON.stringify(
+        data,
+        (key: string, value: any): any => {
+          if (typeof value === "bigint") {
+            return value.toString();
+          }
+          // If any part is an object that looks like a Principal, convert to text:
+          if (
+            value &&
+            typeof value === "object" &&
+            value._isPrincipal === true &&
+            typeof value.toText === "function"
+          ) {
+            return value.toText();
+          }
+          return value;
+        },
+        2
+      );
+
+      // Create a Blob from the JSON string
+      const blob: Blob = new Blob([jsonString], { type: "application/json" });
+
+      // Create a download URL for the Blob
+      const url: string = URL.createObjectURL(blob);
+
+      // Create a hidden anchor element and trigger the download
+      const link: HTMLAnchorElement = document.createElement("a");
+      link.href = url;
+      link.download = "usersStreak.json";
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      URL.revokeObjectURL(url);
+
+      console.log("Streak data downloaded successfully.");
+    } catch (error) {
+      console.error("Error retrieving all user streak data:", error);
+      alert("Failed to download streak data. Please try again later.");
     }
   };
 
@@ -519,6 +572,8 @@ function App() {
             <button onClick={getUsers}>Save All Users</button>
 
             <button onClick={getTodo}>Save All Progress</button>
+
+            <button onClick={getAllUsersStreak}>Get All Users Streak</button>
 
             {/* JSON File Upload */}
             <div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import './AnimatedToken.css'; // Import the CSS file
+import './AnimatedToken.css';
 
 const AnimatedToken: React.FC = () => {
   return (
@@ -65,7 +65,6 @@ const AnimatedToken: React.FC = () => {
             height="740"
             style={{ fill: 'none', stroke: 'none' }}
           />
-          {/* Rest of the SVG definition remains the same */}
         </svg>
       </div>
     </div>

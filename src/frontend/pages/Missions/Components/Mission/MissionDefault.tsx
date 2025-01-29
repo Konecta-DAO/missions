@@ -5,11 +5,10 @@ import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } 
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { SerializedMission } from '../../../../../declarations/nfid/nfid.did.ts';
-import { SerializedMissionRecord } from '../../../../../declarations/dfinity_backend/dfinity_backend.did.js';
 
 interface MissionProps {
     mission: SerializedMission;
-    handleCardClick: (id: string) => void;
+    handleCardClick: () => void;
     handleMouseMove: (e: React.MouseEvent, content: string | null) => void;
     handleMouseLeave: () => void;
     canisterId: string;
@@ -20,6 +19,13 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     const location = useLocation();
     const globalID = useGlobalID();
     const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
+
+    const oisyProject = globalID.projects.find(
+        (proj) => proj.name === 'OISY'
+    );
+    const isOisyProject = oisyProject && oisyProject.id === canisterId;
+
+    const isOisyWalletValid = !!globalID.oisyWallet;
 
     // State to track remaining time in seconds
     const [remainingTime, setRemainingTime] = useState<number | null>(null);
@@ -36,12 +42,20 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     const { requiredMissionCompleted, requiredMissionTitle } =
         checkRequiredMissionCompletionDefault(globalID, canisterId, mission);
 
+    const isMissionLocked =
+        !requiredMissionCompleted ||
+        (isOisyProject && !isOisyWalletValid);
+
     // Determine mission availability and tooltip text
     const isAvailableMission = !missionCompleted && requiredMissionCompleted;
-    const displayTooltip = !requiredMissionCompleted && !missionCompleted;
-    const tooltipText = displayTooltip
-        ? `You Must Complete the "${requiredMissionTitle}" Mission before being able to complete this one`
-        : null;
+
+    let tooltipText: string | null = null;
+
+    if (!requiredMissionCompleted && !missionCompleted) {
+        tooltipText = `You Must Complete the "${requiredMissionTitle}" Mission before being able to complete this one.`;
+    } else if (isOisyProject && !isOisyWalletValid) {
+        tooltipText = 'You need to connect an Oisy Wallet to do this Mission!';
+    }
 
     // Determine if the mission is recursive and completed
     const isRecursiveCompleted = mission.recursive && missionCompleted;
@@ -77,7 +91,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     useEffect(() => {
         if (location.pathname === `/Missions/${mission.id}` && (missionCompleted || isAvailableMission)) {
             // Prevent calling handleCardClick if already on the desired path
-            handleCardClick(mission.id.toString());
+            handleCardClick();
         }
     }, [location.pathname]);
 
@@ -125,7 +139,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             }}
             onClick={() => {
                 if (missionCompleted || isAvailableMission) {
-                    handleCardClick(mission?.id?.toString());
+                    handleCardClick();
                 }
             }}
             onMouseMove={(e) => handleMouseMove(e, tooltipText)}
@@ -212,7 +226,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             )}
 
             {/* Lock for Locked Missions */}
-            {!missionCompleted && !requiredMissionCompleted && (
+            {!missionCompleted && isMissionLocked && (
                 <svg
                     className={styles.SmallWhiteCircle}
                     viewBox="0 0 100 100"

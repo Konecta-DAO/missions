@@ -36,6 +36,7 @@ type ModalState = {
     isKonectaModalOpen: boolean;
     isInfoModalOpen: boolean;
     isOpenChatModalOpen: boolean;
+    isProfileModalOpen: boolean;
 };
 
 const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
@@ -458,6 +459,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                 fill="transparent"
                                 style={{ pointerEvents: 'all', cursor: 'pointer' }}
                                 strokeWidth={0}
+                                onClick={() => toggleModal('isProfileModalOpen')}
                             />
                         </g>
                         <g id="QuestionArea">

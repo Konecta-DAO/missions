@@ -27,6 +27,7 @@ import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
 import { SerializedProjectMissions } from '../../../declarations/index/index.did.js';
+import ProfileModal from '../Missions/Components/ProfileModal/ProfileModal.tsx';
 
 // const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
@@ -34,7 +35,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
-  const { identity, user, disconnect } = useIdentityKit();
+  const { identity, user, disconnect, signer } = useIdentityKit();
   const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
   const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
   const globalID = useGlobalID();
@@ -42,7 +43,6 @@ const Home: React.FC = () => {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isnfiding, setIsnfiding] = useState(false);
   const [userId, setUserId] = useState('');
-
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {

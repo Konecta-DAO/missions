@@ -9,10 +9,32 @@ import Vector "mo:vector";
 import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
+import TrieMap "mo:base/TrieMap";
 
 actor class Backend() {
 
   stable var projects : Vector.Vector<Types.ProjectMissions> = Vector.new<Types.ProjectMissions>();
+
+  private var accountLinks : TrieMap.TrieMap<Principal, (Principal, Bool)> = TrieMap.TrieMap<Principal, (Principal, Bool)>(Principal.equal, Principal.hash); // true = NFID to II, false = II to NFID
+
+  stable var serializedAccountLinks : [(Principal, (Principal, Bool))] = [];
+
+  public shared (msg) func syncAccountLinks(serializedLinks : [(Principal, (Principal, Bool))]) : async () {
+    if (isBackendAdmin(msg.caller)) {
+      // Reinitialize accountLinks with the proper key equality and hash functions.
+      accountLinks := TrieMap.TrieMap<Principal, (Principal, Bool)>(Principal.equal, Principal.hash);
+
+      // Iterate over the serialized list and populate the accountLinks TrieMap.
+      for ((principal, value) in Iter.fromArray(serializedLinks)) {
+        accountLinks.put(principal, value);
+      };
+    };
+  };
+
+  public query func getAccountLinks() : async [(Principal, (Principal, Bool))] {
+    let accountLinksEntries = accountLinks.entries();
+    return Iter.toArray(accountLinksEntries);
+  };
 
   public shared query (msg) func getAllProjectMissions() : async [Types.SerializedProjectMissions] {
     if (isAdmin(msg.caller)) {
@@ -124,6 +146,12 @@ actor class Backend() {
     ) != null;
   };
 
+  private func isBackendAdmin(principalId : Principal) : Bool {
+    if (principalId == Principal.fromText("onpqf-diaaa-aaaag-qkeda-cai") or principalId == Principal.fromText("ynkdv-7qaaa-aaaag-qkluq-cai")) {
+      return true;
+    };
+    return false;
+  };
   public shared func trisAdmin(principalId : Principal) : async Bool {
     return Array.find<Principal>(
       adminIds,
@@ -146,11 +174,22 @@ actor class Backend() {
 
   system func preupgrade() {
 
+    let accountLinksEntries = accountLinks.entries();
+    serializedAccountLinks := Iter.toArray(accountLinksEntries);
+
   };
 
   // Post-upgrade function
 
   system func postupgrade() {
+
+    accountLinks := TrieMap.TrieMap<Principal, (Principal, Bool)>(Principal.equal, Principal.hash);
+
+    for ((principal, pairValue) in Iter.fromArray(serializedAccountLinks)) {
+      accountLinks.put(principal, pairValue);
+    };
+
+    serializedAccountLinks := [];
 
   };
 

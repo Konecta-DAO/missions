@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import styles from './HistoryModal.module.scss';
 import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
 import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.webp';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
-import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { SerializedMission, SerializedMissionRecord, SerializedProgress, SerializedUserStreak } from '../../../../../declarations/backend/backend.did.js';
 
 interface HistoryModalProps {
@@ -27,7 +27,13 @@ interface StreakEntry extends AllEntryBase {
     type: 'streak';
 }
 
-type AllEntry = MissionEntry | StreakEntry;
+interface MapEntry extends AllEntryBase {
+    type: 'map';
+    canisterID: string;
+}
+
+
+type AllEntry = MissionEntry | StreakEntry | MapEntry;
 const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
     const globalID = useGlobalID();
     const [isClosing, setIsClosing] = useState(false);
@@ -41,9 +47,18 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
 
     const constructTweetUrl = (tweetId: string) => `https://twitter.com/i/web/status/${tweetId}`;
 
+    const projectsMap = useMemo(() => {
+        const map = new Map<string, ProjectData>();
+        globalID.projects.forEach(project => {
+            map.set(project.id, project);
+        });
+        return map;
+    }, [globalID.projects]);
+
     const renderProgress = () => {
         const userProgress = globalID.userProgress;
         const totalUserStreak = globalID.totalUserStreak;
+        const userProgressMap = globalID.userProgressMap;
 
         const allEntries: AllEntry[] = [];
 
@@ -88,6 +103,57 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                 });
             });
         }
+
+        function isProgressElementTuple(element: any): element is [bigint, SerializedProgress] {
+            return Array.isArray(element) && element.length === 2 && typeof element[0] === 'bigint';
+        }
+
+        function isProgressElementNested(element: any): element is [[bigint, SerializedProgress]] {
+            return Array.isArray(element) && element.length === 1 && Array.isArray(element[0]) && element[0].length === 2 && typeof element[0][0] === 'bigint';
+        }
+
+
+        // Process userProgressMap
+        if (userProgressMap) {
+            Object.entries(userProgressMap).forEach(([key, progressArray]) => {
+                if (progressArray && Array.isArray(progressArray)) {
+                    progressArray.forEach((progressElement, progressIndex) => {
+
+                        let timestamp: bigint;
+                        let progress: SerializedProgress;
+
+                        if (isProgressElementTuple(progressElement)) {
+                            // Case 1: Direct tuple
+                            [timestamp, progress] = progressElement;
+                        }
+                        else if (isProgressElementNested(progressElement)) {
+                            // Case 2: Nested tuple
+                            [timestamp, progress] = progressElement[0] as [bigint, SerializedProgress];
+                        }
+                        else {
+                            console.warn(`Unexpected structure for progressElement at key "${key}", progressIndex ${progressIndex}:`, progressElement);
+                            return; // Skip this element
+                        }
+
+                        if (progress && Array.isArray(progress.completionHistory)) {
+                            progress.completionHistory.forEach((record: SerializedMissionRecord) => {
+                                allEntries.push({
+                                    type: 'map',
+                                    timestamp: record.timestamp,
+                                    pointsEarned: record.pointsEarned,
+                                    canisterID: key, // Associate with canisterID
+                                });
+                            });
+                        } else {
+                            console.warn(`Missing or invalid completionHistory in userProgressMap for key "${key}", progressIndex ${progressIndex}.`, progress);
+                        }
+                    });
+                } else {
+                    console.warn(`Invalid progressArray for key "${key}":`, progressArray);
+                }
+            });
+        }
+
 
         // Sort the flat array by timestamp (most recent first)
         allEntries.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
@@ -150,8 +216,37 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                 </div>
                             </div>
                         );
+                    } else if (entry.type === 'map') {
+                        const { timestamp, pointsEarned, canisterID } = entry as MapEntry;
+
+                        // Retrieve the mission title from missionsMap using canisterID
+                        const missions = globalID.missionsMap[canisterID];
+                        const missionTitle = missions && missions.length > 0 ? missions[0].title : 'Unknown Mission';
+
+                        // Retrieve the project name from projectsMap using canisterID
+                        const project = projectsMap.get(canisterID);
+                        const projectName = project ? project.name : 'Unknown Project';
+
+                        return (
+                            <div key={`map-${timestamp}-${index}`} className={styles.ProgressEntry}>
+                                <div className={styles.EntryContent}>
+                                    <h3>{formatDate(timestamp)}</h3>
+                                    <p>Completed the Mission: {missionTitle} ({projectName})</p>
+                                </div>
+                                <div
+                                    className={styles.RightSection}
+                                    style={{
+                                        background: `linear-gradient(135deg, #4CAF50, #81C784)`,
+                                    }}
+                                >
+                                    <div className={styles.PointsEarned}>
+                                        +{pointsEarned.toString()} points
+                                    </div>
+                                </div>
+                            </div>
+                        );
                     } else {
-                        return null; // Handle unexpected entry types
+                        return null;
                     }
                 })}
             </>

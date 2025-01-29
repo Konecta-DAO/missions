@@ -32,6 +32,29 @@ actor class Backend() {
 
   stable var serializedUserStreak : [(Principal, Types.SerializedUserStreak)] = [];
 
+  private var oisyWallet : TrieMap.TrieMap<Principal, Principal> = TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
+
+  stable var serializedOisyWallet : [(Principal, Principal)] = [];
+
+  private var accountLinks : TrieMap.TrieMap<Principal, (Principal, Bool)> = TrieMap.TrieMap<Principal, (Principal, Bool)>(Principal.equal, Principal.hash);
+
+  //      - `Bool = true`  => The main principal is an NFID user
+  //                                   linked to an II principal.
+  //      - `Bool = false` => The main principal is an II user
+  //                                   linked to an NFID principal.
+
+  stable var serializedAccountLinks : [(Principal, (Principal, Bool))] = [];
+
+  stable var nfidToII : [(Principal, Principal)] = [];
+
+  //   `nfidToII` holds pairs (NFIDuser, IIuser),
+  //   meaning an NFID user is trying to link to an II user.
+
+  stable var iiToNFID : [(Principal, Principal)] = [];
+
+  //   `iiToNFID` holds pairs (IIuser, NFIDuser),
+  //   meaning an II user is trying to link to an NFID user.
+
   //
 
   // Upgrade And Restore Functions
@@ -52,14 +75,56 @@ actor class Backend() {
 
   stable var serializedNuanceUsers : [(Principal, Text)] = [];
 
+  public func resetAccountLinks() : async () {
+    nfidToII := [];
+    iiToNFID := [];
+    accountLinks := TrieMap.TrieMap<Principal, (Principal, Bool)>(Principal.equal, Principal.hash);
+  };
+
+  public func getAllAccountLinks() : async ([(Principal, Principal)]) {
+    return Array.append(nfidToII, iiToNFID);
+  };
+
+  private func linkAccountsToIndex() : async () {
+
+    let indexCanister = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      syncAccountLinks : ([(Principal, (Principal, Bool))]) -> async ();
+    };
+
+    let accountLinksEntries = accountLinks.entries();
+    serializedAccountLinks := Iter.toArray(accountLinksEntries);
+
+    await indexCanister.syncAccountLinks(serializedAccountLinks);
+  };
+
   public query (msg) func hasAcceptedTerms(userId : Principal) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      switch (terms.get(userId)) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      switch (terms.get(user)) {
         case (?value) {
           if (value == true) {
             return true;
           } else {
-            return false;
+            switch (terms.get(userId)) {
+              case (?value) {
+                if (value == true) {
+                  return true;
+                } else {
+                  return false;
+                };
+              };
+              case null return false;
+            };
           };
         };
         case null return false;
@@ -71,8 +136,233 @@ actor class Backend() {
 
   public shared (msg) func acceptTerms(userId : Principal) : async () {
     if (userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       terms.put(userId, true);
+      terms.put(user, true);
     };
+  };
+
+  public shared (msg) func linkAsNFIDToII(nfidUser : Principal, iiUser : Principal) : async Text {
+    // Basic authorization check: must be called by nfidUser
+    if (nfidUser != msg.caller or Principal.isAnonymous(msg.caller)) {
+      return "Unauthorized";
+    };
+
+    // Check if user is already in the process of linking an II
+    let (isLinking, maybeII) = await isLinkingNFIDtoII(nfidUser);
+    if (isLinking) {
+      switch (maybeII) {
+        case (?existingII) return "Already linking to II: " # Principal.toText(existingII);
+        case null return "Already linking to an II (none specified).";
+      };
+    };
+
+    // Record the pending link
+    nfidToII := Array.append(nfidToII, [(nfidUser, iiUser)]);
+
+    // Check for reciprocal record in iiToNFID
+    let exists = Array.find<(Principal, Principal)>(
+      iiToNFID,
+      func(pair) : Bool {
+        let (iiCandidate, nfidCandidate) = pair;
+        iiCandidate == iiUser and nfidCandidate == nfidUser;
+      },
+    );
+
+    if (exists != null) {
+      // Both sides have attempted to link => finalize in `accountLinks`
+      // `true` means “main principal is NFID linking an II”
+      accountLinks.put(nfidUser, (iiUser, true));
+
+      // If you have extra logic to share wallets, etc:
+      let hasOisy = oisyWallet.get(nfidUser);
+      switch (hasOisy) {
+        case (?walletId) {
+          if (oisyWallet.get(iiUser) != ?walletId) {
+            oisyWallet.put(iiUser, walletId);
+          };
+        };
+        case null {};
+      };
+
+      await linkAccountsToIndex();
+      return "Success";
+    };
+
+    // Otherwise, still waiting for the other side to call link
+    return "First link successful, pending reciprocal link";
+  };
+
+  public shared (msg) func linkAsIIToNFID(iiUser : Principal, nfidUser : Principal) : async Text {
+    // Basic authorization check: must be called by iiUser
+    if (iiUser != msg.caller or Principal.isAnonymous(msg.caller)) {
+      return "Unauthorized";
+    };
+
+    // Check if user is already in the process of linking an NFID
+    let (isLinking, maybeNFID) = await isLinkingIItoNFID(iiUser);
+    if (isLinking) {
+      switch (maybeNFID) {
+        case (?existingNFID) return "Already linking to NFID: " # Principal.toText(existingNFID);
+        case null return "Already linking to an NFID (none specified).";
+      };
+    };
+
+    // Record the pending link
+    iiToNFID := Array.append(iiToNFID, [(iiUser, nfidUser)]);
+
+    // Check for reciprocal record in nfidToII
+    let exists = Array.find<(Principal, Principal)>(
+      nfidToII,
+      func(pair) : Bool {
+        let (nfidCandidate, iiCandidate) = pair;
+        nfidCandidate == nfidUser and iiCandidate == iiUser;
+      },
+    );
+
+    if (exists != null) {
+      // Both sides have attempted to link => finalize in `accountLinks`
+      // `false` means “main principal is II linking an NFID”
+      accountLinks.put(iiUser, (nfidUser, false));
+
+      // If you have extra logic to share wallets, etc:
+      let hasOisy = oisyWallet.get(iiUser);
+      switch (hasOisy) {
+        case (?walletId) {
+          if (oisyWallet.get(nfidUser) != ?walletId) {
+            oisyWallet.put(nfidUser, walletId);
+          };
+        };
+        case null {};
+      };
+
+      await linkAccountsToIndex();
+      return "Success";
+    };
+
+    // Otherwise, still waiting for the other side to call link
+    return "First link successful, pending reciprocal link";
+  };
+
+  public shared query (msg) func isLinkingNFIDtoII(nfidUser : Principal) : async (Bool, ?Principal) {
+    if (isAdmin(msg.caller) or nfidUser == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      let exists = Array.find<(Principal, Principal)>(
+        nfidToII,
+        func(pair) : Bool {
+          let (candidateNFID, _candidateII) = pair;
+          candidateNFID == nfidUser;
+        },
+      );
+      if (exists != null) {
+        let ?(_, secondPrincipal) = exists;
+        return (true, ?secondPrincipal);
+      };
+    };
+    return (false, null);
+  };
+
+  public shared query (msg) func isLinkingIItoNFID(iiUser : Principal) : async (Bool, ?Principal) {
+    if (isAdmin(msg.caller) or iiUser == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      let exists = Array.find<(Principal, Principal)>(
+        iiToNFID,
+        func(pair) : Bool {
+          let (candidateII, _candidateNFID) = pair;
+          candidateII == iiUser;
+        },
+      );
+      if (exists != null) {
+        let ?(_, secondPrincipal) = exists;
+        return (true, ?secondPrincipal);
+      };
+    };
+    return (false, null);
+  };
+
+  public shared query (msg) func getLinkedAccount(userId : Principal) : async ?Principal {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      switch (accountLinks.get(userId)) {
+        case (?pair) {
+          let (linkedAcc, _) = pair;
+          return ?linkedAcc;
+        };
+        case null return null;
+      };
+    };
+    return null;
+  };
+
+  public shared (msg) func addOisyWallet(userId : Principal, walletId : Principal) : async Text {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      // Retrieve existing wallet entries for both accounts
+      let walletForUser = oisyWallet.get(user);
+      let walletForUserId = oisyWallet.get(userId);
+
+      // Check if both already have the wallet
+      if (walletForUser == ?walletId and walletForUserId == ?walletId) {
+        return "User already has a wallet";
+      };
+
+      // If the derived user doesn't have the wallet, assign it
+      if (walletForUser != ?walletId) {
+        oisyWallet.put(user, walletId);
+      };
+
+      // If the original userId doesn't have the wallet, assign it
+      if (walletForUserId != ?walletId) {
+        oisyWallet.put(userId, walletId);
+      };
+
+      return "Success";
+    };
+
+    return "Unauthorized";
+  };
+
+  public shared query (msg) func getUserOisyWallet(userId : Principal) : async ?Principal {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      switch (oisyWallet.get(user)) {
+        case (?value) return ?value;
+        case null {
+          switch (oisyWallet.get(userId)) {
+            case (?value) return ?value;
+            case null {};
+          };
+        };
+      };
+    };
+    return null;
   };
 
   public shared (msg) func updatedTerms() : async () {
@@ -85,9 +375,7 @@ actor class Backend() {
 
   // Restore Function
 
-  public shared (msg) func restoreAllUserProgress(
-    serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]
-  ) : async () {
+  public shared (msg) func restoreAllUserProgress(serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]) : async () {
     if (isAdmin(msg.caller)) {
       // Iterate over each user data tuple
       for (tuple in Iter.fromArray(serializedData)) {
@@ -190,6 +478,12 @@ actor class Backend() {
 
     let streakEntries = streak.entries();
     serializedstreak := Iter.toArray(streakEntries);
+
+    let oisyEntries = oisyWallet.entries();
+    serializedOisyWallet := Iter.toArray(oisyEntries);
+
+    let accountLinksEntries = accountLinks.entries();
+    serializedAccountLinks := Iter.toArray(accountLinksEntries);
 
     let serializedUserStreakVec = Vector.new<(Principal, Types.SerializedUserStreak)>();
 
@@ -308,6 +602,22 @@ actor class Backend() {
 
     serializedstreak := [];
 
+    oisyWallet := TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
+
+    for ((principal, principalValue) in Iter.fromArray(serializedOisyWallet)) {
+      oisyWallet.put(principal, principalValue);
+    };
+
+    serializedOisyWallet := [];
+
+    accountLinks := TrieMap.TrieMap<Principal, (Principal, Bool)>(Principal.equal, Principal.hash);
+
+    for ((principal, pairValue) in Iter.fromArray(serializedAccountLinks)) {
+      accountLinks.put(principal, pairValue);
+    };
+
+    serializedAccountLinks := [];
+
     userStreak := TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
 
     for (tuple in Iter.fromArray(serializedUserStreak)) {
@@ -353,9 +663,40 @@ actor class Backend() {
 
   public shared query (msg) func getUserStreakAmount(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      switch (streak.get(userId)) {
-        case (?value) return value;
-        case null return 0;
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      // Initialize variables to hold streak values for both principals
+      var streakValueUser : Nat = 0;
+      var streakValueUserId : Nat = 0;
+
+      // Fetch streak for the resolved `user`
+      switch (streak.get(user)) {
+        case (?value) { streakValueUser := value };
+        case null {};
+      };
+
+      // If `user` and `userId` are different, check streak for the original `userId`
+      if (user != userId) {
+        switch (streak.get(userId)) {
+          case (?value) { streakValueUserId := value };
+          case null {};
+        };
+      };
+
+      // Return the higher of the two values
+      if (streakValueUser >= streakValueUserId) {
+        return streakValueUser;
+      } else {
+        return streakValueUserId;
       };
     };
     return 0;
@@ -363,50 +704,174 @@ actor class Backend() {
 
   public shared query (msg) func getUserStreakPercentage(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      switch (streakPercentage.get(userId)) {
-        case (?value) return value;
-        case null return 0;
+
+      // Determine the effective user by checking account links.
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (not isNFID) {
+          user := linkedAcc;
+        };
       };
+
+      // Lookup streak percentage for the effective user.
+      let userValue : Nat = switch (streakPercentage.get(user)) {
+        case (?value) value;
+        case null 0;
+      };
+
+      // If the effective user is the same as the original, return its value.
+      if (user == userId) {
+        return userValue;
+      };
+
+      // Otherwise, also lookup streak percentage for the original userId.
+      let userIdValue : Nat = switch (streakPercentage.get(userId)) {
+        case (?value) value;
+        case null 0;
+      };
+
+      // Return the higher of the two values.
+      return if (userValue > userIdValue) { userValue } else { userIdValue };
     };
     return 0;
   };
 
   public shared query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      let entriesUS = userStreak.entries();
-      for (entryUS in entriesUS) {
-        let principal = entryUS.0;
-        let totalStreak = entryUS.1;
-        if (principal == userId) {
-          let serializedStreakEntries = Vector.new<(Int, Nat)>();
-          let streakEntries = totalStreak.entries();
-          for (streakEntry in streakEntries) {
-            let (streakId, streakValue) = streakEntry;
 
-            // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
-            Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
+      var user = userId;
+      let temp = accountLinks.get(userId);
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (not isNFID) {
+          user := linkedAcc;
+        };
+      };
+
+      // This will hold the most recent (timestamp, streak) found so far.
+      var mostRecent : ?(Int, Nat) = null;
+      let entriesUS = userStreak.entries();
+
+      // Check both resolved `user` and original `userId`
+      let principalsToCheck = if (user == userId) { [user] } else {
+        [user, userId];
+      };
+
+      for (principal in Iter.fromArray(principalsToCheck)) {
+        for (entryUS in entriesUS) {
+          if (entryUS.0 == principal) {
+            let totalStreak = entryUS.1;
+            for ((timestamp, streakValue) in totalStreak.entries()) {
+              // If this entry is more recent than the current most recent, update it
+              switch (mostRecent) {
+                case null { mostRecent := ?(timestamp, streakValue) };
+                case (?(currentTimestamp, _)) {
+                  if (timestamp > currentTimestamp) {
+                    mostRecent := ?(timestamp, streakValue);
+                  };
+                };
+              };
+            };
           };
-          return Vector.toArray(serializedStreakEntries);
+        };
+      };
+
+      // If a most recent entry was found, return it inside a vector; otherwise, return empty
+      switch (mostRecent) {
+        case null {
+          return [];
+        };
+        case (?recentEntry) {
+          return [recentEntry];
         };
       };
     };
-    let default = Vector.new<(Int, Nat)>();
-    return Vector.toArray(default);
+
+    return [];
+  };
+
+  public shared query (msg) func getAllUsersStreak() : async [(Principal, [(Int, Nat)])] {
+    // Only admin can fetch all streaks:
+    if (isAdmin(msg.caller)) {
+      let entries = userStreak.entries();
+      var result : [(Principal, [(Int, Nat)])] = [];
+
+      // For each user in userStreak:
+      for (entry in entries) {
+        let principal = entry.0;
+        let userStreakMap = entry.1;
+
+        // Convert sub-entries (timestamp -> streakValue) to an array of (Int, Nat)
+        let subEntries = userStreakMap.entries();
+        var subResult : [(Int, Nat)] = [];
+
+        for (subEntry in subEntries) {
+          let timestamp = subEntry.0;
+          let streakValue = subEntry.1;
+          // Append to subResult
+          subResult := Array.append(subResult, [(timestamp, streakValue)]);
+        };
+
+        // Append this user's (Principal, arrayOfStreaks) to result
+        result := Array.append(result, [(principal, subResult)]);
+      };
+
+      return result;
+    };
+
+    // If not admin, return empty list
+    return [];
   };
 
   public shared query (msg) func getUserStreakTime(userId : Principal) : async Int {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      var hasStarted = false;
 
-      var lastTimestamp : Int = 0;
+      // Resolve linked account if applicable
+      var user = userId;
+      let temp = accountLinks.get(userId);
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      // Initialize separate tracking variables for both accounts
+      var hasStartedUser = false;
+      var hasStartedUserId = false;
+      var lastTimestampUser : Int = 0;
+      var lastTimestampUserId : Int = 0;
+
       let mainEntries = streak.entries();
 
       for (mainEntry in mainEntries) {
-        // Iter if user did start Streak
         let mainUserId = mainEntry.0;
+
+        // Check for the linked account "user"
+        if (user == mainUserId) {
+          hasStartedUser := true;
+          let entries = userStreak.entries();
+          for (entry in entries) {
+            let theUserId = entry.0;
+            let theUserStreak = entry.1;
+            if (theUserId == user) {
+              let subEntries = theUserStreak.entries();
+              for (subEntry in subEntries) {
+                let timestampU = subEntry.0;
+                if (timestampU > lastTimestampUser) {
+                  lastTimestampUser := timestampU;
+                };
+              };
+            };
+          };
+        };
+
+        // Check for the original "userId"
         if (userId == mainUserId) {
-          // The user did start
-          hasStarted := true;
+          hasStartedUserId := true;
           let entries = userStreak.entries();
           for (entry in entries) {
             let theUserId = entry.0;
@@ -415,131 +880,381 @@ actor class Backend() {
               let subEntries = theUserStreak.entries();
               for (subEntry in subEntries) {
                 let timestampU = subEntry.0;
-                if (timestampU > lastTimestamp) {
-                  lastTimestamp := timestampU;
+                if (timestampU > lastTimestampUserId) {
+                  lastTimestampUserId := timestampU;
                 };
               };
             };
-
           };
         };
       };
 
-      if (not hasStarted) {
-        // The user is starting first time
+      // If neither account has started a streak, return 0.
+      if (not hasStartedUser and not hasStartedUserId) {
         return 0;
+      } else if (lastTimestampUser >= lastTimestampUserId) {
+        return lastTimestampUser;
       } else {
-        return lastTimestamp;
+        return lastTimestampUserId;
       };
     };
+
     return 0;
   };
 
   public shared (msg) func claimStreak(userId : Principal) : async (Text, Nat) {
-
+    // Only allow if admin or (caller == userId and caller not anonymous)
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-
       let currentTime = Time.now();
-      var hasStarted = false;
 
-      var lastTimestamp : Int = 0;
+      // STEP 1: Resolve "linked" accounts for both userId (user1) and msg.caller (user2)
+      var user1 = userId;
+      let temp1 = accountLinks.get(user1);
+      if (temp1 != null) {
+        let ?(linkedAcc1, isNFID1) = temp1;
+        if (isNFID1 == false) {
+          user1 := linkedAcc1;
+        };
+      };
 
-      let mainEntries = streak.entries();
+      var user2 = msg.caller;
+      let temp2 = accountLinks.get(user2);
+      if (temp2 != null) {
+        let ?(linkedAcc2, isNFID2) = temp2;
+        if (isNFID2 == false) {
+          user2 := linkedAcc2;
+        };
+      };
 
-      for (mainEntry in mainEntries) {
-        // Iter if user did start Streak
-        let mainUserId = mainEntry.0;
-        let mainStreak = mainEntry.1;
-        if (userId == mainUserId) {
-          // The user did start
-          hasStarted := true;
-          let entries = userStreak.entries();
+      // If both principals end up the same, we effectively only need to handle one.
+      // But let's keep logic for both, in case user1 == user2 by coincidence.
 
-          for (entry in entries) {
-            let theUserId = entry.0;
-            let theUserStreak = entry.1;
+      // STEP 2: Gather existing streak info for user1
+      var hasStarted1 = false;
+      var mainStreak1 : Nat = 0;
+      var lastTimestamp1 : Int = 0;
+      var chanceOfFail1 = false;
+      var streakPercentage1 : Nat = 80; // default if not in the map
 
-            if (theUserId == userId) {
-              let subEntries = theUserStreak.entries();
-
-              for (subEntry in subEntries) {
-                let timestampU = subEntry.0;
-
-                if (timestampU > lastTimestamp) {
-                  lastTimestamp := timestampU;
-                };
-              };
-
-              if ((lastTimestamp + streakTimeNanos) > currentTime) {
-                return ("You can't claim your streak yet.", 0);
-              } else if ((lastTimestamp + streakTimeNanos) <= currentTime and currentTime < (lastTimestamp + (streakTimeNanos * 2))) {
-                // User can claim their streak normally
-                streak.put(userId, mainStreak + 1);
-                let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
-                newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
-                userStreak.put(userId, newStreak);
-                return ("You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1))));
-              } else if ((lastTimestamp + (streakTimeNanos * 2)) <= currentTime and currentTime < (lastTimestamp + (streakTimeNanos * 3))) {
-                let decisiveEntries = streakPercentage.entries();
-                for (decisiveEntry in decisiveEntries) {
-                  let decisiveUser = decisiveEntry.0;
-                  let percentage = decisiveEntry.1;
-
-                  if (decisiveUser == userId) {
-                    let seed : Blob = await Random.blob();
-                    let randomNumber = Nat8.toNat(Random.byteFrom(seed) % 100);
-
-                    if (randomNumber < percentage) {
-                      // Success: continue streak
-                      streak.put(userId, (mainStreak + 1));
-                      streakPercentage.put(userId, Nat.max(percentage - 25, 1));
-                      let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                      let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
-                      newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
-                      userStreak.put(userId, newStreak);
-                      return ("Your streak is ALIVE! Try to not miss it again. You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1)))); // Saved
-                    } else {
-                      // Failure: reset streak
-                      streak.put(userId, 1);
-                      streakPercentage.put(userId, 80);
-                      let firstStreakAgain : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                      firstStreakAgain.put(currentTime, 300);
-                      userStreak.put(userId, firstStreakAgain);
-                      return ("Too bad, your past streak died. Starting again with 5 minutes...", 300); // Died
-                    };
-                  };
-                };
-              } else if (currentTime >= (lastTimestamp + (streakTimeNanos * 3))) {
-                // Reset streak after third window
-                streak.put(userId, 1);
-                streakPercentage.put(userId, 80);
-                let newStreakMap : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                newStreakMap.put(currentTime, 300);
-                userStreak.put(userId, newStreakMap);
-                return ("You have lost your past streak. Starting again with 5 minutes...", 300);
-              } else {
-                return ("You can't claim your streak yet.", 0);
+      // We'll also keep the userStreak map for user1 so we can update it
+      var userStreakMap1 : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+      do {
+        let mainEntries1 = streak.entries();
+        for (me in mainEntries1) {
+          if (me.0 == user1) {
+            hasStarted1 := true;
+            mainStreak1 := me.1;
+          };
+        };
+        let entries1 = userStreak.entries();
+        for (e in entries1) {
+          if (e.0 == user1) {
+            userStreakMap1 := e.1;
+            let subEntries1 = e.1.entries();
+            for (se1 in subEntries1) {
+              let timestampU1 = se1.0;
+              if (timestampU1 > lastTimestamp1) {
+                lastTimestamp1 := timestampU1;
               };
             };
           };
         };
+        let decisiveEntries1 = streakPercentage.entries();
+        for (de1 in decisiveEntries1) {
+          if (de1.0 == user1) {
+            chanceOfFail1 := true;
+            streakPercentage1 := de1.1;
+          };
+        };
       };
 
-      if (not hasStarted) {
-        // The user is starting first time
+      // STEP 3: Gather existing streak info for user2
+      var hasStarted2 = false;
+      var mainStreak2 : Nat = 0;
+      var lastTimestamp2 : Int = 0;
+      var chanceOfFail2 = false;
+      var streakPercentage2 : Nat = 80; // default if not in the map
 
-        streak.put(userId, 1); // 1 Time Streak
-        streakPercentage.put(userId, 80); // 80% Success if missed 1 day
-        let firstStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
-        firstStreak.put(currentTime, 300); // 5 minutes first streak
-        userStreak.put(userId, firstStreak);
+      var userStreakMap2 : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+      do {
+        let mainEntries2 = streak.entries();
+        for (me2 in mainEntries2) {
+          if (me2.0 == user2) {
+            hasStarted2 := true;
+            mainStreak2 := me2.1;
+          };
+        };
+        let entries2 = userStreak.entries();
+        for (e2 in entries2) {
+          if (e2.0 == user2) {
+            userStreakMap2 := e2.1;
+            let subEntries2 = e2.1.entries();
+            for (se2 in subEntries2) {
+              let timestampU2 = se2.0;
+              if (timestampU2 > lastTimestamp2) {
+                lastTimestamp2 := timestampU2;
+              };
+            };
+          };
+        };
+        let decisiveEntries2 = streakPercentage.entries();
+        for (de2 in decisiveEntries2) {
+          if (de2.0 == user2) {
+            chanceOfFail2 := true;
+            streakPercentage2 := de2.1;
+          };
+        };
+      };
+
+      // STEP 4: Determine "time window" state for each user
+      // We'll define inWindowX = 1 => can't claim yet
+      //                       = 2 => normal claim
+      //                       = 3 => chance-of-fail window
+      //                       = 4 => forced reset
+      //                       = 5 => never started
+      var inWindow1 = 0;
+      if (hasStarted1) {
+        if ((lastTimestamp1 + streakTimeNanos) > currentTime) {
+          inWindow1 := 1;
+        } else if ((lastTimestamp1 + streakTimeNanos) <= currentTime and currentTime < (lastTimestamp1 + (streakTimeNanos * 2))) {
+          inWindow1 := 2;
+        } else if ((lastTimestamp1 + (streakTimeNanos * 2)) <= currentTime and currentTime < (lastTimestamp1 + (streakTimeNanos * 3))) {
+          inWindow1 := 3;
+        } else if (currentTime >= (lastTimestamp1 + (streakTimeNanos * 3))) {
+          inWindow1 := 4;
+        };
+      } else {
+        inWindow1 := 5; // not started
+      };
+
+      var inWindow2 = 0;
+      if (hasStarted2) {
+        if ((lastTimestamp2 + streakTimeNanos) > currentTime) {
+          inWindow2 := 1;
+        } else if ((lastTimestamp2 + streakTimeNanos) <= currentTime and currentTime < (lastTimestamp2 + (streakTimeNanos * 2))) {
+          inWindow2 := 2;
+        } else if ((lastTimestamp2 + (streakTimeNanos * 2)) <= currentTime and currentTime < (lastTimestamp2 + (streakTimeNanos * 3))) {
+          inWindow2 := 3;
+        } else if (currentTime >= (lastTimestamp2 + (streakTimeNanos * 3))) {
+          inWindow2 := 4;
+        };
+      } else {
+        inWindow2 := 5; // not started
+      };
+
+      // STEP 5: Pick the "most favorable" outcome window
+      // Rules summary:
+      //  - if either user is in an earlier (better) window, we pick that for both
+      //  - if one hasn't started (5) but the other has, keep the better scenario
+      //  - if "one would reset" but the other wouldn't, do NOT reset
+      //  - if "one is in normal claim" and the other is in chance-of-fail" => pick normal claim
+      // We'll do this by picking the MIN of inWindow1 and inWindow2, with special checks for 5
+      var finalWindow = 0;
+
+      // Special handling if both are 5 => truly first time for both
+      if (inWindow1 == 5 and inWindow2 == 5) {
+        finalWindow := 5; // both are first-time
+      } else if (inWindow1 == 5 and inWindow2 != 5) {
+        // one is first time, the other is started => we do NOT forcibly start the first-time user if the other is in mid-streak
+        // so we pick the other user's window
+        finalWindow := inWindow2;
+        // if inWindow2=1 => can't claim, etc.
+        // no forced "5" start
+        if (inWindow2 == 4) {
+          // but if the other is forced reset, that's not "favorable."
+          // We can never do worse than "can't claim yet," so let's see if that is better
+          // We'll treat forced reset (4) as the worst scenario.
+          // If user1 is truly new (5), that is ironically "better" than resetting from a big streak
+          // but the instructions say "If one user is starting first time and the other isn't, don't start first time."
+          // So we won't "upgrade" the other user from (4) to (5). We keep (4).
+        };
+      } else if (inWindow2 == 5 and inWindow1 != 5) {
+        finalWindow := inWindow1;
+        if (inWindow1 == 4) {
+          // same note as above
+        };
+      } else {
+        // Now both have started (none is 5) -> pick the smallest window number
+        //  1 => can't claim
+        //  2 => normal claim
+        //  3 => chance fail
+        //  4 => reset
+        // The smaller number is better (1 is "can't claim" though, which doesn't help you earn minutes, but it's safer than '4' which resets)
+        // But per your rules: "If one is in normal claim (2) and the other is in chance-of-fail (3), pick normal claim (2)."
+        // "If one is in 2 and other is 4, pick 2 (don't reset)."
+        // So effectively finalWindow = min(inWindow1, inWindow2)
+        let minWin = if (inWindow1 < inWindow2) { inWindow1 } else { inWindow2 };
+        if (minWin == 4) {
+          // Check if the other is < 4; if so, we won't reset
+          if ((inWindow1 == 4 and inWindow2 < 4) or (inWindow2 == 4 and inWindow1 < 4)) {
+            finalWindow := if (inWindow1 < inWindow2) { inWindow1 } else {
+              inWindow2;
+            };
+          } else {
+            // both are 4 => we accept 4
+            finalWindow := 4;
+          };
+        } else {
+          finalWindow := minWin;
+        };
+      };
+
+      // STEP 6: Now apply the "most favorable" streak logic:
+      //  - Use the bigger of the two streaks
+      var finalStreak = if (mainStreak1 > mainStreak2) { mainStreak1 } else {
+        mainStreak2;
+      };
+
+      //  - If one has no chance of fail and the other does, ignore chance-of-fail
+      var finalChanceOfFail = false;
+      var finalStreakPercentage = 80;
+      if ((chanceOfFail1 == false) or (chanceOfFail2 == false)) {
+        // at least one has no chance => no chance
+        finalChanceOfFail := false;
+      } else {
+        // both have a chance => pick the bigger percentage
+        finalChanceOfFail := true;
+        finalStreakPercentage := if (streakPercentage1 > streakPercentage2) {
+          streakPercentage1;
+        } else { streakPercentage2 };
+      };
+
+      // If *both* are truly new => finalWindow=5 => just do a first-time awarding
+      if (finalWindow == 5) {
+        // They are starting first time. Award 5 minutes
+        // per your old logic: streak.put(user, 1); streakPercentage.put(user, 80) ...
+        // but the instructions say "If one is new and the other isn't, don't do first time."
+        // We only get finalWindow=5 if both are 5
+        streak.put(user1, 1);
+        streakPercentage.put(user1, 80);
+        let firstStreak1 : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+        firstStreak1.put(currentTime, 300);
+        userStreak.put(user1, firstStreak1);
+
+        streak.put(user2, 1);
+        streakPercentage.put(user2, 80);
+        let firstStreak2 : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+        firstStreak2.put(currentTime, 300);
+        userStreak.put(user2, firstStreak2);
 
         return ("You have earned 5 minutes!", 300);
       };
 
-      return ("", 0);
+      if (finalWindow == 1) {
+        // Means: "You can't claim your streak yet."
+        return ("You can't claim your streak yet.", 0);
+      } else if (finalWindow == 2) {
+        // Normal claim => finalStreak + 1
+        let newStreakVal = finalStreak + 1;
+        streak.put(user1, newStreakVal);
+        streak.put(user2, newStreakVal);
+
+        // We'll add (300 + 300*newStreakVal) to both userStreak maps
+        let earned = 300 + (300 * newStreakVal);
+        let earnedText = Nat.toText(earned / 60); // old code used /60 => "in minutes"
+
+        // user1
+        let newStreakMap1 : TrieMap.TrieMap<Int, Nat> = userStreakMap1;
+        newStreakMap1.put(currentTime, earned);
+        userStreak.put(user1, newStreakMap1);
+        // user2
+        let newStreakMap2 : TrieMap.TrieMap<Int, Nat> = userStreakMap2;
+        newStreakMap2.put(currentTime, earned);
+        userStreak.put(user2, newStreakMap2);
+
+        return ("You have earned " # earnedText # " minutes!", earned);
+      } else if (finalWindow == 3) {
+        // Chance of fail if finalChanceOfFail == true
+        // If finalChanceOfFail == false => treat it like normal claim (2)
+        if (finalChanceOfFail == false) {
+          // same as normal claim
+          let newStreakVal2 = finalStreak + 1;
+          streak.put(user1, newStreakVal2);
+          streak.put(user2, newStreakVal2);
+          let earned2 = 300 + (300 * newStreakVal2);
+          let earnedText2 = Nat.toText(earned2 / 60);
+
+          let newStreakMap1b : TrieMap.TrieMap<Int, Nat> = userStreakMap1;
+          newStreakMap1b.put(currentTime, earned2);
+          userStreak.put(user1, newStreakMap1b);
+
+          let newStreakMap2b : TrieMap.TrieMap<Int, Nat> = userStreakMap2;
+          newStreakMap2b.put(currentTime, earned2);
+          userStreak.put(user2, newStreakMap2b);
+
+          return ("You have earned " # earnedText2 # " minutes!", earned2);
+        } else {
+          // Both have chance => finalStreakPercentage is the biggest
+          let seed : Blob = await Random.blob();
+          let randomNumber = Nat8.toNat(Random.byteFrom(seed) % 100);
+          if (randomNumber < finalStreakPercentage) {
+            // Success => continue streak
+            let newStreakVal3 = finalStreak + 1;
+            streak.put(user1, newStreakVal3);
+            streak.put(user2, newStreakVal3);
+
+            // reduce finalStreakPercentage by 25, but not below 1
+            let newPerc = if (finalStreakPercentage > 25) {
+              Nat.sub(finalStreakPercentage, 25);
+            } else {
+              1;
+            };
+            streakPercentage.put(user1, newPerc);
+            streakPercentage.put(user2, newPerc);
+
+            let earned3 = 300 + (300 * newStreakVal3);
+            let earnedText3 = Nat.toText(earned3 / 60);
+
+            let newMap1c : TrieMap.TrieMap<Int, Nat> = userStreakMap1;
+            newMap1c.put(currentTime, earned3);
+            userStreak.put(user1, newMap1c);
+
+            let newMap2c : TrieMap.TrieMap<Int, Nat> = userStreakMap2;
+            newMap2c.put(currentTime, earned3);
+            userStreak.put(user2, newMap2c);
+
+            return ("Your streak is ALIVE! You have earned " # earnedText3 # " minutes!", earned3);
+          } else {
+            // Failure => reset streak
+            streak.put(user1, 1);
+            streak.put(user2, 1);
+            streakPercentage.put(user1, 80);
+            streakPercentage.put(user2, 80);
+
+            let resetMap1 : TrieMap.TrieMap<Int, Nat> = userStreakMap1;
+            resetMap1.put(currentTime, 300);
+            userStreak.put(user1, resetMap1);
+
+            let resetMap2 : TrieMap.TrieMap<Int, Nat> = userStreakMap2;
+            resetMap2.put(currentTime, 300);
+            userStreak.put(user2, resetMap2);
+
+            return ("Too bad, your past streak died. Starting again with 5 minutes...", 300);
+          };
+        };
+      } else if (finalWindow == 4) {
+        // Both ended up truly in reset window => reset
+        streak.put(user1, 1);
+        streak.put(user2, 1);
+        streakPercentage.put(user1, 80);
+        streakPercentage.put(user2, 80);
+
+        let newMap1 : TrieMap.TrieMap<Int, Nat> = userStreakMap1;
+        newMap1.put(currentTime, 300);
+        userStreak.put(user1, newMap1);
+
+        let newMap2 : TrieMap.TrieMap<Int, Nat> = userStreakMap2;
+        newMap2.put(currentTime, 300);
+        userStreak.put(user2, newMap2);
+
+        return ("You have lost your past streak. Starting again with 5 minutes...", 300);
+      };
+
+      // If we get here, no relevant case matched - fallback
+      return ("You can't claim your streak yet.", 0);
     };
+
+    // Not authorized
     return ("", 0);
   };
 
@@ -630,11 +1345,22 @@ actor class Backend() {
   public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
 
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller) and missionId == 1)) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       // Deserialize the progress object
       let progress = Serialization.deserializeProgress(serializedProgress);
 
       // Retrieve the user's missions or create a new TrieMap if it doesn't exist
-      let missions = switch (userProgress.get(userId)) {
+      let missions = switch (userProgress.get(user)) {
         case (?map) map;
         case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
       };
@@ -643,10 +1369,10 @@ actor class Backend() {
       missions.put(missionId, progress);
 
       // Update the user's progress in the main TrieMap
+      userProgress.put(user, missions);
+      addTotalPointsToUser(user, progress.completionHistory[0].pointsEarned);
       userProgress.put(userId, missions);
-
       addTotalPointsToUser(userId, progress.completionHistory[0].pointsEarned);
-
     };
   };
 
@@ -682,20 +1408,31 @@ actor class Backend() {
 
   public shared (msg) func useAllPoints(userId : Principal) : async () {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       var i = 0;
       while (i < Vector.size(users)) {
         switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == userId) {
+          case (?userF) {
+            if (userF.id == user) {
               let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
+                id = userF.id;
+                var twitterid = userF.twitterid;
+                var twitterhandle = userF.twitterhandle;
+                creationTime = userF.creationTime;
+                var pfpProgress = userF.pfpProgress;
                 var totalPoints = 0;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = user.ocCompleted;
+                var ocProfile = userF.ocProfile;
+                var ocCompleted = userF.ocCompleted;
               };
               Vector.put(users, i, updatedUser);
               return;
@@ -713,7 +1450,18 @@ actor class Backend() {
   public shared query (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      switch (userProgress.get(userId)) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      switch (userProgress.get(user)) {
         case (?missions) {
           switch (missions.get(missionId)) {
             case (?progress) return ?Serialization.serializeProgress(progress);
@@ -732,7 +1480,17 @@ actor class Backend() {
   public shared query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userMissionsOpt = userProgress.get(userId);
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      let userMissionsOpt = userProgress.get(user);
 
       switch (userMissionsOpt) {
         case (null) {
@@ -765,8 +1523,18 @@ actor class Backend() {
   public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       // Retrieve or initialize user's missions progress
-      let userMissions = switch (userProgress.get(userId)) {
+      let userMissions = switch (userProgress.get(user)) {
         case (?progress) progress;
         case null return false;
       };
@@ -851,7 +1619,7 @@ actor class Backend() {
 
       // Save the updated mission progress
       userMissions.put(missionId, missionProgress);
-      userProgress.put(userId, userMissions);
+      userProgress.put(user, userMissions);
 
       return true;
     };
@@ -862,7 +1630,17 @@ actor class Backend() {
   public shared query (msg) func canUserDoMission(userId : Principal, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      switch (userProgress.get(userId)) {
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      switch (userProgress.get(user)) {
         case (?userMissions) {
           switch (userMissions.get(missionId)) {
             case (?progress) {
@@ -886,11 +1664,21 @@ actor class Backend() {
   public shared query (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       for (mission in Vector.vals(missions)) {
         if (mission.id == missionId) {
           var thismission = mission;
 
-          switch (userProgress.get(userId)) {
+          switch (userProgress.get(user)) {
             case (?userMissions) {
               switch (userMissions.get(missionId)) {
                 case (?progress) {
@@ -918,9 +1706,20 @@ actor class Backend() {
 
   public shared query (msg) func isFullOc(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       var i = 0;
 
-      switch (userProgress.get(userId)) {
+      switch (userProgress.get(user)) {
         case (?userMissions) {
           switch (userMissions.get(10)) {
             case (?progress) {
@@ -943,9 +1742,20 @@ actor class Backend() {
 
   public shared query (msg) func isRecOc(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
       var i = 0;
 
-      switch (userProgress.get(userId)) {
+      switch (userProgress.get(user)) {
         case (?userMissions) {
           switch (userMissions.get(5)) {
             case (?progress) {
@@ -968,13 +1778,24 @@ actor class Backend() {
 
   public shared (msg) func isOc(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
+        };
+      };
+
       for (user in Vector.vals(users)) {
-        if (user.id == userId) {
-          let a = await isRecOc(userId);
+        if (user.id == userF) {
+          let a = await isRecOc(userF);
           if (a >= 1) {
             // SET TO 3
             if (user.ocCompleted) {
-              let b = await isFullOc(userId);
+              let b = await isFullOc(userF);
               if (b >= 1) {
                 switch (user.ocProfile) {
                   case (?ocProfile) {
@@ -985,7 +1806,6 @@ actor class Backend() {
                     let response = await oc.award_external_achievement(achievement);
                     switch (response) {
                       case (#Success { remaining_chit_budget }) {
-                        cBudget := remaining_chit_budget;
                         for (mission in Vector.vals(missions)) {
                           if (mission.id == 7 and mission.startDate <= Time.now()) {
                             let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
@@ -999,7 +1819,7 @@ actor class Backend() {
                               completionHistory = [firstMissionRecord];
                               usedCodes = [];
                             };
-                            await updateUserProgress(userId, 7, firstMissionProgress);
+                            await updateUserProgress(userF, 7, firstMissionProgress);
                           };
                         };
                         return "Success";
@@ -1024,7 +1844,7 @@ actor class Backend() {
                               completionHistory = [firstMissionRecord];
                               usedCodes = [];
                             };
-                            await updateUserProgress(userId, 7, firstMissionProgress);
+                            await updateUserProgress(userF, 7, firstMissionProgress);
                           };
                         };
                         return "You have already done this mission (although it shouldn't be possible)";
@@ -1062,7 +1882,17 @@ actor class Backend() {
   public shared query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userMissionsOpt = userProgress.get(userId);
+      var user = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          user := linkedAcc;
+        };
+      };
+
+      let userMissionsOpt = userProgress.get(user);
 
       switch (userMissionsOpt) {
         case null {
@@ -1086,7 +1916,7 @@ actor class Backend() {
           for (entryUS in entriesUS) {
             let principal = entryUS.0;
             let totalStreak = entryUS.1;
-            if (principal == userId) {
+            if (principal == user) {
               let streakEntries = totalStreak.entries();
               for (streakEntry in streakEntries) {
                 let streakValue = streakEntry.1;
@@ -1281,19 +2111,6 @@ actor class Backend() {
     return 0;
   };
 
-  // Budget for Mission 7
-
-  stable var cBudget : Nat32 = 0;
-
-  // Get Budget from Mission 7
-
-  public shared query (msg) func getcBudget() : async Nat32 {
-    if (isAdmin(msg.caller)) {
-      return cBudget;
-    };
-    return 0;
-  };
-
   //
 
   // User Management
@@ -1307,7 +2124,20 @@ actor class Backend() {
   // Register an user by Principal
 
   public shared (msg) func addUser(userId : Principal) : async (?Types.SerializedUser) {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+    let dummyUser : Types.User = {
+      id = userId;
+      var twitterid = null;
+      var twitterhandle = null;
+      creationTime = Time.now();
+      var pfpProgress = "false";
+      var totalPoints = 0;
+      var ocProfile = null;
+      var ocCompleted = false;
+      var oisyWallet = null;
+    };
+
+    if ((isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) and not Vector.contains<Types.User>(users, dummyUser, func(a : Types.User, b : Types.User) : Bool { a.id == b.id })) {
 
       // Generate random points between 3600 and 21600
       let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 0).mintime, Vector.get(missions, 0).maxtime);
@@ -1339,6 +2169,7 @@ actor class Backend() {
         var totalPoints = Int.abs(pointsEarnedOpt);
         var ocProfile = null;
         var ocCompleted = false;
+        var oisyWallet = null;
       };
       Vector.add<Types.User>(users, newUser);
       return ?Serialization.serializeUser(newUser);
@@ -1376,13 +2207,24 @@ actor class Backend() {
 
   public shared (msg) func setOCMissionEnabled(userId : Principal) : async () {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
+        };
+      };
+
       var i = 0;
       while (i < Vector.size(users)) {
         switch (Vector.getOpt(users, i)) {
           case (?user) {
             switch (user.id) {
               case (id) {
-                if (user.id == userId) {
+                if (user.id == userF) {
                   let updatedUser : Types.User = {
                     id = user.id;
                     var twitterid = user.twitterid;
@@ -1407,13 +2249,24 @@ actor class Backend() {
 
   public shared (msg) func setOCMissionDisabled(userId : Principal) : async () {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
+        };
+      };
+
       var i = 0;
       while (i < Vector.size(users)) {
         switch (Vector.getOpt(users, i)) {
           case (?user) {
             switch (user.id) {
               case (id) {
-                if (user.id == userId) {
+                if (user.id == userF) {
                   let updatedUser : Types.User = {
                     id = user.id;
                     var twitterid = user.twitterid;
@@ -1515,8 +2368,19 @@ actor class Backend() {
 
   public shared query (msg) func getUser(userId : Principal) : async ?Types.SerializedUser {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
+        };
+      };
+
       for (user in Vector.vals(users)) {
-        if (user.id == userId) {
+        if (user.id == userF) {
           return ?Serialization.serializeUser(user);
         };
       };
@@ -1546,8 +2410,19 @@ actor class Backend() {
 
   public shared query (msg) func getPFPProgress(userId : Principal) : async ?Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
+        };
+      };
+
       for (user in Vector.vals(users)) {
-        if (user.id == userId) {
+        if (user.id == userF) {
           return ?user.pfpProgress;
         };
       };
@@ -1559,34 +2434,62 @@ actor class Backend() {
 
   public shared (msg) func setPFPProgressLoading(userId : Principal) : async (Text) {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == userId) {
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = "loading";
-                var totalPoints = user.totalPoints;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = user.ocCompleted;
-              };
-              Vector.put(users, i, updatedUser);
-              return "loading";
-            };
-          };
-          case _ {};
+
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
         };
-        i += 1;
+      };
+
+      func updateUserPFPProgress(targetUser : Principal) : Bool {
+        var i = 0;
+        while (i < Vector.size(users)) {
+          switch (Vector.getOpt(users, i)) {
+            case (?user) {
+              if (user.id == targetUser) {
+                let updatedUser : Types.User = {
+                  id = user.id;
+                  var twitterid = user.twitterid;
+                  var twitterhandle = user.twitterhandle;
+                  creationTime = user.creationTime;
+                  var pfpProgress = "loading";
+                  var totalPoints = user.totalPoints;
+                  var ocProfile = user.ocProfile;
+                  var ocCompleted = user.ocCompleted;
+                };
+                Vector.put(users, i, updatedUser);
+                return true;
+              };
+            };
+            case _ {};
+          };
+          i += 1;
+        };
+        return false;
+      };
+
+      let updatedF = updateUserPFPProgress(userF);
+
+      var updatedId = false;
+
+      if (userF != userId) {
+        updatedId := updateUserPFPProgress(userId);
+      };
+
+      if (updatedF or updatedId) {
+        return "loading";
+      } else {
+        return "false";
       };
     };
     return "false";
   };
 
-  // Function to set the MIssion PFP Progress
+  // Function to set the Mission PFP Progress
 
   public shared (msg) func setPFPProgress(userId : Principal) : async () {
     if (isAdmin(msg.caller)) {
@@ -1664,31 +2567,49 @@ actor class Backend() {
 
   public shared (msg) func addOCProfile(userId : Principal, ocprofile : Text) : async () {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == userId) {
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints;
-                var ocProfile = ?ocprofile;
-                var ocCompleted = user.ocCompleted;
-              };
-              Vector.put(users, i, updatedUser);
-              return;
-            };
-          };
-          case _ {};
-        };
-        i += 1;
-      };
-    };
 
+      var userF = userId;
+      let temp = accountLinks.get(userId);
+
+      if (temp != null) {
+        let ?(linkedAcc, isNFID) = temp;
+        if (isNFID == false) {
+          userF := linkedAcc;
+        };
+      };
+
+      func updateUserOCProfile(targetUser : Principal, newOCProfile : Text) {
+        var i = 0;
+        while (i < Vector.size(users)) {
+          switch (Vector.getOpt(users, i)) {
+            case (?user) {
+              if (user.id == targetUser) {
+                let updatedUser : Types.User = {
+                  id = user.id;
+                  var twitterid = user.twitterid;
+                  var twitterhandle = user.twitterhandle;
+                  creationTime = user.creationTime;
+                  var pfpProgress = user.pfpProgress;
+                  var totalPoints = user.totalPoints;
+                  var ocProfile = ?newOCProfile;
+                  var ocCompleted = user.ocCompleted;
+                };
+                Vector.put(users, i, updatedUser);
+              };
+            };
+            case _ {};
+          };
+          i += 1;
+        };
+      };
+
+      updateUserOCProfile(userF, ocprofile);
+
+      if (userF != userId) {
+        updateUserOCProfile(userId, ocprofile);
+      };
+
+    };
   };
 
   //
@@ -1948,6 +2869,7 @@ actor class Backend() {
     if (isAdmin(msg.caller)) {
       Vector.clear(users);
       userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+      oisyWallet := TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
       return;
     };
   };

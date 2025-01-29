@@ -295,6 +295,7 @@ function App() {
             ocCompleted: Boolean(user.ocCompleted),
           }));
 
+
           // Upload the serialized users to the backend
           await actor.restoreUsers(serializedUsers);
           console.log('Users successfully uploaded.');

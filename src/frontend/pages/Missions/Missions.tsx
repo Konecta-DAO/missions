@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent.tsx';
-import OpenChatDF from '../../../components/OpenChatComponentDFINITY.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import useFetchData from '../../../hooks/fetchData.tsx';
@@ -24,6 +23,7 @@ import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../declarations/index/index.did.js';
 import { useParams } from 'react-router-dom';
+import ProfileModal from './Components/ProfileModal/ProfileModal.tsx';
 
 interface ButtonItem {
     name: string;
@@ -40,13 +40,10 @@ type ModalState = {
     isProfileModalOpen: boolean;
 };
 
-//const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
-
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const { user, identity } = useIdentityKit();
     const navigate = useNavigate();
-
 
 
     const fetchData = useFetchData();
@@ -97,6 +94,7 @@ const Missions: React.FC = () => {
                 user?.principal.toText() !== '2vxsx-fae' &&
                 identity?.getPrincipal().toText() !== '2vxsx-fae'
             ) {
+
                 // User is logged in; proceed to set up agent and fetch data
                 const agent = HttpAgent.createSync({ identity });
                 if (process.env.NODE_ENV !== 'production') {
@@ -144,40 +142,13 @@ const Missions: React.FC = () => {
     useEffect(() => {
         if (projectSlug) {
             if (projectSlug.toLowerCase() === 'konecta') {
-                setSelectedProject('konecta');
             } else {
                 const project = globalID.projects.find(
                     (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
                 );
-                if (project) {
-                    setSelectedProject(project.id);
-                } else {
-                    setSelectedProject(null);
-                }
             }
-        } else {
-            setSelectedProject(null);
         }
     }, [projectSlug, globalID.projects]);
-
-    const toggleProjectSelection = (projectId: string | null) => {
-        setSelectedProject((prev) => (prev === projectId ? null : projectId));
-        if (projectId !== null) {
-            if (projectId === 'konecta') {
-                navigate('/konecta');
-            } else {
-                // Find project name by ID
-                const project = globalID.projects.find((p) => p.id === projectId);
-                if (project) {
-                    navigate(`/${project.name}`);
-                } else {
-                    navigate('/');
-                }
-            }
-        } else {
-            navigate('/');
-        }
-    };
 
     const fetchUserData = async (agent: HttpAgent) => {
         if (fetchData) {
@@ -260,12 +231,11 @@ const Missions: React.FC = () => {
         isInfoModalOpen: (
             <InfoModal closeModal={() => toggleModal('isInfoModalOpen')} />
         ),
+        isProfileModalOpen: (
+            <ProfileModal closeModal={() => toggleModal('isProfileModalOpen')} />
+        ),
         isOpenChatModalOpen: (
             <OpenChatModal closeModal={() => toggleModal('isOpenChatModalOpen')} />
-        ),
-        isProfileModalOpen: (
-            /*<ProfileModal closeModal={() => toggleModal('isProfileModalOpen')} /> */
-            null
         ),
     };
 
@@ -298,11 +268,7 @@ const Missions: React.FC = () => {
                         <div className={styles.MissionsBody}>
                             {dataloaded ? (
                                 <div className={styles.MissionsGridWrapper}>
-                                    <MissionGridComponent
-                                        selectedProject={selectedProject}
-                                        toggleProjectSelection={toggleProjectSelection}
-                                        missionSlug={missionSlug}
-                                    />
+                                    <MissionGridComponent />
                                 </div>
                             ) : (
                                 <div>Loading missions...</div>
@@ -334,10 +300,7 @@ const Missions: React.FC = () => {
                                 <div className={styles.MissionsBody2nfid}>
                                     {dataloaded ? (
                                         <div className={styles.MissionsGridWrapper}>
-                                            <MissionGridComponent
-                                                selectedProject={selectedProject}
-                                                toggleProjectSelection={toggleProjectSelection}
-                                            />
+                                            <MissionGridComponent />
                                         </div>
                                     ) : (
                                         <div>Loading missions...</div>
@@ -373,10 +336,7 @@ const Missions: React.FC = () => {
                                 <div className={styles.MissionsBody2nfid}>
                                     {dataloaded ? (
                                         <div className={styles.MissionsGridWrapper}>
-                                            <MissionGridComponent
-                                                selectedProject={selectedProject}
-                                                toggleProjectSelection={toggleProjectSelection}
-                                            />
+                                            <MissionGridComponent />
                                         </div>
                                     ) : (
                                         <div>Loading missions...</div>
@@ -399,10 +359,7 @@ const Missions: React.FC = () => {
                                 <div className={styles.MissionsBody}>
                                     {dataloaded ? (
                                         <div className={styles.MissionsGridWrapper}>
-                                            <MissionGridComponent
-                                                selectedProject={selectedProject}
-                                                toggleProjectSelection={toggleProjectSelection}
-                                            />
+                                            <MissionGridComponent />
                                         </div>
                                     ) : (
                                         <div>Loading missions...</div>

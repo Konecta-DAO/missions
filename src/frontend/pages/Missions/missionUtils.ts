@@ -51,7 +51,6 @@ export const checkMissionCompletion = (userProgress: any, mission: SerializedMis
 };
 
 export const checkMissionCompletionDefault = (userProgressMap: { [key: string]: Array<[bigint, SerializedProgressDefault]> | null }, projectId: string, mission: SerializedMissionDefault): boolean => {
-
     const progressListNested = userProgressMap[projectId];
 
     if (!progressListNested || progressListNested.length === 0) {
@@ -93,6 +92,7 @@ export const checkMissionCompletionDefault = (userProgressMap: { [key: string]: 
 
 // Utility function to check required mission completion
 export const checkRequiredMissionCompletion = (globalID: any, mission: any) => {
+
     let requiredMissionCompleted = true; // Assume no required mission or it's completed
     let requiredMissionTitle = '';
 

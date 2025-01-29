@@ -10,6 +10,9 @@
   "dfinity_backend": {
     "ic": "2mg2s-uqaaa-aaaag-qna5a-cai"
   },
+  "oisy_backend": {
+    "ic": "eyark-fqaaa-aaaag-qm7oa-cai"
+  },
   "frontend": {
     "ic": "okowr-oqaaa-aaaag-qkedq-cai",
     "test": "y7mum-taaaa-aaaag-qklxq-cai"

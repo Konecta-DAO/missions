@@ -38,7 +38,6 @@ const fetchTargets = async (): Promise<string[]> => {
 
   // Fetch the targets from the endpoint
   const fetchedTargets = await fetchTargets();
-  console.log("tarjetas" + fetchedTargets);
 
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 

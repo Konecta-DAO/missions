@@ -38,17 +38,24 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     });
 
     const mission = useMemo(() => {
-
-        for (const missionsArray of Object.values(globalID.missionsMap)) {
-            const foundMission = missionsArray.find(
-                (m: SerializedMissionDefault) => m.id === selectedMissionId
-            );
-            if (foundMission) {
-                return foundMission;
-            }
+        // Ensure canisterId is provided
+        if (!canisterId) {
+            console.error('No canisterId provided to MissionModal.');
+            return null;
         }
-
-    }, [globalID.missionsMap, selectedMissionId]);
+    
+        // Fetch missions for the specific project using canisterId
+        const missionsForProject = globalID.missionsMap[canisterId] || [];
+        const foundMission = missionsForProject.find(
+            (m: SerializedMissionDefault) => m.id === selectedMissionId
+        );
+    
+        if (!foundMission) {
+            console.error(`Mission with ID ${selectedMissionId} not found for canister ${canisterId}.`);
+        }
+    
+        return foundMission || null;
+    }, [globalID.missionsMap, canisterId, selectedMissionId]);
 
     if (!mission) return null;
 
