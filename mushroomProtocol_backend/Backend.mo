@@ -1099,187 +1099,21 @@ actor class Backend() {
     return ("", 0, 0);
   };
 
-  public shared (msg) func verifyOisyICP(userId : Principal) : async Text {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      //Subaccount: subaccountArray[31] = 1
-      var canisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai";
-
-      let ledgercanister = actor (canisterId) : actor {
-        icrc1_balance_of : query (Types.Account) -> async (Types.Icrc1Tokens);
-      };
-
-      var canisterIdIndex = "tui2b-giaaa-aaaag-qnbpq-cai";
-
-      let indexcanister = actor (canisterIdIndex) : actor {
-        getOisyWallet : query (Principal) -> async (?Principal);
-      };
-
-      let userOisy = await indexcanister.getOisyWallet(userId);
-
-      switch userOisy {
-        case (?wallet) {
-          let balance = await ledgercanister.icrc1_balance_of({
-            owner = wallet;
-            subaccount = null;
-          });
-
-          if (balance > 0) {
-            let missionRecord : Types.MissionRecord = {
-              var timestamp = Time.now();
-              var pointsEarned = 200;
-              var tweetId = null;
-            };
-            let missionProgress : Types.Progress = {
-              var completionHistory = [missionRecord];
-              var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-            };
-            let tempP = Serialization.serializeProgress(missionProgress);
-            await updateUserProgress(userId, 0, tempP);
-            return "Success";
-          } else {
-            return "Oisy Wallet has no ICP";
-          };
-        };
-        case null {
-          return "No linked Oisy Wallet";
-        };
-      };
-    } else {
-      return "Unauthorized";
+  public shared (msg) func nftMission(userId : Principal) : async Text {
+    //  if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+    let nftCanister = actor ("dxago-uyaaa-aaaak-qtysq-cai") : actor {
+      getTokenIdsForUserDip721 : query (Principal) -> async ([Types.TokenId]);
     };
-  };
 
-  public shared (msg) func verifyOisyOG(userId : Principal) : async Text {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      //Subaccount: subaccountArray[31] = 1
+    let hasNFT = await nftCanister.getTokenIdsForUserDip721(userId);
 
-      var canisterIdLedgerIndex = "qhbym-qaaaa-aaaaa-aaafq-cai";
-
-      let ledgerIndexcanister = actor (canisterIdLedgerIndex) : actor {
-        get_account_transactions : query (Types.GetAccountTransactionsArgs) -> async (Types.GetAccountIdentifierTransactionsResult);
-        icrc1_balance_of : query (Types.Account) -> async (Nat64);
-      };
-
-      let missionSubaccountArray = Array.init<Nat8>(32, 0);
-
-      missionSubaccountArray[31] := Nat8.fromNat(1);
-
-      let subaccount : ?Blob = ?Blob.fromArray(Array.freeze(missionSubaccountArray));
-
-      let owner = Principal.fromText("eyark-fqaaa-aaaag-qm7oa-cai");
-
-      let hasCanisterEnoughICP = await ledgerIndexcanister.icrc1_balance_of({
-        owner = owner;
-        subaccount = subaccount;
-      });
-
-      if (hasCanisterEnoughICP >= 10_000 + 10_000) {
-
-        var canisterIdIndex = "tui2b-giaaa-aaaag-qnbpq-cai";
-
-        let indexcanister = actor (canisterIdIndex) : actor {
-          getOisyWallet : query (Principal) -> async (?Principal);
-        };
-
-        let userOisy = await indexcanister.getOisyWallet(userId);
-
-        switch userOisy {
-          case (?wallet) {
-
-            let account : Types.Account = {
-              owner = wallet;
-              subaccount = null;
-            };
-
-            let transactionsResult = await ledgerIndexcanister.get_account_transactions({
-              account = account;
-              max_results = 100;
-              start = null;
-            });
-
-            switch transactionsResult {
-              case (#Ok(transactions)) {
-                // Define the cutoff timestamp
-                let cutoffTimestamp : Nat = 1740715200000000000;
-
-                // Use Array.find to locate a transaction with timestamp_nanos < cutoffTimestamp
-                let oldTransaction = Array.find<Types.TransactionWithId>(
-                  transactions.transactions,
-                  func(txWithId : Types.TransactionWithId) : Bool {
-                    switch (txWithId.transaction.timestamp) {
-                      case (?ts) {
-                        ts.timestamp_nanos < Nat64.fromNat(cutoffTimestamp);
-                      };
-                      case null { false };
-                    };
-                  },
-                );
-
-                if (oldTransaction != null) {
-
-                  let toAccount : Types.Account = {
-                    owner = wallet;
-                    subaccount = null;
-                  };
-
-                  let icrc1TransferArg : Types.TransferArg = {
-                    from_subaccount = subaccount;
-                    to = toAccount;
-                    amount = 10_000;
-                    fee = null;
-                    memo = null;
-                    created_at_time = null;
-                  };
-
-                  let ledgercanister = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai") : actor {
-                    icrc1_transfer : (Types.TransferArg) -> async (Types.Icrc1TransferResult);
-                  };
-
-                  let result : Types.Icrc1TransferResult = await ledgercanister.icrc1_transfer(icrc1TransferArg);
-
-                  switch (result) {
-                    case (#Ok(_blockIndex)) {
-                      let missionRecord : Types.MissionRecord = {
-                        var timestamp = Time.now();
-                        var pointsEarned = 10000;
-                        var tweetId = null;
-                      };
-                      let missionProgress : Types.Progress = {
-                        var completionHistory = [missionRecord];
-                        var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-                      };
-                      let tempP = Serialization.serializeProgress(missionProgress);
-                      await updateUserProgress(userId, 1, tempP);
-                      return "Success";
-                    };
-                    case (#Err(err)) {
-                      return "Error from transfer: Details: "
-                      # debug_show (err);
-                    };
-                  };
-
-                } else {
-                  // No transaction satisfies the condition
-                  return "Not an Oisy OG! Sorry, you can't claim the mission";
-                };
-              };
-              case (#Err(err)) {
-                return "Failed to retrieve transactions: "
-                # debug_show (err);
-              };
-            };
-          };
-          case null {
-            return "No linked Oisy Wallet";
-          };
-        };
-      } else {
-        return "Canister out of rewards! Try Again later";
-      };
-      return "e";
+    if (hasNFT == []) {
+      return "No NFTs found.";
     } else {
-      return "Unauthorized";
+      return "NFTs found. However, the NFT reward minting is not yet implemented, so this mission won't be set as completed yet.";
     };
+    //   };
+    //   return "";
   };
 
   public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {

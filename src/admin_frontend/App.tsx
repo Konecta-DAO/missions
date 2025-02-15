@@ -5,16 +5,14 @@ import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
 import { Principal } from '@dfinity/principal';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
-import { canisterId as canistedIdNFID, idlFactory as idlFactoryNFID } from '../declarations/nfid/index.js';
 import { SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
-import { SerializedUser as SerializedUserNFID } from '../declarations/nfid/nfid.did.js';
 
 function App() {
 
   const { identity, user, disconnect } = useIdentityKit();
   const [actor, setActor] = useState<any>(null);
-  const [actorNfid, setActorNfid] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
+  const [adminIdInput, setAdminIdInput] = useState<string>("");
 
   const setData = async (agent: HttpAgent) => {
 
@@ -24,11 +22,6 @@ function App() {
         canisterId,
       });
       setActor(actor);
-      const actorNfid = Actor.createActor(idlFactoryNFID, {
-        agent: agent,
-        canisterId: canistedIdNFID,
-      });
-      setActorNfid(actorNfid);
       const b = await actor.trisAdmin(user?.principal!);
       if (b) {
         setLoaded(true);
@@ -93,7 +86,6 @@ function App() {
       input.click();
     }
   };
-
 
   type MissionEntry = [number, SerializedProgress];
   type UserEntry = [string, MissionEntry[]];
@@ -435,118 +427,23 @@ function App() {
     input.click();
   };
 
-  const handleCSVButtonClick = () => {
-    const input = document.getElementById('hiddenCSVInput') as HTMLInputElement;
-    if (input) {
-      input.click();
+  const handleAddAdminId = async () => {
+    if (!adminIdInput) {
+      alert("Please enter a valid Principal ID");
+      return;
     }
-  };
-
-
-  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if (file) {
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        try {
-          const csvString = e.target?.result as string;
-
-          // Parse the CSV string
-          const lines = csvString.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-          if (lines.length < 2) {
-            console.error('CSV file is empty or missing data.');
-            return;
-          }
-
-          // Parse header
-          const headers = lines[0].split(',').map(h => h.trim());
-          // Expected headers: Timestamp,Telegram,Discord,OpenChat,X,NFID_Wallet,NNS_Principal
-
-          const users: SerializedUserNFID[] = [];
-
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i];
-            const values = line.split(',').map(v => v.trim());
-
-            if (values.length !== headers.length) {
-              console.warn(`Line ${i + 1} has ${values.length} values, expected ${headers.length}. Skipping.`);
-              continue;
-            }
-
-            const entry: { [key: string]: string } = {};
-            for (let j = 0; j < headers.length; j++) {
-              entry[headers[j]] = values[j];
-            }
-
-            // Now create SerializedUserNFID object
-            const idText = entry['NFID_Wallet'];
-            if (!idText) {
-              console.warn(`Line ${i + 1} missing NFID_Wallet. Skipping.`);
-              continue;
-            }
-            let id: Principal;
-            try {
-              id = Principal.fromText(idText);
-            } catch (e) {
-              console.warn(`Line ${i + 1} has invalid NFID_Wallet: ${idText}. Skipping.`);
-              continue;
-            }
-
-            let nnsPrincipal: Principal | undefined;
-            const nnsPrincipalText = entry['NNS_Principal'];
-            if (nnsPrincipalText) {
-              try {
-                nnsPrincipal = Principal.fromText(nnsPrincipalText);
-              } catch (e) {
-                console.warn(`Line ${i + 1} has invalid NNS_Principal: ${nnsPrincipalText}. Ignoring.`);
-              }
-            }
-
-            const creationTimeText = entry['Timestamp'];
-            let creationTime: bigint;
-            if (creationTimeText) {
-              try {
-                creationTime = BigInt(creationTimeText);
-              } catch (e) {
-                console.warn(`Line ${i + 1} has invalid Timestamp: ${creationTimeText}. Setting to 0.`);
-                creationTime = BigInt(0);
-              }
-            } else {
-              console.warn(`Line ${i + 1} missing Timestamp. Setting to 0.`);
-              creationTime = BigInt(0);
-            }
-
-            const telegramUser = entry['Telegram'] ? entry['Telegram'] : null;
-            const ocProfile = entry['OpenChat'] ? entry['OpenChat'] : null;
-
-            const user: SerializedUserNFID = {
-              id: id,
-              ocCompleted: false,
-              telegramUser: telegramUser ? [telegramUser] : [],
-              ocProfile: ocProfile ? [ocProfile] : [],
-              discordUser: [],
-              creationTime: creationTime,
-              twitterhandle: [],
-              pfpProgress: "false",
-              twitterid: [],
-              nnsPrincipal: nnsPrincipal ? [nnsPrincipal] : [],
-              totalPoints: BigInt(0)
-            };
-
-            users.push(user);
-          }
-
-          await actorNfid.addPlaceholderUsers(users);
-          console.log('NFID users successfully uploaded.');
-
-        } catch (error) {
-          console.error('Error processing NFID CSV file:', error);
-        }
-      };
-
-      reader.readAsText(file);
+    try {
+      const principal = Principal.fromText(adminIdInput);
+      if (actor) {
+        await actor.addAdminId(principal);
+        alert("Admin added successfully.");
+        setAdminIdInput(""); // clear the input field after success
+      } else {
+        alert("Actor is not ready yet.");
+      }
+    } catch (error) {
+      console.error("Error adding admin ID:", error);
+      alert("Failed to add admin. Please check the Principal ID and try again.");
     }
   };
 
@@ -585,12 +482,6 @@ function App() {
               <button onClick={handleButtonClick}>Upload Progress JSON File</button>
             </div>
 
-            {/* CSV File Upload */}
-            <div>
-              <input id="hiddenCSVInput" type="file" accept=".csv" onChange={handleCSVUpload} style={{ display: 'none' }} />
-              <button onClick={handleCSVButtonClick}>Upload NFID CSV</button>
-            </div>
-
             {/* Image Upload Section */}
             <div>
               <input
@@ -601,6 +492,17 @@ function App() {
                 style={{ display: 'none' }}
               />
               <button onClick={handleImageButtonClick}>Upload Image</button>
+            </div>
+
+            {/* Add Admin ID Section */}
+            <div>
+              <input
+                type="text"
+                value={adminIdInput}
+                onChange={(e) => setAdminIdInput(e.target.value)}
+                placeholder="Enter Principal ID"
+              />
+              <button onClick={handleAddAdminId}>Add admin id</button>
             </div>
 
             {/* Display Success Text */}

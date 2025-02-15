@@ -7,7 +7,7 @@ import missionFunctions from '../MissionFunctionsComponent.ts';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
-import { SerializedMission as SerializedMissionDefault } from '../../../../../declarations/nfid/nfid.did.js';
+import { SerializedMissionV2 as SerializedMissionDefault } from '../../../../../declarations/oisy_backend/oisy_backend.did.js';
 import { useIdentityKit } from '@nfid/identitykit/react';
 
 declare global {

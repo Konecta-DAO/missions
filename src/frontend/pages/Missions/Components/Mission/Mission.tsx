@@ -36,8 +36,6 @@ const Mission: React.FC<MissionProps> = ({ mission, handleCardClick, handleMouse
     );
     const { requiredMissionCompleted, requiredMissionTitle } =
         checkRequiredMissionCompletion(globalID, mission);
-    const { isRecursiveMissionDarkened } =
-        checkRecursiveMission(mission, missionCompleted);
 
     // Determine mission availability and tooltip text
     const isAvailableMission = !missionCompleted && requiredMissionCompleted;

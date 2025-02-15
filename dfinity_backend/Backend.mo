@@ -38,14 +38,6 @@ actor class Backend() {
 
   stable var serializedVerified : [(Principal, Bool)] = [];
 
-  private var nfidVaults : TrieMap.TrieMap<Principal, Principal> = TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
-
-  stable var serializednfidVaults : [(Principal, Principal)] = [];
-
-  stable var twitterVerifiedNFID : [Principal] = [];
-
-  stable var discordVerifiedNFID : [Principal] = [];
-
   stable var mission2Text : Text = "";
 
   public shared (msg) func getMission2Text() : async Text {
@@ -53,60 +45,6 @@ actor class Backend() {
       return mission2Text;
     };
     return "";
-  };
-
-  public shared (msg) func addNfidVault(userId : Principal, vault : Principal) : async () {
-    if (isAdmin(msg.caller)) {
-      nfidVaults.put(userId, vault);
-    };
-  };
-
-  public shared query (msg) func getNfidVault(userId : Principal) : async Text {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      let theVault = nfidVaults.get(userId);
-      switch (theVault) {
-        case (?theVault) {
-          return Principal.toText(theVault);
-        };
-        case null {
-          return "";
-        };
-      };
-    };
-    return "";
-  };
-
-  public shared (msg) func addTwitterVerifiedNFID(newTWVerifiedUser : Principal) : async () {
-    if (isAdmin(msg.caller)) {
-      twitterVerifiedNFID := Array.append<Principal>(twitterVerifiedNFID, [newTWVerifiedUser]);
-    };
-  };
-
-  public shared (msg) func isTwitterVerifiedNFID(principalId : Principal) : async Bool {
-    if (isAdmin(msg.caller) or principalId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      return Array.find<Principal>(
-        twitterVerifiedNFID,
-        func(id) : Bool {
-          id == principalId;
-        },
-      ) != null;
-    };
-    return false;
-  };
-
-  public shared func isDCVerifiedNFID(principalId : Principal) : async Bool {
-    return Array.find<Principal>(
-      discordVerifiedNFID,
-      func(id) : Bool {
-        id == principalId;
-      },
-    ) != null;
-  };
-
-  public shared (msg) func addDiscordVerifiedNFID(newDCVerifiedUser : Principal) : async () {
-    if (isAdmin(msg.caller)) {
-      discordVerifiedNFID := Array.append<Principal>(discordVerifiedNFID, [newDCVerifiedUser]);
-    };
   };
 
   stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
@@ -149,6 +87,10 @@ actor class Backend() {
       return adminIds;
     };
     return [];
+  };
+
+  public query func getVersion() : async Text {
+    return "V2.0";
   };
 
   public query (msg) func hasVerified(userId : Principal) : async Bool {
@@ -287,9 +229,6 @@ actor class Backend() {
     let verifiedEntries = verified.entries();
     serializedVerified := Iter.toArray(verifiedEntries);
 
-    let nfidVaultEntries = nfidVaults.entries();
-    serializednfidVaults := Iter.toArray(nfidVaultEntries);
-
     let streakEntries = streak.entries();
     serializedstreak := Iter.toArray(streakEntries);
 
@@ -393,16 +332,6 @@ actor class Backend() {
     };
 
     serializedVerified := [];
-
-    // NFID Vaults
-
-    nfidVaults := TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
-
-    for ((principal, principalnfid) in Iter.fromArray(serializednfidVaults)) {
-      nfidVaults.put(principal, principalnfid);
-    };
-
-    serializednfidVaults := [];
 
     streak := TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
 
@@ -747,7 +676,7 @@ actor class Backend() {
   public shared query (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == missionId) {
           var thismission = mission;
 
@@ -852,19 +781,19 @@ actor class Backend() {
     return "Nice try lmao";
   };
 
-  stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
+  stable var missionsV2 : Vector.Vector<Types.MissionV2> = Vector.new<Types.MissionV2>();
 
-  public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMission) : async () {
+  public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMissionV2) : async () {
     if (isAdmin(msg.caller)) {
       // Convert SerializedMission to a mutable Mission
-      let newDeserializedMission = Serialization.deserializeMission(newMission);
+      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
 
       // Check if the mission already exists in the vector
       var missionFound = false;
 
-      let size = Vector.size(missions);
+      let size = Vector.size(missionsV2);
       for (i in Iter.range(0, size - 1)) {
-        let existingMissionOpt = Vector.get(missions, i); // This returns ?Mission
+        let existingMissionOpt = Vector.get(missionsV2, i); // This returns ?Mission
 
         // Properly handle the optional ?Mission value
         switch (existingMissionOpt) {
@@ -872,7 +801,7 @@ actor class Backend() {
             // Unwrap the Mission
             if (mission.id == newMission.id) {
               // Update the existing mission using Vector.put
-              Vector.put(missions, i, newDeserializedMission);
+              Vector.put(missionsV2, i, newDeserializedMission);
               missionFound := true;
             };
           };
@@ -881,29 +810,29 @@ actor class Backend() {
 
       // If the mission was not found, add a new one
       if (not missionFound) {
-        Vector.add<Types.Mission>(missions, newDeserializedMission);
+        Vector.add<Types.MissionV2>(missionsV2, newDeserializedMission);
       };
     };
 
     return;
   };
 
-  public shared query (msg) func getAllMissions() : async [Types.SerializedMission] {
+  public shared query (msg) func getAllMissions() : async [Types.SerializedMissionV2] {
     if (not Principal.isAnonymous(msg.caller)) {
       if (isAdmin(msg.caller)) {
-        return Array.map<Types.Mission, Types.SerializedMission>(Vector.toArray(missions), Serialization.serializeMission);
+        return Array.map<Types.MissionV2, Types.SerializedMissionV2>(Vector.toArray(missionsV2), Serialization.serializeMissionV2);
       } else {
-        let filteredMissions = Array.filter<Types.Mission>(
-          Vector.toArray(missions),
-          func(mission : Types.Mission) : Bool {
+        let filteredMissions = Array.filter<Types.MissionV2>(
+          Vector.toArray(missionsV2),
+          func(mission : Types.MissionV2) : Bool {
             mission.startDate <= Time.now();
           },
         );
 
-        return Array.map<Types.Mission, Types.SerializedMission>(
+        return Array.map<Types.MissionV2, Types.SerializedMissionV2>(
           filteredMissions,
-          func(mission : Types.Mission) : Types.SerializedMission {
-            let serialized = Serialization.serializeMission(mission);
+          func(mission : Types.MissionV2) : Types.SerializedMissionV2 {
+            let serialized = Serialization.serializeMissionV2(mission);
             let updatedSerialized = { serialized with secretCodes = null };
             return updatedSerialized;
           },
@@ -913,17 +842,17 @@ actor class Backend() {
     return [];
   };
 
-  public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMission {
+  public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMissionV2 {
     if (isAdmin(msg.caller)) {
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == id) {
-          return ?Serialization.serializeMission(mission);
+          return ?Serialization.serializeMissionV2(mission);
         };
       };
     } else {
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == id and mission.startDate <= Time.now()) {
-          return ?Serialization.serializeMission(mission);
+          return ?Serialization.serializeMissionV2(mission);
         };
       };
     };
@@ -932,13 +861,13 @@ actor class Backend() {
 
   public shared query (msg) func getMissionPoints(id : Nat) : async Int {
     if (isAdmin(msg.caller)) {
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == id) {
           return mission.points;
         };
       };
     } else {
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == id and mission.startDate <= Time.now()) {
           return mission.points;
         };
@@ -949,7 +878,7 @@ actor class Backend() {
 
   public shared (msg) func resetMissions() : async () {
     if (isAdmin(msg.caller)) {
-      Vector.clear(missions); // Clear all missions
+      Vector.clear(missionsV2); // Clear all missions
       missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
     };
     return;
@@ -982,23 +911,6 @@ actor class Backend() {
 
   stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
 
-  stable var placeholderUsers : Vector.Vector<Types.User> = Vector.new<Types.User>();
-
-  public shared (msg) func addPlaceholderUsers(pusers : [Types.SerializedUser]) : async () {
-    if (isAdmin(msg.caller)) {
-
-      for (placeholderUser in Iter.fromArray(pusers)) {
-        Vector.add<Types.User>(placeholderUsers, Serialization.deserializeUser(placeholderUser));
-      };
-    };
-  };
-
-  public shared (msg) func resetPlaceholderUsers() : async () {
-    if (isAdmin(msg.caller)) {
-      placeholderUsers := Vector.new<Types.User>();
-    };
-  };
-
   public shared (msg) func addUser(userId : Principal) : async (?Types.SerializedUser) {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
@@ -1026,133 +938,9 @@ actor class Backend() {
     return null;
   };
 
-  public shared (msg) func nfidMainMission(userId : Principal, tg : Text, oc : Text, nns : Principal) : async Text {
-    if (isAdmin(msg.caller)) {
-      let vtw = await isTwitterVerifiedNFID(userId);
-      if (vtw) {
-        let vdc = await isDCVerifiedNFID(userId);
-        if (vdc) {
-          let serializedUser = await getUser(userId);
-          switch (serializedUser) {
-            case (?serializedUser) {
-              let user = Serialization.deserializeUser(serializedUser);
-              let placeHuser = await getPlaceholderUser(userId);
-              switch (placeHuser) {
-                case (?placeHuser) {
-                  let newUser : Types.User = {
-                    id = userId;
-                    var twitterid = user.twitterid;
-                    var twitterhandle = user.twitterhandle;
-                    creationTime = Time.now();
-                    var pfpProgress = "false";
-                    var totalPoints = 65;
-                    var ocProfile = ?oc;
-                    var ocCompleted = false;
-                    var discordUser = user.discordUser;
-                    var telegramUser = ?tg;
-                    var nnsPrincipal = ?nns;
-                  };
-                  var i = 0;
-                  while (i < Vector.size(users)) {
-                    switch (Vector.getOpt(users, i)) {
-                      case (?user) {
-                        if (user.id == userId) {
-                          Vector.put(users, i, newUser);
-                        };
-                      };
-                      case _ {};
-                    };
-                    i += 1;
-                  };
-
-                  let firstMissionRecord : Types.MissionRecord = {
-                    var timestamp = Time.now();
-                    var pointsEarned = 65;
-                    var tweetId = null;
-                  };
-
-                  let firstMissionProgress : Types.Progress = {
-                    var completionHistory = [firstMissionRecord];
-                    var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-                  };
-
-                  let tempP = Serialization.serializeProgress(firstMissionProgress);
-
-                  await updateUserProgress(userId, 0, tempP);
-                  await verifyUser(userId);
-                  return "Success";
-                };
-                case (null) {
-                  let newUser : Types.User = {
-                    id = userId;
-                    var twitterid = user.twitterid;
-                    var twitterhandle = user.twitterhandle;
-                    creationTime = Time.now();
-                    var pfpProgress = "false";
-                    var totalPoints = 65;
-                    var ocProfile = ?oc;
-                    var ocCompleted = false;
-                    var discordUser = user.discordUser;
-                    var telegramUser = ?tg;
-                    var nnsPrincipal = ?nns;
-                  };
-                  var i = 0;
-                  while (i < Vector.size(users)) {
-                    switch (Vector.getOpt(users, i)) {
-                      case (?user) {
-                        if (user.id == userId) {
-                          Vector.put(users, i, newUser);
-                        };
-                      };
-                      case _ {};
-                    };
-                    i += 1;
-                  };
-
-                  let firstMissionRecord : Types.MissionRecord = {
-                    var timestamp = Time.now();
-                    var pointsEarned = 65;
-                    var tweetId = null;
-                  };
-
-                  let firstMissionProgress : Types.Progress = {
-                    var completionHistory = [firstMissionRecord];
-                    var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-                  };
-
-                  let tempP = Serialization.serializeProgress(firstMissionProgress);
-
-                  await updateUserProgress(userId, 0, tempP);
-                  await verifyUser(userId);
-                  return "Success";
-                };
-              };
-            };
-            case (null) {
-              return "no user";
-            };
-          };
-
-        } else {
-          return "Discord Not Verified";
-        };
-      } else {
-        return "Twitter Not Verified";
-      };
-    };
-    return "";
-  };
-
   public shared query (msg) func getUsers() : async [Types.SerializedUser] {
     if (isAdmin(msg.caller)) {
       return Array.map<Types.User, Types.SerializedUser>(Vector.toArray(users), Serialization.serializeUser);
-    };
-    return [];
-  };
-
-  public shared query (msg) func getPlaceholderUsers() : async [Types.SerializedUser] {
-    if (isAdmin(msg.caller)) {
-      return Array.map<Types.User, Types.SerializedUser>(Vector.toArray(placeholderUsers), Serialization.serializeUser);
     };
     return [];
   };
@@ -1421,111 +1209,6 @@ actor class Backend() {
     return ("", 0, 0);
   };
 
-  public shared query (msg) func getPlaceholderUser(userId : Principal) : async ?Types.SerializedUser {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      for (user in Vector.vals(placeholderUsers)) {
-        if (user.id == userId) {
-          return ?Serialization.serializeUser(user);
-        };
-      };
-    };
-    return null;
-  };
-
-  public shared query (msg) func isTwitterIdUsed(twitterhandle : Text) : async Bool {
-    if (isAdmin(msg.caller)) {
-      for (user in Vector.vals(users)) {
-        switch (user.twitterhandle) {
-          case (?handle) {
-            if (handle == twitterhandle) {
-              return true;
-            };
-          };
-          case null {};
-        };
-      };
-    };
-    return false;
-  };
-
-  public shared query (msg) func isDiscordIdUsed(discordhandle : Text) : async Bool {
-    if (isAdmin(msg.caller)) {
-      for (user in Vector.vals(users)) {
-        switch (user.discordUser) {
-          case (?handle) {
-            if (handle == discordhandle) {
-              return true;
-            };
-          };
-          case null {};
-        };
-      };
-    };
-    return false;
-  };
-
-  public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
-    if (isAdmin(msg.caller)) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == principalId) {
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = ?twitterId;
-                var twitterhandle = ?twitterHandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = user.ocCompleted;
-                var discordUser = user.discordUser;
-                var telegramUser = user.telegramUser;
-                var nnsPrincipal = user.nnsPrincipal;
-              };
-              Vector.put(users, i, updatedUser);
-              return;
-            };
-          };
-          case _ {};
-        };
-        i += 1;
-      };
-    };
-  };
-
-  public shared (msg) func addDiscordInfo(principalId : Principal, discordHandle : Text) : async () {
-    if (isAdmin(msg.caller)) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == principalId) {
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = user.ocCompleted;
-                var discordUser = ?discordHandle;
-                var telegramUser = user.telegramUser;
-                var nnsPrincipal = user.nnsPrincipal;
-              };
-              Vector.put(users, i, updatedUser);
-              return;
-            };
-          };
-          case _ {};
-        };
-        i += 1;
-      };
-    };
-  };
-
   public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
     let path = req.url;
 
@@ -1608,7 +1291,7 @@ actor class Backend() {
 
       // 4. Prepare the headers for the request
       let host : Text = "do.konecta.one";
-      let url = "https://" # host # "/twitterstuff";
+      let url = "https://" # host # "/dfinityPTW";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
       let body : Blob = Text.encodeUtf8(payloadJson);
@@ -1731,38 +1414,6 @@ actor class Backend() {
     return "";
   };
 
-  public shared (msg) func addOCProfile(userId : Principal, ocprofile : Text) : async () {
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == userId) {
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints;
-                var ocProfile = ?ocprofile;
-                var ocCompleted = user.ocCompleted;
-                var discordUser = user.discordUser;
-                var telegramUser = user.telegramUser;
-                var nnsPrincipal = user.nnsPrincipal;
-              };
-              Vector.put(users, i, updatedUser);
-              return;
-            };
-          };
-          case _ {};
-        };
-        i += 1;
-      };
-    };
-
-  };
-
   public query func availableCycles() : async Nat {
     return Cycles.balance();
   };
@@ -1807,9 +1458,6 @@ actor class Backend() {
       Vector.clear(users);
       userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
       verified := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
-      twitterVerifiedNFID := [];
-      discordVerifiedNFID := [];
-      placeholderUsers := Vector.new<Types.User>();
       return;
     };
   };

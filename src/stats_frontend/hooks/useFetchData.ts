@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActorSubclass } from "@dfinity/agent";
-import { SerializedUser, SerializedMission } from '../../declarations/backend/backend.did.js';
+import { SerializedUser, SerializedMissionV2 } from '../../declarations/backend/backend.did.js';
 
 export const useFetchData = (backend: ActorSubclass<any>) => {
   const [users, setUsers] = useState<SerializedUser[]>([]);
-  const [missions, setMissions] = useState<SerializedMission[]>([]);
+  const [missions, setMissions] = useState<SerializedMissionV2[]>([]);
   const [adminIds, setAdminIds] = useState<string[]>([]);
   const [missionsCompleted, setMissionsCompleted] = useState<number>(0);
   const [missionCounts, setMissionCounts] = useState<number[]>([]);
@@ -13,7 +13,7 @@ export const useFetchData = (backend: ActorSubclass<any>) => {
     const users = await backend.getUsers() as SerializedUser[];
     setUsers(users);
 
-    const missions = await backend.getAllMissions() as SerializedMission[];
+    const missions = await backend.getAllMissions() as SerializedMissionV2[];
     setMissions(missions);
 
     const adminIds = await backend.getAdminIds() as string[];

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Missions.module.scss';
 import OpenChat from '../../../components/OpenChatComponent.tsx';
 import useLoadingProgress from '../../../utils/useLoadingProgress.ts';
@@ -9,7 +9,7 @@ import { ProjectData, useGlobalID } from '../../../hooks/globalID.tsx';
 import { useIdentityKit } from "@nfid/identitykit/react";
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryDefault } from '../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../declarations/dfinity_backend/index.js';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import MissionGridComponent from './MissionGrid.tsx';
 import TopBar from './Components/TopBar/TopBar.tsx';
@@ -44,7 +44,7 @@ const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const { user, identity } = useIdentityKit();
     const navigate = useNavigate();
-
+    const location = useLocation();
 
     const fetchData = useFetchData();
     const [dataloaded, setDataloaded] = useState(false);
@@ -111,7 +111,9 @@ const Missions: React.FC = () => {
 
                 if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
                     disconnect();
-                    navigate('/konnect');
+                    navigate('/konnect', {
+                        state: { from: location.pathname }
+                    });
                 } else {
                     const mappedProjects: ProjectData[] = projects.map((project) => ({
                         id: project.canisterId.toText(),
@@ -127,7 +129,9 @@ const Missions: React.FC = () => {
 
             } else {
                 // User is not logged in; redirect to home page
-                navigate('/konnect');
+                navigate('/konnect', {
+                    state: { from: location.pathname } 
+                });
             }
         }, 1000); // Wait for 1000ms before proceeding
 

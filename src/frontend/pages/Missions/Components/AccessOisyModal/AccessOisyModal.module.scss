@@ -1,0 +1,118 @@
+.ModalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.ModalContent {
+    background-color: #151320;
+    border-radius: 50px;
+    position: relative;
+    z-index: 1001;
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 550px;
+    max-height: 600px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: none;
+    animation: slideIn 0.5s ease-out forwards;
+    padding: 3%;
+    transition: all 0.5s ease-out;
+}
+
+.ModalContent.hide {
+    animation: slideOut 0.5s ease-out forwards;
+}
+
+.CloseButton {
+    position: absolute;
+    top: 2%;
+    right: 5%;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: white;
+    transition: color 0.3s ease;
+}
+
+.CloseButton:hover {
+    color: #ff4d4f;
+}
+
+.ContentWrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    width: 100%;
+}
+
+.ModalTitle {
+    color: #fff;
+    font-size: 2rem;
+    margin: 20px 0 30px;
+    text-align: center;
+    line-height: 1.15;
+}
+
+.connectButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    outline: none;
+    background-color: #0066ff;
+}
+
+.connectButton:hover {
+    background-color: #0052cc;
+    transform: translateY(-2px);
+}
+
+.oisyLogo {
+    width: 24px;
+    height: auto;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes slideIn {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}

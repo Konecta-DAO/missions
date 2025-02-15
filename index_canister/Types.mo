@@ -1,3 +1,6 @@
+import Vector "mo:vector";
+import TrieMap "mo:base/TrieMap";
+
 module Types {
 
   public type Icrc28TrustedOriginsResponse = {
@@ -18,6 +21,50 @@ module Types {
     creationTime : Int;
     status : Text;
     icon : Text;
+  };
+
+  public type User = {
+    var twitterid : ?Nat; // Twitter ID
+    var twitterhandle : ?Text; // Twitter Handle
+    creationTime : Int; // Creation Time in Nanoseconds
+    var pfpProgress : Text;
+    var deducedPoints : Nat;
+    var ocProfile : ?Text;
+    var discordUser : ?Text;
+    var telegramUser : ?Text;
+    var nnsPrincipal : ?Principal;
+    var firstname : ?Text;
+    var lastname : ?Text;
+    var username : ?Text;
+    var email : ?Text;
+    var bio : ?Text;
+    var categories : ?[Text];
+    var profilepic : ?Text;
+    var coverphoto : ?Text;
+    var country : ?Text;
+    var timezone : ?Text;
+  };
+
+  public type SerializedUser = {
+    twitterid : ?Nat;
+    twitterhandle : ?Text;
+    creationTime : Int;
+    pfpProgress : Text;
+    deducedPoints : Nat;
+    ocProfile : ?Text;
+    discordUser : ?Text;
+    telegramUser : ?Text;
+    nnsPrincipal : ?Principal;
+    firstname : ?Text;
+    lastname : ?Text;
+    username : ?Text;
+    email : ?Text;
+    bio : ?Text;
+    categories : ?[Text];
+    profilepic : ?Text;
+    coverphoto : ?Text;
+    country : ?Text;
+    timezone : ?Text;
   };
 
   // HTTP Request Types
@@ -96,6 +143,148 @@ module Types {
     handle : Text;
     fontType : Text;
     avatar : Text;
+  };
+
+  public type KonectaMissionV2 = {
+    var id : Nat; // Mission Number
+    var title : Text; // Title of the Mission
+    var description : Text; // Description of the Mission
+    var obj1 : ?Text; // Text for First Button or Input (optional)
+    var obj2 : Text; // Text for Second Button (optional)
+    var inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
+    var startDate : Int; // Start date of the mission (Unix timestamp)
+    var endDate : Int; // End date of the mission (Unix timestamp)
+    var recursive : Bool; // If the mission is recursive
+    var mintime : Int; // Minimum time to earn on the mission
+    var maxtime : Int; // Maximum time to earn on the mission
+    var functionName1 : ?Text; // Function Name to call on First Button (optional)
+    var functionName2 : Text; // Function Name to call on Second Button (optional)
+    var image : Text; // Image for the mission
+    var secretCodes : ?Text; // List of secret codes for the mission (optional)
+    var mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    var requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
+    var iconUrl : Text;
+    var token : Bool;
+    var subAccount : ?[Int8];
+    var subMissions : ?Vector.Vector<MissionV2>;
+    var maxUsers : ?Nat;
+    var usersThatCompleted : ?[(Principal, Int)];
+    var status : Text;
+    creationTime : Int;
+  };
+
+  public type KonectaSerializedMissionV2 = {
+    id : Nat; // Mission Number
+    title : Text; // Title of the Mission
+    description : Text; // Description of the Mission
+    obj1 : ?Text; // Text for First Button or Input (optional)
+    obj2 : Text; // Text for Second Button (optional)
+    inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
+    startDate : Int; // Start date of the mission (Unix timestamp)
+    endDate : Int; // End date of the mission (Unix timestamp)
+    recursive : Bool; // If the mission is recursive
+    mintime : Int; // Minimum time to earn on the mission
+    maxtime : Int; // Maximum time to earn on the mission
+    functionName1 : ?Text; // Function Name to call on First Button (optional)
+    functionName2 : Text; // Function Name to call on Second Button (optional)
+    image : Text; // Image for the mission
+    secretCodes : ?Text; // List of secret codes for the mission (optional)
+    mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
+    iconUrl : Text;
+    token : Bool;
+    subAccount : ?[Int8];
+    subMissions : ?[SerializedMissionV2];
+    maxUsers : ?Nat;
+    usersThatCompleted : ?[(Principal, Int)];
+    status : Text;
+    creationTime : Int;
+  };
+
+  public type MissionV2 = {
+    var id : Nat; // Mission Number
+    var title : Text; // Title of the Mission
+    var description : Text; // Description of the Mission
+    var obj1 : ?Text; // Text for First Button or Input (optional)
+    var obj2 : Text; // Text for Second Button (optional)
+    var inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
+    var startDate : Int; // Start date of the mission (Unix timestamp)
+    var endDate : Int; // End date of the mission (Unix timestamp)
+    var recursive : Bool; // If the mission is recursive
+    var points : Int;
+    var functionName1 : ?Text; // Function Name to call on First Button (optional)
+    var functionName2 : Text; // Function Name to call on Second Button (optional)
+    var image : Text; // Image for the mission
+    var secretCodes : ?Text; // List of secret codes for the mission (optional)
+    var mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    var requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
+    var iconUrl : Text;
+    var token : Bool;
+    var subAccount : ?[Int8];
+    var subMissions : ?Vector.Vector<MissionV2>;
+    var maxUsers : ?Nat;
+    var usersThatCompleted : ?[(Principal, Int)];
+    var status : Text;
+    creationTime : Int;
+  };
+
+  public type SerializedMissionV2 = {
+    id : Nat; // Mission Number
+    title : Text; // Title of the Mission
+    description : Text; // Description of the Mission
+    obj1 : ?Text; // Text for First Button or Input (optional)
+    obj2 : Text; // Text for Second Button (optional)
+    inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
+    startDate : Int; // Start date of the mission (Unix timestamp)
+    endDate : Int; // End date of the mission (Unix timestamp)
+    recursive : Bool; // If the mission is recursive
+    points : Int;
+    functionName1 : ?Text; // Function Name to call on First Button (optional)
+    functionName2 : Text; // Function Name to call on Second Button (optional)
+    image : Text; // Image for the mission
+    secretCodes : ?Text; // List of secret codes for the mission (optional)
+    mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
+    requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
+    iconUrl : Text;
+    token : Bool;
+    subAccount : ?[Int8];
+    subMissions : ?[SerializedMissionV2];
+    maxUsers : ?Nat;
+    usersThatCompleted : ?[(Principal, Int)];
+    status : Text;
+    creationTime : Int;
+  };
+
+  // Progress Types and Mission Related Types
+  public type Progress = {
+    var completionHistory : [MissionRecord]; // Array of records for each time the mission was completed
+    var usedCodes : TrieMap.TrieMap<Text, Bool>; // Map of secret codes the user has used (for the secret code mission)
+  };
+
+  public type MissionRecord = {
+    var timestamp : Int; // Timestamp when the mission was completed
+    var pointsEarned : Nat; // Points earned in this completion
+    var tweetId : ?Text; // Tweet ID for the completion
+  };
+
+  public type SerializedMissionRecord = {
+    timestamp : Int;
+    pointsEarned : Nat;
+    tweetId : ?Text;
+  };
+
+  public type SerializedProgress = {
+    completionHistory : [SerializedMissionRecord];
+    usedCodes : [(Text, Bool)];
+  };
+
+  public type LinkRequest = {
+    requester : Principal; // The account initiating the link request.
+    requesterType : Text; // Account Type
+    target : Principal; // The account to be linked.
+    targetType : Text; // Account Type
+    status : Text; // "pending", "accepted", or "rejected"
+    requestedAt : Int; // Timestamp when the request was made.
   };
 
 };

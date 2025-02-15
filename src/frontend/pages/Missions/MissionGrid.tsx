@@ -7,9 +7,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useGlobalID } from '../../../hooks/globalID.tsx';
 import MissionDefault from './Components/Mission/MissionDefault.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo Icon.svg';
-import { SerializedMission as KonectaSerializedMission } from '../../../declarations/backend/backend.did.js';
-import { SerializedMission as ProjectSerializedMission } from '../../../declarations/dfinity_backend/dfinity_backend.did.js';
+import { SerializedMissionV2 as KonectaSerializedMission } from '../../../declarations/backend/backend.did.js';
+import { SerializedMissionV2 as ProjectSerializedMission } from '../../../declarations/dfinity_backend/dfinity_backend.did.js';
 import { Principal } from '@dfinity/principal';
+import AccessOisyModal from './Components/AccessOisyModal/AccessOisyModal.tsx';
 
 type AnyMission = KonectaSerializedMission | ProjectSerializedMission;
 
@@ -30,6 +31,7 @@ const MissionGridComponent: React.FC = () => {
     const { projectSlug, missionSlug } = useParams<{ projectSlug?: string; missionSlug?: string }>();
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+    const [isOisyModalOpen, setIsOisyModalOpen] = useState(false);
 
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
@@ -41,6 +43,26 @@ const MissionGridComponent: React.FC = () => {
         if (projectSlug) {
             if (projectSlug.toLowerCase() === 'konecta') {
                 setSelectedProject('konecta');
+            } else if (projectSlug.toLowerCase() === 'oisy') {
+                // Check if principalId exists
+                if (globalID.principalId != null) {
+                    // Check if oisyWallet is an instance of Principal
+                    if (!(globalID.oisyWallet instanceof Principal)) {
+                        // Navigate back to home and do not set 'OISY' as selected project
+                        navigate('/');
+                        setSelectedProject(null);
+                        return;
+                    }
+                }
+                // Proceed to set 'OISY' as selected project if conditions are met
+                const project = globalID.projects.find(
+                    (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
+                );
+                if (project) {
+                    setSelectedProject(project.name);
+                } else {
+                    setSelectedProject(null);
+                }
             } else {
                 const project = globalID.projects.find(
                     (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
@@ -54,7 +76,7 @@ const MissionGridComponent: React.FC = () => {
         } else {
             setSelectedProject(null);
         }
-    }, [projectSlug, globalID.projects]);
+    }, [projectSlug, globalID.projects, globalID.principalId, globalID.oisyWallet]);
 
     const project = useMemo(() => {
         if (!projectSlug) return null;
@@ -136,7 +158,7 @@ const MissionGridComponent: React.FC = () => {
         }
     };
 
-    const handleProjectSelection = (projectId: string) => {
+    const handleProjectSelection = (projectId: string | null) => {
         if (selectedProject === projectId) {
             // Deselect the project and navigate to the home page
             setSelectedProject(null);
@@ -147,6 +169,17 @@ const MissionGridComponent: React.FC = () => {
             navigate(`/${projectId}`);
         }
     };
+
+    const openOisyModal = () => setIsOisyModalOpen(true);
+    const closeOisyModal = () => setIsOisyModalOpen(false);
+
+    const sortedProjects = useMemo(() => {
+        const projectsCopy = [...globalID.projects];
+        const oisyProjectIndex = projectsCopy.findIndex(p => p.name.toLowerCase() === 'oisy');
+        if (oisyProjectIndex === -1) return projectsCopy;
+        const [oisyProject] = projectsCopy.splice(oisyProjectIndex, 1);
+        return [oisyProject, ...projectsCopy];
+    }, [globalID.projects]);
 
     const displayedMissions: Array<{ mission: AnyMission; projectId: string }> = useMemo(() => {
         if (selectedProject === 'konecta') {
@@ -171,6 +204,14 @@ const MissionGridComponent: React.FC = () => {
     return (
         <>
             <div className={styles.ButtonBar}>
+                {isOisyModalOpen && <AccessOisyModal closeModal={closeOisyModal} />}
+                {/* All Button */}
+                <button
+                    className={selectedProject === null ? styles.ButtonActiveMission : styles.ButtonMission}
+                    onClick={() => handleProjectSelection(null)}
+                >
+                    All
+                </button>
                 {/* Konecta */}
                 <button
                     className={selectedProject === 'konecta' ? styles.ButtonActiveMission : styles.ButtonMission}
@@ -180,20 +221,23 @@ const MissionGridComponent: React.FC = () => {
                     Konecta
                 </button>
                 {/* Projects */}
-                {globalID.projects.map((proj) => {
+                {sortedProjects.map((proj) => {
                     const isOisy = proj.name === "OISY";
                     const isOisyWalletValid = globalID.oisyWallet instanceof Principal;
                     return (
                         <button
                             key={proj.id}
-                            className={selectedProject === proj.name ? styles.ButtonActiveMission : styles.ButtonMission}
+                            className={`
+                                ${selectedProject === proj.name ? styles.ButtonActiveMission : styles.ButtonMission}
+                                ${isOisy && !isOisyWalletValid ? styles.ButtonOisyInvalid : styles.ButtonMission}
+                              `}
                             onClick={() => {
                                 if (isOisy && !isOisyWalletValid) {
-                                    return;
+                                    openOisyModal();
+                                } else {
+                                    handleProjectSelection(proj.name);
                                 }
-                                handleProjectSelection(proj.name);
                             }}
-                            disabled={isOisy && !isOisyWalletValid}
                         >
                             <img src={'https://' + BASE_URL + '.raw.icp0.io' + proj.icon} className={styles.MissionIconB} />
                             {proj.name}

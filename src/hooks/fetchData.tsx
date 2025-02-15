@@ -1,6 +1,6 @@
 import { ActorSubclass } from '@dfinity/agent';
-import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMission as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/nfid/nfid.did.js';
+import { SerializedMissionV2, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
+import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
 import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
@@ -39,11 +39,12 @@ const useFetchData = () => {
     // Fetch missions
     const fetchMissions = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[]) => {
         // Start fetching all missions from the primary actor
-        const missionsPromise = actor.getAllMissions() as Promise<SerializedMission[]>;
+        const missionsPromise = actor.getAllMissions() as Promise<SerializedMissionV2[]>;
 
         // Start fetching missions for each actor
         const projectMissionsPromises = actors.map(async (a, index) => {
-            const projectMissions = await a.getAllMissions() as SerializedMissionDefault[];
+            const projectMissionsRaw = await a.getAllMissions();
+            const projectMissions = projectMissionsRaw as SerializedMissionDefault[];
             const projectId = targets[index];
 
             setMissionsForProject(projectId, projectMissions);

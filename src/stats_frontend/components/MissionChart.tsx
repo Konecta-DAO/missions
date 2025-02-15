@@ -1,9 +1,9 @@
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
-import { SerializedMission } from '../../declarations/backend/backend.did.js';
+import { SerializedMissionV2 } from '../../declarations/backend/backend.did.js';
 
 interface MissionChartProps {
-  missions: SerializedMission[];
+  missions: SerializedMissionV2[];
   missionCounts: number[];
 }
 

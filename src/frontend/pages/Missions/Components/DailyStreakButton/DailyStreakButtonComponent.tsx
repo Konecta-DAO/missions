@@ -3,7 +3,7 @@ import React, { act, useEffect, useRef, useState } from 'react';
 import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { formatTimeRemaining } from '../../../../../components/Utilities.tsx';
 import { canisterId, idlFactory } from '../../../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryDefault } from '../../../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../../../declarations/dfinity_backend/index.js';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import useFetchData from '../../../../../hooks/fetchData.tsx';

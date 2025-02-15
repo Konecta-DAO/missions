@@ -1,8 +1,8 @@
-import { SerializedMission, SerializedProgress } from "../../../declarations/backend/backend.did.js";
-import { SerializedMission as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault } from '../../../declarations/nfid/nfid.did.js';
+import { SerializedMissionV2, SerializedProgress } from "../../../declarations/backend/backend.did.js";
+import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault } from '../../../declarations/oisy_backend/oisy_backend.did.js';
 
 // Utility function to check mission completion
-export const checkMissionCompletion = (userProgress: any, mission: SerializedMission): boolean => {
+export const checkMissionCompletion = (userProgress: any, mission: SerializedMissionV2): boolean => {
     if (!mission) {
         return false;
     }

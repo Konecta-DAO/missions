@@ -8,7 +8,7 @@ import useFetchData from '../hooks/fetchData.tsx';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import { useNavigate } from 'react-router-dom';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../declarations/index/index.did.js';
-import { idlFactory as idlFactoryDefault } from '../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDefault } from '../declarations/dfinity_backend/index.js';
 
 const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 

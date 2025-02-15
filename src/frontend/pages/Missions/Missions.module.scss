@@ -498,6 +498,24 @@
     left: 5%;
 }
 
+.IcpDisplay {
+    display: flex;
+    align-items: center;
+}
+
+.IcpIcon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+.ButtonOisyInvalid {
+    background-color: black;
+    color: white;
+
+}
+
+
 @media (max-width: 1280px) {
     .MissionGrid {
         grid-template-columns: 1fr;

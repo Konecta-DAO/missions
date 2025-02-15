@@ -1,8 +1,8 @@
 import React from 'react';
-import { SerializedMission } from '../../declarations/backend/backend.did.js';
+import { SerializedMissionV2 } from '../../declarations/backend/backend.did.js';
 
 interface MissionListProps {
-    missions: SerializedMission[];
+    missions: SerializedMissionV2[];
 }
 
 const MissionList: React.FC<MissionListProps> = ({ missions }) => {

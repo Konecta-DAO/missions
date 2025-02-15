@@ -4,10 +4,12 @@ import { useLocation } from 'react-router-dom';
 import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedMission } from '../../../../../declarations/nfid/nfid.did.ts';
+import type { SerializedMissionV2 } from '../../../../../declarations/oisy_backend/oisy_backend.did.js';
+import IcpIcon from '../../../../../../public/assets/icp_logo.svg';
+
 
 interface MissionProps {
-    mission: SerializedMission;
+    mission: SerializedMissionV2;
     handleCardClick: () => void;
     handleMouseMove: (e: React.MouseEvent, content: string | null) => void;
     handleMouseLeave: () => void;
@@ -47,7 +49,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
         (isOisyProject && !isOisyWalletValid);
 
     // Determine mission availability and tooltip text
-    const isAvailableMission = !missionCompleted && requiredMissionCompleted;
+    const isAvailableMission = !missionCompleted && requiredMissionCompleted && !isMissionLocked;
 
     let tooltipText: string | null = null;
 
@@ -64,7 +66,6 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     const countdownLabel = mission.recursive
         ? 'This Mission will reset in'
         : 'This Mission ends in';
-
 
     // Effect for countdown timer
     useEffect(() => {
@@ -100,13 +101,16 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
         return null;
     }
 
-    const missionClass = isRecursiveCompleted
-        ? styles.IncompleteMission
-        : missionCompleted
-            ? styles.CompletedMission
-            : requiredMissionCompleted
-                ? styles.AvailableMission
-                : styles.IncompleteMission;
+    let missionClass = styles.IncompleteMission;
+    if (isRecursiveCompleted) {
+        missionClass = styles.IncompleteMission;
+    } else if (missionCompleted) {
+        missionClass = styles.CompletedMission;
+    } else if (isAvailableMission) {
+        missionClass = styles.AvailableMission;
+    } else {
+        missionClass = styles.IncompleteMission;
+    }
 
     const formatRemainingTime = (seconds: number): string => {
         const days = Math.floor(seconds / (3600 * 24));
@@ -192,7 +196,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             </div>
 
             {/* Smaller Circle */}
-            {(missionCompleted || !requiredMissionCompleted) && (
+            {(missionCompleted || !requiredMissionCompleted || isMissionLocked) && (
                 <svg
                     className={styles.SmallMissionCircle}
                     viewBox="0 0 100 100"
@@ -312,7 +316,18 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
 
             {/* Time Display at Bottom Left Corner */}
             <div className={styles.TimeDisplay}>
-                {Number(mission.points)} points
+                {mission.token ? (
+                    <div className={styles.IcpDisplay}>
+                        <img
+                            src={IcpIcon}
+                            alt="ICP Icon"
+                            className={styles.IcpIcon}
+                        />
+                        {(Number(mission.points) / 10 ** 8)} ICP
+                    </div>
+                ) : (
+                    `${Number(mission.points)} points`
+                )}
             </div>
             {/* Countdown Timer at Bottom Right Corner */}
             {endDateMs > 0 && remainingTime !== null && remainingTime > 0 && (

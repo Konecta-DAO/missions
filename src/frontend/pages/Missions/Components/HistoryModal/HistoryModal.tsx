@@ -4,7 +4,8 @@ import { convertSecondsToHMS, formatDate } from '../../../../../components/Utili
 import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.webp';
 import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
 import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedMission, SerializedMissionRecord, SerializedProgress, SerializedUserStreak } from '../../../../../declarations/backend/backend.did.js';
+import { SerializedMissionV2, SerializedMissionRecord, SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
+import IcpIcon from '../../../../../../public/assets/icp_logo.svg';
 
 interface HistoryModalProps {
     closeModal: () => void;
@@ -18,7 +19,7 @@ interface AllEntryBase {
 interface MissionEntry extends AllEntryBase {
     type: 'mission';
     missionId: bigint;
-    mission: SerializedMission;
+    mission: SerializedMissionV2;
     record: SerializedMissionRecord;
     formattedTitle: string;
 }
@@ -30,6 +31,7 @@ interface StreakEntry extends AllEntryBase {
 interface MapEntry extends AllEntryBase {
     type: 'map';
     canisterID: string;
+    missionId: bigint;
 }
 
 
@@ -46,6 +48,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
     };
 
     const constructTweetUrl = (tweetId: string) => `https://twitter.com/i/web/status/${tweetId}`;
+
+    const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
 
     const projectsMap = useMemo(() => {
         const map = new Map<string, ProjectData>();
@@ -112,6 +116,37 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
             return Array.isArray(element) && element.length === 1 && Array.isArray(element[0]) && element[0].length === 2 && typeof element[0][0] === 'bigint';
         }
 
+        function isArrayOfTuples(element: any): element is [bigint, SerializedProgress][] {
+            return (
+                Array.isArray(element) &&
+                element.every(
+                    (item) =>
+                        Array.isArray(item) &&
+                        item.length === 2 &&
+                        typeof item[0] === 'bigint' &&
+                        typeof item[1] === 'object'
+                )
+            );
+        }
+
+        function handleOneMission(
+            missionId: bigint,
+            progress: SerializedProgress,
+            canisterID: string,
+        ) {
+            if (progress?.completionHistory) {
+                progress.completionHistory.forEach((record: SerializedMissionRecord) => {
+                    allEntries.push({
+                        type: 'map',
+                        timestamp: record.timestamp,
+                        pointsEarned: record.pointsEarned,
+                        canisterID,
+                        missionId,
+                    });
+                });
+            }
+        }
+
 
         // Process userProgressMap
         if (userProgressMap) {
@@ -119,33 +154,23 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                 if (progressArray && Array.isArray(progressArray)) {
                     progressArray.forEach((progressElement, progressIndex) => {
 
-                        let timestamp: bigint;
-                        let progress: SerializedProgress;
-
                         if (isProgressElementTuple(progressElement)) {
                             // Case 1: Direct tuple
-                            [timestamp, progress] = progressElement;
+                            const [missionId, progress] = progressElement;
+                            handleOneMission(missionId, progress, key);
                         }
                         else if (isProgressElementNested(progressElement)) {
                             // Case 2: Nested tuple
-                            [timestamp, progress] = progressElement[0] as [bigint, SerializedProgress];
-                        }
-                        else {
+                            const [missionId, progress] = progressElement[0] as [bigint, SerializedProgress];
+                            handleOneMission(missionId, progress, key);
+                        } else if (isArrayOfTuples(progressElement)) {
+                            // Case 3: Array of multiple tuples [[timestamp, progress], [timestamp, progress], ...]
+                            (progressElement as [bigint, SerializedProgress][]).forEach(([missionId, progress]) =>
+                                handleOneMission(missionId, progress, key)
+                            );
+                        } else {
                             console.warn(`Unexpected structure for progressElement at key "${key}", progressIndex ${progressIndex}:`, progressElement);
                             return; // Skip this element
-                        }
-
-                        if (progress && Array.isArray(progress.completionHistory)) {
-                            progress.completionHistory.forEach((record: SerializedMissionRecord) => {
-                                allEntries.push({
-                                    type: 'map',
-                                    timestamp: record.timestamp,
-                                    pointsEarned: record.pointsEarned,
-                                    canisterID: key, // Associate with canisterID
-                                });
-                            });
-                        } else {
-                            console.warn(`Missing or invalid completionHistory in userProgressMap for key "${key}", progressIndex ${progressIndex}.`, progress);
                         }
                     });
                 } else {
@@ -217,21 +242,33 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                             </div>
                         );
                     } else if (entry.type === 'map') {
-                        const { timestamp, pointsEarned, canisterID } = entry as MapEntry;
+                        const { timestamp, pointsEarned, canisterID, missionId } = entry as MapEntry;
 
                         // Retrieve the mission title from missionsMap using canisterID
                         const missions = globalID.missionsMap[canisterID];
-                        const missionTitle = missions && missions.length > 0 ? missions[0].title : 'Unknown Mission';
+                        const mission = missions.find(m => Number(m.id) === Number(missionId));
+                        const missionTitle = mission ? mission.title : 'Unknown Mission';
 
                         // Retrieve the project name from projectsMap using canisterID
                         const project = projectsMap.get(canisterID);
                         const projectName = project ? project.name : 'Unknown Project';
+                        const projectIcon = project ? `https://${BASE_URL}.raw.icp0.io${project.icon}` : '';
 
                         return (
                             <div key={`map-${timestamp}-${index}`} className={styles.ProgressEntry}>
                                 <div className={styles.EntryContent}>
                                     <h3>{formatDate(timestamp)}</h3>
-                                    <p>Completed the Mission: {missionTitle} ({projectName})</p>
+                                    <p style={{ display: 'flex', alignItems: 'center' }}>
+                                        Completed the Mission: {missionTitle} (
+                                        {projectIcon && (
+                                            <img
+                                                src={projectIcon}
+                                                alt={`${projectName} icon`}
+                                                className={styles.ProjectIcon}
+                                            />
+                                        )}
+                                        {projectName})
+                                    </p>
                                 </div>
                                 <div
                                     className={styles.RightSection}
@@ -240,7 +277,18 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                     }}
                                 >
                                     <div className={styles.PointsEarned}>
-                                        +{pointsEarned.toString()} points
+                                        {mission && mission.token === true ? (
+                                            <>
+                                                +{(Number(pointsEarned) / 10 ** 8).toString()}{' '}
+                                                <img
+                                                    src={IcpIcon}
+                                                    alt="ICP"
+                                                    className={styles.IcpIcon}
+                                                />
+                                            </>
+                                        ) : (
+                                            <>+{pointsEarned.toString()} points</>
+                                        )}
                                     </div>
                                 </div>
                             </div>

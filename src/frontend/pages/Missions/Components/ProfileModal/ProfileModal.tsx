@@ -140,8 +140,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
         disableAllButtons(true);
         try {
             const onDisconnect = () => {
-                setWallet(null);
-                alert('Wallet has been disconnected.');
+                //setWallet(null);
+                //  alert('Wallet has been disconnected.');
             };
 
             // Initialize the wallet connection
@@ -233,7 +233,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                 </p>
                             ) : (
                                 <div className={styles.accountLinkContainer}>
-                                    <label>Link Internet Identity Account:</label>
+                                    <label>Link Konecta II Account:</label>
                                     <input
                                         type="text"
                                         value={internetIdentityValue}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Home.module.scss';
 import HomeBackgroundOverlay from './HomeBackground/HomeBackgroundOverlay.tsx';
 import HomeBackgroundOverlayMobile from './HomeBackground/HomeBackgroundOverlayMobile.tsx';
@@ -21,18 +21,19 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
 import { idlFactory as idlFactoryIndex } from '../../../declarations/index/index.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryDefault } from '../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../declarations/dfinity_backend/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
 import { SerializedProjectMissions } from '../../../declarations/index/index.did.js';
-import ProfileModal from '../Missions/Components/ProfileModal/ProfileModal.tsx';
 
 // const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath = location.state?.from || "/";
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleContent, setBubbleContent] = useState('');
   const { identity, user, disconnect, signer } = useIdentityKit();
@@ -97,7 +98,7 @@ const Home: React.FC = () => {
             }
 
             globalID.setUser(b);
-            navigate('/');
+            navigate(fromPath, { replace: true });
           } else {
             const identityAny = identity as any;
             const delegation = identityAny._delegation;
@@ -128,7 +129,7 @@ const Home: React.FC = () => {
                   }
 
                   Usergeek.trackEvent('Mission 0: Registered');
-                  navigate('/');
+                  navigate(fromPath, { replace: true });
                 }
               );
 

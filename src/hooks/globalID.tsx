@@ -1,7 +1,7 @@
 import { Principal } from '@dfinity/principal';
 import React, { createContext, useState, useContext, useMemo } from 'react';
-import { SerializedMission, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMission as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/nfid/nfid.did.js';
+import { SerializedMissionV2, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
+import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
 import { HttpAgent } from '@dfinity/agent';
 
 export interface ProjectData {
@@ -19,8 +19,8 @@ interface GlobalIDType {
     setNfidToIIStatus: (value: [boolean, Principal]) => void;
     iiToNFIDStatus: [boolean, Principal | null];
     setIIToNFIDStatus: (value: [boolean, Principal]) => void;
-    missions: SerializedMission[];
-    setMissions: (missions: SerializedMission[]) => void;
+    missions: SerializedMissionV2[];
+    setMissions: (missions: SerializedMissionV2[]) => void;
     userProgress: Array<[bigint, SerializedProgress]> | null;
     setUserProgress: (progress: Array<[bigint, SerializedProgress]> | null) => void;
     user: SerializedUser[] | null;
@@ -72,7 +72,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [nfidToIIStatus, setNfidToIIStatus] = useState<[boolean, Principal | null]>([false, null]);
     const [iiToNFIDStatus, setIIToNFIDStatus] = useState<[boolean, Principal | null]>([false, null]);
 
-    const [missions, setMissions] = useState<SerializedMission[]>([]);
+    const [missions, setMissions] = useState<SerializedMissionV2[]>([]);
     const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgressDefault]> | null>([]);
     const [user, setUser] = useState<SerializedUser[] | null>([]);
     const [oisyWallet, setOisyWallet] = useState<Principal | null>(null);

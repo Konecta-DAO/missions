@@ -17,6 +17,8 @@ import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
 import Nat8 "mo:base/Nat8";
+import Source "mo:uuid/async/SourceV4";
+import UUID "mo:uuid/UUID";
 
 actor class Backend() {
 
@@ -75,6 +77,12 @@ actor class Backend() {
 
   stable var serializedNuanceUsers : [(Principal, Text)] = [];
 
+  public func uyyy() : async Text {
+    let g = Source.Source();
+    let a = UUID.toText(await g.new());
+    return a;
+  };
+
   public func resetAccountLinks() : async () {
     nfidToII := [];
     iiToNFID := [];
@@ -89,12 +97,17 @@ actor class Backend() {
 
     let indexCanister = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
       syncAccountLinks : ([(Principal, (Principal, Bool))]) -> async ();
+      syncOisyWallets : ([(Principal, Principal)]) -> async ();
     };
 
     let accountLinksEntries = accountLinks.entries();
     serializedAccountLinks := Iter.toArray(accountLinksEntries);
 
+    let oisyWalletEntries = oisyWallet.entries();
+    serializedOisyWallet := Iter.toArray(oisyWalletEntries);
+
     await indexCanister.syncAccountLinks(serializedAccountLinks);
+    await indexCanister.syncOisyWallets(serializedOisyWallet);
   };
 
   public query (msg) func hasAcceptedTerms(userId : Principal) : async Bool {
@@ -1557,9 +1570,9 @@ actor class Backend() {
       // Find the mission with the matching id directly within submitCode
       var missionOpt : ?Types.Mission = null;
       var index : Nat = 0;
-      let size = Vector.size(missions);
+      let size = Vector.size(missionsV2);
       while (index < size and Option.isNull(missionOpt)) {
-        let missionAtIndexOpt = Vector.get(missions, index);
+        let missionAtIndexOpt = Vector.get(missionsV2, index);
 
         switch (missionAtIndexOpt) {
           case (missionAtIndex) {
@@ -1674,7 +1687,7 @@ actor class Backend() {
         };
       };
 
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == missionId) {
           var thismission = mission;
 
@@ -1806,7 +1819,7 @@ actor class Backend() {
                     let response = await oc.award_external_achievement(achievement);
                     switch (response) {
                       case (#Success { remaining_chit_budget }) {
-                        for (mission in Vector.vals(missions)) {
+                        for (mission in Vector.vals(missionsV2)) {
                           if (mission.id == 7 and mission.startDate <= Time.now()) {
                             let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
                             let firstMissionRecord : Types.SerializedMissionRecord = {
@@ -1831,7 +1844,7 @@ actor class Backend() {
                         return "Achievement not found";
                       };
                       case (#AlreadyAwarded) {
-                        for (mission in Vector.vals(missions)) {
+                        for (mission in Vector.vals(missionsV2)) {
                           if (mission.id == 7 and mission.startDate <= Time.now()) {
                             let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
                             let firstMissionRecord : Types.SerializedMissionRecord = {
@@ -1990,21 +2003,23 @@ actor class Backend() {
 
   // Mission List
 
-  stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
+  // stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
+
+  stable var missionsV2 : Vector.Vector<Types.MissionV2> = Vector.new<Types.MissionV2>();
 
   // Function to add or update a mission
 
-  public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMission) : async () {
+  public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMissionV2) : async () {
     if (isAdmin(msg.caller)) {
       // Convert SerializedMission to a mutable Mission
-      let newDeserializedMission = Serialization.deserializeMission(newMission);
+      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
 
       // Check if the mission already exists in the vector
       var missionFound = false;
 
-      let size = Vector.size(missions);
+      let size = Vector.size(missionsV2);
       for (i in Iter.range(0, size - 1)) {
-        let existingMissionOpt = Vector.get(missions, i); // This returns ?Mission
+        let existingMissionOpt = Vector.get(missionsV2, i); // This returns ?Mission
 
         // Properly handle the optional ?Mission value
         switch (existingMissionOpt) {
@@ -2012,7 +2027,7 @@ actor class Backend() {
             // Unwrap the Mission
             if (mission.id == newMission.id) {
               // Update the existing mission using Vector.put
-              Vector.put(missions, i, newDeserializedMission);
+              Vector.put(missionsV2, i, newDeserializedMission);
               missionFound := true;
             };
           };
@@ -2021,7 +2036,7 @@ actor class Backend() {
 
       // If the mission was not found, add a new one
       if (not missionFound) {
-        Vector.add<Types.Mission>(missions, newDeserializedMission);
+        Vector.add<Types.MissionV2>(missionsV2, newDeserializedMission);
       };
     };
 
@@ -2030,22 +2045,22 @@ actor class Backend() {
 
   // Function to get all missions
 
-  public shared query (msg) func getAllMissions() : async [Types.SerializedMission] {
+  public shared query (msg) func getAllMissions() : async [Types.SerializedMissionV2] {
     if (not Principal.isAnonymous(msg.caller)) {
       if (isAdmin(msg.caller)) {
-        return Array.map<Types.Mission, Types.SerializedMission>(Vector.toArray(missions), Serialization.serializeMission);
+        return Array.map<Types.MissionV2, Types.SerializedMissionV2>(Vector.toArray(missionsV2), Serialization.serializeMissionV2);
       } else {
-        let filteredMissions = Array.filter<Types.Mission>(
-          Vector.toArray(missions),
-          func(mission : Types.Mission) : Bool {
+        let filteredMissions = Array.filter<Types.MissionV2>(
+          Vector.toArray(missionsV2),
+          func(mission : Types.MissionV2) : Bool {
             mission.startDate <= Time.now();
           },
         );
 
-        return Array.map<Types.Mission, Types.SerializedMission>(
+        return Array.map<Types.MissionV2, Types.SerializedMissionV2>(
           filteredMissions,
-          func(mission : Types.Mission) : Types.SerializedMission {
-            let serialized = Serialization.serializeMission(mission);
+          func(mission : Types.MissionV2) : Types.SerializedMissionV2 {
+            let serialized = Serialization.serializeMissionV2(mission);
             let updatedSerialized = { serialized with secretCodes = null };
             return updatedSerialized;
           },
@@ -2057,17 +2072,17 @@ actor class Backend() {
 
   // Function to get a mission by ID
 
-  public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMission {
+  public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMissionV2 {
     if (isAdmin(msg.caller)) {
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == id) {
-          return ?Serialization.serializeMission(mission);
+          return ?Serialization.serializeMissionV2(mission);
         };
       };
     } else {
-      for (mission in Vector.vals(missions)) {
+      for (mission in Vector.vals(missionsV2)) {
         if (mission.id == id and mission.startDate <= Time.now()) {
-          return ?Serialization.serializeMission(mission);
+          return ?Serialization.serializeMissionV2(mission);
         };
       };
     };
@@ -2078,7 +2093,7 @@ actor class Backend() {
 
   public shared (msg) func resetMissions() : async () {
     if (isAdmin(msg.caller)) {
-      Vector.clear(missions); // Clear all missions
+      Vector.clear(missionsV2); // Clear all missions
       missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
     };
     return;
@@ -2140,7 +2155,7 @@ actor class Backend() {
     if ((isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) and not Vector.contains<Types.User>(users, dummyUser, func(a : Types.User, b : Types.User) : Bool { a.id == b.id })) {
 
       // Generate random points between 3600 and 21600
-      let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 0).mintime, Vector.get(missions, 0).maxtime);
+      let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missionsV2, 0).mintime, Vector.get(missionsV2, 0).maxtime);
 
       // Create a completion record for the first mission
       let firstMissionRecord : Types.MissionRecord = {
@@ -2510,7 +2525,7 @@ actor class Backend() {
               };
               Vector.put(users, i, updatedUser);
 
-              let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missions, 2).mintime, Vector.get(missions, 2).maxtime);
+              let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missionsV2, 2).mintime, Vector.get(missionsV2, 2).maxtime);
 
               let firstMissionRecord : Types.SerializedMissionRecord = {
                 timestamp = Time.now();

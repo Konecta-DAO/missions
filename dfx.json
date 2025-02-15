@@ -21,6 +21,13 @@
         "node_compatibility": true
       }
     },
+    "mushroom_backend": {
+      "type": "motoko",
+      "main": "mushroomProtocol_backend/Backend.mo",
+      "declarations": {
+        "node_compatibility": true
+      }
+    },
     "index": {
       "type": "motoko",
       "main": "index_canister/Backend.mo",

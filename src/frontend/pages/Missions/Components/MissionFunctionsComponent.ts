@@ -2,14 +2,18 @@ import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../declarations/nfid/index.js';
 import { idlFactory as idlFactoryDFINITY } from '../../../../declarations/dfinity_backend/index.js';
+import { idlFactory as idlFactoryOisy } from '../../../../declarations/oisy_backend/index.js';
+import { idlFactory as idlFactoryMP } from '../../../../declarations/mushroom_backend/index.js';
 import { Usergeek } from "usergeek-ic-js";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
 import { SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
 import { InterfaceFactory } from "@dfinity/candid/lib/cjs/idl.js";
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../declarations/index/index.did.js';
-import { idlFactory as idlFactoryDefault } from '../../../../declarations/nfid/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../../declarations/dfinity_backend/index.js';
 
 const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
+const canisterIdOISY = "eyark-fqaaa-aaaag-qm7oa-cai";
+const canisterIdMP = "wfguo-oiaaa-aaaag-qngma-cai";
 
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
@@ -1327,6 +1331,11 @@ const MissionFunctionsComponent = {
                     }
                 })
 
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent,
+                canisterId,
+            })
+
             const actors = globalID.canisterIds.map((targetCanisterId: string) => {
                 return Actor.createActor(idlFactoryDefault, {
                     agent: globalID.agent,
@@ -1342,6 +1351,148 @@ const MissionFunctionsComponent = {
             alert(a);
             setLoading(false);
         }
+    },
+
+    verifyOisyICP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+        const actor = Actor.createActor(idlFactoryOisy, {
+            agent: globalID.agent,
+            canisterId: canisterIdOISY,
+        })
+        const a = await actor.verifyOisyICP(globalID.principalId);
+        if (a === "Success") {
+            Usergeek.trackEvent("Oisy Mission One: Have ICP on Oisy");
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent,
+                canisterId,
+            })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+
+        } else {
+            alert(a);
+            setLoading(false);
+        };
+    },
+
+    verifyOisyOG: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+        const actor = Actor.createActor(idlFactoryOisy, {
+            agent: globalID.agent,
+            canisterId: canisterIdOISY,
+        })
+        const a = await actor.verifyOisyOG(globalID.principalId);
+        if (a === "Success") {
+            Usergeek.trackEvent("Oisy Mission Two: Be an Oisy OG");
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent,
+                canisterId,
+            })
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+
+        } else {
+            alert(a);
+            setLoading(false);
+        };
+    },
+
+    verNFTMP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+        const actor = Actor.createActor(idlFactoryMP, {
+            agent: globalID.agent,
+            canisterId: canisterIdMP,
+        })
+        const a = await actor.nftMission(globalID.principalId);
+
+        if (a === "Success") {
+            Usergeek.trackEvent("Mushroom Protocol Mission One: NFT");
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        disconnect();
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent,
+                canisterId,
+            })
+
+            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+
+        } else {
+            alert(a);
+            setLoading(false);
+        };
     },
 };
 

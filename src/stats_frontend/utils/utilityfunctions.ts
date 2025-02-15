@@ -1,4 +1,4 @@
-import { SerializedUser, SerializedMission } from "../../declarations/backend/backend.did.js";
+import { SerializedUser, SerializedMissionV2 } from "../../declarations/backend/backend.did.js";
 import { ActorSubclass } from "@dfinity/agent";
 
 // Function to format seconds into hours, minutes, and seconds
@@ -10,7 +10,7 @@ export const formatTime = (seconds: bigint): string => {
   };
   
   // Function to format object details
-  export const formatObjectDetails = async (mission: SerializedMission, backend: ActorSubclass<any>): Promise<string> => {
+  export const formatObjectDetails = async (mission: SerializedMissionV2, backend: ActorSubclass<any>): Promise<string> => {
     switch (BigInt(mission.mode)) {
       case 0n:
         return `Button Name: ${mission.obj1}, Button function: ${mission.functionName1}`;

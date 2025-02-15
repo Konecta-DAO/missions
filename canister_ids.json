@@ -10,15 +10,18 @@
   "dfinity_backend": {
     "ic": "2mg2s-uqaaa-aaaag-qna5a-cai"
   },
-  "oisy_backend": {
-    "ic": "eyark-fqaaa-aaaag-qm7oa-cai"
-  },
   "frontend": {
     "ic": "okowr-oqaaa-aaaag-qkedq-cai",
     "test": "y7mum-taaaa-aaaag-qklxq-cai"
   },
   "index": {
     "ic": "tui2b-giaaa-aaaag-qnbpq-cai"
+  },
+  "mushroom_backend": {
+    "ic": "wfguo-oiaaa-aaaag-qngma-cai"
+  },
+  "oisy_backend": {
+    "ic": "eyark-fqaaa-aaaag-qm7oa-cai"
   },
   "stats_frontend": {
     "ic": "5bxlt-ryaaa-aaaag-qkhea-cai"

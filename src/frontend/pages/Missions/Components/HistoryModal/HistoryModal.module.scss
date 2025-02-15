@@ -196,7 +196,7 @@
     align-items: center;
     padding: 10px;
     border-radius: 15px;
-    min-width: 100px; 
+    min-width: 100px;
 }
 
 
@@ -204,4 +204,20 @@
     font-size: 1.2em;
     font-weight: bold;
     color: white;
+    display: flex;
+    align-items: center;
+}
+
+.ProjectIcon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    vertical-align: middle;
+    border-radius: 4px;
+}
+
+.IcpIcon {
+    width: 26px;
+    height: 26px;
+    margin-left: 5px;
 }

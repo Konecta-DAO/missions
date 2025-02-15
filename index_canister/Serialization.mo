@@ -20,4 +20,53 @@ module Serialization {
       var icon = serializedProjectMission.icon;
     };
   };
+
+  public func serializeUser(user : Types.User) : Types.SerializedUser {
+    {
+      twitterid = user.twitterid;
+      twitterhandle = user.twitterhandle;
+      creationTime = user.creationTime;
+      pfpProgress = user.pfpProgress;
+      deducedPoints = user.deducedPoints;
+      ocProfile = user.ocProfile;
+      discordUser = user.discordUser;
+      telegramUser = user.telegramUser;
+      nnsPrincipal = user.nnsPrincipal;
+      firstname = user.firstname;
+      lastname = user.lastname;
+      username = user.username;
+      email = user.email;
+      bio = user.bio;
+      categories = user.categories;
+      profilepic = user.profilepic;
+      coverphoto = user.coverphoto;
+      country = user.country;
+      timezone = user.timezone;
+    };
+  };
+
+  public func deserializeUser(serializedUser : Types.SerializedUser) : Types.User {
+    {
+      var twitterid = serializedUser.twitterid;
+      var twitterhandle = serializedUser.twitterhandle;
+      creationTime = serializedUser.creationTime;
+      var pfpProgress = serializedUser.pfpProgress;
+      var deducedPoints = serializedUser.deducedPoints;
+      var ocProfile = serializedUser.ocProfile;
+      var discordUser = serializedUser.discordUser;
+      var telegramUser = serializedUser.telegramUser;
+      var nnsPrincipal = serializedUser.nnsPrincipal;
+      var firstname = serializedUser.firstname;
+      var lastname = serializedUser.lastname;
+      var username = serializedUser.username;
+      var email = serializedUser.email;
+      var bio = serializedUser.bio;
+      var categories = serializedUser.categories;
+      var profilepic = serializedUser.profilepic;
+      var coverphoto = serializedUser.coverphoto;
+      var country = serializedUser.country;
+      var timezone = serializedUser.timezone;
+    };
+  };
+
 };
