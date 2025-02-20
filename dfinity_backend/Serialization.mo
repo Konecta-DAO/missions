@@ -18,38 +18,6 @@ module Serialization {
     return st;
   };
 
-  public func serializeUser(user : Types.User) : Types.SerializedUser {
-    {
-      id = user.id;
-      twitterid = user.twitterid;
-      twitterhandle = user.twitterhandle;
-      creationTime = user.creationTime;
-      pfpProgress = user.pfpProgress;
-      totalPoints = user.totalPoints;
-      ocProfile = user.ocProfile;
-      ocCompleted = user.ocCompleted;
-      discordUser = user.discordUser;
-      telegramUser = user.telegramUser;
-      nnsPrincipal = user.nnsPrincipal;
-    };
-  };
-
-  public func deserializeUser(serializedUser : Types.SerializedUser) : Types.User {
-    {
-      id = serializedUser.id;
-      var twitterid = serializedUser.twitterid;
-      var twitterhandle = serializedUser.twitterhandle;
-      creationTime = serializedUser.creationTime;
-      var pfpProgress = serializedUser.pfpProgress;
-      var totalPoints = serializedUser.totalPoints;
-      var ocProfile = serializedUser.ocProfile;
-      var ocCompleted = serializedUser.ocCompleted;
-      var discordUser = serializedUser.discordUser;
-      var telegramUser = serializedUser.telegramUser;
-      var nnsPrincipal = serializedUser.nnsPrincipal;
-    };
-  };
-
   public func serializeMission(mission : Types.Mission) : Types.SerializedMission {
     {
       id = mission.id;

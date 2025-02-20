@@ -1,8 +1,9 @@
 import React from 'react';
-import { SerializedUser, SerializedProgress } from '../../declarations/backend/backend.did.js';
+import { SerializedProgress } from '../../declarations/backend/backend.did.js';
+import { SerializedGlobalUser } from '../../declarations/index/index.did.js';
 
 interface UserDetailsModalProps {
-  user: SerializedUser | null;
+  user: SerializedGlobalUser | null;
   progress: Array<{ progress: SerializedProgress; missionId: bigint }>;
   tweets: Array<[bigint, string]>;
   usedCodes: Array<{ code: string; isUsed: boolean }>;
@@ -15,7 +16,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, progress, twe
   return (
     <div className="modal">
       <div className="modal-content">
-        <h3>User Details for {user.id.toString()}</h3>
+        <h3>User Details for </h3>
         <h4>Mission Progress</h4>
         <ul>
           {progress?.map((p, index) => (

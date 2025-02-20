@@ -86,7 +86,6 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
                     alert(response);
                     if (response === "Success") {
                         globalID.setOisyWallet(walletPrincipal);
-                        await fetchData.fetchUserOisy(actor, globalID.principalId!);
                         navigate('/OISY');
                         handleCloseModal();
                     }

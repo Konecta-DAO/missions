@@ -1,8 +1,10 @@
 import { Principal } from '@dfinity/principal';
 import React, { createContext, useState, useContext, useMemo } from 'react';
-import { SerializedMissionV2, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
+import { SerializedMissionV2, SerializedProgress, SerializedUserStreak } from '../declarations/backend/backend.did.js';
+import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
 import { HttpAgent } from '@dfinity/agent';
+import { SerializedGlobalUser } from '../declarations/index/index.did.js';
+import { WalletLinkInfo } from './fetchData.tsx';
 
 export interface ProjectData {
     id: string;
@@ -13,18 +15,12 @@ export interface ProjectData {
 interface GlobalIDType {
     principalId: Principal | null;
     setPrincipal: (value: Principal) => void;
-    linkedAccount: Principal | null;
-    setLinkedAccount: (value: Principal) => void;
-    nfidToIIStatus: [boolean, Principal | null];
-    setNfidToIIStatus: (value: [boolean, Principal]) => void;
-    iiToNFIDStatus: [boolean, Principal | null];
-    setIIToNFIDStatus: (value: [boolean, Principal]) => void;
     missions: SerializedMissionV2[];
     setMissions: (missions: SerializedMissionV2[]) => void;
     userProgress: Array<[bigint, SerializedProgress]> | null;
     setUserProgress: (progress: Array<[bigint, SerializedProgress]> | null) => void;
-    user: SerializedUser[] | null;
-    setUser: (user: SerializedUser[]) => void;
+    user: SerializedGlobalUser[] | null;
+    setUser: (user: SerializedGlobalUser[]) => void;
     oisyWallet: Principal | null;
     setOisyWallet: (value: Principal) => void;
     timerText: string;
@@ -55,12 +51,12 @@ interface GlobalIDType {
     setProjects: React.Dispatch<React.SetStateAction<ProjectData[]>>;
     missionsMap: { [key: string]: SerializedMissionDefault[] };
     setMissionsForProject: (projectId: string, missions: SerializedMissionDefault[]) => void;
-    userMap: { [key: string]: SerializedUserDefault[] | null };
-    setUserForProject: (projectId: string, user: SerializedUserDefault[] | null) => void;
     userProgressMap: { [key: string]: Array<[bigint, SerializedProgressDefault]> | null };
     setUserProgressForProject: (projectId: string, progress: Array<[bigint, SerializedProgressDefault]> | null) => void;
     pointsMap: { [key: string]: bigint };
     setPointsForProject: (projectId: string, points: bigint) => void;
+    walletLinkInfos: WalletLinkInfo[];
+    setWalletLinkInfos: React.Dispatch<React.SetStateAction<WalletLinkInfo[]>>;
 }
 
 const GlobalID = createContext<GlobalIDType | undefined>(undefined);
@@ -68,13 +64,9 @@ const GlobalID = createContext<GlobalIDType | undefined>(undefined);
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [principalId, setPrincipal] = useState<Principal | null>(null);
 
-    const [linkedAccount, setLinkedAccount] = useState<Principal | null>(null);
-    const [nfidToIIStatus, setNfidToIIStatus] = useState<[boolean, Principal | null]>([false, null]);
-    const [iiToNFIDStatus, setIIToNFIDStatus] = useState<[boolean, Principal | null]>([false, null]);
-
     const [missions, setMissions] = useState<SerializedMissionV2[]>([]);
     const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgressDefault]> | null>([]);
-    const [user, setUser] = useState<SerializedUser[] | null>([]);
+    const [user, setUser] = useState<SerializedGlobalUser[] | null>([]);
     const [oisyWallet, setOisyWallet] = useState<Principal | null>(null);
     const [timerText, setTimerText] = useState<string>('00:00:00');
     const [twitterhandle, setTwitterHandle] = useState<string | null>('');
@@ -91,16 +83,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [canisterIds, setCanisterIds] = useState<string[] | null>([]);
     const [projects, setProjects] = useState<ProjectData[]>([]);
     const [missionsMap, setMissionsMap] = useState<{ [key: string]: SerializedMissionDefault[] }>({});
-    const [userMap, setUserMap] = useState<{ [key: string]: SerializedUserDefault[] | null }>({});
     const [userProgressMap, setUserProgressMap] = useState<{ [key: string]: Array<[bigint, SerializedProgressDefault]> | null }>({});
     const [pointsMap, setPointsMap] = useState<{ [key: string]: bigint }>({});
 
+    const [walletLinkInfos, setWalletLinkInfos] = useState<WalletLinkInfo[]>([]);
+
     const setMissionsForProject = (projectId: string, missions: SerializedMissionDefault[]) => {
         setMissionsMap((prev) => ({ ...prev, [projectId]: missions }));
-    };
-
-    const setUserForProject = (projectId: string, user: SerializedUserDefault[] | null) => {
-        setUserMap((prev) => ({ ...prev, [projectId]: user }));
     };
 
     const setUserProgressForProject = (projectId: string, progress: Array<[bigint, SerializedProgressDefault]> | null) => {
@@ -114,12 +103,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const value = useMemo(() => ({
         principalId,
         setPrincipal,
-        linkedAccount,
-        setLinkedAccount,
-        nfidToIIStatus,
-        setNfidToIIStatus,
-        iiToNFIDStatus,
-        setIIToNFIDStatus,
         missions,
         setMissions,
         userProgress,
@@ -156,17 +139,14 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setProjects,
         missionsMap,
         setMissionsForProject,
-        userMap,
-        setUserForProject,
         userProgressMap,
         setUserProgressForProject,
         pointsMap,
-        setPointsForProject
+        setPointsForProject,
+        walletLinkInfos,
+        setWalletLinkInfos,
     }), [
         principalId,
-        linkedAccount,
-        nfidToIIStatus,
-        iiToNFIDStatus,
         missions,
         userProgress,
         user,
@@ -185,9 +165,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         canisterIds,
         projects,
         missionsMap,
-        userMap,
         userProgressMap,
         pointsMap,
+        walletLinkInfos,
     ]);
 
     return (

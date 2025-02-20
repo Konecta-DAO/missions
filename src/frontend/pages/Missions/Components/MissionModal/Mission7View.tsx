@@ -110,7 +110,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
 
                 let currentMissionState = mission7State;
 
-                if (globalID.user && globalID.user[0]?.ocCompleted) {
+                /* if (globalID.user && globalID.user[0]?.ocCompleted) {
                     currentMissionState = Mission7State.Step2;
                     setMission7State(currentMissionState);
                 } else {
@@ -135,7 +135,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
                             setMission7State(currentMissionState);
                         }
                     }
-                }
+                } */
 
                 if (currentMissionState === Mission7State.Step2) {
                     const mainRT = await actor.isFullOc(globalID.principalId);
@@ -147,7 +147,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
 
                 if (currentMissionState === Mission7State.Step3) {
                     const mainRT2 = await actor.isRecOc(globalID.principalId);
-                    if (Number(mainRT2) >= 3) {                                   
+                    if (Number(mainRT2) >= 3) {
                         currentMissionState = Mission7State.Done;
                         setMission7State(currentMissionState);
                     } else {

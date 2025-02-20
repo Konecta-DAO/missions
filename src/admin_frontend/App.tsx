@@ -5,7 +5,8 @@ import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
 import { Principal } from '@dfinity/principal';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
-import { SerializedProgress, SerializedUser } from '../declarations/backend/backend.did.js';
+import { SerializedProgress } from '../declarations/backend/backend.did.js';
+import { SerializedGlobalUser } from '../declarations/index/index.did.js';
 
 function App() {
 
@@ -289,7 +290,7 @@ function App() {
             : Object.values(parsedData);
 
           // Validate and transform data to match SerializedUser type
-          const serializedUsers: SerializedUser[] = dataArray.map((user) => ({
+          const serializedUsers: SerializedGlobalUser[] = dataArray.map((user) => ({
             id: user.id as Principal, // Assert that id is a Principal
 
             // Map 'twitterid' to [] | [bigint]
@@ -312,6 +313,36 @@ function App() {
               : [],
 
             ocCompleted: Boolean(user.ocCompleted),
+
+            // Existing properties
+            bio: user.bio ? [String(user.bio)] : [],
+            categories: Array.isArray(user.categories) ? user.categories : [],
+            timezone: user.timezone ? [String(user.timezone)] : [],
+            firstname: user.firstname ? [String(user.firstname)] : [],
+            lastname: user.lastname ? [String(user.lastname)] : [],
+            email: user.email ? [String(user.email)] : [],
+            phone: user.phone ? [String(user.phone)] : [],
+            address: user.address ? [String(user.address)] : [],
+            city: user.city ? [String(user.city)] : [],
+            country: user.country ? [String(user.country)] : [],
+            postalCode: user.postalCode ? [String(user.postalCode)] : [],
+
+            // Added missing fields with default values to satisfy SerializedGlobalUser
+            username: user.username ? [String(user.username)] : [],
+            telegramUser: user.telegramUser ? [String(user.telegramUser)] : [],
+            discordUser: user.discordUser ? [String(user.discordUser)] : [],
+            nnsPrincipal: user.nnsPrincipal ? [Principal.fromText(user.nnsPrincipal)] : [Principal.fromText("2vxsx-fae")],
+            // Providing additional missing fields with default values
+            userRole: user.userRole ? [String(user.userRole)] : [],
+            isVerified: typeof user.isVerified === "boolean" ? user.isVerified : false,
+            lastUpdated: user.lastUpdated ? BigInt(user.lastUpdated) : BigInt(0),
+            profilepic: user.profilepic ? [String(user.profilepic)] : [],
+            coverphoto: user.coverphoto ? [String(user.coverphoto)] : [],
+            deducedPoints: user.deducedPoints ? BigInt(user.deducedPoints) : BigInt(0),
+
+            nft721: Array.isArray(user.nft721) ? user.nft721 : [],
+            nuanceUser: Array.isArray(user.nuanceUser) ? user.nuanceUser : [],
+            icrc1tokens: Array.isArray(user.icrc1tokens) ? user.icrc1tokens : []
           }));
 
           // Upload the serialized users to the backend

@@ -185,7 +185,7 @@ const Missions: React.FC = () => {
                 });
             });
 
-            await fetchData.fetchAll(actor, actors, targets, principal, setDataloaded, setAcceptedTerms);
+            await fetchData.fetchAll(actor, actors, actorIndex, targets, principal, setDataloaded, setAcceptedTerms);
 
         }
     };

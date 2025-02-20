@@ -358,4 +358,20 @@ module Types {
   };
 
   public type TokenId = Nat64;
+
+  public type TxReceipt = {
+    #Ok : Nat;
+    #Err : ApiError;
+  };
+
+  type ApiError = {
+    #InvalidCollection;
+    #InvalidTokenId;
+    #Other;
+    #SenderIsNotOwner;
+    #TransactionIsNotVerified;
+    #Unauthorized;
+    #VestingIsNotFinishedYet;
+    #ZeroAddress;
+  };
 };

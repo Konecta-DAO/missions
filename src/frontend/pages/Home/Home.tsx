@@ -18,8 +18,8 @@ import "@nfid/identitykit/react/styles.css"
 import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
 import { ProjectData, useGlobalID } from '../../../hooks/globalID.tsx';
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { idlFactory, SerializedUser } from '../../../declarations/backend/backend.did.js';
-import { idlFactory as idlFactoryIndex } from '../../../declarations/index/index.did.js';
+import { idlFactory } from '../../../declarations/backend/backend.did.js';
+import { idlFactory as idlFactoryIndex, SerializedGlobalUser } from '../../../declarations/index/index.did.js';
 import { canisterId } from '../../../declarations/backend/index.js';
 import { idlFactory as idlFactoryDefault } from '../../../declarations/dfinity_backend/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
@@ -64,39 +64,17 @@ const Home: React.FC = () => {
       globalID.setProjects(mappedProjects);
       globalID.setCanisterIds(targets);
 
-      const actor = Actor.createActor(idlFactory, {
-        agent: agent!,
-        canisterId,
-      });
-
-      const actors = targets.map(targetCanisterId => {
-        return Actor.createActor(idlFactoryDefault, {
-          agent: agent!,
-          canisterId: targetCanisterId,
-        });
-      });
-
       setIsnfiding(true);
 
       agent.getPrincipal().then((a) => {
         globalID.setPrincipal(a);
 
-        (actor.getUser(a) as Promise<SerializedUser[]>).then(async (b) => {
+        (actorIndex.getUserByPrincipal(a) as Promise<SerializedGlobalUser[]>).then(async (b) => {
           if (Array.isArray(b) && b.length !== 0) {
             if (userId !== '' && b[0].ocProfile.length > 0) {
-              actor.addOCProfile(a, userId);
+              actorIndex.addOCProfile(a, userId);
             }
             globalID.setPrincipal(a);
-
-            for (const actorM of actors) {
-              const user = await actorM.getUser(a);
-              if (Array.isArray(user) && user.length !== 0) {
-                // User exists in canister
-              } else {
-                await actorM.addUser(a);
-              }
-            }
-
             globalID.setUser(b);
             navigate(fromPath, { replace: true });
           } else {
@@ -108,25 +86,14 @@ const Home: React.FC = () => {
               delegation.delegations &&
               delegation.delegations.length > 0
             ) {
-              const firstDelegation = delegation.delegations[0];
-              const targets = firstDelegation.delegation.targets;
 
-              (actor.addUser(a) as Promise<SerializedUser[]>).then(
+              (actorIndex.createUser(a, localStorage.getItem('signerId')) as Promise<SerializedGlobalUser[]>).then(
                 async (newUser) => {
                   if (userId !== '') {
-                    actor.addOCProfile(a, userId);
+                    actorIndex.addOCProfile(a, userId);
                   }
                   globalID.setPrincipal(a);
                   globalID.setUser(newUser);
-
-                  for (const actorM of actors) {
-                    const user = await actorM.getUser(a);
-                    if (Array.isArray(user) && user.length !== 0) {
-                      // User exists in canister
-                    } else {
-                      await actorM.addUser(a);
-                    }
-                  }
 
                   Usergeek.trackEvent('Mission 0: Registered');
                   navigate(fromPath, { replace: true });

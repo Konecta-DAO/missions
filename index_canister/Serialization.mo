@@ -21,7 +21,7 @@ module Serialization {
     };
   };
 
-  public func serializeUser(user : Types.User) : Types.SerializedUser {
+  public func serializeUser(user : Types.GlobalUser) : Types.SerializedGlobalUser {
     {
       twitterid = user.twitterid;
       twitterhandle = user.twitterhandle;
@@ -31,6 +31,7 @@ module Serialization {
       ocProfile = user.ocProfile;
       discordUser = user.discordUser;
       telegramUser = user.telegramUser;
+      nuanceUser = user.nuanceUser;
       nnsPrincipal = user.nnsPrincipal;
       firstname = user.firstname;
       lastname = user.lastname;
@@ -42,10 +43,12 @@ module Serialization {
       coverphoto = user.coverphoto;
       country = user.country;
       timezone = user.timezone;
+      icrc1tokens = user.icrc1tokens;
+      nft721 = user.nft721;
     };
   };
 
-  public func deserializeUser(serializedUser : Types.SerializedUser) : Types.User {
+  public func deserializeUser(serializedUser : Types.SerializedGlobalUser) : Types.GlobalUser {
     {
       var twitterid = serializedUser.twitterid;
       var twitterhandle = serializedUser.twitterhandle;
@@ -55,6 +58,7 @@ module Serialization {
       var ocProfile = serializedUser.ocProfile;
       var discordUser = serializedUser.discordUser;
       var telegramUser = serializedUser.telegramUser;
+      var nuanceUser = serializedUser.nuanceUser;
       var nnsPrincipal = serializedUser.nnsPrincipal;
       var firstname = serializedUser.firstname;
       var lastname = serializedUser.lastname;
@@ -66,6 +70,8 @@ module Serialization {
       var coverphoto = serializedUser.coverphoto;
       var country = serializedUser.country;
       var timezone = serializedUser.timezone;
+      var icrc1tokens = serializedUser.icrc1tokens;
+      var nft721 = serializedUser.nft721;
     };
   };
 

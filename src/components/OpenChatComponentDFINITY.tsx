@@ -157,7 +157,7 @@ const OpenChatDF: React.FC = () => {
                                             canisterId: targetCanisterId,
                                         });
                                     });
-                                    fetchData.fetchAll(actor, actors, targets, globalID.principalId, setPlacestate, setPlacestate);
+                                    fetchData.fetchAll(actor, actors, actorIndex, targets, globalID.principalId, setPlacestate, setPlacestate);
                                 }
 
                             }

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { SerializedUser } from '../../declarations/backend/backend.did.js';
+import { SerializedGlobalUser } from '../../declarations/index/index.did.js';
 
 interface UserListProps {
-  users: SerializedUser[];
-  onUserSelect: (user: SerializedUser) => void;
+  users: SerializedGlobalUser[];
+  onUserSelect: (user: SerializedGlobalUser) => void;
 }
 
 const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
@@ -46,7 +46,6 @@ const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
       <table>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Seconds</th>
             <th>Twitter ID</th>
             <th>Twitter Handle</th>
@@ -55,14 +54,14 @@ const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
           </tr>
         </thead>
         <tbody>
-          {filteredUsers?.map(user => (
+          {/*filteredUsers?.map(user => (
             <tr key={user.id.toString()}>
               <td>{user.twitterid.toString()}</td>
               <td>{user.twitterhandle}</td>
               <td>{new Date(Number(user.creationTime) / 1_000_000).toLocaleString()}</td>
               <td><button onClick={() => onUserSelect(user)}>In Detail</button></td>
             </tr>
-          ))}
+          ))*/}
         </tbody>
       </table>
     </div>

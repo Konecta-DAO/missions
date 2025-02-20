@@ -22,7 +22,7 @@ actor class Backend() {
 
   private var principalToUUID : TrieMap.TrieMap<Principal, Text> = TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
 
-  stable var serializedprincipalToUUID : [(Principal, Text)] = [];
+  stable var serializedPrincipalToUUID : [(Principal, Text)] = [];
 
   private var uuidToLinkedAccounts : TrieMap.TrieMap<Text, [(Text, Principal)]> = TrieMap.TrieMap<Text, [(Text, Principal)]>(Text.equal, Text.hash);
 
@@ -30,16 +30,26 @@ actor class Backend() {
 
   stable var allowedAccountTypes : [Text] = ["NFIDW", "InternetIdentity", "Oisy"];
 
-  private var uuidToUser : TrieMap.TrieMap<Text, Types.User> = TrieMap.TrieMap<Text, Types.User>(Text.equal, Text.hash);
+  private var uuidToUser : TrieMap.TrieMap<Text, Types.GlobalUser> = TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
 
-  stable var serializedUuidToUser : [(Text, Types.User)] = [];
+  stable var serializedUuidToUser : [(Text, Types.SerializedGlobalUser)] = [];
+
+  private var accountTypeLinkTimestamps : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>> = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>>(Text.equal, Text.hash);
+
+  stable var serializedAccountTypeLinkTimestamps : [(Text, [(Text, Int)])] = [];
+
+  stable var unlinkedPrincipals : [Principal] = [];
+
+  stable var failedTransfers : [(Principal, Text)] = [];
+
+  stable let currentVersion : Text = "V2.0";
 
   // Pre-upgrade function
 
   system func preupgrade() {
 
     let principalToUUIDEntries = principalToUUID.entries();
-    serializedprincipalToUUID := Iter.toArray(principalToUUIDEntries);
+    serializedPrincipalToUUID := Iter.toArray(principalToUUIDEntries);
 
     let uuidToLinkedAccountsEntries = uuidToLinkedAccounts.entries();
     serializedUuidToLinkedAccounts := Iter.toArray(uuidToLinkedAccountsEntries);
@@ -48,7 +58,29 @@ actor class Backend() {
     serializedPendingLinkRequests := Iter.toArray(pendingLinkRequestsEntries);
 
     let uuidToUserEntries = uuidToUser.entries();
-    serializedUuidToUser := Iter.toArray(uuidToUserEntries);
+    serializedUuidToUser := Iter.toArray(
+      Iter.map<(Text, Types.GlobalUser), (Text, Types.SerializedGlobalUser)>(
+        uuidToUserEntries,
+        func(pair : (Text, Types.GlobalUser)) : (Text, Types.SerializedGlobalUser) {
+          let (key, user) = pair;
+          (key, Serialization.serializeUser(user));
+        },
+      )
+    );
+
+    let accountTypeLinkTimestampsEntries = accountTypeLinkTimestamps.entries();
+
+    serializedAccountTypeLinkTimestamps := Iter.toArray(
+      Iter.map<(Text, TrieMap.TrieMap<Text, Int>), (Text, [(Text, Int)])>(
+        accountTypeLinkTimestampsEntries,
+        func(pair : (Text, TrieMap.TrieMap<Text, Int>)) : (Text, [(Text, Int)]) {
+          let (key, innerMap) = pair;
+          let innerEntries = innerMap.entries();
+          let innerList = Iter.toArray(innerEntries);
+          (key, innerList);
+        },
+      )
+    );
   };
 
   // Post-upgrade function
@@ -57,11 +89,11 @@ actor class Backend() {
 
     principalToUUID := TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
 
-    for ((principal, textValue) in Iter.fromArray(serializedprincipalToUUID)) {
+    for ((principal, textValue) in Iter.fromArray(serializedPrincipalToUUID)) {
       principalToUUID.put(principal, textValue);
     };
 
-    serializedprincipalToUUID := [];
+    serializedPrincipalToUUID := [];
 
     uuidToLinkedAccounts := TrieMap.TrieMap<Text, [(Text, Principal)]>(Text.equal, Text.hash);
 
@@ -79,14 +111,69 @@ actor class Backend() {
 
     serializedPendingLinkRequests := [];
 
-    uuidToUser := TrieMap.TrieMap<Text, Types.User>(Text.equal, Text.hash);
+    uuidToUser := TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
 
     for ((text, user) in Iter.fromArray(serializedUuidToUser)) {
-      uuidToUser.put(text, user);
+      uuidToUser.put(text, Serialization.deserializeUser(user));
     };
 
     serializedUuidToUser := [];
 
+    accountTypeLinkTimestamps := TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>>(Text.equal, Text.hash);
+
+    for ((text, innerList) in Iter.fromArray(serializedAccountTypeLinkTimestamps)) {
+      let innerMap = TrieMap.TrieMap<Text, Int>(Text.equal, Text.hash);
+      for ((accType, timestamp) in Iter.fromArray(innerList)) {
+        innerMap.put(accType, timestamp);
+      };
+      accountTypeLinkTimestamps.put(text, innerMap);
+    };
+
+    serializedAccountTypeLinkTimestamps := [];
+
+  };
+
+  public shared query (msg) func getAllowedAccountTypes() : async [Text] {
+    if (not Principal.isAnonymous(msg.caller)) {
+      return allowedAccountTypes;
+    };
+    return [];
+  };
+
+  // Returns the linked accounts for the given principal.
+  public shared query (msg) func getLinkedAccountsForPrincipal(userId : Principal) : async [(Text, Principal)] {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      let uuid = getUserUUID(userId);
+      switch (uuidToLinkedAccounts.get(uuid)) {
+        case (?accounts) { return accounts };
+        case null { return [] };
+      };
+    };
+    return [];
+  };
+
+  // Returns the remaining cooldown (in nanoseconds) for linking an account of a specific type.
+  public shared query (msg) func getLinkCooldownForPrincipal(userId : Principal, accType : Text) : async Int {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      let uuid = getUserUUID(userId);
+      let currentTime = Time.now();
+      let oneMonthNanoseconds : Int = 2592000 * 1000000000;
+      switch (accountTypeLinkTimestamps.get(uuid)) {
+        case null { return 0 };
+        case (?innerMap) {
+          switch (innerMap.get(accType)) {
+            case null { return 0 };
+            case (?timestamp) {
+              let elapsed = currentTime - timestamp;
+              if (elapsed >= oneMonthNanoseconds) { return 0 } else {
+                return oneMonthNanoseconds - elapsed;
+              };
+            };
+          };
+        };
+      };
+    };
+    return 2147483647;
   };
 
   private func makeLinkKey(requester : Principal, target : Principal) : Text {
@@ -105,10 +192,40 @@ actor class Backend() {
 
   stable var serializedPendingLinkRequests : [(Text, Types.LinkRequest)] = [];
 
+  private func canLinkForUUID(uuid : Text, accType : Text, currentTime : Int) : Bool {
+    let oneMonthNanoseconds : Int = 2592000 * 1000000000;
+    switch (accountTypeLinkTimestamps.get(uuid)) {
+      case null {
+        // No account of any type was unlinked before for this UUID.
+        true;
+      };
+      case (?innerMap) {
+        switch (innerMap.get(accType)) {
+          case null {
+            // This account type was never linked (or was never unlinked).
+            true;
+          };
+          case (?timestamp) {
+            // Only allow linking if at least one month has passed since the original linking.
+            (currentTime - timestamp) >= oneMonthNanoseconds;
+          };
+        };
+      };
+    };
+  };
+
+  private func isUnlinked(principal : Principal) : Bool {
+    Array.find(unlinkedPrincipals, func(p : Principal) : Bool { p == principal }) != null;
+  };
+
   public shared (msg) func initiateLink(requester : Principal, requesterType : Text, target : Principal, targetType : Text) : async Text {
 
     if (msg.caller != requester) {
       return "Unauthorized: Caller does not match the requester.";
+    };
+
+    if (isUnlinked(requester) or isUnlinked(target)) {
+      return "One of the involved principals has been unlinked and cannot participate in linking.";
     };
 
     if (not isAllowedType(requesterType)) {
@@ -122,9 +239,9 @@ actor class Backend() {
       return "Cannot link two accounts of the same type (" # requesterType # ").";
     };
 
-    // Get canonical UUIDs for both accounts.
-    let requesterUUID = await getUUID(requester);
-    let targetUUID = await getUUID(target);
+    // Get UUIDs for both accounts.
+    let requesterUUID = getUserUUID(requester);
+    let targetUUID = getUserUUID(target);
 
     // If both principals already map to the same UUID, they are already linked.
     if (requesterUUID == targetUUID) {
@@ -165,6 +282,14 @@ actor class Backend() {
       return "An account of type '" # targetType # "' is already linked for the target.";
     };
 
+    let currentTime = Time.now();
+    if (not canLinkForUUID(requesterUUID, requesterType, currentTime)) {
+      return "Requester cannot link an account of type " # requesterType # " until one month has passed since the previous linking.";
+    };
+    if (not canLinkForUUID(targetUUID, targetType, currentTime)) {
+      return "Target cannot link an account of type " # targetType # " until one month has passed since the previous linking.";
+    };
+
     let linkKey = makeLinkKey(requester, target);
     let linkRequest : Types.LinkRequest = {
       requester = requester;
@@ -182,6 +307,17 @@ actor class Backend() {
 
     if (msg.caller != target) {
       return "Unauthorized: Only the target account can accept the link request.";
+    };
+
+    if (isUnlinked(requester) or isUnlinked(target)) {
+      return "One of the involved principals has been unlinked and cannot participate in linking.";
+    };
+
+    let requesterUUID = getUserUUID(requester);
+    let targetUUID = getUserUUID(target);
+
+    if (canonicalUUID != requesterUUID and canonicalUUID != targetUUID) {
+      return "Invalid canonical UUID provided. It must match one of the existing account UUIDs.";
     };
 
     let linkKey = makeLinkKey(requester, target);
@@ -240,7 +376,7 @@ actor class Backend() {
 
         pendingLinkRequests.put(linkKey, updatedRequest);
 
-        return "Link accepted. Accounts have been merged under canonical UUID: " # canonicalUUID;
+        return "Link accepted. Accounts have been merged under UUID: " # canonicalUUID;
       };
     };
   };
@@ -283,13 +419,21 @@ actor class Backend() {
       return "Unauthorized: Caller does not match the current user.";
     };
 
+    if (isUnlinked(currentUser) or isUnlinked(oisy)) {
+      return "One of the involved principals has been unlinked and cannot participate in linking.";
+    };
+
     if (not isAllowedType("Oisy")) {
       return "Oisy account type is not allowed.";
     };
 
-    let canonicalUUID = await getUUID(currentUser);
+    let canonicalUUID = getUserUUID(currentUser);
 
-    principalToUUID.put(oisy, canonicalUUID);
+    let currentTime = Time.now();
+
+    if (not canLinkForUUID(canonicalUUID, "Oisy", currentTime)) {
+      return "Cannot link an Oisy account until one month has passed since the previous linking.";
+    };
 
     var linkedAccounts : [(Text, Principal)] = switch (uuidToLinkedAccounts.get(canonicalUUID)) {
       case (?vec) { vec };
@@ -308,6 +452,8 @@ actor class Backend() {
     ) {
       return "An Oisy account is already linked.";
     };
+
+    principalToUUID.put(oisy, canonicalUUID);
 
     linkedAccounts := Array.append(linkedAccounts, [("Oisy", oisy)]);
 
@@ -334,6 +480,89 @@ actor class Backend() {
 
   };
 
+  private func recordLinkTimestamp(uuid : Text, accType : Text) : async () {
+    let currentTime = Time.now();
+    switch (accountTypeLinkTimestamps.get(uuid)) {
+      case null {
+        // Create an inner map if one doesn't exist for this UUID.
+        let innerMap = TrieMap.TrieMap<Text, Int>(Text.equal, Text.hash);
+        innerMap.put(accType, currentTime);
+        accountTypeLinkTimestamps.put(uuid, innerMap);
+      };
+      case (?innerMap) {
+        // Record the timestamp only if this account type hasn't been recorded yet.
+        if (innerMap.get(accType) == null) {
+          innerMap.put(accType, currentTime);
+        };
+      };
+    };
+  };
+
+  public shared (msg) func unlinkPrincipal(principal : Principal) : async Text {
+    // Authorization: only the principal itself (or an admin) may unlink.
+    if (msg.caller != principal and not isAdmin(msg.caller)) {
+      return "Unauthorized: Only the account owner or an admin can unlink this principal.";
+    };
+
+    // Check if this principal has already been unlinked.
+    if (Array.find(unlinkedPrincipals, func(p : Principal) : Bool { p == principal }) != null) {
+      return "This principal has already been unlinked and cannot be relinked.";
+    };
+
+    // Look up the UUID for this principal.
+    switch (principalToUUID.get(principal)) {
+      case null {
+        return "Principal is not linked to any account.";
+      };
+      case (?uuid) {
+        // Remove the mapping from principal to UUID.
+        principalToUUID.delete(principal);
+
+        // Retrieve the list of linked accounts for this user.
+        switch (uuidToLinkedAccounts.get(uuid)) {
+          case null {
+            return "Internal error: No linked accounts found for this user.";
+          };
+          case (?linkedAccounts) {
+            // Find the account entry for this principal.
+            let maybeEntry = Array.find(
+              linkedAccounts,
+              func(entry : (Text, Principal)) : Bool {
+                let (accType, p) = entry;
+                p == principal;
+              },
+            );
+            switch (maybeEntry) {
+              case null {
+                return "Principal not found in linked accounts.";
+              };
+              case (?entry) {
+                let (accType, _) = entry;
+                // Remove the entry from the user's linked accounts.
+                let updatedAccounts = Array.filter(
+                  linkedAccounts,
+                  func(e : (Text, Principal)) : Bool {
+                    let (_, p) = e;
+                    p != principal;
+                  },
+                );
+                uuidToLinkedAccounts.put(uuid, updatedAccounts);
+
+                // Mark the principal as permanently unlinked (using an array).
+                unlinkedPrincipals := Array.append(unlinkedPrincipals, [principal]);
+
+                // Record the original linking timestamp using the nested map.
+                await recordLinkTimestamp(uuid, accType);
+
+                return "Principal unlinked successfully. A new principal of the same account type cannot be linked until one month has passed since the original linking time.";
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+
   public func getLinkStatus(requester : Principal, target : Principal) : async Text {
 
     let linkKey = makeLinkKey(requester, target);
@@ -350,23 +579,63 @@ actor class Backend() {
     return a;
   };
 
-  public shared (msg) func createUser(newUser : Types.SerializedUser, accountType : Text, userId : Principal) : async () {
-    if (isAdmin(msg.caller)) {
+  public shared (msg) func createUser(userId : Principal, accountType : Text) : async ?Types.SerializedGlobalUser {
+
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
       if (not isAllowedType(accountType)) {
-        return;
+        return null;
+      };
+
+      if (principalToUUID.get(userId) != null) {
+        return null;
       };
 
       let uuid = await generateUUID();
-      uuidToUser.put(uuid, Serialization.deserializeUser(newUser));
+
+      let newUser : Types.GlobalUser = {
+        var twitterid = null;
+        var twitterhandle = null;
+        creationTime = Time.now();
+        var pfpProgress = "false";
+        var deducedPoints = 0;
+        var ocProfile = null;
+        var discordUser = null;
+        var telegramUser = null;
+        var nuanceUser = null;
+        var nnsPrincipal = null;
+        var firstname = null;
+        var lastname = null;
+        var username = null;
+        var email = null;
+        var bio = null;
+        var categories = null;
+        var profilepic = null;
+        var coverphoto = null;
+        var country = null;
+        var timezone = null;
+        var icrc1tokens = null;
+        var nft721 = null;
+      };
+
+      uuidToUser.put(uuid, newUser);
       principalToUUID.put(userId, uuid);
       uuidToLinkedAccounts.put(uuid, [(accountType, userId)]);
+
+      let konectaCanister = actor ("ynkdv-7qaaa-aaaag-qkluq-cai") : actor {
+        completeMainMission : (Text) -> async ();
+      };
+
+      await konectaCanister.completeMainMission(uuid);
+
+      return ?Serialization.serializeUser(newUser);
     };
+    return null;
   };
 
   public query (msg) func getUUID(userId : Principal) : async Text {
 
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+    if (isAdmin(msg.caller) or isProject(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
       switch (principalToUUID.get(userId)) {
         case (?uuid) { return uuid };
@@ -410,7 +679,7 @@ actor class Backend() {
 
   };
 
-  private func mergeUsers(user1 : Types.SerializedUser, user2 : Types.SerializedUser) : Types.User {
+  private func mergeUsers(user1 : Types.SerializedGlobalUser, user2 : Types.SerializedGlobalUser) : Types.GlobalUser {
 
     // Keep the oldest creationTime.
     let mergedCreationTime = if (user1.creationTime <= user2.creationTime) {
@@ -480,16 +749,40 @@ actor class Backend() {
       };
     };
 
+    let mergePrincipalLists = func(list1 : ?[Principal], list2 : ?[Principal]) : ?[Principal] {
+      switch (list1, list2) {
+        case (null, null) { null };
+        case (null, ?l2) { ?l2 };
+        case (?l1, null) { ?l1 };
+        case (?l1, ?l2) {
+          let merged = Array.append(l1, l2);
+          ?(
+            Array.foldLeft<Principal, [Principal]>(
+              merged,
+              [],
+              func(acc : [Principal], p : Principal) : [Principal] {
+                if (Array.find<Principal>(acc, func(x : Principal) : Bool { x == p }) != null) {
+                  acc;
+                } else {
+                  Array.append(acc, [p]);
+                };
+              },
+            )
+          );
+        };
+      };
+    };
+
     return {
       var twitterid = mergeOptionalNat(user1.twitterid, user2.twitterid);
       var twitterhandle = mergeOptionalText(user1.twitterhandle, user2.twitterhandle, user1.creationTime, user2.creationTime);
       creationTime = mergedCreationTime;
       var pfpProgress = if (user1.pfpProgress == "verified" or user2.pfpProgress == "verified") {
-        "verified"
+        "verified";
       } else if (user1.pfpProgress == "loading" or user2.pfpProgress == "loading") {
-        "loading"
+        "loading";
       } else {
-        "false"
+        "false";
       };
       var deducedPoints = switch (mergeOptionalNat(?user1.deducedPoints, ?user2.deducedPoints)) {
         case (?n) { n };
@@ -498,6 +791,7 @@ actor class Backend() {
       var ocProfile = mergeOptionalText(user1.ocProfile, user2.ocProfile, user1.creationTime, user2.creationTime);
       var discordUser = mergeOptionalText(user1.discordUser, user2.discordUser, user1.creationTime, user2.creationTime);
       var telegramUser = mergeOptionalText(user1.telegramUser, user2.telegramUser, user1.creationTime, user2.creationTime);
+      var nuanceUser = mergeOptionalText(user1.nuanceUser, user2.nuanceUser, user1.creationTime, user2.creationTime);
       var nnsPrincipal = mergeOptionalPrincipal(user1.nnsPrincipal, user2.nnsPrincipal);
       var firstname = mergeOptionalText(user1.firstname, user2.firstname, user1.creationTime, user2.creationTime);
       var lastname = mergeOptionalText(user1.lastname, user2.lastname, user1.creationTime, user2.creationTime);
@@ -509,6 +803,8 @@ actor class Backend() {
       var coverphoto = mergeOptionalText(user1.coverphoto, user2.coverphoto, user1.creationTime, user2.creationTime);
       var country = mergeOptionalText(user1.country, user2.country, user1.creationTime, user2.creationTime);
       var timezone = mergeOptionalText(user1.timezone, user2.timezone, user1.creationTime, user2.creationTime);
+      var icrc1tokens = mergePrincipalLists(user1.icrc1tokens, user2.icrc1tokens);
+      var nft721 = mergePrincipalLists(user1.nft721, user2.nft721);
     };
   };
 
@@ -522,15 +818,120 @@ actor class Backend() {
           return "No user accounts found for the provided UUIDs.";
         };
         case (null, ?user2) {
-          // If a canonical record does not exist, we simply adopt the merging record.
+          // If a record does not exist, we simply adopt the merging record.
           uuidToUser.put(canonicalUUID, user2);
           uuidToUser.delete(mergingUUID);
-          return "Canonical user not found; merged account has been assigned to the canonical UUID.";
+          return "User not found; merged account has been assigned to the UUID.";
         };
         case (?_, null) {
           return "Merging user not found.";
         };
         case (?user1, ?user2) {
+
+          let mergingTokens : [Principal] = switch (user2.icrc1tokens) {
+            case null { [] };
+            case (?tokens) { tokens };
+          };
+
+          // Get the subaccount for each account.
+          let mergingSubaccount : [Nat8] = await getUserSubaccount(mergingUUID);
+          let canonicalSubaccount : [Nat8] = await getUserSubaccount(canonicalUUID);
+
+          // Define the ledger principal (used for constructing the Account record)
+          let ledgerPrincipal = Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai");
+
+          // Process each token canister
+          for (tokenPrincipal in Iter.fromArray(mergingTokens)) {
+            // Create an actor for the token canister.
+            let tokenCanister = actor (Principal.toText(tokenPrincipal)) : actor {
+              icrc1_transfer : (Types.TransferArg) -> async (Types.Icrc1TransferResult);
+              icrc1_balance_of : query (Types.Account) -> async (Types.Icrc1Tokens);
+              icrc1_fee : query () -> async (Nat);
+            };
+
+            // Build the Account record for checking balance.
+            let accountForBalance : Types.Account = {
+              owner = ledgerPrincipal;
+              subaccount = ?Blob.fromArray(mergingSubaccount);
+            };
+
+            // Query the balance.
+            let balance : Types.Icrc1Tokens = await tokenCanister.icrc1_balance_of(accountForBalance);
+
+            if (balance > 0) {
+              // Get the fee required for a transfer.
+              let fee : Nat = await tokenCanister.icrc1_fee();
+              let transferable : Types.Icrc1Tokens = balance - fee;
+              if (transferable > 0) {
+                // Build the destination Account record.
+                let canonicalAccount : Types.Account = {
+                  owner = ledgerPrincipal;
+                  subaccount = ?Blob.fromArray(canonicalSubaccount);
+                };
+
+                // Prepare the transfer argument.
+                let transferArg : Types.TransferArg = {
+                  from_subaccount = ?Blob.fromArray(mergingSubaccount);
+                  to = canonicalAccount;
+                  amount = transferable;
+                  fee = ?fee;
+                  memo = null;
+                  created_at_time = null;
+                };
+
+                // Initiate the transfer.
+                let transferResult = await tokenCanister.icrc1_transfer(transferArg);
+                switch (transferResult) {
+                  case (#Ok(_)) {};
+                  case (#Err(_)) {
+                    // add the details of the failed transfer to a log
+                    let fromSubaccountStr = "from_subaccount: " # Array.foldLeft<Nat8, Text>(
+                      mergingSubaccount,
+                      "",
+                      func(acc, n) { acc # Nat.toText(Nat8.toNat(n)) # " " },
+                    );
+                    let toStr = "to: " # Principal.toText(canonicalAccount.owner);
+                    let amountStr = "amount: " # Nat.toText(transferable);
+                    let feeStr = "fee: " # Nat.toText(fee);
+                    let details = "Transfer failed on token: " # Principal.toText(tokenPrincipal)
+                    # ", Error: " # "Error occurred"
+                    # ", " # fromSubaccountStr
+                    # ", " # toStr
+                    # ", " # amountStr
+                    # ", " # feeStr;
+                    failedTransfers := Array.append(failedTransfers, [(tokenPrincipal, details)]);
+                  };
+                };
+              };
+            };
+          };
+
+          let konectaActor = actor ("ynkdv-7qaaa-aaaag-qkluq-cai") : actor {
+            //CAMBIAR
+            mergeAccounts : (Text, Text) -> async Text;
+          };
+
+          let mergeResult = await konectaActor.mergeAccounts(canonicalUUID, mergingUUID);
+
+          if (mergeResult != "Success") {
+            return "Error merging accounts on the Konecta canister";
+          };
+
+          for (project in Iter.fromArray(Vector.toArray(projects))) {
+            let projectActor = actor (Principal.toText(project.canisterId)) : actor {
+              mergeAccounts : (Text, Text) -> async Text;
+              getVersion : query () -> async Text;
+            };
+
+            let projectCanisterVersion = await projectActor.getVersion();
+            if (projectCanisterVersion == currentVersion) {
+              let projectMergeResult = await projectActor.mergeAccounts(canonicalUUID, mergingUUID);
+              if (projectMergeResult != "Success") {
+                return "Error merging accounts on the Project: " # project.name;
+              };
+            };
+          };
+
           let mergedUser = mergeUsers(Serialization.serializeUser(user1), Serialization.serializeUser(user2));
           uuidToUser.put(canonicalUUID, mergedUser);
           uuidToUser.delete(mergingUUID);
@@ -539,6 +940,166 @@ actor class Backend() {
       };
     };
     return "";
+  };
+
+  public query (msg) func getUserByUUID(uuid : Text) : async ?Types.SerializedGlobalUser {
+    if (isAdmin(msg.caller) or (getUserUUID(msg.caller)) == uuid) {
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+          return ?Serialization.serializeUser(user);
+        };
+        case null {
+          return null;
+        };
+      };
+    };
+    return null;
+  };
+
+  public query (msg) func getUserByPrincipal(userId : Principal) : async ?Types.SerializedGlobalUser {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      switch (uuidToUser.get(getUserUUID(userId))) {
+        case (?user) {
+          return ?Serialization.serializeUser(user);
+        };
+        case null {
+          return null;
+        };
+      };
+    };
+    return null;
+  };
+
+  public shared (msg) func migrateUsersFromV1(users : [Types.SerializedUserV1]) : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only an admin can migrate users.";
+    };
+
+    var count : Nat = 0;
+
+    for (user in Iter.fromArray(users)) {
+
+      let uuid = await generateUUID();
+
+      let globalUser : Types.GlobalUser = {
+        var twitterid = user.twitterid;
+        var twitterhandle = user.twitterhandle;
+        creationTime = user.creationTime;
+        var pfpProgress = user.pfpProgress;
+        var deducedPoints = 0;
+        var ocProfile = user.ocProfile;
+        var discordUser = null;
+        var telegramUser = null;
+        var nuanceUser = null;
+        var nnsPrincipal = null;
+        var firstname = null;
+        var lastname = null;
+        var username = null;
+        var email = null;
+        var bio = null;
+        var categories = null;
+        var profilepic = null;
+        var coverphoto = null;
+        var country = null;
+        var timezone = null;
+        var icrc1tokens = null;
+        var nft721 = null;
+      };
+
+      uuidToUser.put(uuid, globalUser);
+
+      principalToUUID.put(user.id, uuid);
+
+      uuidToLinkedAccounts.put(uuid, [("NFIDW", user.id)]);
+
+      count += 1;
+    };
+
+    return "Migrated " # Nat.toText(count) # " users from UserV1.";
+  };
+
+  public shared (msg) func updateUsersDataFromV2(users : [Types.SerializedUserV2]) : async Text {
+
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can update users from V2.";
+    };
+
+    var updatedCount : Nat = 0;
+
+    for (user in Iter.fromArray(users)) {
+
+      switch (principalToUUID.get(user.id)) {
+        case null {};
+        case (?uuid) {
+
+          switch (uuidToUser.get(uuid)) {
+            case null {};
+            case (?globalUser) {
+
+              if (user.twitterid != null and user.twitterhandle != null) {
+                globalUser.twitterid := user.twitterid;
+                globalUser.twitterhandle := user.twitterhandle;
+              };
+
+              if (user.discordUser != null) {
+                globalUser.discordUser := user.discordUser;
+              };
+
+              if (user.telegramUser != null) {
+                globalUser.telegramUser := user.telegramUser;
+              };
+
+              if (user.nnsPrincipal != null) {
+                globalUser.nnsPrincipal := user.nnsPrincipal;
+              };
+
+              uuidToUser.put(uuid, globalUser);
+              updatedCount += 1;
+            };
+          };
+        };
+      };
+    };
+
+    return "Updated " # Nat.toText(updatedCount) # " users from V2.";
+  };
+
+  public shared (msg) func updateUsersNuanceDataFromV3(nuanceUsers : [(Principal, Text)]) : async Text {
+
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can update users from V2.";
+    };
+
+    var updatedCount : Nat = 0;
+
+    for ((userId, nuance) in Iter.fromArray(nuanceUsers)) {
+
+      switch (principalToUUID.get(userId)) {
+        case null {};
+        case (?uuid) {
+
+          switch (uuidToUser.get(uuid)) {
+            case null {};
+            case (?globalUser) {
+
+              globalUser.nuanceUser := ?nuance;
+
+              uuidToUser.put(uuid, globalUser);
+              updatedCount += 1;
+            };
+          };
+        };
+      };
+    };
+
+    return "Updated " # Nat.toText(updatedCount) # " users from V2.";
+  };
+
+  public shared query (msg) func getAllPrincipalsWithUUIDs() : async [(Principal, Text)] {
+    if (isAdmin(msg.caller)) {
+      return Iter.toArray(principalToUUID.entries());
+    };
+    return [];
   };
 
   public shared query (msg) func getAllProjectMissions() : async [Types.SerializedProjectMissions] {
@@ -569,6 +1130,20 @@ actor class Backend() {
         var icon = icon;
       };
       Vector.add(projects, newProject);
+    };
+  };
+
+  public shared (msg) func removeProjectMissions(canisterId : Principal) : async () {
+    if (isAdmin(msg.caller)) {
+      let projectArray = Vector.toArray(projects);
+      let filteredProjects = Array.filter<Types.ProjectMissions>(
+        projectArray,
+        func(p : Types.ProjectMissions) : Bool {
+          p.canisterId != canisterId;
+        },
+      );
+      projects := Vector.fromArray(filteredProjects);
+      return;
     };
   };
 
@@ -653,6 +1228,15 @@ actor class Backend() {
     ) != null;
   };
 
+  private func isProject(principalId : Principal) : Bool {
+    return Array.find<Principal>(
+      Array.map<Types.ProjectMissions, Principal>(Vector.toArray(projects), func(p) : Principal { p.canisterId }),
+      func(id) : Bool {
+        id == principalId;
+      },
+    ) != null;
+  };
+
   public shared func trisAdmin(principalId : Principal) : async Bool {
     return Array.find<Principal>(
       adminIds,
@@ -669,6 +1253,202 @@ actor class Backend() {
       return adminIds;
     };
     return [];
+  };
+
+  public shared query (msg) func isTwitterIdUsed(twitterhandle : Text) : async Bool {
+    if (isAdmin(msg.caller)) {
+      for ((_, user) in uuidToUser.entries()) {
+        switch (user.twitterhandle) {
+          case (?th) {
+            if (th == twitterhandle) {
+              return true;
+            };
+          };
+          case null {};
+        };
+      };
+    };
+    return false;
+  };
+
+  public shared query (msg) func getPFPProgress(userId : Principal) : async ?Text {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      let uuid = getUserUUID(userId);
+      if (uuid == "") {
+        return null;
+      };
+      switch (uuidToUser.get(uuid)) {
+        case (?user) { return ?user.pfpProgress };
+        case null { return null };
+      };
+    };
+    return null;
+  };
+
+  public shared (msg) func setPFPProgressLoading(userId : Principal) : async Text {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      let uuid = getUserUUID(userId);
+      if (uuid == "") {
+        return "User not found";
+      };
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+          // Reconstruct the user record updating only pfpProgress to "loading"
+          let updatedUser : Types.GlobalUser = {
+            var twitterid = user.twitterid;
+            var twitterhandle = user.twitterhandle;
+            creationTime = user.creationTime;
+            var pfpProgress = "loading";
+            var deducedPoints = user.deducedPoints;
+            var ocProfile = user.ocProfile;
+            var discordUser = user.discordUser;
+            var telegramUser = user.telegramUser;
+            var nuanceUser = user.nuanceUser;
+            var nnsPrincipal = user.nnsPrincipal;
+            var firstname = user.firstname;
+            var lastname = user.lastname;
+            var username = user.username;
+            var email = user.email;
+            var bio = user.bio;
+            var categories = user.categories;
+            var profilepic = user.profilepic;
+            var coverphoto = user.coverphoto;
+            var country = user.country;
+            var timezone = user.timezone;
+            var icrc1tokens = user.icrc1tokens;
+            var nft721 = user.nft721;
+          };
+          uuidToUser.put(uuid, updatedUser);
+          return "loading";
+        };
+        case null {
+          return "User not found";
+        };
+      };
+    };
+    return "false";
+  };
+
+  public shared (msg) func setPFPProgress(userId : Principal) : async Text {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      let uuid = getUserUUID(userId);
+      if (uuid == "") {
+        return "User not found";
+      };
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+          let updatedUser : Types.GlobalUser = {
+            var twitterid = user.twitterid;
+            var twitterhandle = user.twitterhandle;
+            creationTime = user.creationTime;
+            var pfpProgress = "verified";
+            var deducedPoints = user.deducedPoints;
+            var ocProfile = user.ocProfile;
+            var discordUser = user.discordUser;
+            var telegramUser = user.telegramUser;
+            var nuanceUser = user.nuanceUser;
+            var nnsPrincipal = user.nnsPrincipal;
+            var firstname = user.firstname;
+            var lastname = user.lastname;
+            var username = user.username;
+            var email = user.email;
+            var bio = user.bio;
+            var categories = user.categories;
+            var profilepic = user.profilepic;
+            var coverphoto = user.coverphoto;
+            var country = user.country;
+            var timezone = user.timezone;
+            var icrc1tokens = user.icrc1tokens;
+            var nft721 = user.nft721;
+          };
+          uuidToUser.put(uuid, updatedUser);
+          return "verified";
+        };
+        case null {
+          return "User not found";
+        };
+      };
+    };
+    return "false";
+  };
+
+  public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
+    if (isAdmin(msg.caller)) {
+      let uuid = getUserUUID(principalId);
+      if (uuid == "") {
+        return;
+      };
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+
+          let updatedUser : Types.GlobalUser = {
+            var twitterid = ?twitterId;
+            var twitterhandle = ?twitterHandle;
+            creationTime = user.creationTime;
+            var pfpProgress = user.pfpProgress;
+            var deducedPoints = user.deducedPoints;
+            var ocProfile = user.ocProfile;
+            var discordUser = user.discordUser;
+            var telegramUser = user.telegramUser;
+            var nuanceUser = user.nuanceUser;
+            var nnsPrincipal = user.nnsPrincipal;
+            var firstname = user.firstname;
+            var lastname = user.lastname;
+            var username = user.username;
+            var email = user.email;
+            var bio = user.bio;
+            var categories = user.categories;
+            var profilepic = user.profilepic;
+            var coverphoto = user.coverphoto;
+            var country = user.country;
+            var timezone = user.timezone;
+            var icrc1tokens = user.icrc1tokens;
+            var nft721 = user.nft721;
+          };
+          uuidToUser.put(uuid, updatedUser);
+        };
+        case null {};
+      };
+    };
+  };
+
+  public shared (msg) func addOCProfile(userId : Principal, ocprofile : Text) : async () {
+    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      let uuid = getUserUUID(userId);
+      if (uuid == "") {
+        return;
+      };
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+          let updatedUser : Types.GlobalUser = {
+            var twitterid = user.twitterid;
+            var twitterhandle = user.twitterhandle;
+            creationTime = user.creationTime;
+            var pfpProgress = user.pfpProgress;
+            var deducedPoints = user.deducedPoints;
+            var ocProfile = ?ocprofile;
+            var discordUser = user.discordUser;
+            var telegramUser = user.telegramUser;
+            var nuanceUser = user.nuanceUser;
+            var nnsPrincipal = user.nnsPrincipal;
+            var firstname = user.firstname;
+            var lastname = user.lastname;
+            var username = user.username;
+            var email = user.email;
+            var bio = user.bio;
+            var categories = user.categories;
+            var profilepic = user.profilepic;
+            var coverphoto = user.coverphoto;
+            var country = user.country;
+            var timezone = user.timezone;
+            var icrc1tokens = user.icrc1tokens;
+            var nft721 = user.nft721;
+          };
+          uuidToUser.put(uuid, updatedUser);
+        };
+        case null {};
+      };
+    };
   };
 
   public query func availableCycles() : async Nat {
@@ -711,6 +1491,10 @@ actor class Backend() {
 
   public shared (msg) func resetall() : async () {
     if (isAdmin(msg.caller)) {
+      uuidToUser := TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
+      principalToUUID := TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
+      uuidToLinkedAccounts := TrieMap.TrieMap<Text, [(Text, Principal)]>(Text.equal, Text.hash);
+      pendingLinkRequests := TrieMap.TrieMap<Text, Types.LinkRequest>(Text.equal, Text.hash);
       return;
     };
   };

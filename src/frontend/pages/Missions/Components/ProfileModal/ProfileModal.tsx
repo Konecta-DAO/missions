@@ -1,12 +1,11 @@
-import React, { use, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './ProfileModal.module.scss';
-import OisyLogo from '../../../../../../public/assets/oisy.svg';
 import { IcpWallet } from '@dfinity/oisy-wallet-signer/icp-wallet';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { Principal } from '@dfinity/principal';
+import useFetchData, { WalletLinkInfo } from '../../../../../hooks/fetchData.tsx';
 import { Actor } from '@dfinity/agent';
-import { canisterId, idlFactory } from '../../../../../declarations/backend/index.js';
-import useFetchData from '../../../../../hooks/fetchData.tsx';
+import { idlFactory as idlFactoryIndex } from '../../../../../declarations/index/index.did.js';
 
 interface ProfileModalProps {
     closeModal: () => void;
@@ -17,15 +16,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
     const modalRef = useRef<HTMLDivElement>(null);
     const globalID = useGlobalID();
     const fetchData = useFetchData();
-    const [wallet, setWallet] = useState<any | null>(null);
     const [signerId, setSignerId] = useState<string | null>(null);
-    const [isConnected, setIsConnected] = useState<boolean>(false);
-    const [internetIdentityValue, setInternetIdentityValue] = useState<string>("");
-    const [nfidValue, setNfidValue] = useState<string>("");
-
-    const [isLoadingWallet, setIsLoadingWallet] = useState(false);
-    const [isLoadingII, setIsLoadingII] = useState(false);
-    const [isLoadingNFID, setIsLoadingNFID] = useState(false);
     const [areButtonsDisabled, setAreButtonsDisabled] = useState(false);
 
     const disableAllButtons = (disable: boolean) => {
@@ -48,13 +39,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
 
     useEffect(() => {
 
-        const connectedValue = localStorage.getItem('connected');
         const signerIdValue = localStorage.getItem('signerId');
 
         if (signerIdValue) {
             setSignerId(signerIdValue);
         }
-        setIsConnected(connectedValue === "1");
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
@@ -68,221 +57,261 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             .then(() => alert('Principal ID copied to clipboard!'))
     };
 
-    const handleLinkAsNFIDToII = async () => {
-        setIsLoadingII(true);
-        disableAllButtons(true);
+    const formatCooldown = (ns: number): string => {
+        const totalSeconds = Math.floor(ns / 1_000_000_000);
+        const days = Math.floor(totalSeconds / (24 * 3600));
+        const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${days}d:${hours}h:${minutes}m:${seconds}s`;
+    };
+
+    const handleInputChange = (walletType: string, value: string) => {
+        globalID.setWalletLinkInfos((prev) =>
+            prev.map((info) =>
+                info.walletType === walletType ? { ...info, inputValue: value } : info
+            )
+        );
+    };
+
+    const handleInitiateLink = async (walletType: string) => {
+        if (!globalID.principalId || !signerId) return;
         try {
+            disableAllButtons(true);
+            let response: string;
+            // For Oisy, perform wallet connect; for others, use the input field value.
+            const targetPrincipal = await (async () => {
+                if (walletType === "Oisy") {
+                    // Initiate wallet connection for Oisy
+                    const connectedWallet = await IcpWallet.connect({
+                        url: 'https://oisy.com/sign',
+                        onDisconnect: () => {
+                            // Optional disconnect handler
+                        },
+                    }) as any;
+                    const accounts = await connectedWallet.accounts();
+                    if (!accounts || accounts.length === 0) {
+                        throw new Error("No wallet accounts found");
+                    }
+                    // Use the first account as the wallet principal
+                    return Principal.fromText(accounts[0].owner);
+                } else {
+                    // For other wallet types, use the input value from the UI
+                    const info = globalID.walletLinkInfos.find((i) => i.walletType === walletType);
+                    if (!info || !info.inputValue) {
+                        throw new Error("Please enter a valid principal ID.");
+                    }
+                    return Principal.fromText(info.inputValue);
+                }
+            })();
 
-            const actor = Actor.createActor(idlFactory, {
-                agent: globalID.agent!,
-                canisterId,
-            });
-
-            // The user is NFID, so we linkAsNFIDToII(nfidUser, iiUser)
-            const result = await actor.linkAsNFIDToII(
-                globalID.principalId,              // NFID principal
-                Principal.fromText(internetIdentityValue) // The II principal typed by user
-            ) as String;
-            alert(result);
-
-            if (result.toLowerCase().includes("success")) {
-                globalID.setNfidToIIStatus([true, [Principal.fromText(internetIdentityValue)]] as unknown as [boolean, Principal]);
-                if (result === "Success") {
-                    globalID.setLinkedAccount([Principal.fromText(internetIdentityValue)] as unknown as Principal);
-                    fetchData.fetchUserOisy(actor, globalID.principalId!);
-                };
+            // Now call the appropriate backend function:
+            if (walletType === "Oisy") {
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent!,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+                response = await actorIndex.linkOisyAccount(globalID.principalId, targetPrincipal) as string;
+                fetchData.fetchWalletLinkInfo(signerId, actorIndex, globalID.principalId!);
+            } else {
+                // For other wallet types, use the initiateLink function.
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent!,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+                response = await actorIndex.initiateLink(globalID.principalId, signerId, targetPrincipal, walletType) as string;
+                fetchData.fetchWalletLinkInfo(signerId, actorIndex, globalID.principalId!);
             }
-
-        } catch (error) {
-            console.error('Error linking as NFID to II:', error);
+            alert(response);
+        } catch (error: any) {
+            console.error("Error initiating link:", error);
+            alert("Error initiating link: " + error.message);
         } finally {
-            setIsLoadingII(false);
             disableAllButtons(false);
         }
     };
 
-    const handleLinkAsIIToNFID = async () => {
-        setIsLoadingNFID(true);
-        disableAllButtons(true);
-        try {
 
-            const actor = Actor.createActor(idlFactory, {
+    const handleAcceptLink = async (walletType: string) => {
+        if (!globalID.principalId) return;
+        const info = globalID.walletLinkInfos.find((i) => i.walletType === walletType);
+        if (!info || !info.pendingRequest) return;
+        try {
+            disableAllButtons(true);
+
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: globalID.agent!,
-                canisterId,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
             });
 
-            // The user is II, so we linkAsIIToNFID(iiUser, nfidUser)
-            const result = await actor.linkAsIIToNFID(
-                globalID.principalId,         // II principal
-                Principal.fromText(nfidValue) // The NFID principal typed by user
-            ) as String;
-            alert(result);
-
-            if (result.toLowerCase().includes("success")) {
-                globalID.setIIToNFIDStatus([true, [Principal.fromText(nfidValue)]] as unknown as [boolean, Principal]);
-                if (result === "Success") {
-                    globalID.setLinkedAccount([Principal.fromText(nfidValue)] as unknown as Principal);
-                    fetchData.fetchUserOisy(actor, globalID.principalId!);
-                };
-            };
-
+            const canonicalUUID = await actorIndex.getUUID(globalID.principalId);
+            const response = await actorIndex.acceptLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId, canonicalUUID);
+            fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+            alert(response);
         } catch (error) {
-            console.error('Error linking as II to NFID:', error);
+            console.error("Error accepting link:", error);
         } finally {
-            setIsLoadingNFID(false);
             disableAllButtons(false);
         }
     };
 
-    // -- Connect Wallet logic
-    const connectWallet = async () => {
-        setIsLoadingWallet(true);
-        disableAllButtons(true);
+    // Reject a pending link.
+    const handleRejectLink = async (walletType: string) => {
+        if (!globalID.principalId) return;
+        const info = globalID.walletLinkInfos.find((i) => i.walletType === walletType);
+        if (!info || !info.pendingRequest) return;
         try {
-            const onDisconnect = () => {
-                //setWallet(null);
-                //  alert('Wallet has been disconnected.');
-            };
+            disableAllButtons(true);
 
-            // Initialize the wallet connection
-            const connectedWallet = await IcpWallet.connect({
-                url: 'https://oisy.com/sign',
-                onDisconnect,
-            }) as any;
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent!,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
 
-            const { allPermissionsGranted } = await connectedWallet.requestPermissionsNotGranted();
-            if (!allPermissionsGranted) {
-                alert('All permissions are required to continue.');
-                return;
-            }
-
-            const accounts = await connectedWallet.accounts();
-            if (accounts && accounts.length > 0) {
-                const ownerId = accounts[0].owner;
-                if (globalID.oisyWallet === undefined) {
-                    const walletPrincipal = Principal.fromText(ownerId);
-                    const userPrincipal = globalID.principalId;
-
-                    const actor = Actor.createActor(idlFactory, {
-                        agent: globalID.agent!,
-                        canisterId,
-                    })
-
-                    const response = await actor.addOisyWallet(userPrincipal, walletPrincipal);
-                    alert(response);
-                    if (response === "Success") {
-                        globalID.setOisyWallet(walletPrincipal);
-                    };
-                };
-            };
-
-            setWallet(connectedWallet);
+            const response = await actorIndex.rejectLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId);
+            fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+            alert(response);
         } catch (error) {
-            console.error('Error connecting wallet:', error);
+            console.error("Error rejecting link:", error);
         } finally {
-            setIsLoadingWallet(false);
             disableAllButtons(false);
-        };
+        }
+    };
+
+    // Unlink an already linked account.
+    const handleUnlink = async (walletType: string) => {
+        if (!globalID.principalId) return;
+        const info = globalID.walletLinkInfos.find((i) => i.walletType === walletType);
+        if (!info || !info.linkedPrincipal) return;
+        try {
+            disableAllButtons(true);
+
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent!,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            const response = await actorIndex.unlinkPrincipal(
+                Principal.fromText(info.linkedPrincipal)
+            );
+            fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+            alert(response);
+        } catch (error) {
+            console.error("Error unlinking account:", error);
+        } finally {
+            disableAllButtons(false);
+        }
     };
 
 
 
     return (
         <div className={styles.ModalOverlay}>
-            <div ref={modalRef} className={`${styles.ModalContent2} ${isClosing ? styles.hide : ''}`}>
-                {/* Close button */}
-                <button className={styles.CloseButton2} onClick={handleCloseModal} disabled={areButtonsDisabled}>X</button>
-                {/* Content */}
+            <div
+                ref={modalRef}
+                className={`${styles.ModalContent2} ${isClosing ? styles.hide : ''}`}
+            >
+                <button
+                    className={styles.CloseButton2}
+                    onClick={handleCloseModal}
+                    disabled={areButtonsDisabled}
+                >
+                    X
+                </button>
                 <div className={styles.ContentWrapper2}>
-                    {/* Heading */}
                     <h2 className={styles.ProfileTitleMobile}>Profile</h2>
-
                     <div className={styles.principalIdContainer}>
-                        <p>Your Principal ID: {globalID.principalId?.toText() || 'Not available'}</p>
-                        <button onClick={handleCopyPrincipalId} className={styles.copyButton} title="Copy Principal ID">
+                        <p>
+                            Your Principal ID:{' '}
+                            {globalID.principalId?.toText() || 'Not available'}
+                        </p>
+                        <button
+                            onClick={handleCopyPrincipalId}
+                            className={styles.copyButton}
+                            title="Copy Principal ID"
+                        >
                             📋
                         </button>
                     </div>
 
-
-                    {/* Oisy */}
-                    {globalID.oisyWallet === undefined ? (
-                        <button onClick={connectWallet} disabled={areButtonsDisabled}>
-                            {isLoadingWallet ? "Loading..." : (
-                                <>
-                                    <img src={OisyLogo} alt="Oisy Logo" className={styles.oisyLogo} />
-                                    Connect Oisy Wallet
-                                </>
-                            )}
-                        </button>
+                    {/* Render wallet linking sections */}
+                    {!signerId ? (
+                        <p>Loading accounts...</p>
                     ) : (
-                        <>
-                            <p>Connected Oisy Wallet:</p> {globalID.oisyWallet!.toText()}
-                        </>
-                    )}
-
-                    {signerId === "NFIDW" && isConnected && (
-                        <>
-                            {(globalID.linkedAccount as any)[0] instanceof Principal ? (
-                                <p className={styles.linkInProgress}>
-                                    You already have a linked account: {(globalID.linkedAccount as any)[0].toText()} (II).
-                                </p>
-                            ) : globalID.nfidToIIStatus[0] === true ? (
-                                <p className={styles.linkInProgress}>
-                                    Internet Identity link in progress, now login with your Internet Identity Account ({(globalID.nfidToIIStatus[1] as any)[0].toText()}) to complete the process
-                                </p>
-                            ) : (
-                                <div className={styles.accountLinkContainer}>
-                                    <label>Link Konecta II Account:</label>
-                                    <input
-                                        type="text"
-                                        value={internetIdentityValue}
-                                        className={styles.linkInput}
-                                        onChange={(e) => setInternetIdentityValue(e.target.value)}
-                                        disabled={areButtonsDisabled}
-                                    />
-                                    <button
-                                        className={styles.connectSignerButton}
-                                        onClick={handleLinkAsNFIDToII}
-                                        disabled={areButtonsDisabled}
-                                    >
-                                        {isLoadingII ? "Loading..." : "Connect"}
-                                    </button>
+                        globalID.walletLinkInfos
+                            .filter(info => info.walletType !== signerId)
+                            .map((info) => (
+                                <div key={info.walletType} className={styles.accountLinkContainer}>
+                                    <h3>{info.walletType}</h3>
+                                    {info.linkedPrincipal ? (
+                                        <>
+                                            <p>
+                                                {info.walletType}: {info.linkedPrincipal}
+                                            </p>
+                                            <button
+                                                onClick={() => handleUnlink(info.walletType)}
+                                                disabled={areButtonsDisabled}
+                                            >
+                                                Unlink
+                                            </button>
+                                        </>
+                                    ) : info.pendingRequest ? (
+                                        <>
+                                            <p>
+                                                Pending link by {info.pendingRequest.requester} (
+                                                {info.walletType})
+                                            </p>
+                                            <button
+                                                onClick={() => handleAcceptLink(info.walletType)}
+                                                disabled={areButtonsDisabled}
+                                            >
+                                                Accept Link
+                                            </button>
+                                            <button
+                                                onClick={() => handleRejectLink(info.walletType)}
+                                                disabled={areButtonsDisabled}
+                                            >
+                                                Reject Link
+                                            </button>
+                                        </>
+                                    ) : info.cooldown > 0 ? (
+                                        <p>
+                                            You have to wait {formatCooldown(info.cooldown)} before linking
+                                            another {info.walletType} account.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            {info.walletType === "Oisy" ? (
+                                                <button
+                                                    onClick={() => handleInitiateLink(info.walletType)}
+                                                    disabled={areButtonsDisabled}
+                                                >
+                                                    Initiate Link
+                                                </button>
+                                            ) : (
+                                                <>
+                                                    <input
+                                                        type="text"
+                                                        className={styles.linkInput}
+                                                        placeholder="Enter wallet principal"
+                                                        value={info.inputValue}
+                                                        onChange={(e) =>
+                                                            handleInputChange(info.walletType, e.target.value)
+                                                        }
+                                                        disabled={areButtonsDisabled}
+                                                    />
+                                                    <button
+                                                        onClick={() => handleInitiateLink(info.walletType)}
+                                                        disabled={areButtonsDisabled}
+                                                    >
+                                                        Initiate Link
+                                                    </button>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
-                            )}
-                        </>
-                    )}
-
-                    {signerId === "InternetIdentity" && isConnected && (
-                        <>
-                            {(globalID.linkedAccount as any)[0] instanceof Principal ? (
-                                <p className={styles.linkInProgress}>
-                                    You already have a linked account: {(globalID.linkedAccount as any)[0].toText()} (NFID).
-                                </p>
-                            ) : globalID.iiToNFIDStatus[0] === true ? (
-                                <p className={styles.linkInProgress}>
-                                    NFID link in progress, now login with your NFID Account ({(globalID.iiToNFIDStatus[1] as any)[0].toText()}) to complete the process
-                                </p>
-                            ) : (
-                                <div className={styles.accountLinkContainer}>
-                                    <label>Link NFID Account:</label>
-                                    <input
-                                        type="text"
-                                        value={nfidValue}
-                                        className={styles.linkInput}
-                                        onChange={(e) => setNfidValue(e.target.value)}
-                                        disabled={areButtonsDisabled}
-                                    />
-                                    <button
-                                        className={styles.connectSignerButton}
-                                        onClick={handleLinkAsIIToNFID}
-                                        disabled={areButtonsDisabled}
-                                    >
-                                        {isLoadingNFID ? "Loading..." : "Connect"}
-                                    </button>
-                                </div>
-                            )}
-                        </>
+                            ))
                     )}
                 </div>
             </div>

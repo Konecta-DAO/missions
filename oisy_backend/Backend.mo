@@ -15,39 +15,88 @@ import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
 import Nat8 "mo:base/Nat8";
-import Random "mo:base/Random";
-import Char "mo:base/Char";
 import Nat64 "mo:base/Nat64";
+import Option "mo:base/Option";
 
 actor class Backend() {
 
-  private var streak : TrieMap.TrieMap<Principal, Nat> = TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
-
-  stable var serializedstreak : [(Principal, Nat)] = [];
-
-  private var userStreak : TrieMap.TrieMap<Principal, Types.UserStreak> = TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
-
-  stable var serializedUserStreak : [(Principal, Types.SerializedUserStreak)] = [];
-
-  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+  private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
   // Stable storage for serialized data
 
-  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+  stable var serializedGlobalUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
 
-  private var verified : TrieMap.TrieMap<Principal, Bool> = TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+  func getPrincipalUUID(userId : Principal) : async Text {
 
-  stable var serializedVerified : [(Principal, Bool)] = [];
-
-  stable var mission2Text : Text = "";
-
-  public shared (msg) func getMission2Text() : async Text {
-    if (not Principal.isAnonymous(msg.caller)) {
-      return mission2Text;
+    let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      getUUID : query (Principal) -> async Text;
     };
-    return "";
+
+    let uuid = await index.getUUID(userId);
+
+    return uuid;
   };
 
+  public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
+
+    if (msg.caller == Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai")) {
+
+      // 4. Merge globalglobalUserProgress (UserMissions = TrieMap<Nat, Progress>)
+      var mergedglobalUserProgress : TrieMap.TrieMap<Nat, Types.Progress> = switch (globalUserProgress.get(canonicalUUID)) {
+        case (?mp) { mp };
+        case null { TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash) };
+      };
+
+      switch (globalUserProgress.get(mergingUUID)) {
+        case (?mergingProgressMap) {
+          for ((missionId, mergingProgress) in mergingProgressMap.entries()) {
+            switch (mergedglobalUserProgress.get(missionId)) {
+              case null {
+                // Mission not present for canonical; add it.
+                mergedglobalUserProgress.put(missionId, mergingProgress);
+              };
+              case (?canonProgress) {
+                // Merge usedCodes (union: true if either is true)
+                let mergedUsedCodes = canonProgress.usedCodes;
+                for ((code, used) in mergingProgress.usedCodes.entries()) {
+                  switch (mergedUsedCodes.get(code)) {
+                    case null { mergedUsedCodes.put(code, used) };
+                    case (?curr) { mergedUsedCodes.put(code, curr or used) };
+                  };
+                };
+                // Merge completionHistory:
+                let canonHistory = canonProgress.completionHistory;
+                let mergingHistory = mergingProgress.completionHistory;
+                // If at least one mission record has a tweetId, merge all records.
+                let hasTweetId = Option.isSome(Array.find(canonHistory, func(r : Types.MissionRecord) : Bool { r.tweetId != null })) or Option.isSome(Array.find(mergingHistory, func(r : Types.MissionRecord) : Bool { r.tweetId != null }));
+                let mergedHistory = if (hasTweetId) {
+                  Array.append(canonHistory, mergingHistory);
+                } else {
+                  // Otherwise, choose the history whose total points is higher.
+                  let sumCanon = Array.foldLeft<Types.MissionRecord, Nat>(canonHistory, 0, func(acc : Nat, r : Types.MissionRecord) : Nat { acc + r.pointsEarned });
+                  let sumMerging = Array.foldLeft<Types.MissionRecord, Nat>(mergingHistory, 0, func(acc : Nat, r : Types.MissionRecord) : Nat { acc + r.pointsEarned });
+                  if (sumCanon >= sumMerging) { canonHistory } else {
+                    mergingHistory;
+                  };
+                };
+                let mergedProgressRecord : Types.Progress = {
+                  var completionHistory = mergedHistory;
+                  var usedCodes = mergedUsedCodes;
+                };
+                mergedglobalUserProgress.put(missionId, mergedProgressRecord);
+              };
+            };
+          };
+        };
+        case null {};
+      };
+      globalUserProgress.put(canonicalUUID, mergedglobalUserProgress);
+      globalUserProgress.delete(mergingUUID);
+
+      return "Success";
+    };
+    "";
+  };
   stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
 
   public shared (msg) func addAdminId(newAdminId : Principal) : async () {
@@ -94,42 +143,7 @@ actor class Backend() {
     return "V2.0";
   };
 
-  public query (msg) func hasVerified(userId : Principal) : async Bool {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      switch (verified.get(userId)) {
-        case (?value) {
-          if (value == true) {
-            return true;
-          } else {
-            return false;
-          };
-        };
-        case null return false;
-      };
-      return false;
-    };
-    return false;
-  };
-
-  public shared (msg) func verifyUser(userId : Principal) : async () {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      verified.put(userId, true);
-    };
-  };
-
-  public shared (msg) func unVerifyUser(userId : Principal) : async () {
-    if (isAdmin(msg.caller)) {
-      for (key in verified.keys()) {
-        if (key == userId) {
-          verified.put(key, false);
-        };
-      };
-    };
-  };
-
-  public shared (msg) func restoreAllUserProgress(
-    serializedData : [(Principal, [(Nat, Types.SerializedProgress)])]
-  ) : async () {
+  public shared (msg) func restoreAllUserProgress(serializedData : [(Text, [(Nat, Types.SerializedProgress)])]) : async () {
     if (isAdmin(msg.caller)) {
       // Iterate over each user data tuple
       for (tuple in Iter.fromArray(serializedData)) {
@@ -137,7 +151,7 @@ actor class Backend() {
         let serializedUserMissions = tuple.1;
 
         // Retrieve or initialize the user's mission data
-        var userMissions = switch (userProgress.get(userId)) {
+        var userMissions = switch (globalUserProgress.get(userId)) {
           case (?existingMissions) { existingMissions };
           case null {
             TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
@@ -178,7 +192,7 @@ actor class Backend() {
         };
 
         // Update the user's missions in userProgress
-        userProgress.put(userId, userMissions);
+        globalUserProgress.put(userId, userMissions);
       };
     };
   };
@@ -190,74 +204,26 @@ actor class Backend() {
 
   system func preupgrade() {
     // Serialize user progress
-    let entries = userProgress.entries();
 
-    var serializedUserProgressVec = Vector.new<(Principal, [(Nat, Types.SerializedProgress)])>();
-
-    for (entry in entries) {
-      let (userId, userMissions) = entry;
-      let missionEntries = userMissions.entries();
-
-      var serializedMissionEntries = Vector.new<(Nat, Types.SerializedProgress)>();
-
-      for (missionEntry in missionEntries) {
-        let (missionId, progress) = missionEntry;
-
-        let serializedProgress = {
-          completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(
-            progress.completionHistory,
-            func(record : Types.MissionRecord) : Types.SerializedMissionRecord {
-              {
-                timestamp = record.timestamp;
-                pointsEarned = record.pointsEarned;
-                tweetId = record.tweetId;
-              };
-            },
-          );
-          usedCodes = Iter.toArray(progress.usedCodes.entries());
-        };
-
-        Vector.add<(Nat, Types.SerializedProgress)>(serializedMissionEntries, (missionId, serializedProgress));
-      };
-      Vector.add<(Principal, [(Nat, Types.SerializedProgress)])>(serializedUserProgressVec, (userId, Vector.toArray(serializedMissionEntries)));
-
-    };
-    serializedUserProgress := Vector.toArray(serializedUserProgressVec);
+    let globalUserProgressEntries = globalUserProgress.entries();
+    serializedGlobalUserProgress := Array.map<(Text, Types.UserMissions), (Text, [(Nat, Types.SerializedProgress)])>(
+      Iter.toArray(globalUserProgressEntries),
+      func(entry : (Text, Types.UserMissions)) : (Text, [(Nat, Types.SerializedProgress)]) {
+        let (userId, userMissions) = entry;
+        let missionEntries = userMissions.entries();
+        let serializedMissionEntries = Array.map<(Nat, Types.Progress), (Nat, Types.SerializedProgress)>(
+          Iter.toArray(missionEntries),
+          func(missionEntry : (Nat, Types.Progress)) : (Nat, Types.SerializedProgress) {
+            let (missionId, progress) = missionEntry;
+            (missionId, Serialization.serializeProgress(progress));
+          },
+        );
+        return (userId, serializedMissionEntries);
+      },
+    );
 
     let missionAssetsEntries = Iter.toArray(missionAssets.entries());
     serializedMissionAssets := missionAssetsEntries;
-
-    let verifiedEntries = verified.entries();
-    serializedVerified := Iter.toArray(verifiedEntries);
-
-    let streakEntries = streak.entries();
-    serializedstreak := Iter.toArray(streakEntries);
-
-    let serializedUserStreakVec = Vector.new<(Principal, Types.SerializedUserStreak)>();
-
-    let entriesUS = userStreak.entries();
-    for (entryUS in entriesUS) {
-      let (principal, streakMap) = entryUS;
-
-      // Retrieve all entries from the inner UserStreak TrieMap<Int, Nat>
-      let streakEntries = streakMap.entries();
-
-      // Create a Vector to accumulate serialized (Int, Nat) tuples
-      let serializedStreakEntries = Vector.new<(Int, Nat)>();
-
-      // Iterate over each (Int, Nat) pair in the UserStreak
-      for (streakEntry in streakEntries) {
-        let (streakId, streakValue) = streakEntry;
-
-        // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
-        Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
-      };
-
-      // Convert the Vector to an Array and add the (Principal, SerializedUserStreak) tuple to serializedUserStreakVec
-      Vector.add<(Principal, Types.SerializedUserStreak)>(serializedUserStreakVec, (principal, Vector.toArray(serializedStreakEntries)));
-    };
-
-    serializedUserStreak := Vector.toArray(serializedUserStreakVec);
 
   };
 
@@ -265,20 +231,18 @@ actor class Backend() {
 
   system func postupgrade() {
 
-    // Iterate over the serialized user progress data
-    for (tuple in Iter.fromArray(serializedUserProgress)) {
+    globalUserProgress := TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
-      let userId = tuple.0;
-      let serializedUserMissions = tuple.1;
+    for (tuple in Iter.fromArray(serializedGlobalUserProgress)) {
+      let text = tuple.0;
+      let serializedMissions = tuple.1;
 
       let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
 
-      // Iterate over each serialized mission progress for the current user
-      for (missionTuple in Iter.fromArray(serializedUserMissions)) {
-        let missionId = missionTuple.0; // Destructure the first element (Nat)
-        let serializedProgress = missionTuple.1; // Destructure the second element (SerializedProgress)
+      for (missionTuple in Iter.fromArray(serializedMissions)) {
+        let missionId = missionTuple.0;
+        let serializedProgress = missionTuple.1;
 
-        // Deserialize completionHistory
         let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
           serializedProgress.completionHistory,
           func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
@@ -290,29 +254,26 @@ actor class Backend() {
           },
         );
 
-        // Create an empty TrieMap for usedCodes
         let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
 
-        // Deserialize the usedCodes
         for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
-          let code = codeTuple.0; // First element (Text)
-          let value = codeTuple.1; // Second element (Bool)
+          let code = codeTuple.0;
+          let value = codeTuple.1;
           usedCodes.put(code, value);
         };
 
-        // Now construct the full Progress object after deserializing both completionHistory and usedCodes
         let progress : Types.Progress = {
           var completionHistory = completionHistory;
           var usedCodes = usedCodes;
         };
 
-        // Put the deserialized progress into the userMissions TrieMap
         userMissions.put(missionId, progress);
       };
 
-      // Put the deserialized userMissions into the main userProgress TrieMap
-      userProgress.put(userId, userMissions);
+      globalUserProgress.put(text, userMissions);
     };
+
+    serializedGlobalUserProgress := [];
 
     // Deserialize the mission assets
     missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
@@ -321,228 +282,22 @@ actor class Backend() {
       let (missionId, asset) = assetEntry;
       missionAssets.put(missionId, asset);
     };
-    serializedUserProgress := [];
+
     serializedMissionAssets := [];
 
-    // Verified
-
-    verified := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
-
-    for ((principal, boolValue) in Iter.fromArray(serializedVerified)) {
-      verified.put(principal, boolValue);
-    };
-
-    serializedVerified := [];
-
-    streak := TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
-
-    for ((principal, natValue) in Iter.fromArray(serializedstreak)) {
-      streak.put(principal, natValue);
-    };
-
-    serializedstreak := [];
-
-    userStreak := TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
-
-    for (tuple in Iter.fromArray(serializedUserStreak)) {
-      let principal = tuple.0;
-      let serializedStreak = tuple.1;
-
-      // Initialize a new TrieMap for the UserStreak of the current Principal
-      let streakMap = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
-
-      // Iterate over each (Int, Nat) tuple in SerializedUserStreak
-      for (streakTuple in Iter.fromArray(serializedStreak)) {
-        let streakId = streakTuple.0;
-        let streakValue = streakTuple.1;
-
-        // Deserialize and insert into streakMap
-        streakMap.put(streakId, streakValue);
-      };
-
-      // Insert the deserialized streakMap into userStreak TrieMap
-      userStreak.put(principal, streakMap);
-    };
-
-    serializedUserStreak := [];
-
-  };
-
-  stable var streakTime = 15; // Streak reset timer in MINUTES
-  stable var streakTimeNanos = streakTime * 60 * 1_000_000_000;
-
-  public shared query (msg) func getStreakTime() : async Nat {
-    if (isAdmin(msg.caller) or (not Principal.isAnonymous(msg.caller))) {
-      return streakTimeNanos;
-    };
-    return 0;
-  };
-
-  public shared (msg) func setStreakTime(newNum : Nat) : async () {
-    if (isAdmin(msg.caller)) {
-      streakTime := newNum;
-      streakTimeNanos := newNum * 60 * 1_000_000_000;
-    };
-  };
-
-  public shared query (msg) func getUserStreakAmount(userId : Principal) : async Nat {
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      switch (streak.get(userId)) {
-        case (?value) return value;
-        case null return 0;
-      };
-    };
-    return 0;
-  };
-
-  public shared query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      let entriesUS = userStreak.entries();
-      for (entryUS in entriesUS) {
-        let principal = entryUS.0;
-        let totalStreak = entryUS.1;
-        if (principal == userId) {
-          let serializedStreakEntries = Vector.new<(Int, Nat)>();
-          let streakEntries = totalStreak.entries();
-          for (streakEntry in streakEntries) {
-            let (streakId, streakValue) = streakEntry;
-
-            // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
-            Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
-          };
-          return Vector.toArray(serializedStreakEntries);
-        };
-      };
-    };
-    let default = Vector.new<(Int, Nat)>();
-    return Vector.toArray(default);
-  };
-
-  public shared query (msg) func getUserStreakTime(userId : Principal) : async Int {
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-      var hasStarted = false;
-
-      var lastTimestamp : Int = 0;
-      let mainEntries = streak.entries();
-
-      for (mainEntry in mainEntries) {
-        // Iter if user did start Streak
-        let mainUserId = mainEntry.0;
-        if (userId == mainUserId) {
-          // The user did start
-          hasStarted := true;
-          let entries = userStreak.entries();
-          for (entry in entries) {
-            let theUserId = entry.0;
-            let theUserStreak = entry.1;
-            if (theUserId == userId) {
-              let subEntries = theUserStreak.entries();
-              for (subEntry in subEntries) {
-                let timestampU = subEntry.0;
-                if (timestampU > lastTimestamp) {
-                  lastTimestamp := timestampU;
-                };
-              };
-            };
-
-          };
-        };
-      };
-
-      if (not hasStarted) {
-        // The user is starting first time
-        return 0;
-      } else {
-        return lastTimestamp;
-      };
-    };
-    return 0;
-  };
-
-  public shared (msg) func claimStreak(userId : Principal) : async (Text, Nat) {
-
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-
-      let currentTime = Time.now();
-      var hasStarted = false;
-
-      var lastTimestamp : Int = 0;
-
-      let mainEntries = streak.entries();
-
-      for (mainEntry in mainEntries) {
-        // Iter if user did start Streak
-        let mainUserId = mainEntry.0;
-        let mainStreak = mainEntry.1;
-        if (userId == mainUserId) {
-          // The user did start
-          hasStarted := true;
-          let entries = userStreak.entries();
-
-          for (entry in entries) {
-            let theUserId = entry.0;
-            let theUserStreak = entry.1;
-
-            if (theUserId == userId) {
-              let subEntries = theUserStreak.entries();
-
-              for (subEntry in subEntries) {
-                let timestampU = subEntry.0;
-
-                if (timestampU > lastTimestamp) {
-                  lastTimestamp := timestampU;
-                };
-              };
-
-              if ((lastTimestamp + streakTimeNanos) > currentTime) {
-                return ("You can't claim your streak yet.", 0);
-              } else if ((lastTimestamp + streakTimeNanos) <= currentTime and currentTime < (lastTimestamp + (streakTimeNanos * 2))) {
-                // User can claim their streak normally
-                streak.put(userId, mainStreak + 1);
-                let newStreak : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                let earnedText = Nat.toText((300 + (300 * (mainStreak + 1))) / 60);
-                newStreak.put(currentTime, 300 + (300 * (mainStreak + 1))); // 5 minutes + Extra minutes per streak
-                userStreak.put(userId, newStreak);
-                return ("You have earned " # earnedText # " minutes!", (300 + (300 * (mainStreak + 1))));
-              } else if (currentTime >= (lastTimestamp + (streakTimeNanos * 2))) {
-                // Reset streak after third window
-                streak.put(userId, 1);
-                let newStreakMap : TrieMap.TrieMap<Int, Nat> = theUserStreak;
-                newStreakMap.put(currentTime, 300);
-                userStreak.put(userId, newStreakMap);
-                return ("You have lost your past streak. Starting again with 5 minutes...", 300);
-              } else {
-                return ("You can't claim your streak yet.", 0);
-              };
-            };
-          };
-        };
-      };
-
-      if (not hasStarted) {
-        // The user is starting first time
-
-        streak.put(userId, 1); // 1 Time Streak
-        let firstStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
-        firstStreak.put(currentTime, 300); // 5 minutes first streak
-        userStreak.put(userId, firstStreak);
-
-        return ("You have earned 5 minutes!", 300);
-      };
-
-      return ("", 0);
-    };
-    return ("", 0);
   };
 
   public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
 
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller) and missionId == 1)) {
+
+      let userUUID = await getPrincipalUUID(userId);
+
       // Deserialize the progress object
       let progress = Serialization.deserializeProgress(serializedProgress);
 
       // Retrieve the user's missions or create a new TrieMap if it doesn't exist
-      let missions = switch (userProgress.get(userId)) {
+      let missions = switch (globalUserProgress.get(userUUID)) {
         case (?map) map;
         case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
       };
@@ -551,49 +306,17 @@ actor class Backend() {
       missions.put(missionId, progress);
 
       // Update the user's progress in the main TrieMap
-      userProgress.put(userId, missions);
+      globalUserProgress.put(userUUID, missions);
 
-      let mPoints = await getMissionPoints(missionId);
-      let natPoints = Nat.fromText(Int.toText(mPoints));
-      switch (natPoints) {
-        case (?natPoints) {
-          var i = 0;
-          while (i < Vector.size(users)) {
-            switch (Vector.getOpt(users, i)) {
-              case (?user) {
-                if (user.id == userId) {
-                  let updatedUser : Types.User = {
-                    id = user.id;
-                    var twitterid = user.twitterid;
-                    var twitterhandle = user.twitterhandle;
-                    creationTime = user.creationTime;
-                    var pfpProgress = user.pfpProgress;
-                    var totalPoints = user.totalPoints + natPoints;
-                    var ocProfile = user.ocProfile;
-                    var ocCompleted = user.ocCompleted;
-                    var discordUser = user.discordUser;
-                    var telegramUser = user.telegramUser;
-                    var nnsPrincipal = user.nnsPrincipal;
-                  };
-                  Vector.put(users, i, updatedUser);
-                  return;
-                };
-              };
-              case _ {};
-            };
-            i += 1;
-          };
-        };
-        case (null) {
-
-        };
-      };
     };
   };
 
   public shared (msg) func resetUserMissionByIdForUser(userId : Principal, missionId : Nat) : async () {
     if (isAdmin(msg.caller)) {
-      let _missions = switch (userProgress.get(userId)) {
+
+      let userUUID = await getPrincipalUUID(userId);
+
+      let _missions = switch (globalUserProgress.get(userUUID)) {
         case (?map) {
           map.remove(missionId);
         };
@@ -602,10 +325,13 @@ actor class Backend() {
     };
   };
 
-  public shared query (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
+  public shared (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      switch (userProgress.get(userId)) {
+
+      let userUUID = await getPrincipalUUID(userId);
+
+      switch (globalUserProgress.get(userUUID)) {
         case (?missions) {
           switch (missions.get(missionId)) {
             case (?progress) return ?Serialization.serializeProgress(progress);
@@ -619,10 +345,12 @@ actor class Backend() {
     return null;
   };
 
-  public shared query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
+  public shared (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userMissionsOpt = userProgress.get(userId);
+      let userUUID = await getPrincipalUUID(userId);
+
+      let userMissionsOpt = globalUserProgress.get(userUUID);
 
       switch (userMissionsOpt) {
         case (null) {
@@ -650,10 +378,12 @@ actor class Backend() {
     return null;
   };
 
-  public shared query (msg) func canUserDoMission(userId : Principal, missionId : Nat) : async Bool {
+  public shared (msg) func canUserDoMission(userId : Principal, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      switch (userProgress.get(userId)) {
+      let userUUID = await getPrincipalUUID(userId);
+
+      switch (globalUserProgress.get(userUUID)) {
         case (?userMissions) {
           switch (userMissions.get(missionId)) {
             case (?progress) {
@@ -674,14 +404,18 @@ actor class Backend() {
     return false;
   };
 
-  public shared query (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
+  // Function to check if a user can do a recursive mission
+
+  public shared (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      let userUUID = await getPrincipalUUID(userId);
 
       for (mission in Vector.vals(missionsV2)) {
         if (mission.id == missionId) {
           var thismission = mission;
 
-          switch (userProgress.get(userId)) {
+          switch (globalUserProgress.get(userUUID)) {
             case (?userMissions) {
               switch (userMissions.get(missionId)) {
                 case (?progress) {
@@ -707,10 +441,12 @@ actor class Backend() {
     return false;
   };
 
-  public shared query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
+  public shared (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userMissionsOpt = userProgress.get(userId);
+      let userUUID = await getPrincipalUUID(userId);
+
+      let userMissionsOpt = globalUserProgress.get(userUUID);
 
       switch (userMissionsOpt) {
         case null {
@@ -727,19 +463,6 @@ actor class Backend() {
             // Sum up the pointsEarned from each mission record
             for (missionRecord in Iter.fromArray(completionHistory)) {
               totalPoints += missionRecord.pointsEarned;
-            };
-          };
-
-          let entriesUS = userStreak.entries();
-          for (entryUS in entriesUS) {
-            let principal = entryUS.0;
-            let totalStreak = entryUS.1;
-            if (principal == userId) {
-              let streakEntries = totalStreak.entries();
-              for (streakEntry in streakEntries) {
-                let streakValue = streakEntry.1;
-                totalPoints += streakValue;
-              };
             };
           };
 
@@ -891,8 +614,8 @@ actor class Backend() {
     if (isAdmin(msg.caller)) {
       var count : Nat = 0;
 
-      // Iterate through all users in userProgress
-      for ((userId, userMissions) in userProgress.entries()) {
+      // Iterate through all users in globalUserProgress
+      for ((userId, userMissions) in globalUserProgress.entries()) {
         // Check if the user has progress for the specific mission
         switch (userMissions.get(missionId)) {
           case (?progress) {
@@ -912,76 +635,13 @@ actor class Backend() {
     return 0;
   };
 
-  stable var users : Vector.Vector<Types.User> = Vector.new<Types.User>();
-
-  public shared (msg) func addUser(userId : Principal) : async (?Types.SerializedUser) {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-
-      // Create a completion record for the first mission
-
-      // Create progress for the first mission
-
-      // Add the user to the users vector
-      let newUser : Types.User = {
-        id = userId;
-        var twitterid = null;
-        var twitterhandle = null;
-        creationTime = Time.now();
-        var pfpProgress = "false";
-        var totalPoints = 0;
-        var ocProfile = null;
-        var ocCompleted = false;
-        var discordUser = null;
-        var telegramUser = null;
-        var nnsPrincipal = null;
-      };
-      Vector.add<Types.User>(users, newUser);
-      return ?Serialization.serializeUser(newUser);
-    };
-    return null;
-  };
-
-  public shared query (msg) func getUsers() : async [Types.SerializedUser] {
-    if (isAdmin(msg.caller)) {
-      return Array.map<Types.User, Types.SerializedUser>(Vector.toArray(users), Serialization.serializeUser);
-    };
-    return [];
-  };
-
-  public shared (msg) func restoreUsers(serializedUsers : [Types.SerializedUser]) : async () {
-    if (isAdmin(msg.caller)) {
-      users := Vector.new<Types.User>();
-
-      // Loop over serializedUsers and convert each to a User
-      for (serializedUser in serializedUsers.vals()) {
-        let newUser : Types.User = {
-          id = serializedUser.id;
-          var twitterid = serializedUser.twitterid;
-          var twitterhandle = serializedUser.twitterhandle;
-          creationTime = serializedUser.creationTime;
-          var pfpProgress = serializedUser.pfpProgress;
-          var totalPoints = serializedUser.totalPoints;
-          var ocProfile = serializedUser.ocProfile;
-          var ocCompleted = serializedUser.ocCompleted;
-          var discordUser = serializedUser.discordUser;
-          var telegramUser = serializedUser.telegramUser;
-          var nnsPrincipal = serializedUser.nnsPrincipal;
-        };
-
-        // Add the new user to the vector
-
-        Vector.add<Types.User>(users, newUser);
-      };
-    };
-  };
-
   public shared query (msg) func getAllUsersProgress(offset : Nat, limit : Nat) : async {
-    data : [(Principal, [(Nat, Types.SerializedProgress)])];
+    data : [(Text, [(Nat, Types.SerializedProgress)])];
     total : Nat;
   } {
     if (isAdmin(msg.caller)) {
       // Convert userProgress entries to an array
-      let entries : [(Principal, Types.UserMissions)] = Iter.toArray(userProgress.entries());
+      let entries : [(Text, Types.UserMissions)] = Iter.toArray(globalUserProgress.entries());
       let total : Nat = Array.size(entries);
 
       // Handle cases where offset might be greater than total
@@ -994,12 +654,12 @@ actor class Backend() {
       let length : Nat = adjustedEnd - adjustedOffset;
 
       // Apply pagination using Array.subArray with (from, length)
-      let paginatedEntries : [(Principal, Types.UserMissions)] = Array.subArray(entries, adjustedOffset, length);
+      let paginatedEntries : [(Text, Types.UserMissions)] = Array.subArray(entries, adjustedOffset, length);
 
       // Serialize the paginated entries using Array.map
-      let serializedEntries : [(Principal, [(Nat, Types.SerializedProgress)])] = Array.map<(Principal, Types.UserMissions), (Principal, [(Nat, Types.SerializedProgress)])>(
+      let serializedEntries : [(Text, [(Nat, Types.SerializedProgress)])] = Array.map<(Text, Types.UserMissions), (Text, [(Nat, Types.SerializedProgress)])>(
         paginatedEntries,
-        func(entry : (Principal, Types.UserMissions)) : (Principal, [(Nat, Types.SerializedProgress)]) {
+        func(entry : (Text, Types.UserMissions)) : (Text, [(Nat, Types.SerializedProgress)]) {
           let (userId, userMissions) = entry;
           let missionEntries : [(Nat, Types.Progress)] = Iter.toArray(userMissions.entries());
 
@@ -1020,83 +680,6 @@ actor class Backend() {
     };
 
     return { data = []; total = 0 };
-  };
-
-  public shared query (msg) func getUser(userId : Principal) : async ?Types.SerializedUser {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-      for (user in Vector.vals(users)) {
-        if (user.id == userId) {
-          return ?Serialization.serializeUser(user);
-        };
-      };
-    };
-    return null;
-  };
-
-  public shared (msg) func addPointsToUser(userId : Principal, addition : Nat) : async (Text, Nat, Nat) {
-    if (isAdmin(msg.caller)) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == userId) {
-              var prePoints = user.totalPoints;
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints + addition;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = user.ocCompleted;
-                var discordUser = user.discordUser;
-                var telegramUser = user.telegramUser;
-                var nnsPrincipal = user.nnsPrincipal;
-              };
-              Vector.put(users, i, updatedUser);
-              return ("Updated user points: ", prePoints, user.totalPoints);
-            };
-          };
-          case _ {};
-        };
-        i += 1;
-      };
-    };
-    return ("", 0, 0);
-  };
-
-  public shared (msg) func deletePointsToUser(userId : Principal, deletion : Nat) : async (Text, Nat, Nat) {
-    if (isAdmin(msg.caller)) {
-      var i = 0;
-      while (i < Vector.size(users)) {
-        switch (Vector.getOpt(users, i)) {
-          case (?user) {
-            if (user.id == userId) {
-              var prePoints = user.totalPoints;
-              let updatedUser : Types.User = {
-                id = user.id;
-                var twitterid = user.twitterid;
-                var twitterhandle = user.twitterhandle;
-                creationTime = user.creationTime;
-                var pfpProgress = user.pfpProgress;
-                var totalPoints = user.totalPoints - deletion;
-                var ocProfile = user.ocProfile;
-                var ocCompleted = user.ocCompleted;
-                var discordUser = user.discordUser;
-                var telegramUser = user.telegramUser;
-                var nnsPrincipal = user.nnsPrincipal;
-              };
-              Vector.put(users, i, updatedUser);
-              return ("Updated user points: ", prePoints, user.totalPoints);
-            };
-          };
-          case _ {};
-        };
-        i += 1;
-      };
-    };
-    return ("", 0, 0);
   };
 
   public shared (msg) func verifyOisyICP(userId : Principal) : async Text {
@@ -1233,6 +816,8 @@ actor class Backend() {
 
                   let ledgercanister = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai") : actor {
                     icrc1_transfer : (Types.TransferArg) -> async (Types.Icrc1TransferResult);
+                    icrc1_balance_of : query (Types.Account) -> async (Types.Icrc1Tokens);
+                    icrc1_fee : query () -> async (Nat);
                   };
 
                   let result : Types.Icrc1TransferResult = await ledgercanister.icrc1_transfer(icrc1TransferArg);
@@ -1528,9 +1113,7 @@ actor class Backend() {
 
   public shared (msg) func resetall() : async () {
     if (isAdmin(msg.caller)) {
-      Vector.clear(users);
-      userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
-      verified := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+      globalUserProgress := TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
       return;
     };
   };

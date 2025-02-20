@@ -1,5 +1,6 @@
 import Vector "mo:vector";
 import TrieMap "mo:base/TrieMap";
+import Principal "mo:base/Principal";
 
 module Types {
 
@@ -23,7 +24,57 @@ module Types {
     icon : Text;
   };
 
-  public type User = {
+  public type UserV1 = {
+    id : Principal; // Principal ID
+    var twitterid : ?Nat; // Twitter ID
+    var twitterhandle : ?Text; // Twitter Handle
+    creationTime : Int; // Creation Time in Nanoseconds
+    var pfpProgress : Text;
+    var totalPoints : Nat;
+    var ocProfile : ?Text;
+    var ocCompleted : Bool;
+  };
+
+  public type SerializedUserV1 = {
+    id : Principal;
+    twitterid : ?Nat;
+    twitterhandle : ?Text;
+    creationTime : Int;
+    pfpProgress : Text;
+    totalPoints : Nat;
+    ocProfile : ?Text;
+    ocCompleted : Bool;
+  };
+
+  public type UserV2 = {
+    id : Principal; // Principal ID
+    var twitterid : ?Nat; // Twitter ID
+    var twitterhandle : ?Text; // Twitter Handle
+    creationTime : Int; // Creation Time in Nanoseconds
+    var pfpProgress : Text;
+    var totalPoints : Nat;
+    var ocProfile : ?Text;
+    var ocCompleted : Bool;
+    var discordUser : ?Text;
+    var telegramUser : ?Text;
+    var nnsPrincipal : ?Principal;
+  };
+
+  public type SerializedUserV2 = {
+    id : Principal;
+    twitterid : ?Nat;
+    twitterhandle : ?Text;
+    creationTime : Int;
+    pfpProgress : Text;
+    totalPoints : Nat;
+    ocProfile : ?Text;
+    ocCompleted : Bool;
+    discordUser : ?Text;
+    telegramUser : ?Text;
+    nnsPrincipal : ?Principal;
+  };
+
+  public type GlobalUser = {
     var twitterid : ?Nat; // Twitter ID
     var twitterhandle : ?Text; // Twitter Handle
     creationTime : Int; // Creation Time in Nanoseconds
@@ -32,6 +83,7 @@ module Types {
     var ocProfile : ?Text;
     var discordUser : ?Text;
     var telegramUser : ?Text;
+    var nuanceUser : ?Text;
     var nnsPrincipal : ?Principal;
     var firstname : ?Text;
     var lastname : ?Text;
@@ -43,9 +95,11 @@ module Types {
     var coverphoto : ?Text;
     var country : ?Text;
     var timezone : ?Text;
+    var icrc1tokens : ?[Principal];
+    var nft721 : ?[Principal];
   };
 
-  public type SerializedUser = {
+  public type SerializedGlobalUser = {
     twitterid : ?Nat;
     twitterhandle : ?Text;
     creationTime : Int;
@@ -54,6 +108,7 @@ module Types {
     ocProfile : ?Text;
     discordUser : ?Text;
     telegramUser : ?Text;
+    nuanceUser : ?Text;
     nnsPrincipal : ?Principal;
     firstname : ?Text;
     lastname : ?Text;
@@ -65,6 +120,8 @@ module Types {
     coverphoto : ?Text;
     country : ?Text;
     timezone : ?Text;
+    icrc1tokens : ?[Principal];
+    nft721 : ?[Principal];
   };
 
   // HTTP Request Types
@@ -287,4 +344,122 @@ module Types {
     requestedAt : Int; // Timestamp when the request was made.
   };
 
+  public type SubAccount = Blob;
+
+  public type Account = {
+    owner : Principal;
+    subaccount : ?SubAccount;
+  };
+
+  public type Icrc1Tokens = Nat;
+
+  public type GetAccountTransactionsArgs = {
+    account : Account;
+    // The txid of the last transaction seen by the client.
+    // If None then the results will start from the most recent
+    // txid. If set then the results will start from the next
+    // most recent txid after start (start won't be included).
+    start : ?Nat;
+    // Maximum number of transactions to fetch.
+    max_results : Nat;
+  };
+
+  public type GetAccountIdentifierTransactionsResult = {
+    #Ok : GetAccountIdentifierTransactionsResponse;
+    #Err : GetAccountIdentifierTransactionsError;
+  };
+
+  public type GetAccountIdentifierTransactionsResponse = {
+    balance : Nat64;
+    transactions : [TransactionWithId];
+    oldest_tx_id : ?Nat64;
+  };
+
+  public type TransactionWithId = {
+    id : Nat64;
+    transaction : Transaction;
+  };
+
+  public type TransferArg = {
+    from_subaccount : ?SubAccount;
+    to : Account;
+    amount : Icrc1Tokens;
+    fee : ?Icrc1Tokens;
+    memo : ?Blob;
+    created_at_time : ?Icrc1Timestamp;
+  };
+
+  public type Icrc1Timestamp = Nat64;
+
+  public type Transaction = {
+    memo : Nat64;
+    icrc1_memo : ?[Nat8];
+    operation : Operation;
+    created_at_time : ?TimeStamp;
+    timestamp : ?TimeStamp;
+  };
+
+  public type Operation = {
+    #Approve : {
+      fee : Tokens;
+      from : Text;
+      allowance : Tokens;
+      expires_at : ?TimeStamp;
+      spender : Text;
+      expected_allowance : ?Tokens;
+    };
+    #Burn : { from : Text; amount : Tokens; spender : ?Text };
+    #Mint : { to : Text; amount : Tokens };
+    #Transfer : {
+      to : Text;
+      fee : Tokens;
+      from : Text;
+      amount : Tokens;
+      spender : ?Text;
+    };
+  };
+
+  public type TimeStamp = { timestamp_nanos : Nat64 };
+
+  type Tokens = { e8s : Nat64 };
+
+  public type GetAccountIdentifierTransactionsError = {
+    message : Text;
+  };
+
+  public type Icrc1BlockIndex = Nat;
+
+  public type Icrc1TransferError = {
+    #BadFee : { expected_fee : Icrc1Tokens };
+    #BadBurn : { min_burn_amount : Icrc1Tokens };
+    #InsufficientFunds : { balance : Icrc1Tokens };
+    #TooOld;
+    #CreatedInFuture : { ledger_time : Nat64 };
+    #TemporarilyUnavailable;
+    #Duplicate : { duplicate_of : Icrc1BlockIndex };
+    #GenericError : { error_code : Nat; message : Text };
+  };
+
+  public type Icrc1TransferResult = {
+    #Ok : Icrc1BlockIndex;
+    #Err : Icrc1TransferError;
+  };
+
+  public type TokenId = Nat64;
+
+  public type TxReceipt = {
+    #Ok : Nat;
+    #Err : ApiError;
+  };
+
+  type ApiError = {
+    #InvalidCollection;
+    #InvalidTokenId;
+    #Other;
+    #SenderIsNotOwner;
+    #TransactionIsNotVerified;
+    #Unauthorized;
+    #VestingIsNotFinishedYet;
+    #ZeroAddress;
+  };
 };

@@ -1,20 +1,25 @@
 import { ActorSubclass } from '@dfinity/agent';
-import { SerializedMissionV2, SerializedProgress, SerializedUser, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault, SerializedUser as SerializedUserDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
+import { SerializedMissionV2, SerializedProgress, SerializedUserStreak } from '../declarations/backend/backend.did.js';
+import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault} from '../declarations/oisy_backend/oisy_backend.did.js';
 import { useGlobalID } from './globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { convertSecondsToHMS } from '../components/Utilities.tsx';
 import { useCallback } from 'react';
+import { LinkRequest, SerializedGlobalUser } from '../declarations/index/index.did.js';
+
+export interface WalletLinkInfo {
+    walletType: string;
+    linkedPrincipal?: string;
+    pendingRequest?: { requester: string; requesterType: string };
+    cooldown: number;
+    inputValue: string;
+}
 
 const useFetchData = () => {
     const {
         setMissions,
         setUserProgress,
         setUser,
-        setNfidToIIStatus,
-        setIIToNFIDStatus,
-        setLinkedAccount,
-        setOisyWallet,
         setTimerText,
         setPFPstatus,
         setTwitterHandle,
@@ -26,7 +31,7 @@ const useFetchData = () => {
         setMissionsForProject,
         setUserProgressForProject,
         setPointsForProject,
-        setUserForProject
+        setWalletLinkInfos
     } = useGlobalID();
 
     const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -35,6 +40,50 @@ const useFetchData = () => {
             setTerms(false);
         }
     }, []);
+
+    const fetchWalletLinkInfo = useCallback(async (signerId: string, actorIndex: ActorSubclass, ae: Principal) => {
+        try {
+            // 1. Get allowed wallet types.
+            const allowedTypes = await actorIndex.getAllowedAccountTypes() as string[];
+            // Exclude the current account type (i.e. the one stored in signerId).
+            const walletTypes = allowedTypes.filter((type) => type !== signerId);
+
+            // 2. Get linked accounts for the current user.
+            const linkedAccounts = await actorIndex.getLinkedAccountsForPrincipal(ae) as [string, Principal][];
+            const linkedMap: { [key: string]: string } = {};
+            linkedAccounts.forEach(([type, principal]) => {
+                linkedMap[type] = principal.toText();
+            });
+
+            // 3. Get pending link requests for the current user (as target).
+            const pendingRequests = await actorIndex.getPendingLinkRequestsForTarget(ae) as LinkRequest[];
+            const pendingMap: { [key: string]: { requester: string; requesterType: string } } = {};
+            pendingRequests.forEach((req: any) => {
+                if (req.status === "pending") {
+                    pendingMap[req.requesterType] = {
+                        requester: req.requester.toText(),
+                        requesterType: req.requesterType,
+                    };
+                }
+            });
+
+            // 4. For each wallet type, also get the cooldown (if any).
+            const walletInfos: WalletLinkInfo[] = [];
+            for (const walletType of walletTypes) {
+                const cooldown = Number(await actorIndex.getLinkCooldownForPrincipal(ae, walletType) as bigint);
+                walletInfos.push({
+                    walletType,
+                    linkedPrincipal: linkedMap[walletType],
+                    pendingRequest: pendingMap[walletType],
+                    cooldown,
+                    inputValue: '',
+                });
+            }
+            setWalletLinkInfos(walletInfos);
+        } catch (error) {
+            console.error("Error fetching wallet link info:", error);
+        }
+    }, [setWalletLinkInfos]);
 
     // Fetch missions
     const fetchMissions = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[]) => {
@@ -77,50 +126,16 @@ const useFetchData = () => {
         setUserProgress(userProgress);
     }, [setUserProgress, setUserProgressForProject]);
 
-    const fetchUserOisy = useCallback(async (actor: ActorSubclass, ae: Principal) => {
-        const oisyWalletPromise = actor.getUserOisyWallet(ae) as Promise<Principal[] | []>;
-        const oisyWallet = await oisyWalletPromise;
-        if (oisyWallet != null) {
-            setOisyWallet(oisyWallet[0]);
-        }
-    }, [setOisyWallet]);
-
     // Fetch user details
-    const fetchUser = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
+    const fetchUser = useCallback(async (actorIndex: ActorSubclass, ae: Principal) => {
 
-        const userPromise = actor.getUser(ae) as Promise<SerializedUser[]>;
-        const oisyWalletPromise = actor.getUserOisyWallet(ae) as Promise<Principal[] | []>;
-
-        const linkedAccPromise = actor.getLinkedAccount(ae) as Promise<Principal | null>;
-        const nfidToIIPromise = actor.isLinkingNFIDtoII(ae) as Promise<[boolean, Principal | null]>;
-        const iiToNFIDPromise = actor.isLinkingIItoNFID(ae) as Promise<[boolean, Principal | null]>;
-
-        const projectUserPromises = actors.map(async (a, index) => {
-            const projectUser = await a.getUser(ae) as SerializedUserDefault[];
-            const projectId = targets[index];
-            setUserForProject(projectId, projectUser);
-        });
-
+        const userPromise = actorIndex.getUserByPrincipal(ae) as Promise<SerializedGlobalUser[]>;
         const user = await userPromise;
-        const [nfidLinking, nfidtoIITarget] = await nfidToIIPromise;
-        setNfidToIIStatus([nfidLinking, nfidtoIITarget!]);
-        const [iiLinking, iitoNFIDTarget] = await iiToNFIDPromise;
-        setIIToNFIDStatus([iiLinking, iitoNFIDTarget!]);
-        const maybeLinked = await linkedAccPromise;
-        if (maybeLinked != null) {
-            setLinkedAccount(maybeLinked);
-        }
-
-        const oisyWallet = await oisyWalletPromise;
-        await Promise.all(projectUserPromises);
 
         setUser(user);
-        if (oisyWallet != null) {
-            setOisyWallet(oisyWallet[0]);
-        }
         setPFPstatus(user[0]?.pfpProgress || '');
         setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
-    }, [setUser, setPFPstatus, setTwitterHandle, setUserForProject]);
+    }, [setUser, setPFPstatus, setTwitterHandle]);
 
     const fetchUserSeconds = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
         // Start fetching total seconds for user from the primary actor
@@ -161,13 +176,14 @@ const useFetchData = () => {
         setUserStreakPercentage(userStreakPercentage);
     }, [setUserStreakAmount, setStreakResetTime, setUserLastTimeStreak, setTotalUserStreak, setUserStreakPercentage]);
 
-    const fetchAll = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const fetchAll = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], actorIndex: ActorSubclass, targets: string[], ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
         await Promise.all([
             fetchUserProgress(actor, actors, targets, ae),
             fetchUserSeconds(actor, actors, targets, ae),
             fetchUserStreak(actor, ae),
             fetchMissions(actor, actors, targets),
-            fetchUser(actor, actors, targets, ae),
+            fetchUser(actorIndex, ae),
+            fetchWalletLinkInfo('ic', actorIndex, ae), // PILAS
         ]);
         setDataLoaded(true);
     }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds, fetchUserStreak]);
@@ -176,12 +192,12 @@ const useFetchData = () => {
         fetchMissions,
         fetchUserProgress,
         fetchUser,
-        fetchUserOisy,
         fetchUserSeconds,
         fetchUserPFPstatus,
         fetchUserStreak,
         fetchAll,
         hasAccepted,
+        fetchWalletLinkInfo
     };
 };
 

@@ -18,7 +18,8 @@ const canisterIdMP = "wfguo-oiaaa-aaaag-qngma-cai";
 const MissionFunctionsComponent = {
     followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
-        const principal = globalID.principalId;
+        let principal = globalID.principalId;
+
         try {
             const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-follow/", {
                 method: "POST",
@@ -86,7 +87,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, principal, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
 
                 setLoading(false);
                 closeModal();
@@ -145,7 +146,7 @@ const MissionFunctionsComponent = {
             });
         });
 
-        fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+        fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
         setLoading(false);
         closeModal();
     },
@@ -221,7 +222,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -314,7 +315,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -404,7 +405,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 if (input != 'a') {
                     closeModal();
@@ -494,7 +495,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
             }
 
@@ -571,7 +572,7 @@ const MissionFunctionsComponent = {
                 });
             });
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             setLoading(false);
             closeModal();
         } else {
@@ -658,7 +659,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 alert(data.message);
                 Usergeek.trackEvent("Mission 9 : Nuance Follow");
                 setLoading(false);
@@ -1117,7 +1118,7 @@ const MissionFunctionsComponent = {
                     });
                 });
 
-                fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                 setLoading(false);
                 closeModal();
             }
@@ -1171,7 +1172,7 @@ const MissionFunctionsComponent = {
                 });
             });
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1212,7 +1213,7 @@ const MissionFunctionsComponent = {
                 });
             });
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1275,7 +1276,7 @@ const MissionFunctionsComponent = {
                         });
                     });
 
-                    fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                    fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                     setLoading(false);
                     closeModal();
                 } else {
@@ -1343,7 +1344,7 @@ const MissionFunctionsComponent = {
                 });
             });
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1389,7 +1390,7 @@ const MissionFunctionsComponent = {
                 });
             });
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1436,7 +1437,7 @@ const MissionFunctionsComponent = {
                 canisterId,
             })
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1484,7 +1485,7 @@ const MissionFunctionsComponent = {
                 canisterId,
             })
 
-            fetchData.fetchAll(actor, actors, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
             alert(a);
             setLoading(false);
             closeModal();
@@ -1493,6 +1494,19 @@ const MissionFunctionsComponent = {
             alert(a);
             setLoading(false);
         };
+    },
+
+    goICPandaMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        const url = 'https://twitter.com/intent/tweet?in_reply_to=1890856928701460621';
+        window.open(url, '_blank');
+        setLoading(false);
+    },
+
+    verifyICPandaMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        alert("You will be verified soon. Please wait for the manual verification process to complete.");
+        setLoading(false);
+        navigate('/Missions');
+        closeModal();
     },
 };
 

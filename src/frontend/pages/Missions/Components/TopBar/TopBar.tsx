@@ -524,8 +524,8 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         <div
                                             style={{
                                                 position: 'absolute',
-                                                top: '115px',
-                                                left: '134px',
+                                                top: '100px',
+                                                left: '117px',
                                                 pointerEvents: 'none',
                                             }}
                                         >
@@ -536,8 +536,8 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         <div
                                             style={{
                                                 position: 'absolute',
-                                                top: '115px',
-                                                left: '203px',
+                                                top: '100px',
+                                                left: '176px',
                                                 pointerEvents: 'none',
                                             }}
                                         >
@@ -548,8 +548,8 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         <div
                                             style={{
                                                 position: 'absolute',
-                                                top: '115px',
-                                                left: '270px',
+                                                top: '100px',
+                                                left: '236px',
                                                 pointerEvents: 'none',
                                             }}
                                         >
@@ -756,8 +756,8 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                                 <div
                                                     style={{
                                                         position: 'absolute',
-                                                        top: '115px',
-                                                        left: '134px',
+                                                        top: '100px',
+                                                        left: '117px',
                                                         pointerEvents: 'none',
                                                     }}
                                                 >
@@ -768,8 +768,8 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                                 <div
                                                     style={{
                                                         position: 'absolute',
-                                                        top: '115px',
-                                                        left: '203px',
+                                                        top: '100px',
+                                                        left: '176px',
                                                         pointerEvents: 'none',
                                                     }}
                                                 >
@@ -780,8 +780,8 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                                 <div
                                                     style={{
                                                         position: 'absolute',
-                                                        top: '115px',
-                                                        left: '270px',
+                                                        top: '100px',
+                                                        left: '236px',
                                                         pointerEvents: 'none',
                                                     }}
                                                 >

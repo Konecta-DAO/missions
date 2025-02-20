@@ -8,32 +8,29 @@ module Types {
   };
 
   // User Types
-  public type User = {
-    id : Principal; // Principal ID
-    var twitterid : ?Nat; // Twitter ID
-    var twitterhandle : ?Text; // Twitter Handle
-    creationTime : Int; // Creation Time in Nanoseconds
-    var pfpProgress : Text;
-    var totalPoints : Nat;
-    var ocProfile : ?Text;
-    var ocCompleted : Bool;
-    var discordUser : ?Text;
-    var telegramUser : ?Text;
-    var nnsPrincipal : ?Principal;
-  };
-
-  public type SerializedUser = {
-    id : Principal;
+  public type SerializedGlobalUser = {
     twitterid : ?Nat;
     twitterhandle : ?Text;
     creationTime : Int;
     pfpProgress : Text;
-    totalPoints : Nat;
+    deducedPoints : Nat;
     ocProfile : ?Text;
-    ocCompleted : Bool;
     discordUser : ?Text;
     telegramUser : ?Text;
+    nuanceUser : ?Text;
     nnsPrincipal : ?Principal;
+    firstname : ?Text;
+    lastname : ?Text;
+    username : ?Text;
+    email : ?Text;
+    bio : ?Text;
+    categories : ?[Text];
+    profilepic : ?Text;
+    coverphoto : ?Text;
+    country : ?Text;
+    timezone : ?Text;
+    icrc1tokens : ?[Principal];
+    nft721 : ?[Principal];
   };
 
   // Mission Types
