@@ -17,6 +17,7 @@ import Bool "mo:base/Bool";
 import Nat8 "mo:base/Nat8";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
+import Debug "mo:base/Debug";
 
 actor class Backend() {
 
@@ -25,17 +26,6 @@ actor class Backend() {
   // Stable storage for serialized data
 
   stable var serializedGlobalUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
-
-  func getPrincipalUUID(userId : Principal) : async Text {
-
-    let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-      getUUID : query (Principal) -> async Text;
-    };
-
-    let uuid = await index.getUUID(userId);
-
-    return uuid;
-  };
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
 
@@ -287,11 +277,9 @@ actor class Backend() {
 
   };
 
-  public shared (msg) func updateUserProgress(userId : Principal, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
+  public shared (msg) func updateUserProgress(userUUID : Text, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
 
-    if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller) and missionId == 1)) {
-
-      let userUUID = await getPrincipalUUID(userId);
+    if (isAdmin(msg.caller)) {
 
       // Deserialize the progress object
       let progress = Serialization.deserializeProgress(serializedProgress);
@@ -311,10 +299,8 @@ actor class Backend() {
     };
   };
 
-  public shared (msg) func resetUserMissionByIdForUser(userId : Principal, missionId : Nat) : async () {
+  public shared (msg) func resetUserMissionByIdForUser(userUUID : Text, missionId : Nat) : async () {
     if (isAdmin(msg.caller)) {
-
-      let userUUID = await getPrincipalUUID(userId);
 
       let _missions = switch (globalUserProgress.get(userUUID)) {
         case (?map) {
@@ -325,11 +311,15 @@ actor class Backend() {
     };
   };
 
-  public shared (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
+  public shared composite query (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userUUID = await getPrincipalUUID(userId);
+      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+        getUUID : query (Principal) -> async Text;
+      };
+
+      let userUUID = await index.getUUID(userId);
 
       switch (globalUserProgress.get(userUUID)) {
         case (?missions) {
@@ -345,10 +335,14 @@ actor class Backend() {
     return null;
   };
 
-  public shared (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
+  public shared composite query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userUUID = await getPrincipalUUID(userId);
+      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+        getUUID : query (Principal) -> async Text;
+      };
+
+      let userUUID = await index.getUUID(userId);
 
       let userMissionsOpt = globalUserProgress.get(userUUID);
 
@@ -378,73 +372,67 @@ actor class Backend() {
     return null;
   };
 
-  public shared (msg) func canUserDoMission(userId : Principal, missionId : Nat) : async Bool {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+  public shared query (msg) func canUserDoMission(userUUID : Text, missionId : Nat) : async Bool {
+    if (isAdmin(msg.caller)) {
+      var missionOpt : ?Types.MissionV2 = null;
+      for (mission in Vector.vals(missionsV2)) {
+        if (mission.id == missionId) {
+          missionOpt := ?mission;
+        };
+      };
 
-      let userUUID = await getPrincipalUUID(userId);
-
+      // Fetch the user's mission progress.
       switch (globalUserProgress.get(userUUID)) {
         case (?userMissions) {
           switch (userMissions.get(missionId)) {
             case (?progress) {
-              for (record in Iter.fromArray(progress.completionHistory)) {
-                return false;
-              };
-            };
-            case null {
-
-            };
-          };
-        };
-        case null {};
-      };
-
-      return true;
-    };
-    return false;
-  };
-
-  // Function to check if a user can do a recursive mission
-
-  public shared (msg) func canUserDoMissionRecursive(userId : Principal, missionId : Nat) : async Bool {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-
-      let userUUID = await getPrincipalUUID(userId);
-
-      for (mission in Vector.vals(missionsV2)) {
-        if (mission.id == missionId) {
-          var thismission = mission;
-
-          switch (globalUserProgress.get(userUUID)) {
-            case (?userMissions) {
-              switch (userMissions.get(missionId)) {
-                case (?progress) {
+              // If we have mission details, check based on whether it is recursive.
+              if (Option.isSome(missionOpt)) {
+                let mission : Types.MissionV2 = switch (missionOpt) {
+                  case (?m) m;
+                  case null { Debug.trap("Mission not found") };
+                };
+                if (mission.recursive) {
+                  // For recursive missions, disallow if any completion is after the mission start date.
                   for (record in Iter.fromArray(progress.completionHistory)) {
-                    if (record.timestamp > thismission.startDate) {
+                    if (record.timestamp > mission.startDate) {
                       return false;
                     };
                   };
+                } else {
+                  // For non-recursive missions, disallow if any completion exists.
+                  if (Array.size(progress.completionHistory) > 0) {
+                    return false;
+                  };
                 };
-                case null {
-
+              } else {
+                // If mission details aren't found, default to non-recursive behavior.
+                if (Array.size(progress.completionHistory) > 0) {
+                  return false;
                 };
               };
             };
-            case null {};
+            case null {
+              // No progress recorded; the mission is allowed.
+            };
           };
-
+        };
+        case null {
+          // No missions recorded for the user.
         };
       };
-
-      return true;
     };
     return false;
   };
 
-  public shared (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
+  public shared composite query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let userUUID = await getPrincipalUUID(userId);
+      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+        getUUID : query (Principal) -> async Text;
+      };
+
+      let userUUID = await index.getUUID(userId);
 
       let userMissionsOpt = globalUserProgress.get(userUUID);
 
@@ -544,28 +532,25 @@ actor class Backend() {
   };
 
   public shared query (msg) func getAllMissions() : async [Types.SerializedMissionV2] {
-    if (not Principal.isAnonymous(msg.caller)) {
-      if (isAdmin(msg.caller)) {
-        return Array.map<Types.MissionV2, Types.SerializedMissionV2>(Vector.toArray(missionsV2), Serialization.serializeMissionV2);
-      } else {
-        let filteredMissions = Array.filter<Types.MissionV2>(
-          Vector.toArray(missionsV2),
-          func(mission : Types.MissionV2) : Bool {
-            mission.startDate <= Time.now();
-          },
-        );
+    if (isAdmin(msg.caller)) {
+      return Array.map<Types.MissionV2, Types.SerializedMissionV2>(Vector.toArray(missionsV2), Serialization.serializeMissionV2);
+    } else {
+      let filteredMissions = Array.filter<Types.MissionV2>(
+        Vector.toArray(missionsV2),
+        func(mission : Types.MissionV2) : Bool {
+          mission.startDate <= Time.now();
+        },
+      );
 
-        return Array.map<Types.MissionV2, Types.SerializedMissionV2>(
-          filteredMissions,
-          func(mission : Types.MissionV2) : Types.SerializedMissionV2 {
-            let serialized = Serialization.serializeMissionV2(mission);
-            let updatedSerialized = { serialized with secretCodes = null };
-            return updatedSerialized;
-          },
-        );
-      };
+      return Array.map<Types.MissionV2, Types.SerializedMissionV2>(
+        filteredMissions,
+        func(mission : Types.MissionV2) : Types.SerializedMissionV2 {
+          let serialized = Serialization.serializeMissionV2(mission);
+          let updatedSerialized = { serialized with secretCodes = null };
+          return updatedSerialized;
+        },
+      );
     };
-    return [];
   };
 
   public shared query (msg) func getMissionById(id : Nat) : async ?Types.SerializedMissionV2 {
@@ -684,6 +669,13 @@ actor class Backend() {
 
   public shared (msg) func verifyOisyICP(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+        getUUID : query (Principal) -> async Text;
+      };
+
+      let userUUID = await index.getUUID(userId);
+
       //Subaccount: subaccountArray[31] = 1
       var canisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
@@ -717,7 +709,7 @@ actor class Backend() {
               var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
             };
             let tempP = Serialization.serializeProgress(missionProgress);
-            await updateUserProgress(userId, 0, tempP);
+            await updateUserProgress(userUUID, 0, tempP);
             return "Success";
           } else {
             return "Oisy Wallet has no ICP";
@@ -734,6 +726,13 @@ actor class Backend() {
 
   public shared (msg) func verifyOisyOG(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+
+      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+        getUUID : query (Principal) -> async Text;
+      };
+
+      let userUUID = await index.getUUID(userId);
+
       //Subaccount: subaccountArray[31] = 1
 
       var canisterIdLedgerIndex = "qhbym-qaaaa-aaaaa-aaafq-cai";
@@ -834,7 +833,7 @@ actor class Backend() {
                         var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
                       };
                       let tempP = Serialization.serializeProgress(missionProgress);
-                      await updateUserProgress(userId, 1, tempP);
+                      await updateUserProgress(userUUID, 1, tempP);
                       return "Success";
                     };
                     case (#Err(err)) {

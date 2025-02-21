@@ -153,7 +153,7 @@ module Types {
     usedCodes : [(Text, Bool)];
   };
 
-  public type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
+  public type UserMissions = TrieMap.TrieMap<Nat, Progress>;
 
   public type UserStreak = TrieMap.TrieMap<Int, Nat>;
 

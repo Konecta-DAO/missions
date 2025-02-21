@@ -21,31 +21,22 @@ interface DailyStreakButtonProps {
     setJackpotState: React.Dispatch<React.SetStateAction<JackpotState>>;
 }
 
-const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
-
 const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsClaimClicked, setJackpotState }) => {
     const globalID = useGlobalID();
     const { identity, disconnect } = useIdentityKit();
     const fetchData = useFetchData();
     const navigate = useNavigate();
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
-    const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
-
     const [isMoved, setIsMoved] = useState(false);
     const [showContinueButton, setShowContinueButton] = useState(false);
     const [showSeparators, setShowSeparators] = useState(false);
-    const [remainingTime, setRemainingTime] = useState<bigint>(0n);
     const [displayState, setDisplayState] = useState<DisplayState>('CLAIM');
     const [responseState, setResponseState] = useState<string>('');
     const [messageResponse, setMessageResponse] = useState<string>('');
     const [endDate, setEndDate] = useState<bigint>(0n);
-
-    const [tick, setTick] = useState(0);
-
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -135,12 +126,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                         const newRemaining = newEndDate - nowNs;
                         if (newDisplayState === 'REVIVE') {
                             // Update tick to trigger re-render
-                            setTick(t => t + 1);
                             if (newRemaining <= 0n) {
                                 determineDisplayState();
                             }
                         } else {
-                            setRemainingTime(newRemaining > 0n ? newRemaining : 0n);
                             if (newRemaining <= 0n) {
                                 determineDisplayState();
                             }
@@ -224,8 +213,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
                 if (message.startsWith("You have earned")) {
                     Usergeek.trackEvent("Daily Streak: Default");
-                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
-                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    await Promise.all([
+                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
+                        fetchData.fetchUserStreak(actor, globalID.principalId!)
+                    ]);
                     setResponseState("SUCCESS");
                     setMessageResponse(message);
                     setShowContinueButton(true);
@@ -235,8 +226,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                     setIsLoading(false);
                     setShowSeparators(true);
                     setJackpotState('WIN');
-                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
-                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    await Promise.all([
+                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
+                        fetchData.fetchUserStreak(actor, globalID.principalId!)
+                    ]);
                     messageTimeoutRef.current = setTimeout(() => {
                         setMessageResponse(message);
                         setShowContinueButton(true);
@@ -247,8 +240,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                     setIsLoading(false);
                     setShowSeparators(true);
                     setJackpotState('LOSE');
-                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
-                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    await Promise.all([
+                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
+                        fetchData.fetchUserStreak(actor, globalID.principalId!)
+                    ]);
                     messageTimeoutRef.current = setTimeout(() => {
                         setMessageResponse(message);
                         setShowContinueButton(true);
@@ -256,8 +251,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
                 } else if (message.startsWith("You have lost your past streak")) {
                     Usergeek.trackEvent("Daily Streak: Forgot");
-                    await fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!);
-                    await fetchData.fetchUserStreak(actor, globalID.principalId!);
+                    await Promise.all([
+                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
+                        fetchData.fetchUserStreak(actor, globalID.principalId!)
+                    ]);
                     setResponseState("CLAIMED");
                     setMessageResponse(message);
                     setShowContinueButton(true);
