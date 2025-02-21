@@ -783,13 +783,16 @@ actor class Backend() {
     ) != null;
   };
 
-  public shared func trisAdmin(principalId : Principal) : async Bool {
-    return Array.find<Principal>(
-      adminIds,
-      func(id) : Bool {
-        id == principalId;
-      },
-    ) != null;
+  public shared query (msg) func trisAdmin(principalId : Principal) : async Bool {
+    if (isAdmin(msg.caller)) {
+      return Array.find<Principal>(
+        adminIds,
+        func(id) : Bool {
+          id == principalId;
+        },
+      ) != null;
+    };
+    return false;
   };
 
   // Function to get all admin IDs

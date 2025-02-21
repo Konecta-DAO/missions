@@ -1,26 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './AccessOisyModal.module.scss';
 import OisyLogo from '../../../../../../public/assets/oisy.svg';
 import { IcpWallet } from '@dfinity/oisy-wallet-signer/icp-wallet';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { Principal } from '@dfinity/principal';
 import { Actor } from '@dfinity/agent';
-import { canisterId, idlFactory } from '../../../../../declarations/backend/index.js';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
-import { useNavigate } from 'react-router-dom';
+import { idlFactory } from '../../../../../declarations/index/index.did.js';
 
 interface AccessOisyModalProps {
     closeModal: () => void;
 }
 
 const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
-    const navigate = useNavigate();
+    const [signerId, setSignerId] = useState<string | null>(null);
     const [isClosing, setIsClosing] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
     const globalID = useGlobalID();
     const fetchData = useFetchData();
     const [isLoadingWallet, setIsLoadingWallet] = useState(false);
     const [areButtonsDisabled, setAreButtonsDisabled] = useState(false);
+
+    const isOisyWalletValid = useMemo(() => globalID.walletLinkInfos.some(
+        (info) =>
+            info.walletType === 'Oisy' &&
+            info.linkedPrincipal !== undefined &&
+            info.linkedPrincipal.trim() !== ''
+    ), [globalID.walletLinkInfos]);
 
     // Function to disable or enable buttons
     const disableAllButtons = (disable: boolean) => {
@@ -43,6 +49,10 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
     };
 
     useEffect(() => {
+        const signerIdValue = localStorage.getItem('signerId');
+        if (signerIdValue) {
+            setSignerId(signerIdValue);
+        }
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
@@ -73,22 +83,15 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
             const accounts = await connectedWallet.accounts();
             if (accounts && accounts.length > 0) {
                 const ownerId = accounts[0].owner;
-                if (globalID.oisyWallet === undefined) {
+                if (!isOisyWalletValid) {
                     const walletPrincipal = Principal.fromText(ownerId);
-                    const userPrincipal = globalID.principalId;
-
-                    const actor = Actor.createActor(idlFactory, {
+                    const actorIndex = Actor.createActor(idlFactory, {
                         agent: globalID.agent!,
-                        canisterId,
+                        canisterId: "tui2b-giaaa-aaaag-qnbpq-cai",
                     });
-
-                    const response = await actor.addOisyWallet(userPrincipal, walletPrincipal);
+                    const response = await actorIndex.linkOisyAccount(globalID.principalId, walletPrincipal) as string;
+                    fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
                     alert(response);
-                    if (response === "Success") {
-                        globalID.setOisyWallet(walletPrincipal);
-                        navigate('/OISY');
-                        handleCloseModal();
-                    }
                 }
             }
 
@@ -114,7 +117,7 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
                     <h2 className={styles.ModalTitle}>Connect your Oisy Wallet to access these missions</h2>
 
                     {/* Oisy Wallet Connection */}
-                    {globalID.oisyWallet === undefined && (
+                    {!isOisyWalletValid && (
                         <button
                             onClick={handleConnectWallet}
                             disabled={areButtonsDisabled}

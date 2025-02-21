@@ -21,8 +21,6 @@ interface GlobalIDType {
     setUserProgress: (progress: Array<[bigint, SerializedProgress]> | null) => void;
     user: SerializedGlobalUser[] | null;
     setUser: (user: SerializedGlobalUser[]) => void;
-    oisyWallet: Principal | null;
-    setOisyWallet: (value: Principal) => void;
     timerText: string;
     setTimerText: (text: string) => void;
     twitterhandle: string | null;
@@ -67,7 +65,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [missions, setMissions] = useState<SerializedMissionV2[]>([]);
     const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgressDefault]> | null>([]);
     const [user, setUser] = useState<SerializedGlobalUser[] | null>([]);
-    const [oisyWallet, setOisyWallet] = useState<Principal | null>(null);
     const [timerText, setTimerText] = useState<string>('00:00:00');
     const [twitterhandle, setTwitterHandle] = useState<string | null>('');
     const [userPFPstatus, setPFPstatus] = useState<string>('');
@@ -109,8 +106,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setUserProgress,
         user,
         setUser,
-        oisyWallet,
-        setOisyWallet,
         timerText,
         setTimerText,
         twitterhandle,
@@ -150,7 +145,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         missions,
         userProgress,
         user,
-        oisyWallet,
         timerText,
         twitterhandle,
         userPFPstatus,

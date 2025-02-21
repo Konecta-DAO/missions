@@ -3,9 +3,11 @@ import styles from './ProfileModal.module.scss';
 import { IcpWallet } from '@dfinity/oisy-wallet-signer/icp-wallet';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { Principal } from '@dfinity/principal';
-import useFetchData, { WalletLinkInfo } from '../../../../../hooks/fetchData.tsx';
+import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { Actor } from '@dfinity/agent';
 import { idlFactory as idlFactoryIndex } from '../../../../../declarations/index/index.did.js';
+import { idlFactory, canisterId } from '../../../../../declarations/backend/index.js';
+import { idlFactory as idlFactoryDefault } from '../../../../../declarations/dfinity_backend/index.js';
 
 interface ProfileModalProps {
     closeModal: () => void;
@@ -18,6 +20,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
     const fetchData = useFetchData();
     const [signerId, setSignerId] = useState<string | null>(null);
     const [areButtonsDisabled, setAreButtonsDisabled] = useState(false);
+    const [placeState, setPlacestate] = useState<boolean>(false);
 
     const disableAllButtons = (disable: boolean) => {
         setAreButtonsDisabled(disable);
@@ -112,7 +115,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                     canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
                 response = await actorIndex.linkOisyAccount(globalID.principalId, targetPrincipal) as string;
-                fetchData.fetchWalletLinkInfo(signerId, actorIndex, globalID.principalId!);
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent!,
+                    canisterId,
+                });
+
+                const actors = globalID.canisterIds!.map(targetCanisterId => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent!,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
             } else {
                 // For other wallet types, use the initiateLink function.
                 const actorIndex = Actor.createActor(idlFactoryIndex, {
@@ -120,7 +135,18 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                     canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
                 response = await actorIndex.initiateLink(globalID.principalId, signerId, targetPrincipal, walletType) as string;
-                fetchData.fetchWalletLinkInfo(signerId, actorIndex, globalID.principalId!);
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent!,
+                    canisterId,
+                });
+
+                const actors = globalID.canisterIds!.map(targetCanisterId => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent!,
+                        canisterId: targetCanisterId,
+                    });
+                });
+                await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
             }
             alert(response);
         } catch (error: any) {
@@ -146,7 +172,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
 
             const canonicalUUID = await actorIndex.getUUID(globalID.principalId);
             const response = await actorIndex.acceptLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId, canonicalUUID);
-            fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent!,
+                canisterId,
+            });
+
+            const actors = globalID.canisterIds!.map(targetCanisterId => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent!,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
             alert(response);
         } catch (error) {
             console.error("Error accepting link:", error);
@@ -169,7 +207,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             });
 
             const response = await actorIndex.rejectLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId);
-            fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent!,
+                canisterId,
+            });
+
+            const actors = globalID.canisterIds!.map(targetCanisterId => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent!,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
             alert(response);
         } catch (error) {
             console.error("Error rejecting link:", error);
@@ -194,7 +244,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             const response = await actorIndex.unlinkPrincipal(
                 Principal.fromText(info.linkedPrincipal)
             );
-            fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent!,
+                canisterId,
+            });
+
+            const actors = globalID.canisterIds!.map(targetCanisterId => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent!,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
             alert(response);
         } catch (error) {
             console.error("Error unlinking account:", error);
@@ -258,21 +320,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                     ) : info.pendingRequest ? (
                                         <>
                                             <p>
-                                                Pending link by {info.pendingRequest.requester} (
-                                                {info.walletType})
+                                                Pending link by<br />
+                                                {info.pendingRequest.requester}<br />
+                                                ({info.walletType})
                                             </p>
-                                            <button
-                                                onClick={() => handleAcceptLink(info.walletType)}
-                                                disabled={areButtonsDisabled}
-                                            >
-                                                Accept Link
-                                            </button>
-                                            <button
-                                                onClick={() => handleRejectLink(info.walletType)}
-                                                disabled={areButtonsDisabled}
-                                            >
-                                                Reject Link
-                                            </button>
+                                            <div className={styles.buttonColumn}>
+                                                <button
+                                                    onClick={() => handleAcceptLink(info.walletType)}
+                                                    disabled={areButtonsDisabled}
+                                                    className={styles.linkButton}
+                                                >
+                                                    Accept Link
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRejectLink(info.walletType)}
+                                                    disabled={areButtonsDisabled}
+                                                    className={styles.linkButton}
+                                                >
+                                                    Reject Link
+                                                </button>
+                                            </div>
                                         </>
                                     ) : info.cooldown > 0 ? (
                                         <p>
@@ -285,6 +352,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                                 <button
                                                     onClick={() => handleInitiateLink(info.walletType)}
                                                     disabled={areButtonsDisabled}
+                                                    className={styles.linkButton}
                                                 >
                                                     Initiate Link
                                                 </button>
@@ -303,6 +371,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                                     <button
                                                         onClick={() => handleInitiateLink(info.walletType)}
                                                         disabled={areButtonsDisabled}
+                                                        className={styles.linkButton}
                                                     >
                                                         Initiate Link
                                                     </button>

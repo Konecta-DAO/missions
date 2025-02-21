@@ -9,7 +9,6 @@ import MissionDefault from './Components/Mission/MissionDefault.tsx';
 import KonectaLogo from '../../../../public/assets/Konecta Logo Icon.svg';
 import { SerializedMissionV2 as KonectaSerializedMission } from '../../../declarations/backend/backend.did.js';
 import { SerializedMissionV2 as ProjectSerializedMission } from '../../../declarations/dfinity_backend/dfinity_backend.did.js';
-import { Principal } from '@dfinity/principal';
 import AccessOisyModal from './Components/AccessOisyModal/AccessOisyModal.tsx';
 
 type AnyMission = KonectaSerializedMission | ProjectSerializedMission;
@@ -18,12 +17,6 @@ function isKonectaMission(
     mission: AnyMission
 ): mission is KonectaSerializedMission {
     return 'mintime' in mission && 'maxtime' in mission;
-}
-
-function isProjectMission(
-    mission: AnyMission
-): mission is ProjectSerializedMission {
-    return 'points' in mission;
 }
 
 const MissionGridComponent: React.FC = () => {
@@ -39,6 +32,13 @@ const MissionGridComponent: React.FC = () => {
 
     const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
 
+    const isOisyWalletValid = useMemo(() => globalID.walletLinkInfos.some(
+        (info) =>
+            info.walletType === 'Oisy' &&
+            info.linkedPrincipal !== undefined &&
+            info.linkedPrincipal.trim() !== ''
+    ), [globalID.walletLinkInfos]);
+
     useEffect(() => {
         if (projectSlug) {
             if (projectSlug.toLowerCase() === 'konecta') {
@@ -47,8 +47,7 @@ const MissionGridComponent: React.FC = () => {
                 // Check if principalId exists
                 if (globalID.principalId != null) {
                     // Check if oisyWallet is an instance of Principal
-                    if (!(globalID.oisyWallet instanceof Principal)) {
-                        // Navigate back to home and do not set 'OISY' as selected project
+                    if (!isOisyWalletValid) {
                         navigate('/');
                         setSelectedProject(null);
                         return;
@@ -76,7 +75,7 @@ const MissionGridComponent: React.FC = () => {
         } else {
             setSelectedProject(null);
         }
-    }, [projectSlug, globalID.projects, globalID.principalId, globalID.oisyWallet]);
+    }, [projectSlug, globalID.projects, globalID.principalId]);
 
     const project = useMemo(() => {
         if (!projectSlug) return null;
@@ -223,7 +222,7 @@ const MissionGridComponent: React.FC = () => {
                 {/* Projects */}
                 {sortedProjects.map((proj) => {
                     const isOisy = proj.name === "OISY";
-                    const isOisyWalletValid = globalID.oisyWallet instanceof Principal;
+
                     return (
                         <button
                             key={proj.id}

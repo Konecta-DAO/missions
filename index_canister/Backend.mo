@@ -219,164 +219,166 @@ actor class Backend() {
   };
 
   public shared (msg) func initiateLink(requester : Principal, requesterType : Text, target : Principal, targetType : Text) : async Text {
-
     if (msg.caller != requester) {
       return "Unauthorized: Caller does not match the requester.";
     };
-
     if (isUnlinked(requester) or isUnlinked(target)) {
       return "One of the involved principals has been unlinked and cannot participate in linking.";
     };
-
     if (not isAllowedType(requesterType)) {
       return "Requester account type '" # requesterType # "' is not allowed.";
     };
     if (not isAllowedType(targetType)) {
       return "Target account type '" # targetType # "' is not allowed.";
     };
-
     if (requesterType == targetType) {
       return "Cannot link two accounts of the same type (" # requesterType # ").";
     };
 
-    // Get UUIDs for both accounts.
-    let requesterUUID = getUserUUID(requester);
-    let targetUUID = getUserUUID(target);
+    let maybeRequesterUUID = getUserUUID(requester);
+    let maybeTargetUUID = getUserUUID(target);
+    switch (maybeRequesterUUID, maybeTargetUUID) {
+      case ("", _) { return "Requester is not registered." };
+      case (_, "") { return "Target is not registered." };
+      case (requesterUUID, targetUUID) {
+        if (requesterUUID == targetUUID) {
+          return "Accounts are already linked.";
+        };
 
-    // If both principals already map to the same UUID, they are already linked.
-    if (requesterUUID == targetUUID) {
-      return "Accounts are already linked.";
-    };
+        let requesterAlreadyLinked = switch (uuidToLinkedAccounts.get(requesterUUID)) {
+          case (?vec) {
+            Array.find(
+              vec,
+              func(entry : (Text, Principal)) : Bool {
+                let (accType, _) = entry;
+                accType == targetType;
+              },
+            ) != null;
+          };
+          case null { false };
+        };
 
-    let requesterAlreadyLinked = switch (uuidToLinkedAccounts.get(requesterUUID)) {
-      case (?vec) {
-        Array.find(
-          vec,
-          func(entry : (Text, Principal)) : Bool {
-            let (accType, _) = entry;
-            accType == requesterType;
-          },
-        ) != null;
+        if (requesterAlreadyLinked) {
+          return "An account of type '" # requesterType # "' is already linked for the requester.";
+        };
+
+        let targetAlreadyLinked = switch (uuidToLinkedAccounts.get(targetUUID)) {
+          case (?vec) {
+            Array.find(
+              vec,
+              func(entry : (Text, Principal)) : Bool {
+                let (accType, _) = entry;
+                accType == requesterType;
+              },
+            ) != null;
+          };
+          case null { false };
+        };
+
+        if (targetAlreadyLinked) {
+          return "An account of type '" # targetType # "' is already linked for the target.";
+        };
+
+        let currentTime = Time.now();
+        if (not canLinkForUUID(requesterUUID, requesterType, currentTime)) {
+          return "Requester cannot link an account of type " # requesterType # " until one month has passed since the previous linking.";
+        };
+        if (not canLinkForUUID(targetUUID, targetType, currentTime)) {
+          return "Target cannot link an account of type " # targetType # " until one month has passed since the previous linking.";
+        };
+
+        let linkKey = makeLinkKey(requester, target);
+        let linkRequest : Types.LinkRequest = {
+          requester = requester;
+          requesterType = requesterType;
+          target = target;
+          targetType = targetType;
+          status = "pending";
+          requestedAt = currentTime;
+        };
+        pendingLinkRequests.put(linkKey, linkRequest);
+        return "Link request initiated. Awaiting acceptance from the target account.";
       };
-      case null { false };
     };
-
-    if (requesterAlreadyLinked) {
-      return "An account of type '" # requesterType # "' is already linked for the requester.";
-    };
-
-    let targetAlreadyLinked = switch (uuidToLinkedAccounts.get(targetUUID)) {
-      case (?vec) {
-        Array.find(
-          vec,
-          func(entry : (Text, Principal)) : Bool {
-            let (accType, _) = entry;
-            accType == targetType;
-          },
-        ) != null;
-      };
-      case null { false };
-    };
-
-    if (targetAlreadyLinked) {
-      return "An account of type '" # targetType # "' is already linked for the target.";
-    };
-
-    let currentTime = Time.now();
-    if (not canLinkForUUID(requesterUUID, requesterType, currentTime)) {
-      return "Requester cannot link an account of type " # requesterType # " until one month has passed since the previous linking.";
-    };
-    if (not canLinkForUUID(targetUUID, targetType, currentTime)) {
-      return "Target cannot link an account of type " # targetType # " until one month has passed since the previous linking.";
-    };
-
-    let linkKey = makeLinkKey(requester, target);
-    let linkRequest : Types.LinkRequest = {
-      requester = requester;
-      requesterType = requesterType;
-      target = target;
-      targetType = targetType;
-      status = "pending";
-      requestedAt = Time.now();
-    };
-    pendingLinkRequests.put(linkKey, linkRequest);
-    return "Link request initiated. Awaiting acceptance from the target account.";
   };
 
   public shared (msg) func acceptLink(requester : Principal, target : Principal, canonicalUUID : Text) : async Text {
-
     if (msg.caller != target) {
       return "Unauthorized: Only the target account can accept the link request.";
     };
-
     if (isUnlinked(requester) or isUnlinked(target)) {
       return "One of the involved principals has been unlinked and cannot participate in linking.";
     };
 
-    let requesterUUID = getUserUUID(requester);
-    let targetUUID = getUserUUID(target);
-
-    if (canonicalUUID != requesterUUID and canonicalUUID != targetUUID) {
-      return "Invalid canonical UUID provided. It must match one of the existing account UUIDs.";
-    };
-
-    let linkKey = makeLinkKey(requester, target);
-    switch (pendingLinkRequests.get(linkKey)) {
-      case null {
-        return "No pending link request found.";
-      };
-      case (?linkRequest) {
-
-        if (linkRequest.target != target) {
-          return "Unauthorized: Only the target account can accept this request.";
+    let maybeRequesterUUID = getUserUUID(requester);
+    let maybeTargetUUID = getUserUUID(target);
+    switch (maybeRequesterUUID, maybeTargetUUID) {
+      case ("", _) { return "Requester is not registered." };
+      case (_, "") { return "Target is not registered." };
+      case (requesterUUID, targetUUID) {
+        if (canonicalUUID != requesterUUID and canonicalUUID != targetUUID) {
+          return "Invalid canonical UUID provided. It must match one of the existing account UUIDs.";
         };
 
-        principalToUUID.put(requester, canonicalUUID);
-        principalToUUID.put(target, canonicalUUID);
+        let linkKey = makeLinkKey(requester, target);
+        switch (pendingLinkRequests.get(linkKey)) {
+          case null { return "No pending link request found." };
+          case (?linkRequest) {
+            if (linkRequest.target != target) {
+              return "Unauthorized: Only the target account can accept this request.";
+            };
 
-        var linkedAccounts : [(Text, Principal)] = switch (uuidToLinkedAccounts.get(canonicalUUID)) {
-          case (?vec) { vec };
-          case null { [] };
+            // Update principal mappings
+            principalToUUID.put(requester, canonicalUUID);
+            principalToUUID.put(target, canonicalUUID);
+
+            var linkedAccounts : [(Text, Principal)] = switch (uuidToLinkedAccounts.get(canonicalUUID)) {
+              case (?vec) { vec };
+              case null { [] };
+            };
+
+            if (
+              Array.find(
+                linkedAccounts,
+                func(entry : (Text, Principal)) : Bool {
+                  let (accType, _) = entry;
+                  accType == linkRequest.requesterType;
+                },
+              ) == null
+            ) {
+              linkedAccounts := Array.append(linkedAccounts, [(linkRequest.requesterType, linkRequest.requester)]);
+              await recordLinkTimestamp(canonicalUUID, linkRequest.requesterType);
+            };
+
+            if (
+              Array.find(
+                linkedAccounts,
+                func(entry : (Text, Principal)) : Bool {
+                  let (accType, _) = entry;
+                  accType == linkRequest.targetType;
+                },
+              ) == null
+            ) {
+              linkedAccounts := Array.append(linkedAccounts, [(linkRequest.targetType, linkRequest.target)]);
+              await recordLinkTimestamp(canonicalUUID, linkRequest.targetType);
+            };
+
+            uuidToLinkedAccounts.put(canonicalUUID, linkedAccounts);
+
+            let updatedRequest : Types.LinkRequest = {
+              requester = linkRequest.requester;
+              requesterType = linkRequest.requesterType;
+              target = linkRequest.target;
+              targetType = linkRequest.targetType;
+              status = "accepted";
+              requestedAt = linkRequest.requestedAt;
+            };
+
+            pendingLinkRequests.put(linkKey, updatedRequest);
+
+            return "Link accepted. Accounts have been merged under UUID: " # canonicalUUID;
+          };
         };
-
-        if (
-          Array.find(
-            linkedAccounts,
-            func(entry : (Text, Principal)) : Bool {
-              let (accType, _) = entry;
-              accType == linkRequest.requesterType;
-            },
-          ) == null
-        ) {
-          linkedAccounts := Array.append(linkedAccounts, [(linkRequest.requesterType, linkRequest.requester)]);
-        };
-
-        if (
-          Array.find(
-            linkedAccounts,
-            func(entry : (Text, Principal)) : Bool {
-              let (accType, _) = entry;
-              accType == linkRequest.targetType;
-            },
-          ) == null
-        ) {
-          linkedAccounts := Array.append(linkedAccounts, [(linkRequest.targetType, linkRequest.target)]);
-        };
-
-        uuidToLinkedAccounts.put(canonicalUUID, linkedAccounts);
-
-        let updatedRequest : Types.LinkRequest = {
-          requester = linkRequest.requester;
-          requesterType = linkRequest.requesterType;
-          target = linkRequest.target;
-          targetType = linkRequest.targetType;
-          status = "accepted";
-          requestedAt = linkRequest.requestedAt;
-        };
-
-        pendingLinkRequests.put(linkKey, updatedRequest);
-
-        return "Link accepted. Accounts have been merged under UUID: " # canonicalUUID;
       };
     };
   };
@@ -414,55 +416,58 @@ actor class Backend() {
   };
 
   public shared (msg) func linkOisyAccount(currentUser : Principal, oisy : Principal) : async Text {
-
     if (msg.caller != currentUser) {
       return "Unauthorized: Caller does not match the current user.";
     };
-
     if (isUnlinked(currentUser) or isUnlinked(oisy)) {
       return "One of the involved principals has been unlinked and cannot participate in linking.";
     };
-
     if (not isAllowedType("Oisy")) {
       return "Oisy account type is not allowed.";
     };
 
-    let canonicalUUID = getUserUUID(currentUser);
+    let maybeCanonicalUUID = getUserUUID(currentUser);
+    switch (maybeCanonicalUUID) {
+      case "" { return "Current user is not registered." };
+      case (canonicalUUID) {
+        // Prevent linking if the Oisy principal is already registered.
+        if (getUserUUID(oisy) != "") {
+          return "The Oisy principal is already linked to an account.";
+        };
 
-    let currentTime = Time.now();
+        let currentTime = Time.now();
+        if (not canLinkForUUID(canonicalUUID, "Oisy", currentTime)) {
+          return "Cannot link an Oisy account until one month has passed since the previous linking.";
+        };
 
-    if (not canLinkForUUID(canonicalUUID, "Oisy", currentTime)) {
-      return "Cannot link an Oisy account until one month has passed since the previous linking.";
+        var linkedAccounts : [(Text, Principal)] = switch (uuidToLinkedAccounts.get(canonicalUUID)) {
+          case (?vec) { vec };
+          case null { [] };
+        };
+
+        if (
+          Array.find(
+            linkedAccounts,
+            func(entry : (Text, Principal)) : Bool {
+              let (accType, _) = entry;
+              accType == "Oisy";
+            },
+          ) != null
+        ) {
+          return "An Oisy account is already linked.";
+        };
+
+        principalToUUID.put(oisy, canonicalUUID);
+        linkedAccounts := Array.append(linkedAccounts, [("Oisy", oisy)]);
+        uuidToLinkedAccounts.put(canonicalUUID, linkedAccounts);
+        await recordLinkTimestamp(canonicalUUID, "Oisy");
+
+        return "Oisy account linked successfully.";
+      };
     };
-
-    var linkedAccounts : [(Text, Principal)] = switch (uuidToLinkedAccounts.get(canonicalUUID)) {
-      case (?vec) { vec };
-      case null { [] };
-    };
-
-    // Check if an Oisy account is already linked.
-    if (
-      Array.find(
-        linkedAccounts,
-        func(entry : (Text, Principal)) : Bool {
-          let (accType, _) = entry;
-          accType == "Oisy";
-        },
-      ) != null
-    ) {
-      return "An Oisy account is already linked.";
-    };
-
-    principalToUUID.put(oisy, canonicalUUID);
-
-    linkedAccounts := Array.append(linkedAccounts, [("Oisy", oisy)]);
-
-    uuidToLinkedAccounts.put(canonicalUUID, linkedAccounts);
-
-    return "Oisy account linked successfully.";
   };
 
-  public shared (msg) func getPendingLinkRequestsForTarget(target : Principal) : async [Types.LinkRequest] {
+  public shared query (msg) func getPendingLinkRequestsForTarget(target : Principal) : async [Types.LinkRequest] {
 
     if (msg.caller != target and not isAdmin(msg.caller)) {
       return [];
@@ -563,7 +568,7 @@ actor class Backend() {
     };
   };
 
-  public func getLinkStatus(requester : Principal, target : Principal) : async Text {
+  public shared query func getLinkStatus(requester : Principal, target : Principal) : async Text {
 
     let linkKey = makeLinkKey(requester, target);
     switch (pendingLinkRequests.get(linkKey)) {

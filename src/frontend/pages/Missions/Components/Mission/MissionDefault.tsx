@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from '../../Missions.module.scss';
 import { useLocation } from 'react-router-dom';
 import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
@@ -27,7 +27,12 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     );
     const isOisyProject = oisyProject && oisyProject.id === canisterId;
 
-    const isOisyWalletValid = !!globalID.oisyWallet;
+    const isOisyWalletValid = useMemo(() => globalID.walletLinkInfos.some(
+        (info) =>
+            info.walletType === 'Oisy' &&
+            info.linkedPrincipal !== undefined &&
+            info.linkedPrincipal.trim() !== ''
+    ), [globalID.walletLinkInfos]);
 
     // State to track remaining time in seconds
     const [remainingTime, setRemainingTime] = useState<number | null>(null);

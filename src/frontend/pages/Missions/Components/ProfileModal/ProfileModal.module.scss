@@ -181,3 +181,13 @@
 .linkInProgress {
     margin-top: 20px;
 }
+
+.linkButton {
+    margin-left: 10px;
+}
+
+.buttonColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}

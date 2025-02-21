@@ -22,7 +22,6 @@ import OpenChatModal from './Components/OpenChatModal/OpenChatModal.tsx';
 import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../declarations/index/index.did.js';
-import { useParams } from 'react-router-dom';
 import ProfileModal from './Components/ProfileModal/ProfileModal.tsx';
 
 interface ButtonItem {
@@ -48,7 +47,7 @@ const Missions: React.FC = () => {
 
     const fetchData = useFetchData();
     const [dataloaded, setDataloaded] = useState(false);
-    const { loadingPercentage, loadingComplete } = useLoadingProgress({ totalTime: 4000 });
+    const { loadingPercentage } = useLoadingProgress({ totalTime: 5000 });
     const { disconnect } = useIdentityKit();
     const [modalState, setModalState] = useState<ModalState>({
         isHistoryModalOpen: false,
@@ -72,8 +71,6 @@ const Missions: React.FC = () => {
         await actor.acceptTerms(globalID.principalId);
         setIsTermsModalVisible(false);
     };
-
-    const { projectSlug, missionSlug } = useParams<{ projectSlug?: string; missionSlug?: string }>();
 
     useEffect(() => {
         if (!acceptedTerms) {
@@ -130,7 +127,7 @@ const Missions: React.FC = () => {
             } else {
                 // User is not logged in; redirect to home page
                 navigate('/konnect', {
-                    state: { from: location.pathname } 
+                    state: { from: location.pathname }
                 });
             }
         }, 1000); // Wait for 1000ms before proceeding
@@ -141,33 +138,23 @@ const Missions: React.FC = () => {
         };
     }, [user, identity]);
 
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (projectSlug) {
-            if (projectSlug.toLowerCase() === 'konecta') {
-            } else {
-                const project = globalID.projects.find(
-                    (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
-                );
-            }
-        }
-    }, [projectSlug, globalID.projects]);
-
     const fetchUserData = async (agent: HttpAgent) => {
         if (fetchData) {
             const actor = Actor.createActor(idlFactory, {
                 agent: agent,
                 canisterId,
             });
-            const principal = await agent.getPrincipal();
-            await fetchData.hasAccepted(actor, principal, setAcceptedTerms);
             const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: agent!,
                 canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
             });
+            const principal = await agent.getPrincipal();
 
-            const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
+            const [_, projects] = await Promise.all([
+                fetchData.hasAccepted(actor, principal, setAcceptedTerms),
+                actorIndex.getAllProjectMissions() as Promise<SerializedProjectMissions[]>
+            ]);
+
             const targets: string[] = projects.map(project => project.canisterId.toText());
             const mappedProjects: ProjectData[] = projects.map((project) => ({
                 id: project.canisterId.toText(),
@@ -184,9 +171,7 @@ const Missions: React.FC = () => {
                     canisterId: targetCanisterId,
                 });
             });
-
             await fetchData.fetchAll(actor, actors, actorIndex, targets, principal, setDataloaded, setAcceptedTerms);
-
         }
     };
 
@@ -246,7 +231,7 @@ const Missions: React.FC = () => {
     return (
         <>
             {
-                !loadingComplete &&
+                !dataloaded &&
                 <div className={styles.loadingOverlayWrapper}>
                     <LoadingOverlay loadingPercentage={loadingPercentage} />
                 </div>
