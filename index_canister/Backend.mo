@@ -979,6 +979,18 @@ actor class Backend() {
     return null;
   };
 
+  stable var usersFromV1 : [Types.SerializedUserV1] = [];
+
+  public shared (msg) func migrationV0(users : [Types.SerializedUserV1]) : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only an admin can migrate users.";
+    };
+
+    usersFromV1 := users;
+
+    return "Migrated users from UserV1.";
+  };
+
   public shared (msg) func migrateUsersFromV1(users : [Types.SerializedUserV1]) : async Text {
     if (not isAdmin(msg.caller)) {
       return "Unauthorized: Only an admin can migrate users.";
