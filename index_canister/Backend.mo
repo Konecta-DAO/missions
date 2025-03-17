@@ -983,57 +983,6 @@ actor class Backend() {
 
   stable var usersFromV2 : [Types.SerializedUserV2] = [];
 
-  public shared func getUsersV2(users : [Types.SerializedUserV2]) : async Text {
-    usersFromV2 := users;
-    return "aja";
-  };
-
-  public shared (msg) func updateUsersDataFromV2() : async Text {
-
-    if (not isAdmin(msg.caller)) {
-      return "Unauthorized: Only admin can update users from V2.";
-    };
-
-    var updatedCount : Nat = 0;
-
-    for (user in Iter.fromArray(usersFromV2)) {
-
-      switch (principalToUUID.get(user.id)) {
-        case null {};
-        case (?uuid) {
-
-          switch (uuidToUser.get(uuid)) {
-            case null {};
-            case (?globalUser) {
-
-              if (user.twitterid != null and user.twitterhandle != null) {
-                globalUser.twitterid := user.twitterid;
-                globalUser.twitterhandle := user.twitterhandle;
-              };
-
-              if (user.discordUser != null) {
-                globalUser.discordUser := user.discordUser;
-              };
-
-              if (user.telegramUser != null) {
-                globalUser.telegramUser := user.telegramUser;
-              };
-
-              if (user.nnsPrincipal != null) {
-                globalUser.nnsPrincipal := user.nnsPrincipal;
-              };
-
-              uuidToUser.put(uuid, globalUser);
-              updatedCount += 1;
-            };
-          };
-        };
-      };
-    };
-
-    return "Updated " # Nat.toText(updatedCount) # " users from V2.";
-  };
-
   public shared (msg) func updateUsersNuanceDataFromV3(nuanceUsers : [(Principal, Text)]) : async Text {
 
     if (not isAdmin(msg.caller)) {
