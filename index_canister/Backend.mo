@@ -971,47 +971,10 @@ actor class Backend() {
         case (?user) {
           return ?Serialization.serializeUser(user);
         };
-        case null {
-          return null;
-        };
+        case null {};
       };
     };
     return null;
-  };
-
-  stable var usersFromV1 : [Types.SerializedUserV1] = [];
-
-  stable var usersFromV2 : [Types.SerializedUserV2] = [];
-
-  public shared (msg) func updateUsersNuanceDataFromV3(nuanceUsers : [(Principal, Text)]) : async Text {
-
-    if (not isAdmin(msg.caller)) {
-      return "Unauthorized: Only admin can update users from V2.";
-    };
-
-    var updatedCount : Nat = 0;
-
-    for ((userId, nuance) in Iter.fromArray(nuanceUsers)) {
-
-      switch (principalToUUID.get(userId)) {
-        case null {};
-        case (?uuid) {
-
-          switch (uuidToUser.get(uuid)) {
-            case null {};
-            case (?globalUser) {
-
-              globalUser.nuanceUser := ?nuance;
-
-              uuidToUser.put(uuid, globalUser);
-              updatedCount += 1;
-            };
-          };
-        };
-      };
-    };
-
-    return "Updated " # Nat.toText(updatedCount) # " users from V2.";
   };
 
   public shared query (msg) func getAllPrincipalsWithUUIDs() : async [(Principal, Text)] {
