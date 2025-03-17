@@ -981,63 +981,63 @@ actor class Backend() {
 
   stable var usersFromV1 : [Types.SerializedUserV1] = [];
 
-  public shared (msg) func migrationV0(users : [Types.SerializedUserV1]) : async Text {
-    if (not isAdmin(msg.caller)) {
-      return "Unauthorized: Only an admin can migrate users.";
-    };
-
-    usersFromV1 := users;
-
-    return "Migrated users from UserV1.";
+  public shared (msg) func getUsersFromV1() : async [Types.SerializedUserV1] {
+    return usersFromV1;
   };
 
-  public shared (msg) func migrateUsersFromV1(users : [Types.SerializedUserV1]) : async Text {
+  public shared (msg) func migrateUsersFromV1(offset : Nat, limit : Nat) : async Text {
     if (not isAdmin(msg.caller)) {
       return "Unauthorized: Only an admin can migrate users.";
     };
-
-    uuidToUser := TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
 
     var count : Nat = 0;
 
-    for (user in Iter.fromArray(users)) {
+    // Calculate end index ensuring we do not exceed the bounds of usersFromV1.
+    let total = Array.size(usersFromV1);
+    let endIndex = if (offset + limit > total) { total } else { offset + limit };
 
-      let uuid = await generateUUID();
+    // Process the slice of users from offset to endIndex.
+    for (user in Array.slice(usersFromV1, offset, endIndex)) {
+      // Check if the user already has a UUID.
+      if (getUserUUID(user.id) != "") {
 
-      let globalUser : Types.GlobalUser = {
-        var twitterid = user.twitterid;
-        var twitterhandle = user.twitterhandle;
-        creationTime = user.creationTime;
-        var pfpProgress = user.pfpProgress;
-        var deducedPoints = 0;
-        var ocProfile = user.ocProfile;
-        var discordUser = null;
-        var telegramUser = null;
-        var nuanceUser = null;
-        var nnsPrincipal = null;
-        var firstname = null;
-        var lastname = null;
-        var username = null;
-        var email = null;
-        var bio = null;
-        var categories = null;
-        var profilepic = null;
-        var coverphoto = null;
-        var country = null;
-        var timezone = null;
-        var icrc1tokens = null;
-        var nft721 = null;
+        // Generate a new UUID.
+        let uuid = await generateUUID();
+
+        let globalUser : Types.GlobalUser = {
+          var twitterid = user.twitterid;
+          var twitterhandle = user.twitterhandle;
+          creationTime = user.creationTime;
+          var pfpProgress = user.pfpProgress;
+          var deducedPoints = 0;
+          var ocProfile = user.ocProfile;
+          var discordUser = null;
+          var telegramUser = null;
+          var nuanceUser = null;
+          var nnsPrincipal = null;
+          var firstname = null;
+          var lastname = null;
+          var username = null;
+          var email = null;
+          var bio = null;
+          var categories = null;
+          var profilepic = null;
+          var coverphoto = null;
+          var country = null;
+          var timezone = null;
+          var icrc1tokens = null;
+          var nft721 = null;
+        };
+
+        // Insert the new user data without resetting uuidToUser.
+        uuidToUser.put(uuid, globalUser);
+        principalToUUID.put(user.id, uuid);
+        uuidToLinkedAccounts.put(uuid, [("NFIDW", user.id)]);
+
+        count += 1;
       };
 
-      uuidToUser.put(uuid, globalUser);
-
-      principalToUUID.put(user.id, uuid);
-
-      uuidToLinkedAccounts.put(uuid, [("NFIDW", user.id)]);
-
-      count += 1;
     };
-
     return "Migrated " # Nat.toText(count) # " users from UserV1.";
   };
 
