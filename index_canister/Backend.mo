@@ -984,6 +984,8 @@ actor class Backend() {
       return "Unauthorized: Only an admin can migrate users.";
     };
 
+    uuidToUser := TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
+
     var count : Nat = 0;
 
     for (user in Iter.fromArray(users)) {
