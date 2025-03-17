@@ -85,8 +85,6 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         }
     }, [loading, closeModal]);
 
-    const missionId = BigInt(mission.id);
-
     // Memoize gradient colors
     const gradientColors = useMemo(() => ({
         start: getGradientStartColor(Number(mission.mode)),
@@ -144,9 +142,10 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         border: 'none',
         borderRadius: 'inherit',
         padding: '10px 20px',
-        width: '9vw',
+        width: '11vw',
         color: 'white',
         outline: 'none',
+        background: 'black',
     }), [gradientColors]);
 
     // Memoize button rendering

@@ -158,16 +158,19 @@ const MissionGridComponent: React.FC = () => {
     };
 
     const handleProjectSelection = (projectId: string | null) => {
-        if (selectedProject === projectId) {
-            // Deselect the project and navigate to the home page
+        if (projectId === null) {
+            setSelectedProject(null);
+            navigate('/');
+            return;
+        } else if (selectedProject === projectId) {
             setSelectedProject(null);
             navigate('/');
         } else {
-            // Select the project and navigate to its route
             setSelectedProject(projectId);
             navigate(`/${projectId}`);
         }
     };
+
 
     const openOisyModal = () => setIsOisyModalOpen(true);
     const closeOisyModal = () => setIsOisyModalOpen(false);
@@ -228,7 +231,7 @@ const MissionGridComponent: React.FC = () => {
                             key={proj.id}
                             className={`
                                 ${selectedProject === proj.name ? styles.ButtonActiveMission : styles.ButtonMission}
-                                ${isOisy && !isOisyWalletValid ? styles.ButtonOisyInvalid : styles.ButtonMission}
+                                ${isOisy && !isOisyWalletValid ? styles.ButtonOisyInvalid : ''}
                               `}
                             onClick={() => {
                                 if (isOisy && !isOisyWalletValid) {

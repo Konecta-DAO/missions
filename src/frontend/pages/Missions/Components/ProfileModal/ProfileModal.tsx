@@ -295,8 +295,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                             📋
                         </button>
                     </div>
+                    {/* 
 
-                    {/* Render wallet linking sections */}
                     {!signerId ? (
                         <p>Loading accounts...</p>
                     ) : (
@@ -382,6 +382,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                 </div>
                             ))
                     )}
+                    */}
                 </div>
             </div>
         </div>

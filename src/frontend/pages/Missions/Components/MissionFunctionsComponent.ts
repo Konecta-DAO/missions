@@ -4,12 +4,13 @@ import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../.
 import { idlFactory as idlFactoryDFINITY } from '../../../../declarations/dfinity_backend/index.js';
 import { idlFactory as idlFactoryOisy } from '../../../../declarations/oisy_backend/index.js';
 import { idlFactory as idlFactoryMP } from '../../../../declarations/mushroom_backend/index.js';
+import { idlFactory as idlFactoryDiggy } from '../../../../declarations/diggy_backend/index.js';
 import { Usergeek } from "usergeek-ic-js";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
 import { SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
-import { InterfaceFactory } from "@dfinity/candid/lib/cjs/idl.js";
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../declarations/index/index.did.js';
 import { idlFactory as idlFactoryDefault } from '../../../../declarations/dfinity_backend/index.js';
+import { Principal } from "@dfinity/principal";
 
 const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 const canisterIdOISY = "eyark-fqaaa-aaaag-qm7oa-cai";
@@ -1507,6 +1508,162 @@ const MissionFunctionsComponent = {
         setLoading(false);
         navigate('/Missions');
         closeModal();
+    },
+
+    preVerifyDiggy: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+
+        const validateInput = (input: string): string | null => {
+            const sanitized = input.replace(/\s+/g, '').toLowerCase();
+            const regex = /^(?:[a-z0-9]{5}-){10}[a-z0-9]{3}$/;
+            return regex.test(sanitized) ? sanitized : null;
+        };
+
+        const validInput = validateInput(input);
+        if (!validInput) {
+            alert("Invalid Diggy Principal.");
+            setLoading(false);
+            return;
+        }
+
+        const actor = Actor.createActor(idlFactoryDiggy, {
+            agent: globalID.agent,
+            canisterId: "sixqu-5iaaa-aaaag-qngwa-cai",
+        })
+        const a = await actor.preRegisterMission(globalID.principalId, Principal.fromText(validInput));
+
+        if (a === "Success") {
+            Usergeek.trackEvent("Diggy Mission One: PreRegister Validation");
+            const actorIndex = Actor.createActor(idlFactoryIndex, {
+                agent: globalID.agent,
+                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+            });
+
+            actorIndex.getAllProjectMissions()
+                .then((result) => {
+                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                    const targets: string[] = projects.map(project => project.canisterId.toText());
+                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                        alert("A new project has been added to Konecta! Refreshing the page...");
+                        navigate('/konnect');
+                    }
+                })
+
+            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                return Actor.createActor(idlFactoryDefault, {
+                    agent: globalID.agent,
+                    canisterId: targetCanisterId,
+                });
+            });
+
+            const actor = Actor.createActor(idlFactory, {
+                agent: globalID.agent,
+                canisterId,
+            })
+
+            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+            alert(a);
+            setLoading(false);
+            closeModal();
+        } else {
+            alert(a);
+            setLoading(false);
+        };
+    },
+    tweetDiggy: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+        window.open("https://x.com/intent/tweet?text=%F0%9F%9A%A8EXCLUSIVE%20ACCESS%20%2B%20FREE%20GOLD%F0%9F%9A%A8%0A%0AI%20pre-registered%20at%20%40diggycoin_%20and%20earned%20%23GOLD%F0%9F%AA%99%0A%0ANow%20I%E2%80%99ll%20play%20the%20exclusive%20game%20launch%20and%20earn%20$DIGGY%20%F0%9F%8E%AE%0A%0AYou%20can%20too!%20Pre-register%20now%2C%20claim%2050%20FREE%20GOLD%2C%20and%20unlock%20up%20to%20200%20GOLD!%F0%9F%AB%B5%0A%0ALimited%20spots%20available%20%F0%9F%98%B1%20%F0%9F%91%87%0Ahttps%3A%2F%2Ftz5ol-faaaa-aaaag-qngtq-cai.icp0.io%2Ffree-gold", '_blank');
+        setLoading(false);
+    },
+    preVerifyDiggyTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+
+        const principal = globalID.principalId;
+        try {
+            const response = await fetch(
+                "https://dotest.konecta.one/requestTwitterAuth-v2-diggyF",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ principal }),
+                }
+            );
+
+            const data = await response.json();
+            const authURL = data.authURL;
+
+            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+
+            let authSuccess = false;
+
+            const handleEvent = (event: MessageEvent<any>) => {
+
+                if (event.origin !== "https://dotest.konecta.one") return;
+
+                const { accessToken, refreshToken, result } = event.data;
+
+                if (result === 'true') {
+                    alert("Success!")
+                    Usergeek.trackEvent("DIGGY Mission 1: Tweet");
+                } else {
+                    if (result === 'notw') {
+                        alert("No Tweet Found!")
+                    } else {
+                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                    }
+                }
+
+                authSuccess = true;
+
+                window.removeEventListener("message", handleEvent);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                popup?.close();
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
+                })
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                setLoading(false);
+                closeModal();
+            }
+
+            window.addEventListener("message", handleEvent);
+
+            const popupInterval = setInterval(() => {
+                if (popup && popup.closed && !authSuccess) {
+                    clearInterval(popupInterval);
+                    setLoading(false);
+                    alert("You closed the Twitter authorization window.");
+                }
+            }, 300);
+        } catch (error) {
+            console.error("Error fetching Twitter auth URL:", error);
+        }
     },
 };
 

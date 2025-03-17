@@ -6,6 +6,7 @@ import { getGradientEndColor, getGradientStartColor } from '../../../../../utils
 import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { SerializedMissionV2, SerializedMissionRecord, SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
 import IcpIcon from '../../../../../../public/assets/icp_logo.svg';
+import DiggyGoldIcon from '../../../../../../public/assets/DiggyCoin.webp';
 
 interface HistoryModalProps {
     closeModal: () => void;
@@ -277,7 +278,16 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                     }}
                                 >
                                     <div className={styles.PointsEarned}>
-                                        {mission && mission.token === true ? (
+                                        {projectName === "DIGGY" ? (
+                                            <>
+                                                +{pointsEarned.toString()} GOLD{' '}
+                                                <img
+                                                    src={DiggyGoldIcon}
+                                                    alt="GOLD"
+                                                    className={styles.IcpIcon}
+                                                />
+                                            </>
+                                        ) : (mission && mission.token === true ? (
                                             <>
                                                 +{(Number(pointsEarned) / 10 ** 8).toString()}{' '}
                                                 <img
@@ -288,7 +298,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                             </>
                                         ) : (
                                             <>+{pointsEarned.toString()} points</>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
                             </div>

@@ -6,6 +6,7 @@ import { getGradientEndColor, getGradientStartColor } from '../../../../../utils
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import type { SerializedMissionV2 } from '../../../../../declarations/oisy_backend/oisy_backend.did.js';
 import IcpIcon from '../../../../../../public/assets/icp_logo.svg';
+import DiggyGoldIcon from '../../../../../../public/assets/DiggyCoin.webp';
 
 
 interface MissionProps {
@@ -25,7 +26,14 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     const oisyProject = globalID.projects.find(
         (proj) => proj.name === 'OISY'
     );
+
+    const diggyProject = globalID.projects.find(
+        (proj) => proj.name === 'DIGGY'
+    )
+
     const isOisyProject = oisyProject && oisyProject.id === canisterId;
+    const isDiggyProject = diggyProject && diggyProject.id === canisterId;
+
 
     const isOisyWalletValid = useMemo(() => globalID.walletLinkInfos.some(
         (info) =>
@@ -321,7 +329,16 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
 
             {/* Time Display at Bottom Left Corner */}
             <div className={styles.TimeDisplay}>
-                {mission.token ? (
+                {isDiggyProject ? (
+                    <div className={styles.IcpDisplay}>
+                        <img
+                            src={DiggyGoldIcon}
+                            alt="Gold Icon"
+                            className={styles.IcpIcon}
+                        />
+                        {(Number(mission.points))} GOLD
+                    </div>
+                ) : mission.token ? (
                     <div className={styles.IcpDisplay}>
                         <img
                             src={IcpIcon}
@@ -334,6 +351,8 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                     `${Number(mission.points)} points`
                 )}
             </div>
+
+
             {/* Countdown Timer at Bottom Right Corner */}
             {endDateMs > 0 && remainingTime !== null && remainingTime > 0 && (
                 (mission.recursive) && (

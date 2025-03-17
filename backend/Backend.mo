@@ -1837,4 +1837,8 @@ actor class Backend() {
     return false;
   };
 
+  public shared (msg) func whoami() : async Text {
+    return Principal.toText(msg.caller);
+  };
+
 };

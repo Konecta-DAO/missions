@@ -18,10 +18,7 @@ import "@nfid/identitykit/react/styles.css"
 import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
 import { ProjectData, useGlobalID } from '../../../hooks/globalID.tsx';
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { idlFactory } from '../../../declarations/backend/backend.did.js';
 import { idlFactory as idlFactoryIndex, SerializedGlobalUser } from '../../../declarations/index/index.did.js';
-import { canisterId } from '../../../declarations/backend/index.js';
-import { idlFactory as idlFactoryDefault } from '../../../declarations/dfinity_backend/index.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
@@ -170,7 +167,6 @@ const Home: React.FC = () => {
 
   const handleConnect = () => {
     if (connectWalletRef.current) {
-
       const button = connectWalletRef.current.querySelector('button');
       if (button) {
         button.click();

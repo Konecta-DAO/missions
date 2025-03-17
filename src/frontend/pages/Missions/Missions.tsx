@@ -228,6 +228,21 @@ const Missions: React.FC = () => {
         ),
     };
 
+    useEffect(() => {
+        if (!dataloaded) {
+            const timer = setTimeout(() => {
+                if (!dataloaded) {
+                    disconnect();
+                    navigate('/konnect', {
+                        state: { from: location.pathname }
+                    });
+                }
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [dataloaded]);
+
+
     return (
         <>
             {

@@ -219,6 +219,7 @@ actor class Backend() {
   };
 
   public shared (msg) func initiateLink(requester : Principal, requesterType : Text, target : Principal, targetType : Text) : async Text {
+    return "disabled";
     if (msg.caller != requester) {
       return "Unauthorized: Caller does not match the requester.";
     };
@@ -303,6 +304,7 @@ actor class Backend() {
   };
 
   public shared (msg) func acceptLink(requester : Principal, target : Principal, canonicalUUID : Text) : async Text {
+    return "disabled";
     if (msg.caller != target) {
       return "Unauthorized: Only the target account can accept the link request.";
     };
@@ -384,6 +386,8 @@ actor class Backend() {
   };
 
   public shared (msg) func rejectLink(requester : Principal, target : Principal) : async Text {
+
+    return "disabled";
 
     if (msg.caller != target) {
       return "Unauthorized: Only the target account can reject the link request.";

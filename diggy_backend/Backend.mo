@@ -14,9 +14,6 @@ import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Principal "mo:base/Principal";
 import Bool "mo:base/Bool";
-import Nat8 "mo:base/Nat8";
-import Random "mo:base/Random";
-import Char "mo:base/Char";
 import Option "mo:base/Option";
 import Debug "mo:base/Debug";
 
@@ -24,17 +21,28 @@ actor class Backend() {
 
   private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
-  // Stable storage for serialized data
-
   stable var serializedGlobalUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
 
-  stable var mission2Text : Text = "";
+  stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
 
-  public shared query (msg) func getMission2Text() : async Text {
-    if (not Principal.isAnonymous(msg.caller)) {
-      return mission2Text;
+  stable var diggyPrincipals : [(Text, Principal)] = [];
+
+  private func getDiggyPrincipal(userUUID : Text) : async ?Principal {
+    switch (
+      Array.find(
+        diggyPrincipals,
+        func((uid, _) : (Text, Principal)) : Bool {
+          uid == userUUID;
+        },
+      )
+    ) {
+      case (?(_, principal)) {
+        return ?principal;
+      };
+      case null {
+        return null;
+      };
     };
-    return "";
   };
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
@@ -97,8 +105,6 @@ actor class Backend() {
     };
     "";
   };
-
-  stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
 
   public shared (msg) func addAdminId(newAdminId : Principal) : async () {
     if (isAdmin(msg.caller)) {
@@ -292,24 +298,124 @@ actor class Backend() {
   };
 
   public shared (msg) func updateUserProgress(userUUID : Text, missionId : Nat, serializedProgress : Types.SerializedProgress) : async () {
-
     if (isAdmin(msg.caller)) {
 
-      // Deserialize the progress object
       let progress = Serialization.deserializeProgress(serializedProgress);
 
-      // Retrieve the user's missions or create a new TrieMap if it doesn't exist
       let missions = switch (globalUserProgress.get(userUUID)) {
         case (?map) map;
         case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
       };
 
-      // Update the mission progress
       missions.put(missionId, progress);
 
-      // Update the user's progress in the main TrieMap
-      globalUserProgress.put(userUUID, missions);
+      if (missionId == 0) {
+        globalUserProgress.put(userUUID, missions);
+      } else {
+        type Field = { fieldName : Text; fieldValue : Text };
+        type EntitySchema = { eid : Text; uid : Text; fields : [Field] };
+        type Result_2 = { #ok : Text; #err : Text };
+        type entityId = Text;
+        type worldId = Text;
+        type StableEntity = {
+          eid : entityId;
+          wid : worldId;
+          fields : [Field];
+        };
+        type Result_5 = { #ok : [StableEntity]; #err : Text };
 
+        var mission = await getMissionById(missionId);
+        switch (mission) {
+          case (?mission) {
+            var toAdd = Int.toText(mission.points);
+
+            let diggyBackend = actor ("bg4su-6iaaa-aaaap-anxsa-cai") : actor {
+              createEntity : shared EntitySchema -> async Result_2;
+              getAllUserEntities : shared { uid : Text; page : ?Nat } -> async Result_5;
+            };
+
+            let userPrincipal = await getDiggyPrincipal(userUUID);
+            switch (userPrincipal) {
+              case (?userPrincipal) {
+                let hasEntities = await diggyBackend.getAllUserEntities({
+                  uid = Principal.toText(userPrincipal);
+                  page = null;
+                });
+
+                switch (hasEntities) {
+                  case (#ok(entities)) {
+                    if (Array.size(entities) > 0) {
+                      let maybeEntity = Array.find<StableEntity>(
+                        entities,
+                        func(e : StableEntity) : Bool {
+                          return e.eid == "diggycoin" and e.wid == "bg4su-6iaaa-aaaap-anxsa-cai";
+                        },
+                      );
+
+                      switch (maybeEntity) {
+                        case (?entity) {
+                          let maybeField = Array.find<Field>(
+                            entity.fields,
+                            func(f : Field) : Bool {
+                              return f.fieldName == "amount";
+                            },
+                          );
+                          switch (maybeField) {
+                            case (?field) {
+                              let parts = Iter.toArray(Text.split(field.fieldValue, #char '.'));
+                              let intPart = if (Array.size(parts) > 0) {
+                                parts[0];
+                              } else {
+                                field.fieldValue;
+                              };
+                              switch (Nat.fromText(intPart)) {
+                                case (?n) {
+                                  toAdd := Int.toText(n + mission.points);
+                                };
+                                case null {
+                                  toAdd := field.fieldValue;
+                                };
+                              };
+
+                              let entitySchema : EntitySchema = {
+                                eid = "diggycoin";
+                                uid = Principal.toText(userPrincipal);
+                                fields = [{
+                                  fieldName = "amount";
+                                  fieldValue = toAdd;
+                                }];
+                              };
+                              let result = await diggyBackend.createEntity(entitySchema);
+
+                              switch (result) {
+                                case (#ok(_)) {
+                                  globalUserProgress.put(userUUID, missions);
+                                };
+                                case (#err(_)) {
+                                };
+                              };
+                            };
+                            case null {
+                            };
+                          };
+                        };
+                        case null {
+                        };
+                      };
+                    };
+                  };
+                  case (#err(_)) {
+                  };
+                };
+              };
+              case null {
+              };
+            };
+          };
+          case null {
+          };
+        };
+      };
     };
   };
 
@@ -385,8 +491,6 @@ actor class Backend() {
 
     return null;
   };
-
-  // Function to check if a user can do a mission
 
   public shared query (msg) func canUserDoMission(userUUID : Text, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller)) {
@@ -508,6 +612,8 @@ actor class Backend() {
     };
     return "Nice try lmao";
   };
+
+  // stable var missions : Vector.Vector<Types.Mission> = Vector.new<Types.Mission>();
 
   stable var missionsV2 : Vector.Vector<Types.MissionV2> = Vector.new<Types.MissionV2>();
 
@@ -681,7 +787,7 @@ actor class Backend() {
     return { data = []; total = 0 };
   };
 
-  public shared (msg) func missionOne(userId : Principal, canisterId : Text) : async Text {
+  public shared (msg) func preRegisterMission(userId : Principal, boomID : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
       let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
@@ -690,126 +796,37 @@ actor class Backend() {
 
       let userUUID = await index.getUUID(userId);
 
-      try {
-        let canister = actor (canisterId) : actor {
-          helloWorld : query () -> async Text;
-        };
-        let result = await canister.helloWorld();
-        if (result == "Hello World") {
-          let firstMissionRecord : Types.MissionRecord = {
-            var timestamp = Time.now();
-            var pointsEarned = 100;
-            var tweetId = null;
-          };
-          let firstMissionProgress : Types.Progress = {
-            var completionHistory = [firstMissionRecord];
-            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-          };
-          let tempP = Serialization.serializeProgress(firstMissionProgress);
-          await updateUserProgress(userUUID, 0, tempP);
-          return "Success";
-        } else {
-          return "Your canister doesn't have the method as described";
-        };
-      } catch (_e) {
-        return "You're not a controller of the given canister";
-      };
-    };
-    return "";
-  };
-
-  public shared (msg) func missionTwo(userId : Principal, canisterId : Text) : async Text {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getUUID : query (Principal) -> async Text;
+      if (Array.find(diggyPrincipals, func((uid, _) : (Text, Principal)) : Bool { uid == userUUID }) != null) {
+        return "Principal already PreRegistered";
       };
 
-      let userUUID = await index.getUUID(userId);
-
-      try {
-        let canister = actor (canisterId) : actor {
-          interCanisterCall : query () -> async Text;
-        };
-
-        var randomText = "";
-        var seed = Random.Finite(await Random.blob());
-
-        for (i in Iter.range(0, 30)) {
-          switch (seed.byte()) {
-            case (?b) {
-              randomText #= Char.toText(Char.fromNat32(Nat32.fromNat(Nat8.toNat(b) % 26 + 97)));
-            };
-            case null {
-              seed := Random.Finite(await Random.blob());
-            };
-          };
-        };
-
-        mission2Text := randomText;
-
-        let result = await canister.interCanisterCall();
-        if (result == mission2Text) {
-          let firstMissionRecord : Types.MissionRecord = {
-            var timestamp = Time.now();
-            var pointsEarned = 100;
-            var tweetId = null;
-          };
-          let firstMissionProgress : Types.Progress = {
-            var completionHistory = [firstMissionRecord];
-            var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-          };
-          let tempP = Serialization.serializeProgress(firstMissionProgress);
-          await updateUserProgress(userUUID, 1, tempP);
-          return "Success";
-        } else {
-          return "Your canister doesn't have the method as described";
-        };
-      } catch (_e) {
-        return "You're not a controller of the given canister";
-      };
-    };
-    return "";
-  };
-
-  public shared (msg) func missionOpenChat(userId : Principal) : async Text {
-    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
-
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getUUID : query (Principal) -> async Text;
-        getUserByPrincipal : query (Principal) -> async ?Types.SerializedGlobalUser;
+      let diggyPreRegisterCanister = actor ("stsmr-hqaaa-aaaag-qnguq-cai") : actor {
+        isPreRegistered : shared query Principal -> async Bool;
       };
 
-      let uuidPromise = index.getUUID(userId);
-      let userPromise = index.getUserByPrincipal(userId);
+      let hasPR = await diggyPreRegisterCanister.isPreRegistered(boomID);
 
-      let userUUID = await uuidPromise;
-      let user = await userPromise;
+      if (hasPR == true) {
 
-      switch (user) {
-        case (?user) {
-          let oc = user.ocProfile;
-          switch (oc) {
-            case (?oc) {
-              if (oc != "") {
-                let firstMissionRecord : Types.MissionRecord = {
-                  var timestamp = Time.now();
-                  var pointsEarned = 100;
-                  var tweetId = null;
-                };
-                let firstMissionProgress : Types.Progress = {
-                  var completionHistory = [firstMissionRecord];
-                  var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
-                };
-                let tempP = Serialization.serializeProgress(firstMissionProgress);
-                await updateUserProgress(userUUID, 4, tempP);
-                return "Success";
-              };
-            };
-            case null return "Hasn't joined";
-          };
+        diggyPrincipals := Array.append(diggyPrincipals, [(userUUID, boomID)]);
+
+        let firstMissionRecord : Types.MissionRecord = {
+          var timestamp = Time.now();
+          var pointsEarned = 30;
+          var tweetId = null;
         };
-        case null return "Hasn't joined";
+
+        let firstMissionProgress : Types.Progress = {
+          var completionHistory = [firstMissionRecord];
+          var usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+        };
+        let tempP = Serialization.serializeProgress(firstMissionProgress);
+        await updateUserProgress(userUUID, 0, tempP);
+
+        return "Success";
+
+      } else {
+        return "Not PreRegistered!";
       };
     };
     return "";
@@ -910,6 +927,8 @@ actor class Backend() {
 
   public shared (msg) func resetall() : async () {
     if (isAdmin(msg.caller)) {
+      globalUserProgress := TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
+      diggyPrincipals := [];
       return;
     };
   };
