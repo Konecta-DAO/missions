@@ -631,7 +631,7 @@ actor class Backend() {
       principalToUUID.put(userId, uuid);
       uuidToLinkedAccounts.put(uuid, [(accountType, userId)]);
 
-      let konectaCanister = actor ("ynkdv-7qaaa-aaaag-qkluq-cai") : actor {
+      let konectaCanister = actor ("onpqf-diaaa-aaaag-qkeda-cai") : actor {
         completeMainMission : (Text) -> async ();
       };
 
@@ -915,7 +915,7 @@ actor class Backend() {
             };
           };
 
-          let konectaActor = actor ("ynkdv-7qaaa-aaaag-qkluq-cai") : actor {
+          let konectaActor = actor ("onpqf-diaaa-aaaag-qkeda-cai") : actor {
             //CAMBIAR
             mergeAccounts : (Text, Text) -> async Text;
           };

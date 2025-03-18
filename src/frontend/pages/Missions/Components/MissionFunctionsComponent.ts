@@ -7,7 +7,6 @@ import { idlFactory as idlFactoryMP } from '../../../../declarations/mushroom_ba
 import { idlFactory as idlFactoryDiggy } from '../../../../declarations/diggy_backend/index.js';
 import { Usergeek } from "usergeek-ic-js";
 import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
-import { SerializedProgress as SerializedProgressNFID, SerializedUser as SerializedUserNFID } from '../../../../declarations/nfid/nfid.did.js';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../declarations/index/index.did.js';
 import { idlFactory as idlFactoryDefault } from '../../../../declarations/dfinity_backend/index.js';
 import { Principal } from "@dfinity/principal";
@@ -17,7 +16,7 @@ const canisterIdOISY = "eyark-fqaaa-aaaag-qm7oa-cai";
 const canisterIdMP = "wfguo-oiaaa-aaaag-qngma-cai";
 
 const MissionFunctionsComponent = {
-    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    followKonecta: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
 
         let principal = globalID.principalId;
 
@@ -112,7 +111,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    verifyPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -152,7 +151,7 @@ const MissionFunctionsComponent = {
         closeModal();
     },
 
-    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    verifyPFPTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
         const principal = globalID.principalId;
         try {
             const response = await fetch(
@@ -244,7 +243,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    vfTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
         try {
@@ -337,7 +336,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    verRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
 
@@ -427,7 +426,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    verMRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    verMRT: async (globalID: any, navigate: any, fetchData: any, setLoading: any, _closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
 
@@ -516,7 +515,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    sendKamiDM: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    sendKamiDM: async (globalID: any, _navigate: any, _fetchData: any, setLoading: any, _closeModal: any, _missionid: any, _input: any, _setPlacestate: any, _disconnect: any) => {
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
             canisterId,
@@ -527,13 +526,13 @@ const MissionFunctionsComponent = {
         setLoading(false);
     },
 
-    twPFP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    twPFP: async (_globalID: any, _navigate: any, _fetchData: any, setLoading: any, _closeModal: any, _missionid: any, _input: any, _setPlacestate: any, _disconnect: any) => {
         const url = 'https://twitter.com/intent/tweet?text=Leveling%20up%20my%20profile%20with%20%23KonectaPFP%21%20Time%E2%80%99s%20on%20my%20side%20now.%20%24ICP%20%E2%8F%B3';
         window.open(url, '_blank');
         setLoading(false);
     },
 
-    gTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    gTW: async (_globalID: any, _navigate: any, _fetchData: any, setLoading: any, _closeModal: any, _missionid: any, _input: any, _setPlacestate: any, _disconnect: any) => {
         const url = 'https://twitter.com/intent/tweet';
         window.open(url, '_blank');
         setLoading(false);
@@ -583,7 +582,7 @@ const MissionFunctionsComponent = {
 
     },
 
-    ocMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    ocMission: async (globalID: any, navigate: any, _fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, _setPlacestate: any, _disconnect: any) => {
 
         const actor = Actor.createActor(idlFactory, {
             agent: globalID.agent,
@@ -611,7 +610,7 @@ const MissionFunctionsComponent = {
         }
     },
 
-    nuanceMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    nuanceMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
 
@@ -677,79 +676,7 @@ const MissionFunctionsComponent = {
         setLoading(false);
     },
 
-    followNFIDTwitter: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, setTwitterVerified: any) => {
-
-        const principal = globalID.principalId;
-        try {
-            const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-nfid/", {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ principal }),
-            });
-
-            const data = await response.json();
-            const authURL = data.authURL;
-
-            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
-
-            let authSuccess = false;
-
-            const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://do.konecta.one") return;
-
-                const { accessToken, refreshToken, result } = event.data;
-                if (result === 'true') {
-                    alert("Success!")
-                    setTwitterVerified(true);
-                } else {
-                    if (result === 'false') {
-                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
-                    } else {
-                        alert("You can't use the same twitter account in two different principals.")
-                    }
-                }
-
-                authSuccess = true;
-
-                window.removeEventListener("message", handleEvent);
-                localStorage.setItem("accessToken", accessToken);
-                localStorage.setItem("refreshToken", refreshToken);
-
-                popup?.close();
-                const actor = Actor.createActor(idlFactory, {
-                    agent: globalID.agent,
-                    canisterId,
-                })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
-                    agent: globalID.agent,
-                    canisterId: canisterIdNFID,
-                });
-
-                //fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
-                setLoading(false);
-            }
-
-
-            window.addEventListener("message", handleEvent);
-
-
-
-            const popupInterval = setInterval(() => {
-                if (popup && popup.closed && !authSuccess) {
-                    clearInterval(popupInterval);
-                    setLoading(false);
-                    alert("You closed the Twitter authorization window.");
-                }
-            }, 300);
-
-        } catch (error) {
-            console.error("Error fetching Twitter auth URL:", error);
-        }
-    },
-    discordMission: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, setDiscordVerified: any) => {
+    discordMission: async (globalID: any, _fetchData: any, setLoading: any, _setPlacestate: any, setDiscordVerified: any) => {
         const principal = globalID.principalId;
 
         try {
@@ -821,435 +748,49 @@ const MissionFunctionsComponent = {
             console.error("Error fetching Discord auth URL:", error);
         }
     },
-    nfidMain: async (globalID: any, fetchData: any, setLoading: any, setPlacestate: any, user: SerializedUserNFID, setIsVisible: any, setIsVerified: any) => {
-        const principal = globalID.principalId;
-        const tg = user.telegramUser;
-        const oc = user.ocProfile;
-        const nns = user.nnsPrincipal;
-        try {
-            const response = await fetch(
-                "https://do.konecta.one/nfidMain",
-                {
+    /*
+        dfinityFollowTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
+    
+            const principal = globalID.principalId;
+            try {
+                const response = await fetch("https://do.konecta.one/requestTwitterAuth-v2-follow-df/", {
                     method: "POST",
                     credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({
-                        principal,
-                        tg,
-                        oc,
-                        nns,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-            if (data.message === "Success") {
-                Usergeek.trackEvent("NFID Mission 0: Joined the Airdrop");
-                const actor = Actor.createActor(idlFactory, {
-                    agent: globalID.agent,
-                    canisterId,
-                })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
-                    agent: globalID.agent,
-                    canisterId: canisterIdNFID,
+                    body: JSON.stringify({ principal }),
                 });
-
-                await fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
-
-                const tempP = globalID.userProgressnfid as Array<[bigint, SerializedProgressNFID]>;
-
-                const has1 = tempP.some(([id, _]) => id === 1n);
-                const has2 = tempP.some(([id, _]) => id === 2n);
-
-                if (has1) {
-                    Usergeek.trackEvent("NFID Mission 1: Created an NFID Vault");
-                }
-
-                if (has2) {
-                    Usergeek.trackEvent("NFID Mission 2: Topped up an NFID Vault");
-                }
-
-                alert(data.message);
-                setLoading(false);
-                setIsVisible(false);
-                setIsVerified(true);
-            } else {
-                alert(data.message);
-                setLoading(false);
-            }
-
-        } catch (error) {
-            console.error("Error", error);
-        }
-
-        setLoading(false);
-    },
-
-    goNFIDV: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
-        const url = 'https://nfidvaults.com/';
-        window.open(url, '_blank');
-        setLoading(false);
-    },
-
-    verNFIDVault: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
-        const principal = globalID.principalId;
-
-        try {
-            const response = await fetch(
-                "https://do.konecta.one/nfidVault",
-                {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        principal,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-            if (data.message === "Success") {
-                Usergeek.trackEvent("NFID Mission 1: Created an NFID Vault");
-                const actor = Actor.createActor(idlFactory, {
-                    agent: globalID.agent,
-                    canisterId,
-                })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
-                    agent: globalID.agent,
-                    canisterId: canisterIdNFID,
-                });
-                await fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
-
-                const tempP = globalID.userProgressnfid as Array<[bigint, SerializedProgressNFID]>;
-                const has2 = tempP.some(([id, _]) => id === 2n);
-                if (has2) {
-                    Usergeek.trackEvent("NFID Mission 2: Topped up an NFID Vault");
-                }
-                alert(data.message);
-                setLoading(false);
-                // navigate('/Missions/NFID');
-                closeModal();
-            } else {
-                alert(data.message);
-                setLoading(false);
-            }
-
-        } catch (error) {
-            console.error("Error", error);
-        }
-
-        setLoading(false);
-    },
-
-    goITU: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
-        const url = 'https://icptopup.com/';
-        window.open(url, '_blank');
-        setLoading(false);
-    },
-
-    verNFIDVaultTopUp: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
-        const principal = globalID.principalId;
-
-        try {
-            const response = await fetch(
-                "https://do.konecta.one/nfidVaultTopUp",
-                {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        principal,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-            if (data.message === "Success") {
-                Usergeek.trackEvent("NFID Mission 2: Topped up an NFID Vault");
-                const actor = Actor.createActor(idlFactory, {
-                    agent: globalID.agent,
-                    canisterId,
-                })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
-                    agent: globalID.agent,
-                    canisterId: canisterIdNFID,
-                });
-                fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
-
-                alert(data.message);
-                setLoading(false);
-                // navigate('/Missions/NFID');
-                closeModal();
-            } else {
-                alert(data.message);
-                setLoading(false);
-            }
-
-        } catch (error) {
-            console.error("Error", error);
-        }
-
-        setLoading(false);
-    },
-
-    goWTN: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
-        const url = 'https://waterneuron.fi/';
-        window.open(url, '_blank');
-        setLoading(false);
-    },
-
-    nfidWTN: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any) => {
-        const principal = globalID.principalId;
-
-        try {
-            const response = await fetch(
-                "https://do.konecta.one/nfidWTN",
-                {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        principal,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-            if (data.message === "Success") {
-                Usergeek.trackEvent("NFID Mission 3: Staked ICP on Waterneuron");
-                const actor = Actor.createActor(idlFactory, {
-                    agent: globalID.agent,
-                    canisterId,
-                })
-                const actorNFID = Actor.createActor(idlFactoryNFID, {
-                    agent: globalID.agent,
-                    canisterId: canisterIdNFID,
-                });
-                fetchData.fetchAllNfid(actor, actorNFID, globalID.principalId, setPlacestate, setPlacestate, setPlacestate);
-                alert(data.message);
-                setLoading(false);
-                // navigate('/Missions/NFID');
-                closeModal();
-            } else {
-                alert(data.message);
-                setLoading(false);
-            }
-
-        } catch (error) {
-            console.error("Error", error);
-        }
-
-        setLoading(false);
-    },
-
-    dfinityFollowTW: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-
-        const principal = globalID.principalId;
-        try {
-            const response = await fetch("https://dotest.konecta.one/requestTwitterAuth-v2-follow-df/", {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ principal }),
-            });
-
-            const data = await response.json();
-            const authURL = data.authURL;
-
-            const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
-
-            let authSuccess = false;
-
-            const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
-
-                const { accessToken, refreshToken, result } = event.data;
-                if (result === 'true') {
-                    Usergeek.trackEvent("Dfinity Mission Three: Follow");
-                    alert("Success!")
-                } else {
-                    if (result === 'false') {
-                        alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+    
+                const data = await response.json();
+                const authURL = data.authURL;
+    
+                const popup = window.open(authURL, "TwitterAuth", "width=600,height=800");
+    
+                let authSuccess = false;
+    
+                const handleEvent = (event: MessageEvent<any>) => {
+                    if (event.origin !== "https://do.konecta.one") return;
+    
+                    const { accessToken, refreshToken, result } = event.data;
+                    if (result === 'true') {
+                        Usergeek.trackEvent("Dfinity Mission Three: Follow");
+                        alert("Success!")
                     } else {
-                        alert("You can't use the same twitter account in two different principals.")
-                    }
-                }
-
-                authSuccess = true;
-
-                window.removeEventListener("message", handleEvent);
-                localStorage.setItem("accessToken", accessToken);
-                localStorage.setItem("refreshToken", refreshToken);
-
-                popup?.close();
-                const actor = Actor.createActor(idlFactoryDFINITY, {
-                    agent: globalID.agent,
-                    canisterId: canisterIdDFINITY,
-                })
-                const actorIndex = Actor.createActor(idlFactoryIndex, {
-                    agent: globalID.agent,
-                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-                });
-
-                actorIndex.getAllProjectMissions()
-                    .then((result) => {
-                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                        const targets: string[] = projects.map(project => project.canisterId.toText());
-                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                            alert("A new project has been added to Konecta! Refreshing the page...");
-                            disconnect();
-                            navigate('/konnect');
+                        if (result === 'false') {
+                            alert("We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.")
+                        } else {
+                            alert("You can't use the same twitter account in two different principals.")
                         }
-                    })
-
-                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                    return Actor.createActor(idlFactoryDefault, {
-                        agent: globalID.agent,
-                        canisterId: targetCanisterId,
-                    });
-                });
-
-                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-                setLoading(false);
-                closeModal();
-            }
-
-
-            window.addEventListener("message", handleEvent);
-
-
-
-            const popupInterval = setInterval(() => {
-                if (popup && popup.closed && !authSuccess) {
-                    clearInterval(popupInterval);
-                    setLoading(false);
-                    alert("You closed the Twitter authorization window.");
-                }
-            }, 300);
-
-        } catch (error) {
-            console.error("Error fetching Twitter auth URL:", error);
-        }
-    },
-
-    dfinityMissionOne: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const actor = Actor.createActor(idlFactoryDFINITY, {
-            agent: globalID.agent,
-            canisterId: canisterIdDFINITY,
-        })
-        const a = await actor.missionOne(globalID.principalId, input);
-        if (a === "Success") {
-            Usergeek.trackEvent("Dfinity Mission One: Hello World");
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
-                agent: globalID.agent,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-            });
-
-            actorIndex.getAllProjectMissions()
-                .then((result) => {
-                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                    const targets: string[] = projects.map(project => project.canisterId.toText());
-                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                        alert("A new project has been added to Konecta! Refreshing the page...");
-                        disconnect();
-                        navigate('/konnect');
                     }
-                })
-
-            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                return Actor.createActor(idlFactoryDefault, {
-                    agent: globalID.agent,
-                    canisterId: targetCanisterId,
-                });
-            });
-
-            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-            alert(a);
-            setLoading(false);
-            closeModal();
-        } else {
-            alert(a);
-            setLoading(false);
-        }
-    },
-
-    dfinityMissionTwo: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const actor = Actor.createActor(idlFactoryDFINITY, {
-            agent: globalID.agent,
-            canisterId: canisterIdDFINITY,
-        })
-        const a = await actor.missionTwo(globalID.principalId, input);
-        if (a === "Success") {
-            Usergeek.trackEvent("Dfinity Mission Two: Inter-Canister Call");
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
-                agent: globalID.agent,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-            });
-
-            actorIndex.getAllProjectMissions()
-                .then((result) => {
-                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                    const targets: string[] = projects.map(project => project.canisterId.toText());
-                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                        alert("A new project has been added to Konecta! Refreshing the page...");
-                        disconnect();
-                        navigate('/konnect');
-                    }
-                })
-
-            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                return Actor.createActor(idlFactoryDefault, {
-                    agent: globalID.agent,
-                    canisterId: targetCanisterId,
-                });
-            });
-
-            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-            alert(a);
-            setLoading(false);
-            closeModal();
-        } else {
-            alert(a);
-            setLoading(false);
-        }
-    },
-
-    dfinityDiscord: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const principal = globalID.principalId;
-
-        try {
-            const response = await fetch("https://dotest.konecta.one/requestDiscordAuthDF/", {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ principal }),
-            });
-
-            const data = await response.json();
-            const authURL = data.authURL;
-
-            const popup = window.open(authURL, "DiscordAuth", "width=600,height=800");
-
-            let authSuccess = false;
-
-            const handleEvent = (event: MessageEvent<any>) => {
-                if (event.origin !== "https://dotest.konecta.one") return;
-
-                const { accessToken, refreshToken, result } = event.data;
-                if (result === 'true') {
-                    alert("Success!")
+    
+                    authSuccess = true;
+    
+                    window.removeEventListener("message", handleEvent);
+                    localStorage.setItem("accessToken", accessToken);
+                    localStorage.setItem("refreshToken", refreshToken);
+    
+                    popup?.close();
                     const actor = Actor.createActor(idlFactoryDFINITY, {
                         agent: globalID.agent,
                         canisterId: canisterIdDFINITY,
@@ -1258,7 +799,7 @@ const MissionFunctionsComponent = {
                         agent: globalID.agent,
                         canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                     });
-
+    
                     actorIndex.getAllProjectMissions()
                         .then((result) => {
                             const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
@@ -1269,248 +810,407 @@ const MissionFunctionsComponent = {
                                 navigate('/konnect');
                             }
                         })
-
+    
                     const actors = globalID.canisterIds.map((targetCanisterId: string) => {
                         return Actor.createActor(idlFactoryDefault, {
                             agent: globalID.agent,
                             canisterId: targetCanisterId,
                         });
                     });
-
+    
                     fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
                     setLoading(false);
                     closeModal();
-                } else {
-                    if (result === 'error') {
-                        alert("We broke the roof! Discord API has reached its limit for our Dev account. Please try again later.")
-                    } else {
-                        if (result === 'fake') {
-                            alert("You can't use the same discord account in two different principals.")
-                        }
-                        alert("User is not a member of the Discord Server")
-                    }
                 }
-
-                authSuccess = true;
-                popup?.close();
+    
+    
+                window.addEventListener("message", handleEvent);
+    
+    
+    
+                const popupInterval = setInterval(() => {
+                    if (popup && popup.closed && !authSuccess) {
+                        clearInterval(popupInterval);
+                        setLoading(false);
+                        alert("You closed the Twitter authorization window.");
+                    }
+                }, 300);
+    
+            } catch (error) {
+                console.error("Error fetching Twitter auth URL:", error);
+            }
+        },
+    
+        dfinityMissionOne: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+            const actor = Actor.createActor(idlFactoryDFINITY, {
+                agent: globalID.agent,
+                canisterId: canisterIdDFINITY,
+            })
+            const a = await actor.missionOne(globalID.principalId, input);
+            if (a === "Success") {
+                Usergeek.trackEvent("Dfinity Mission One: Hello World");
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+    
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+    
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+    
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                alert(a);
+                setLoading(false);
+                closeModal();
+            } else {
+                alert(a);
                 setLoading(false);
             }
-
-            window.addEventListener("message", handleEvent);
-
-            const popupInterval = setInterval(() => {
-                if (popup && popup.closed && !authSuccess) {
-                    clearInterval(popupInterval);
+        },
+    
+        dfinityMissionTwo: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+            const actor = Actor.createActor(idlFactoryDFINITY, {
+                agent: globalID.agent,
+                canisterId: canisterIdDFINITY,
+            })
+            const a = await actor.missionTwo(globalID.principalId, input);
+            if (a === "Success") {
+                Usergeek.trackEvent("Dfinity Mission Two: Inter-Canister Call");
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+    
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+    
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+    
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                alert(a);
+                setLoading(false);
+                closeModal();
+            } else {
+                alert(a);
+                setLoading(false);
+            }
+        },
+    
+        dfinityDiscord: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
+            const principal = globalID.principalId;
+    
+            try {
+                const response = await fetch("https://do.konecta.one/requestDiscordAuthDF/", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ principal }),
+                });
+    
+                const data = await response.json();
+                const authURL = data.authURL;
+    
+                const popup = window.open(authURL, "DiscordAuth", "width=600,height=800");
+    
+                let authSuccess = false;
+    
+                const handleEvent = (event: MessageEvent<any>) => {
+                    if (event.origin !== "https://do.konecta.one") return;
+    
+                    const { accessToken, refreshToken, result } = event.data;
+                    if (result === 'true') {
+                        alert("Success!")
+                        const actor = Actor.createActor(idlFactoryDFINITY, {
+                            agent: globalID.agent,
+                            canisterId: canisterIdDFINITY,
+                        })
+                        const actorIndex = Actor.createActor(idlFactoryIndex, {
+                            agent: globalID.agent,
+                            canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                        });
+    
+                        actorIndex.getAllProjectMissions()
+                            .then((result) => {
+                                const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                                const targets: string[] = projects.map(project => project.canisterId.toText());
+                                if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                                    alert("A new project has been added to Konecta! Refreshing the page...");
+                                    disconnect();
+                                    navigate('/konnect');
+                                }
+                            })
+    
+                        const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                            return Actor.createActor(idlFactoryDefault, {
+                                agent: globalID.agent,
+                                canisterId: targetCanisterId,
+                            });
+                        });
+    
+                        fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                        setLoading(false);
+                        closeModal();
+                    } else {
+                        if (result === 'error') {
+                            alert("We broke the roof! Discord API has reached its limit for our Dev account. Please try again later.")
+                        } else {
+                            if (result === 'fake') {
+                                alert("You can't use the same discord account in two different principals.")
+                            }
+                            alert("User is not a member of the Discord Server")
+                        }
+                    }
+    
+                    authSuccess = true;
+                    popup?.close();
                     setLoading(false);
-                    alert("You closed the Discord authorization window.");
                 }
-            }, 300);
-        } catch (error) {
-            console.error("Error fetching Discord auth URL:", error);
-        }
-    },
-    dfinityOpenChat: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const actor = Actor.createActor(idlFactoryDFINITY, {
-            agent: globalID.agent,
-            canisterId: canisterIdDFINITY,
-        })
-        const a = await actor.missionOpenChat(globalID.principalId);
-        if (a === "Success") {
-            Usergeek.trackEvent("Dfinity Mission Five: OpenChat");
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
-                agent: globalID.agent,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-            });
-
-            actorIndex.getAllProjectMissions()
-                .then((result) => {
-                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                    const targets: string[] = projects.map(project => project.canisterId.toText());
-                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                        alert("A new project has been added to Konecta! Refreshing the page...");
-                        disconnect();
-                        navigate('/konnect');
+    
+                window.addEventListener("message", handleEvent);
+    
+                const popupInterval = setInterval(() => {
+                    if (popup && popup.closed && !authSuccess) {
+                        clearInterval(popupInterval);
+                        setLoading(false);
+                        alert("You closed the Discord authorization window.");
                     }
-                })
-
-            const actor = Actor.createActor(idlFactory, {
+                }, 300);
+            } catch (error) {
+                console.error("Error fetching Discord auth URL:", error);
+            }
+        },
+        dfinityOpenChat: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
+            const actor = Actor.createActor(idlFactoryDFINITY, {
                 agent: globalID.agent,
-                canisterId,
+                canisterId: canisterIdDFINITY,
             })
-
-            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                return Actor.createActor(idlFactoryDefault, {
+            const a = await actor.missionOpenChat(globalID.principalId);
+            if (a === "Success") {
+                Usergeek.trackEvent("Dfinity Mission Five: OpenChat");
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent,
-                    canisterId: targetCanisterId,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
                 });
-            });
-
-            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-            alert(a);
-            setLoading(false);
-            closeModal();
-        } else {
-            alert(a);
-            setLoading(false);
-        }
-    },
-
-    verifyOisyICP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const actor = Actor.createActor(idlFactoryOisy, {
-            agent: globalID.agent,
-            canisterId: canisterIdOISY,
-        })
-        const a = await actor.verifyOisyICP(globalID.principalId);
-        if (a === "Success") {
-            Usergeek.trackEvent("Oisy Mission One: Have ICP on Oisy");
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
-                agent: globalID.agent,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-            });
-
-            actorIndex.getAllProjectMissions()
-                .then((result) => {
-                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                    const targets: string[] = projects.map(project => project.canisterId.toText());
-                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                        alert("A new project has been added to Konecta! Refreshing the page...");
-                        disconnect();
-                        navigate('/konnect');
-                    }
+    
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+    
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
                 })
-
-            const actor = Actor.createActor(idlFactory, {
-                agent: globalID.agent,
-                canisterId,
-            })
-
-            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                return Actor.createActor(idlFactoryDefault, {
-                    agent: globalID.agent,
-                    canisterId: targetCanisterId,
+    
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
                 });
-            });
-
-            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-            alert(a);
-            setLoading(false);
-            closeModal();
-
-        } else {
-            alert(a);
-            setLoading(false);
-        };
-    },
-
-    verifyOisyOG: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const actor = Actor.createActor(idlFactoryOisy, {
-            agent: globalID.agent,
-            canisterId: canisterIdOISY,
-        })
-        const a = await actor.verifyOisyOG(globalID.principalId);
-        if (a === "Success") {
-            Usergeek.trackEvent("Oisy Mission Two: Be an Oisy OG");
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
+    
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                alert(a);
+                setLoading(false);
+                closeModal();
+            } else {
+                alert(a);
+                setLoading(false);
+            }
+        },
+    
+        verifyOisyICP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
+            const actor = Actor.createActor(idlFactoryOisy, {
                 agent: globalID.agent,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-            });
-
-            actorIndex.getAllProjectMissions()
-                .then((result) => {
-                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                    const targets: string[] = projects.map(project => project.canisterId.toText());
-                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                        alert("A new project has been added to Konecta! Refreshing the page...");
-                        disconnect();
-                        navigate('/konnect');
-                    }
+                canisterId: canisterIdOISY,
+            })
+            const a = await actor.verifyOisyICP(globalID.principalId);
+            if (a === "Success") {
+                Usergeek.trackEvent("Oisy Mission One: Have ICP on Oisy");
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+    
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+    
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
                 })
-
-            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                return Actor.createActor(idlFactoryDefault, {
-                    agent: globalID.agent,
-                    canisterId: targetCanisterId,
+    
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
                 });
-            });
-
-            const actor = Actor.createActor(idlFactory, {
+    
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                alert(a);
+                setLoading(false);
+                closeModal();
+    
+            } else {
+                alert(a);
+                setLoading(false);
+            };
+        },
+    
+        verifyOisyOG: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
+            const actor = Actor.createActor(idlFactoryOisy, {
                 agent: globalID.agent,
-                canisterId,
+                canisterId: canisterIdOISY,
             })
-
-            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-            alert(a);
-            setLoading(false);
-            closeModal();
-
-        } else {
-            alert(a);
-            setLoading(false);
-        };
-    },
-
-    verNFTMP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
-        const actor = Actor.createActor(idlFactoryMP, {
-            agent: globalID.agent,
-            canisterId: canisterIdMP,
-        })
-        const a = await actor.nftMission(globalID.principalId);
-
-        if (a === "Success") {
-            Usergeek.trackEvent("Mushroom Protocol Mission One: NFT");
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
-                agent: globalID.agent,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
-            });
-
-            actorIndex.getAllProjectMissions()
-                .then((result) => {
-                    const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
-                    const targets: string[] = projects.map(project => project.canisterId.toText());
-                    if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
-                        alert("A new project has been added to Konecta! Refreshing the page...");
-                        disconnect();
-                        navigate('/konnect');
-                    }
+            const a = await actor.verifyOisyOG(globalID.principalId);
+            if (a === "Success") {
+                Usergeek.trackEvent("Oisy Mission Two: Be an Oisy OG");
+                const actorIndex = Actor.createActor(idlFactoryIndex, {
+                    agent: globalID.agent,
+                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                });
+    
+                actorIndex.getAllProjectMissions()
+                    .then((result) => {
+                        const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                        const targets: string[] = projects.map(project => project.canisterId.toText());
+                        if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                            alert("A new project has been added to Konecta! Refreshing the page...");
+                            disconnect();
+                            navigate('/konnect');
+                        }
+                    })
+    
+                const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                    return Actor.createActor(idlFactoryDefault, {
+                        agent: globalID.agent,
+                        canisterId: targetCanisterId,
+                    });
+                });
+    
+                const actor = Actor.createActor(idlFactory, {
+                    agent: globalID.agent,
+                    canisterId,
                 })
+    
+                fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                alert(a);
+                setLoading(false);
+                closeModal();
+    
+            } else {
+                alert(a);
+                setLoading(false);
+            };
+        },
+        
+           verNFTMP: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
+               const actor = Actor.createActor(idlFactoryMP, {
+                   agent: globalID.agent,
+                   canisterId: canisterIdMP,
+               })
+               const a = await actor.nftMission(globalID.principalId);
+       
+               if (a === "Success") {
+                   Usergeek.trackEvent("Mushroom Protocol Mission One: NFT");
+                   const actorIndex = Actor.createActor(idlFactoryIndex, {
+                       agent: globalID.agent,
+                       canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                   });
+       
+                   actorIndex.getAllProjectMissions()
+                       .then((result) => {
+                           const projects: SerializedProjectMissions[] = result as SerializedProjectMissions[];
+                           const targets: string[] = projects.map(project => project.canisterId.toText());
+                           if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
+                               alert("A new project has been added to Konecta! Refreshing the page...");
+                               disconnect();
+                               navigate('/konnect');
+                           }
+                       })
+       
+                   const actors = globalID.canisterIds.map((targetCanisterId: string) => {
+                       return Actor.createActor(idlFactoryDefault, {
+                           agent: globalID.agent,
+                           canisterId: targetCanisterId,
+                       });
+                   });
+       
+                   const actor = Actor.createActor(idlFactory, {
+                       agent: globalID.agent,
+                       canisterId,
+                   })
+       
+                   fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
+                   alert(a);
+                   setLoading(false);
+                   closeModal();
+       
+               } else {
+                   alert(a);
+                   setLoading(false);
+               };
+           },
+          
+           goICPandaMission: async (_globalID: any, _navigate: any, _fetchData: any, setLoading: any, _closeModal: any, _missionid: any, _input: any) => {
+               const url = 'https://twitter.com/intent/tweet?in_reply_to=1890856928701460621';
+               window.open(url, '_blank');
+               setLoading(false);
+           },
+       
+           verifyICPandaMission: async (_globalID: any, navigate: any, _fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any) => {
+               alert("You will be verified soon. Please wait for the manual verification process to complete.");
+               setLoading(false);
+               navigate('/Missions');
+               closeModal();
+           },
+           */
 
-            const actors = globalID.canisterIds.map((targetCanisterId: string) => {
-                return Actor.createActor(idlFactoryDefault, {
-                    agent: globalID.agent,
-                    canisterId: targetCanisterId,
-                });
-            });
-
-            const actor = Actor.createActor(idlFactory, {
-                agent: globalID.agent,
-                canisterId,
-            })
-
-            fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds, globalID.principalId, setPlacestate, setPlacestate);
-            alert(a);
-            setLoading(false);
-            closeModal();
-
-        } else {
-            alert(a);
-            setLoading(false);
-        };
-    },
-
-    goICPandaMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
-        const url = 'https://twitter.com/intent/tweet?in_reply_to=1890856928701460621';
-        window.open(url, '_blank');
-        setLoading(false);
-    },
-
-    verifyICPandaMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
-        alert("You will be verified soon. Please wait for the manual verification process to complete.");
-        setLoading(false);
-        navigate('/Missions');
-        closeModal();
-    },
-
-    preVerifyDiggy: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    preVerifyDiggy: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, input: any, setPlacestate: any, _disconnect: any) => {
 
         const validateInput = (input: string): string | null => {
             const sanitized = input.replace(/\s+/g, '').toLowerCase();
@@ -1569,16 +1269,16 @@ const MissionFunctionsComponent = {
             setLoading(false);
         };
     },
-    tweetDiggy: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any) => {
+    tweetDiggy: async (_globalID: any, _navigate: any, _fetchData: any, setLoading: any, _closeModal: any, _missionid: any, _input: any) => {
         window.open("https://x.com/intent/tweet?text=%F0%9F%9A%A8EXCLUSIVE%20ACCESS%20%2B%20FREE%20GOLD%F0%9F%9A%A8%0A%0AI%20pre-registered%20at%20%40diggycoin_%20and%20earned%20%23GOLD%F0%9F%AA%99%0A%0ANow%20I%E2%80%99ll%20play%20the%20exclusive%20game%20launch%20and%20earn%20$DIGGY%20%F0%9F%8E%AE%0A%0AYou%20can%20too!%20Pre-register%20now%2C%20claim%2050%20FREE%20GOLD%2C%20and%20unlock%20up%20to%20200%20GOLD!%F0%9F%AB%B5%0A%0ALimited%20spots%20available%20%F0%9F%98%B1%20%F0%9F%91%87%0Ahttps%3A%2F%2Ftz5ol-faaaa-aaaag-qngtq-cai.icp0.io%2Ffree-gold", '_blank');
         setLoading(false);
     },
-    preVerifyDiggyTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, missionid: any, input: any, setPlacestate: any, disconnect: any) => {
+    preVerifyDiggyTweet: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;
         try {
             const response = await fetch(
-                "https://dotest.konecta.one/requestTwitterAuth-v2-diggyF",
+                "https://do.konecta.one/requestTwitterAuth-v2-diggyF",
                 {
                     method: "POST",
                     credentials: "include",
@@ -1598,7 +1298,7 @@ const MissionFunctionsComponent = {
 
             const handleEvent = (event: MessageEvent<any>) => {
 
-                if (event.origin !== "https://dotest.konecta.one") return;
+                if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
 
