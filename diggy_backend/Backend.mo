@@ -391,29 +391,23 @@ actor class Backend() {
                                 case (#ok(_)) {
                                   globalUserProgress.put(userUUID, missions);
                                 };
-                                case (#err(_)) {
-                                };
+                                case (#err(_)) {};
                               };
                             };
-                            case null {
-                            };
+                            case null {};
                           };
                         };
-                        case null {
-                        };
+                        case null {};
                       };
                     };
                   };
-                  case (#err(_)) {
-                  };
+                  case (#err(_)) {};
                 };
               };
-              case null {
-              };
+              case null {};
             };
           };
-          case null {
-          };
+          case null {};
         };
       };
     };
@@ -501,46 +495,55 @@ actor class Backend() {
         };
       };
 
-      // Fetch the user's mission progress.
+      let mission = switch (missionOpt) {
+        case (?m) m;
+        case null { Debug.trap("Mission not found") };
+      };
+
+      if (Option.isSome(mission.requiredPreviousMissionId)) {
+        let ?prevMissionId = mission.requiredPreviousMissionId;
+        switch (globalUserProgress.get(userUUID)) {
+          case (?userMissions) {
+            switch (userMissions.get(prevMissionId)) {
+              case (?prevProgress) {
+                if (Array.size(prevProgress.completionHistory) == 0) {
+                  return false;
+                };
+              };
+              case null {
+                return false;
+              };
+            };
+          };
+          case null {
+            return false;
+          };
+        };
+      };
+
       switch (globalUserProgress.get(userUUID)) {
         case (?userMissions) {
           switch (userMissions.get(missionId)) {
             case (?progress) {
-              // If we have mission details, check based on whether it is recursive.
-              if (Option.isSome(missionOpt)) {
-                let mission : Types.MissionV2 = switch (missionOpt) {
-                  case (?m) m;
-                  case null { Debug.trap("Mission not found") };
-                };
-                if (mission.recursive) {
-                  // For recursive missions, disallow if any completion is after the mission start date.
-                  for (record in Iter.fromArray(progress.completionHistory)) {
-                    if (record.timestamp > mission.startDate) {
-                      return false;
-                    };
-                  };
-                } else {
-                  // For non-recursive missions, disallow if any completion exists.
-                  if (Array.size(progress.completionHistory) > 0) {
+              if (mission.recursive) {
+
+                for (record in Iter.fromArray(progress.completionHistory)) {
+                  if (record.timestamp > mission.startDate) {
                     return false;
                   };
                 };
               } else {
-                // If mission details aren't found, default to non-recursive behavior.
                 if (Array.size(progress.completionHistory) > 0) {
                   return false;
                 };
               };
             };
-            case null {
-              // No progress recorded; the mission is allowed.
-            };
+            case null {};
           };
         };
-        case null {
-          // No missions recorded for the user.
-        };
+        case null {};
       };
+      return true;
     };
     return false;
   };
