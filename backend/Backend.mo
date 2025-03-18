@@ -21,6 +21,10 @@ import Debug "mo:base/Debug";
 
 actor class Backend() {
 
+  private var streakPercentage : TrieMap.TrieMap<Principal, Nat> = TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+  stable var serializedstreakPercentage : [(Principal, Nat)] = [];
+
   private var globalStreakPercentage : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
 
   stable var serializedGlobalStreakPercentage : [(Text, Nat)] = [];
@@ -29,19 +33,190 @@ actor class Backend() {
 
   stable var serializedGlobalStreak : [(Text, Nat)] = [];
 
+  private var streak : TrieMap.TrieMap<Principal, Nat> = TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+  stable var serializedstreak : [(Principal, Nat)] = [];
+
   private var globalUserStreak : TrieMap.TrieMap<Text, Types.UserStreak> = TrieMap.TrieMap<Text, Types.UserStreak>(Text.equal, Text.hash);
 
   stable var serializedGlobalUserStreak : [(Text, Types.SerializedUserStreak)] = [];
+
+  private var userStreak : TrieMap.TrieMap<Principal, Types.UserStreak> = TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
+
+  stable var serializedUserStreak : [(Principal, Types.SerializedUserStreak)] = [];
 
   private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
   stable var serializedGlobalUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
 
-  private var globalTerms : TrieMap.TrieMap<Text, Bool> = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+  private var userProgress : TrieMap.TrieMap<Principal, Types.UserMissions> = TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
+
+  stable var serializedUserProgress : [(Principal, [(Nat, Types.SerializedProgress)])] = [];
+
+  private var globalTerms : TrieMap.TrieMap<Text, Bool> = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash); // AJA
 
   stable var serializedGlobalTerms : [(Text, Bool)] = [];
 
-  stable var serializedNuanceUsers : [(Principal, Text)] = [];
+  private var terms : TrieMap.TrieMap<Principal, Bool> = TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+
+  stable var serializedTerms : [(Principal, Bool)] = [];
+
+  public shared (msg) func migrateStreak() : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can migrate data.";
+    };
+
+    var count : Nat = 0;
+
+    // Helper function: Given a Principal, search the stable array for its UUID.
+    func findUUIDForPrincipal(pr : Principal) : Text {
+      var found : Text = "";
+      // Iterate over the stable array of (Principal, Text) tuples.
+      for (tuple in Iter.fromArray(principalsWithTheirUUIDs)) {
+        if (tuple.0 == pr) {
+          found := tuple.1;
+        };
+      };
+      return found;
+    };
+
+    // Iterate over all keys (Principals) in the old streak map.
+    let keysArray = streak.keys();
+    for (pr in keysArray) {
+      switch (streak.get(pr)) {
+        case null {
+          // No streak value for this principal; do nothing.
+        };
+        case (?streakValue) {
+          let uuid = findUUIDForPrincipal(pr);
+          // Migrate only if a valid UUID was found.
+          if (uuid != "") {
+            globalStreak.put(uuid, streakValue);
+            count += 1;
+          };
+        };
+      };
+    };
+
+    return "Migrated " # Nat.toText(count) # " streak entries.";
+  };
+
+  public shared (msg) func migrateUserStreak() : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can migrate data.";
+    };
+
+    var count : Nat = 0;
+
+    // Helper function to find a UUID for a given principal.
+    func findUUIDForPrincipal(pr : Principal) : Text {
+      var found : Text = "";
+      // Iterate over the stable array of (Principal, Text) tuples.
+      for (tuple in Iter.fromArray(principalsWithTheirUUIDs)) {
+        if (tuple.0 == pr) {
+          found := tuple.1;
+        };
+      };
+      return found;
+    };
+
+    // Iterate over all principals in the old userStreak map.
+    let keysArray = userStreak.keys();
+    for (pr in keysArray) {
+      switch (userStreak.get(pr)) {
+        case null {
+          // If no streak data is present, do nothing.
+        };
+        case (?streakData) {
+          let uuid = findUUIDForPrincipal(pr);
+          // Migrate only if a valid UUID was found.
+          if (uuid != "") {
+            globalUserStreak.put(uuid, streakData);
+            count += 1;
+          };
+        };
+      };
+    };
+
+    return "Migrated " # Nat.toText(count) # " user streak entries.";
+  };
+
+  public shared (msg) func migrateUserProgress() : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can migrate data.";
+    };
+
+    var count : Nat = 0;
+
+    // Helper function: Given a Principal, search the stable array for its UUID.
+    func findUUIDForPrincipal(pr : Principal) : Text {
+      var found : Text = "";
+      for (tuple in Iter.fromArray(principalsWithTheirUUIDs)) {
+        if (tuple.0 == pr) {
+          found := tuple.1;
+        };
+      };
+      return found;
+    };
+
+    // Iterate over all principals in the userProgress map.
+    let keysArray = userProgress.keys();
+    for (pr in keysArray) {
+      switch (userProgress.get(pr)) {
+        case null {
+          // No progress data for this principal; do nothing.
+        };
+        case (?progressData) {
+          let uuid = findUUIDForPrincipal(pr);
+          // Migrate only if a valid UUID was found.
+          if (uuid != "") {
+            globalUserProgress.put(uuid, progressData);
+            count += 1;
+          };
+        };
+      };
+    };
+
+    return "Migrated " # Nat.toText(count) # " user progress entries.";
+  };
+
+  public shared (msg) func migrateTerms() : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can migrate data.";
+    };
+
+    var count : Nat = 0;
+
+    // Helper function to find a UUID for a given principal.
+    func findUUIDForPrincipal(pr : Principal) : Text {
+      var found : Text = "";
+      for (tuple in Iter.fromArray(principalsWithTheirUUIDs)) {
+        if (tuple.0 == pr) {
+          found := tuple.1;
+        };
+      };
+      return found;
+    };
+
+    // Iterate over all principals in the terms map.
+    let keysArray = terms.keys();
+    for (pr in keysArray) {
+      switch (terms.get(pr)) {
+        case null {
+          // If no value is stored for this principal, do nothing.
+        };
+        case (?boolValue) {
+          let uuid = findUUIDForPrincipal(pr);
+          if (uuid != "") {
+            globalTerms.put(uuid, boolValue);
+            count += 1;
+          };
+        };
+      };
+    };
+
+    return "Migrated " # Nat.toText(count) # " terms entries.";
+  };
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
 
@@ -237,8 +412,6 @@ actor class Backend() {
 
   // Restore Function
 
-  //REMAKE FIX
-
   public shared (msg) func restoreAllUserProgress(serializedData : [(Text, [(Nat, Types.SerializedProgress)])]) : async () {
     if (isAdmin(msg.caller)) {
       // Iterate over each user data tuple
@@ -297,6 +470,73 @@ actor class Backend() {
 
   system func preupgrade() {
     // Serialize user progress
+    let entries = userProgress.entries();
+
+    var serializedUserProgressVec = Vector.new<(Principal, [(Nat, Types.SerializedProgress)])>();
+
+    for (entry in entries) {
+      let (userId, userMissions) = entry;
+      let missionEntries = userMissions.entries();
+
+      var serializedMissionEntries = Vector.new<(Nat, Types.SerializedProgress)>();
+
+      for (missionEntry in missionEntries) {
+        let (missionId, progress) = missionEntry;
+
+        let serializedProgress = {
+          completionHistory = Array.map<Types.MissionRecord, Types.SerializedMissionRecord>(
+            progress.completionHistory,
+            func(record : Types.MissionRecord) : Types.SerializedMissionRecord {
+              {
+                timestamp = record.timestamp;
+                pointsEarned = record.pointsEarned;
+                tweetId = record.tweetId;
+              };
+            },
+          );
+          usedCodes = Iter.toArray(progress.usedCodes.entries());
+        };
+
+        Vector.add<(Nat, Types.SerializedProgress)>(serializedMissionEntries, (missionId, serializedProgress));
+      };
+      Vector.add<(Principal, [(Nat, Types.SerializedProgress)])>(serializedUserProgressVec, (userId, Vector.toArray(serializedMissionEntries)));
+
+    };
+    serializedUserProgress := Vector.toArray(serializedUserProgressVec);
+
+    let termsEntries = terms.entries();
+    serializedTerms := Iter.toArray(termsEntries);
+
+    let streakEntries = streak.entries();
+    serializedstreak := Iter.toArray(streakEntries);
+
+    let serializedUserStreakVec = Vector.new<(Principal, Types.SerializedUserStreak)>();
+
+    let entriesUS = userStreak.entries();
+    for (entryUS in entriesUS) {
+      let (principal, streakMap) = entryUS;
+
+      // Retrieve all entries from the inner UserStreak TrieMap<Int, Nat>
+      let streakEntries = streakMap.entries();
+
+      // Create a Vector to accumulate serialized (Int, Nat) tuples
+      let serializedStreakEntries = Vector.new<(Int, Nat)>();
+
+      // Iterate over each (Int, Nat) pair in the UserStreak
+      for (streakEntry in streakEntries) {
+        let (streakId, streakValue) = streakEntry;
+
+        // Add the (Int, Nat) tuple to the serializedStreakEntries Vector
+        Vector.add<(Int, Nat)>(serializedStreakEntries, (streakId, streakValue));
+      };
+
+      // Convert the Vector to an Array and add the (Principal, SerializedUserStreak) tuple to serializedUserStreakVec
+      Vector.add<(Principal, Types.SerializedUserStreak)>(serializedUserStreakVec, (principal, Vector.toArray(serializedStreakEntries)));
+    };
+
+    serializedUserStreak := Vector.toArray(serializedUserStreakVec);
+
+    // eaeaeaea
 
     let globalUserProgressEntries = globalUserProgress.entries();
     serializedGlobalUserProgress := Array.map<(Text, Types.UserMissions), (Text, [(Nat, Types.SerializedProgress)])>(
@@ -320,6 +560,9 @@ actor class Backend() {
 
     let globalTermsEntries = globalTerms.entries();
     serializedGlobalTerms := Iter.toArray(globalTermsEntries);
+
+    let streakPEntries = streakPercentage.entries();
+    serializedstreakPercentage := Iter.toArray(streakPEntries);
 
     let globalStreakPEntries = globalStreakPercentage.entries();
     serializedGlobalStreakPercentage := Iter.toArray(globalStreakPEntries);
@@ -349,18 +592,20 @@ actor class Backend() {
 
   system func postupgrade() {
 
-    globalUserProgress := TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
+    // Iterate over the serialized user progress data
+    for (tuple in Iter.fromArray(serializedUserProgress)) {
 
-    for (tuple in Iter.fromArray(serializedGlobalUserProgress)) {
-      let text = tuple.0;
-      let serializedMissions = tuple.1;
+      let userId = tuple.0;
+      let serializedUserMissions = tuple.1;
 
       let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
 
-      for (missionTuple in Iter.fromArray(serializedMissions)) {
-        let missionId = missionTuple.0;
-        let serializedProgress = missionTuple.1;
+      // Iterate over each serialized mission progress for the current user
+      for (missionTuple in Iter.fromArray(serializedUserMissions)) {
+        let missionId = missionTuple.0; // Destructure the first element (Nat)
+        let serializedProgress = missionTuple.1; // Destructure the second element (SerializedProgress)
 
+        // Deserialize completionHistory
         let completionHistory = Array.map<Types.SerializedMissionRecord, Types.MissionRecord>(
           serializedProgress.completionHistory,
           func(record : Types.SerializedMissionRecord) : Types.MissionRecord {
@@ -372,26 +617,29 @@ actor class Backend() {
           },
         );
 
+        // Create an empty TrieMap for usedCodes
         let usedCodes = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
 
+        // Deserialize the usedCodes
         for (codeTuple in Iter.fromArray(serializedProgress.usedCodes)) {
-          let code = codeTuple.0;
-          let value = codeTuple.1;
+          let code = codeTuple.0; // First element (Text)
+          let value = codeTuple.1; // Second element (Bool)
           usedCodes.put(code, value);
         };
 
+        // Now construct the full Progress object after deserializing both completionHistory and usedCodes
         let progress : Types.Progress = {
           var completionHistory = completionHistory;
           var usedCodes = usedCodes;
         };
 
+        // Put the deserialized progress into the userMissions TrieMap
         userMissions.put(missionId, progress);
       };
 
-      globalUserProgress.put(text, userMissions);
+      // Put the deserialized userMissions into the main userProgress TrieMap
+      userProgress.put(userId, userMissions);
     };
-
-    serializedGlobalUserProgress := [];
 
     // Deserialize the mission assets
     missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
@@ -400,10 +648,52 @@ actor class Backend() {
       let (missionId, asset) = assetEntry;
       missionAssets.put(missionId, asset);
     };
-
+    serializedUserProgress := [];
     serializedMissionAssets := [];
 
     // Terms
+
+    terms := TrieMap.TrieMap<Principal, Bool>(Principal.equal, Principal.hash);
+
+    for ((principal, boolValue) in Iter.fromArray(serializedTerms)) {
+      terms.put(principal, boolValue);
+    };
+
+    serializedTerms := [];
+
+    streak := TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+    for ((principal, natValue) in Iter.fromArray(serializedstreak)) {
+      streak.put(principal, natValue);
+    };
+
+    serializedstreak := [];
+
+    userStreak := TrieMap.TrieMap<Principal, Types.UserStreak>(Principal.equal, Principal.hash);
+
+    for (tuple in Iter.fromArray(serializedUserStreak)) {
+      let principal = tuple.0;
+      let serializedStreak = tuple.1;
+
+      // Initialize a new TrieMap for the UserStreak of the current Principal
+      let streakMap = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+
+      // Iterate over each (Int, Nat) tuple in SerializedUserStreak
+      for (streakTuple in Iter.fromArray(serializedStreak)) {
+        let streakId = streakTuple.0;
+        let streakValue = streakTuple.1;
+
+        // Deserialize and insert into streakMap
+        streakMap.put(streakId, streakValue);
+      };
+
+      // Insert the deserialized streakMap into userStreak TrieMap
+      userStreak.put(principal, streakMap);
+    };
+
+    serializedUserStreak := [];
+
+    //eaeaeaeaea
 
     globalTerms := TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
 
@@ -417,6 +707,14 @@ actor class Backend() {
 
     for ((text, natValue) in Iter.fromArray(serializedGlobalStreakPercentage)) {
       globalStreakPercentage.put(text, natValue);
+    };
+
+    serializedstreakPercentage := [];
+
+    streakPercentage := TrieMap.TrieMap<Principal, Nat>(Principal.equal, Principal.hash);
+
+    for ((text, natValue) in Iter.fromArray(serializedstreakPercentage)) {
+      streakPercentage.put(text, natValue);
     };
 
     serializedGlobalStreakPercentage := [];
@@ -455,10 +753,8 @@ actor class Backend() {
 
   };
 
-  stable var streakTime = 15; // Streak reset timer in MINUTES
+  stable var streakTime = 1440; // Streak reset timer in MINUTES
   stable var streakTimeNanos = streakTime * 60 * 1_000_000_000;
-
-  // Function to get the streak time
 
   public shared query (msg) func getStreakTime() : async Nat {
     if (isAdmin(msg.caller) or (not Principal.isAnonymous(msg.caller))) {
@@ -467,8 +763,6 @@ actor class Backend() {
     return 0;
   };
 
-  // Function to set the streak time
-
   public shared (msg) func setStreakTime(newNum : Nat) : async () {
     if (isAdmin(msg.caller)) {
       streakTime := newNum;
@@ -476,26 +770,15 @@ actor class Backend() {
     };
   };
 
-  // Function to get the streak of an user
-
-  public shared composite query (msg) func getUserStreakAmount(userId : Principal) : async Nat {
+  public shared query (msg) func getUserStreakAmount(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getUUID : query (Principal) -> async Text;
-      };
-
-      let userUUID = await index.getUUID(userId);
-
-      switch (globalStreak.get(userUUID)) {
+      switch (streak.get(userId)) {
         case (?value) return value;
         case null return 0;
       };
     };
     return 0;
   };
-
-  // Function to get the streak percentage of a user
 
   public shared composite query (msg) func getUserStreakPercentage(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
@@ -514,22 +797,13 @@ actor class Backend() {
     return 0;
   };
 
-  // Function to get all streaks for an user
-
-  public shared composite query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
+  public shared query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getUUID : query (Principal) -> async Text;
-      };
-
-      let userUUID = await index.getUUID(userId);
-
-      let entriesUS = globalUserStreak.entries();
+      let entriesUS = userStreak.entries();
       for (entryUS in entriesUS) {
         let principal = entryUS.0;
         let totalStreak = entryUS.1;
-        if (principal == userUUID) {
+        if (principal == userId) {
           let serializedStreakEntries = Vector.new<(Int, Nat)>();
           let streakEntries = totalStreak.entries();
           for (streakEntry in streakEntries) {
@@ -546,68 +820,24 @@ actor class Backend() {
     return Vector.toArray(default);
   };
 
-  // Function to get all users streak
-
-  public shared query (msg) func getAllUsersStreak() : async [(Text, [(Int, Nat)])] {
-    // Only admin can fetch all streaks:
-    if (isAdmin(msg.caller)) {
-      let entries = globalUserStreak.entries();
-      var result : [(Text, [(Int, Nat)])] = [];
-
-      // For each user in userStreak:
-      for (entry in entries) {
-        let principal = entry.0;
-        let userStreakMap = entry.1;
-
-        // Convert sub-entries (timestamp -> streakValue) to an array of (Int, Nat)
-        let subEntries = userStreakMap.entries();
-        var subResult : [(Int, Nat)] = [];
-
-        for (subEntry in subEntries) {
-          let timestamp = subEntry.0;
-          let streakValue = subEntry.1;
-          // Append to subResult
-          subResult := Array.append(subResult, [(timestamp, streakValue)]);
-        };
-
-        // Append this user's (Principal, arrayOfStreaks) to result
-        result := Array.append(result, [(principal, subResult)]);
-      };
-
-      return result;
-    };
-
-    // If not admin, return empty list
-    return [];
-  };
-
-  // Function to get the last streak time of a user
-
-  public shared composite query (msg) func getUserStreakTime(userId : Principal) : async Int {
+  public shared query (msg) func getUserStreakTime(userId : Principal) : async Int {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
-
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getUUID : query (Principal) -> async Text;
-      };
-
-      let userUUID = await index.getUUID(userId);
-
       var hasStarted = false;
 
       var lastTimestamp : Int = 0;
-      let mainEntries = globalStreak.entries();
+      let mainEntries = streak.entries();
 
       for (mainEntry in mainEntries) {
         // Iter if user did start Streak
         let mainUserId = mainEntry.0;
-        if (userUUID == mainUserId) {
+        if (userId == mainUserId) {
           // The user did start
           hasStarted := true;
-          let entries = globalUserStreak.entries();
+          let entries = userStreak.entries();
           for (entry in entries) {
             let theUserId = entry.0;
             let theUserStreak = entry.1;
-            if (theUserId == userUUID) {
+            if (theUserId == userId) {
               let subEntries = theUserStreak.entries();
               for (subEntry in subEntries) {
                 let timestampU = subEntry.0;
@@ -630,6 +860,8 @@ actor class Backend() {
     };
     return 0;
   };
+
+  stable var principalsWithTheirUUIDs : [(Principal, Text)] = [];
 
   public shared (msg) func claimStreak(userId : Principal) : async (Text, Nat) {
 
@@ -763,15 +995,6 @@ actor class Backend() {
     };
   };
 
-  // Function to login as an admin
-
-  public shared query (msg) func loginAdmin() : async Bool {
-    if (isAdmin(msg.caller)) {
-      return true;
-    };
-    return false;
-  };
-
   // Function to check if the principal is an admin
 
   private func isAdmin(principalId : Principal) : Bool {
@@ -800,13 +1023,6 @@ actor class Backend() {
   public shared query (msg) func getAdminIds() : async [Principal] {
     if (isAdmin(msg.caller)) {
       return adminIds;
-    };
-    return [];
-  };
-
-  public shared query (msg) func getNuanceIds() : async [(Principal, Text)] {
-    if (isAdmin(msg.caller)) {
-      return serializedNuanceUsers;
     };
     return [];
   };
@@ -850,8 +1066,6 @@ actor class Backend() {
     };
   };
 
-  // Function to get the progress of a specific mission for a user
-
   public shared composite query (msg) func getProgress(userId : Principal, missionId : Nat) : async ?Types.SerializedProgress {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
@@ -876,7 +1090,7 @@ actor class Backend() {
     return null;
   };
 
-  // Function to get the progress of all missions for a user
+  // Function to add points to the total points of a user
 
   public shared composite query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
@@ -1019,8 +1233,6 @@ actor class Backend() {
 
     return false;
   };
-
-  // Function to check if a user can do a mission
 
   public shared query (msg) func canUserDoMission(userUUID : Text, missionId : Nat) : async Bool {
     if (isAdmin(msg.caller)) {
@@ -1265,16 +1477,6 @@ actor class Backend() {
     return null;
   };
 
-  // Function to reset all missions
-
-  public shared (msg) func resetMissions() : async () {
-    if (isAdmin(msg.caller)) {
-      Vector.clear(missionsV2); // Clear all missions
-      missionAssets := TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash); // Clear all images in missionAssets
-    };
-    return;
-  };
-
   // Function to count the number of users who have completed a specific mission
 
   public shared query (msg) func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
@@ -1301,14 +1503,6 @@ actor class Backend() {
     };
     return 0;
   };
-
-  //
-
-  // Progress Management
-
-  //
-
-  // First Mission Completion
 
   public shared (msg) func completeMainMission(userUUID : Text) : async () {
 
@@ -1347,6 +1541,16 @@ actor class Backend() {
       globalUserProgress.put(userUUID, missions);
     };
   };
+
+  //
+
+  // User Management
+
+  //
+
+  // Register an user by Principal
+
+  // Function to get all registered users
 
   // Function to get All Users Progress
 
@@ -1397,8 +1601,6 @@ actor class Backend() {
     return { data = []; total = 0 };
   };
 
-  // Function to set the Mission PFP Progress
-
   public shared (msg) func setPFPProgress(userId : Principal) : async Text {
 
     if (isAdmin(msg.caller)) {
@@ -1413,6 +1615,10 @@ actor class Backend() {
     };
     return "";
   };
+
+  // Function to check if a Twitter Id is already used
+
+  // Function to set the MIssion PFP Progress as Loading
 
   // Function to add Twitter information to a user
 
@@ -1671,16 +1877,14 @@ actor class Backend() {
 
   public shared (msg) func resetall() : async () {
     if (isAdmin(msg.caller)) {
-      globalUserProgress := TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
+      userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
       return;
     };
   };
 
-  // Function to reset a specific Mission Progress for an user
-
   public shared (msg) func resetallProgress() : async () {
     if (isAdmin(msg.caller)) {
-      globalUserProgress := TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
+      userProgress := TrieMap.TrieMap<Principal, Types.UserMissions>(Principal.equal, Principal.hash);
       return;
     };
   };
@@ -1795,50 +1999,42 @@ actor class Backend() {
 
       let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
         getUUID : query (Principal) -> async Text;
+        getNuanceIDByUUID : query (Text) -> async Text;
+        addNuanceHandleToUserByUUID : (Text, Text) -> async ();
       };
 
       let userUUID = await index.getUUID(userId);
+      let nuanceIDOpt = await index.getNuanceIDByUUID(userUUID);
 
-      var exists = false;
-
-      for (tuple in Iter.fromArray(serializedNuanceUsers)) {
-        let userNuance = tuple.1;
-        if (userNuance == username) {
-          exists := true;
-          return false;
-        };
+      if (nuanceIDOpt != "") {
+        return false;
       };
 
-      if (not exists) {
-        let mission = await getMissionById(11);
-        switch mission {
-          case (?mission) {
-            let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
-            let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
-            let newRecord : Types.SerializedMissionRecord = {
-              timestamp = Time.now();
-              pointsEarned = pointsEarnedNat;
-              tweetId = null;
-            };
-
-            let nuanceProgress : Types.SerializedProgress = {
-              completionHistory = [newRecord];
-              usedCodes = [(username, true)];
-            };
-
-            await updateUserProgress(userUUID, 11, nuanceProgress);
-            serializedNuanceUsers := Array.append<(Principal, Text)>(serializedNuanceUsers, [(userId, username)]);
-            return true;
+      let mission = await getMissionById(11);
+      switch mission {
+        case (?mission) {
+          let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
+          let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
+          let newRecord : Types.SerializedMissionRecord = {
+            timestamp = Time.now();
+            pointsEarned = pointsEarnedNat;
+            tweetId = null;
           };
-          case null return false;
+
+          let nuanceProgress : Types.SerializedProgress = {
+            completionHistory = [newRecord];
+            usedCodes = [(username, true)];
+          };
+
+          await updateUserProgress(userUUID, 11, nuanceProgress);
+          await index.addNuanceHandleToUserByUUID(userUUID, username);
+          return true;
         };
+        case null return false;
       };
+
     };
     return false;
-  };
-
-  public shared (msg) func whoami() : async Text {
-    return Principal.toText(msg.caller);
   };
 
 };
