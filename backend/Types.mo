@@ -96,7 +96,7 @@ module Types {
     var subAccount : ?[Int8];
     var subMissions : ?Vector.Vector<MissionV2>;
     var maxUsers : ?Nat;
-    var usersThatCompleted : ?[(Principal, Int)];
+    var usersThatCompleted : ?[(Text, Int)];
     var status : Text;
     creationTime : Int;
   };
@@ -124,7 +124,7 @@ module Types {
     subAccount : ?[Int8];
     subMissions : ?[SerializedMissionV2];
     maxUsers : ?Nat;
-    usersThatCompleted : ?[(Principal, Int)];
+    usersThatCompleted : ?[(Text, Int)];
     status : Text;
     creationTime : Int;
   };
@@ -152,7 +152,7 @@ module Types {
     usedCodes : [(Text, Bool)];
   };
 
-  public type UserMissions = TrieMap.TrieMap<Nat, Progress>;
+  public type UserMissions = TrieMap.TrieMap<Nat, Types.Progress>;
 
   public type UserStreak = TrieMap.TrieMap<Int, Nat>;
 

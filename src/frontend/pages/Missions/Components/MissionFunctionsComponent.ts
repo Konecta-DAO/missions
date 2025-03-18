@@ -582,34 +582,6 @@ const MissionFunctionsComponent = {
 
     },
 
-    ocMission: async (globalID: any, navigate: any, _fetchData: any, setLoading: any, closeModal: any, _missionid: any, _input: any, _setPlacestate: any, _disconnect: any) => {
-
-        const actor = Actor.createActor(idlFactory, {
-            agent: globalID.agent,
-            canisterId,
-        })
-        const b = await actor.isOc(globalID.principalId);
-
-        alert(b);
-        if (b === "Success") {
-            Usergeek.trackEvent("Mission 7 Part 4: CHIT");
-            const c = await actor.getProgress(globalID.principalId, 7n) as SerializedProgress;
-
-            if (Array.isArray(c) && c.length > 0) {
-                const firstProgress = c[0];
-                const pointsEarnedStr = firstProgress.completionHistory[0].pointsEarned;
-                const pointsEarned = Number(pointsEarnedStr);
-                //   await globalID.setocS(convertSecondsToHMS(pointsEarned));
-
-            }
-            setLoading(false);
-            navigate('/');
-            closeModal();
-        } else {
-            setLoading(false);
-        }
-    },
-
     nuanceMission: async (globalID: any, navigate: any, fetchData: any, setLoading: any, closeModal: any, _missionid: any, input: any, setPlacestate: any, disconnect: any) => {
 
         const principal = globalID.principalId;

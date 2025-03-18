@@ -1254,6 +1254,27 @@ actor class Backend() {
     return "false";
   };
 
+  public shared (msg) func addNuanceHandleToUserByUUID(uuid : Text, nuanceHandle : Text) : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "Unauthorized: Only admin can update users.";
+    };
+
+    switch (uuidToUser.get(uuid)) {
+      case null {
+        return "User not found.";
+      };
+      case (?globalUser) {
+        if (globalUser.nuanceUser == null) {
+          globalUser.nuanceUser := ?nuanceHandle;
+          uuidToUser.put(uuid, globalUser);
+          return "Nuance handle added successfully.";
+        } else {
+          return "User already has a nuance handle.";
+        };
+      };
+    };
+  };
+
   public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
     if (isAdmin(msg.caller)) {
       let uuid = getUserUUID(principalId);
