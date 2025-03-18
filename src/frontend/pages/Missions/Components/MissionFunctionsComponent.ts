@@ -6,7 +6,6 @@ import { idlFactory as idlFactoryOisy } from '../../../../declarations/oisy_back
 import { idlFactory as idlFactoryMP } from '../../../../declarations/mushroom_backend/index.js';
 import { idlFactory as idlFactoryDiggy } from '../../../../declarations/diggy_backend/index.js';
 import { Usergeek } from "usergeek-ic-js";
-import { SerializedProgress } from "../../../../declarations/backend/backend.did.js";
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../declarations/index/index.did.js';
 import { idlFactory as idlFactoryDefault } from '../../../../declarations/dfinity_backend/index.js';
 import { Principal } from "@dfinity/principal";
@@ -38,6 +37,9 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
@@ -174,6 +176,9 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
@@ -267,6 +272,9 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
@@ -361,6 +369,9 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
@@ -451,6 +462,9 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
@@ -669,6 +683,9 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                 if (event.origin !== "https://do.konecta.one") return;
 
                 const { accessToken, refreshToken, result } = event.data;
@@ -742,6 +759,9 @@ const MissionFunctionsComponent = {
                 let authSuccess = false;
     
                 const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                     if (event.origin !== "https://do.konecta.one") return;
     
                     const { accessToken, refreshToken, result } = event.data;
@@ -916,6 +936,9 @@ const MissionFunctionsComponent = {
                 let authSuccess = false;
     
                 const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
+
                     if (event.origin !== "https://do.konecta.one") return;
     
                     const { accessToken, refreshToken, result } = event.data;
@@ -1269,6 +1292,8 @@ const MissionFunctionsComponent = {
             let authSuccess = false;
 
             const handleEvent = (event: MessageEvent<any>) => {
+
+                if (authSuccess) return;
 
                 if (event.origin !== "https://do.konecta.one") return;
 

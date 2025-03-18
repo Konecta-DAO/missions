@@ -607,23 +607,11 @@ actor class Backend() {
   public shared query (msg) func countUsersWhoCompletedMission(missionId : Nat) : async Nat {
     if (isAdmin(msg.caller)) {
       var count : Nat = 0;
-
-      // Iterate through all users in globalUserProgress
-      for ((userId, userMissions) in globalUserProgress.entries()) {
-        // Check if the user has progress for the specific mission
-        switch (userMissions.get(missionId)) {
-          case (?progress) {
-            // If there is a completion history, check if the user has completed the mission at least once
-            if (Array.size(progress.completionHistory) > 0) {
-              count += 1;
-            };
-          };
-          case null {
-            return 0;
-          };
+      for ((_, userMissions) in globalUserProgress.entries()) {
+        if (Option.isSome(userMissions.get(missionId))) {
+          count += 1;
         };
       };
-
       return count;
     };
     return 0;
