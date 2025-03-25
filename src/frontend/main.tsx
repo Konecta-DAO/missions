@@ -16,8 +16,6 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory } from '../declarations/index/index.js';
 import { SerializedProjectMissions } from '../declarations/index/index.did.js';
 
-const frontId = process.env.CANISTER_ID_FRONTEND
-
 const fetchTargets = async (): Promise<string[]> => {
 
   const agent = HttpAgent.createSync();
@@ -42,7 +40,7 @@ const fetchTargets = async (): Promise<string[]> => {
     <React.StrictMode>
       <GlobalProvider>
         <BrowserRouter>
-          <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://y7mum-taaaa-aaaag-qklxq-cai.icp0.io/", targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+          <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://pre.konecta.one/", targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
             <UsergeekProvider>
               <RadialBackground>
                 <Routes>

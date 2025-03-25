@@ -1691,16 +1691,14 @@ actor class Backend() {
     return false;
   };
 
-  public shared (msg) func userFollowsNuance(userId : Principal, username : Text) : async Bool {
+  public shared (msg) func userFollowsNuance(userUUID : Text, username : Text) : async Bool {
     if (isAdmin(msg.caller)) {
 
       let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getUUID : query (Principal) -> async Text;
         getNuanceIDByUUID : query (Text) -> async Text;
         addNuanceHandleToUserByUUID : (Text, Text) -> async ();
       };
 
-      let userUUID = await index.getUUID(userId);
       let nuanceIDOpt = await index.getNuanceIDByUUID(userUUID);
 
       if (nuanceIDOpt != "") {

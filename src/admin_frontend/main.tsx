@@ -10,12 +10,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import RadialBackground from '../components/RadialBackground/RadialBackground.tsx';
 
-const origin = process.env.CANISTER_ID_ADMIN_FRONTEND;
-
-const fullOrigin = "https://" + origin + ".icp0.io/";
-
-console.log(fullOrigin);
-
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
   <GlobalProvider>

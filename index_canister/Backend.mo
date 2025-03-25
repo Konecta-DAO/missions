@@ -1275,12 +1275,30 @@ actor class Backend() {
     };
   };
 
-  public shared (msg) func addTwitterInfo(principalId : Principal, twitterId : Nat, twitterHandle : Text) : async () {
-    if (isAdmin(msg.caller)) {
-      let uuid = getUserUUID(principalId);
-      if (uuid == "") {
-        return;
+  public shared query (msg) func getNuanceIDByUUID(uuid : Text) : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "";
+    };
+
+    switch (uuidToUser.get(uuid)) {
+      case (null) {
+        return "";
       };
+      case (?globalUser) {
+        switch (globalUser.nuanceUser) {
+          case (null) {
+            return "";
+          };
+          case (?nuanceID) {
+            return nuanceID;
+          };
+        };
+      };
+    };
+  };
+
+  public shared (msg) func addTwitterInfo(uuid : Text, twitterId : Nat, twitterHandle : Text) : async () {
+    if (isAdmin(msg.caller)) {
       switch (uuidToUser.get(uuid)) {
         case (?user) {
 
