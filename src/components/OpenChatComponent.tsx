@@ -9,6 +9,8 @@ import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../dec
 import { useIdentityKit } from '@nfid/identitykit/react';
 import { useNavigate } from 'react-router-dom';
 import { idlFactory as idlFactoryDefault } from '../declarations/dfinity_backend/index.js';
+import { IndexCanisterId } from '../frontend/main.tsx';
+import { toast } from 'react-hot-toast';
 
 const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
@@ -125,15 +127,16 @@ const OpenChat: React.FC = () => {
 
                                 const actorIndex = Actor.createActor(idlFactoryIndex, {
                                     agent: globalID.agent,
-                                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                                    canisterId: IndexCanisterId,
                                 });
 
                                 const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
                                 const targets: string[] = projects.map(project => project.canisterId.toText());
 
                                 if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
+                                    toast('A new project has been added to Konecta! Refreshing the page...', { icon: '👀' });
                                     disconnect();
-                                    navigate('/konnect');
+                                    window.location.href = '/konnect';
                                 } else {
                                     const mappedProjects: ProjectData[] = projects.map((project) => ({
                                         id: project.canisterId.toText(),

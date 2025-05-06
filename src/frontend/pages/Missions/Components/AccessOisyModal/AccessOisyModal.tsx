@@ -7,6 +7,8 @@ import { Principal } from '@dfinity/principal';
 import { Actor } from '@dfinity/agent';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { idlFactory } from '../../../../../declarations/index/index.did.js';
+import { IndexCanisterId } from '../../../../main.tsx';
+import { toast } from 'react-hot-toast';
 
 interface AccessOisyModalProps {
     closeModal: () => void;
@@ -76,7 +78,7 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
 
             const { allPermissionsGranted } = await connectedWallet.requestPermissionsNotGranted();
             if (!allPermissionsGranted) {
-                alert('All permissions are required to continue.');
+                toast.error('Permissions not granted.');
                 return;
             }
 
@@ -87,20 +89,25 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
                     const walletPrincipal = Principal.fromText(ownerId);
                     const actorIndex = Actor.createActor(idlFactory, {
                         agent: globalID.agent!,
-                        canisterId: "tui2b-giaaa-aaaag-qnbpq-cai",
+                        canisterId: IndexCanisterId,
                     });
                     const response = await actorIndex.linkOisyAccount(globalID.principalId, walletPrincipal) as string;
                     fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
-                    alert(response);
+                    if (response === "Oisy account linked successfully.") {
+                        toast.success(response);
+                    } else{
+                        toast.error(response);
+                    }
                 }
             }
 
         } catch (error) {
             console.error('Error connecting wallet:', error);
-            alert('Failed to connect wallet. Please try again.');
+            toast.error('Failed to connect wallet. Please try again.');
         } finally {
             setIsLoadingWallet(false);
             disableAllButtons(false);
+            closeModal();
         }
     };
 

@@ -1,5 +1,7 @@
+import { doAddress } from "../frontend/pages/Missions/Components/MissionFunctionsComponent.ts";
+
 const getTWtoRT = async (): Promise<string> => {
-    const response = await fetch("https://do.konecta.one/getRToday", {
+    const response = await fetch(`https://${doAddress}/getRToday`, {
         method: "GET",
         credentials: "include",
     });

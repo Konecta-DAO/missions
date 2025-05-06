@@ -5,6 +5,7 @@ import { useIdentityKit, ConnectWallet } from "@nfid/identitykit/react";
 import { Principal } from '@dfinity/principal';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { canisterId, idlFactory } from '../declarations/backend/index.js';
+import { idlFactory as idlFactoryIndex } from '../declarations/index/index.js';
 import { SerializedProgress } from '../declarations/backend/backend.did.js';
 import { SerializedGlobalUser } from '../declarations/index/index.did.js';
 
@@ -97,7 +98,14 @@ function App() {
   }
 
   const getUsers = async () => {
-    const a = await actor.getUsers();
+
+    const agent = HttpAgent.createSync({ identity });
+    const actor2 = Actor.createActor(idlFactoryIndex, {
+      agent: agent,
+      canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+    });
+
+    const a = await actor2.getAllUsers();
 
     // Serialize the data to JSON, handling bigint types
     const jsonString: string = JSON.stringify(

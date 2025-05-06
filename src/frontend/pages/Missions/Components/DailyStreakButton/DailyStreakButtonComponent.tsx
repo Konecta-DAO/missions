@@ -12,6 +12,8 @@ import { useMediaQuery } from 'react-responsive';
 import { Usergeek } from 'usergeek-ic-js';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../../declarations/index/index.did.js';
 import { useNavigate } from 'react-router-dom';
+import { IndexCanisterId } from '../../../../main.tsx';
+import { toast } from 'react-hot-toast';
 
 type DisplayState = 'CLAIM' | 'CLAIM_FINAL' | 'TIMER' | 'REVIVE';
 type JackpotState = 'DEFAULT' | 'WIN' | 'LOSE';
@@ -179,15 +181,16 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
             const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: agent!,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                canisterId: IndexCanisterId,
             });
 
             const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
             const targets: string[] = projects.map(project => project.canisterId.toText());
 
             if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
+                toast('A new project has been added to Konecta! Refreshing the page...', { icon: '👀' });
                 disconnect();
-                navigate('/konnect');
+                window.location.href = '/konnect';
             } else {
 
                 const mappedProjects: ProjectData[] = projects.map((project) => ({

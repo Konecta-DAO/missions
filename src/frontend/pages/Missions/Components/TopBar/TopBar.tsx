@@ -117,7 +117,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
 
     const handleDC = () => {
         disconnect(); // Call disconnect if it's defined
-        navigate('/konnect'); // Navigate to the login page
+        window.location.href = '/konnect';
     };
 
     return (

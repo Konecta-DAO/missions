@@ -22,6 +22,8 @@ import Debug "mo:base/Debug";
 
 actor class Backend() {
 
+  let indexCanisterId : Text = "tui2b-giaaa-aaaag-qnbpq-cai";
+
   private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
   // Stable storage for serialized data
@@ -39,7 +41,7 @@ actor class Backend() {
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
 
-    if (msg.caller == Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai")) {
+    if (msg.caller == Principal.fromText(indexCanisterId)) {
 
       // 4. Merge globalglobalUserProgress (UserMissions = TrieMap<Nat, Progress>)
       var mergedglobalUserProgress : TrieMap.TrieMap<Nat, Types.Progress> = switch (globalUserProgress.get(canonicalUUID)) {
@@ -329,7 +331,7 @@ actor class Backend() {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -352,7 +354,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -453,7 +455,7 @@ actor class Backend() {
   public shared composite query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -522,35 +524,80 @@ actor class Backend() {
 
   public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMissionV2) : async () {
     if (isAdmin(msg.caller)) {
-      // Convert SerializedMission to a mutable Mission
-      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
 
-      // Check if the mission already exists in the vector
+      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
       var missionFound = false;
 
       let size = Vector.size(missionsV2);
       for (i in Iter.range(0, size - 1)) {
-        let existingMissionOpt = Vector.get(missionsV2, i); // This returns ?Mission
-
-        // Properly handle the optional ?Mission value
+        let existingMissionOpt = Vector.get(missionsV2, i);
         switch (existingMissionOpt) {
           case (mission) {
-            // Unwrap the Mission
             if (mission.id == newMission.id) {
-              // Update the existing mission using Vector.put
-              Vector.put(missionsV2, i, newDeserializedMission);
+              let updatedMission : Types.MissionV2 = {
+                var id = newDeserializedMission.id;
+                var title = newDeserializedMission.title;
+                var description = newDeserializedMission.description;
+                var obj1 = newDeserializedMission.obj1;
+                var obj2 = newDeserializedMission.obj2;
+                var inputPlaceholder = newDeserializedMission.inputPlaceholder;
+                var startDate = newDeserializedMission.startDate;
+                var endDate = newDeserializedMission.endDate;
+                var recursive = newDeserializedMission.recursive;
+                var points = newDeserializedMission.points;
+                var functionName1 = newDeserializedMission.functionName1;
+                var functionName2 = newDeserializedMission.functionName2;
+                var image = newDeserializedMission.image;
+                var secretCodes = newDeserializedMission.secretCodes;
+                var mode = newDeserializedMission.mode;
+                var requiredPreviousMissionId = newDeserializedMission.requiredPreviousMissionId;
+                var iconUrl = newDeserializedMission.iconUrl;
+                var token = newDeserializedMission.token;
+                var subAccount = newDeserializedMission.subAccount;
+                var subMissions = newDeserializedMission.subMissions;
+                var maxUsers = newDeserializedMission.maxUsers;
+                var usersThatCompleted = mission.usersThatCompleted; // Keep
+                var status = newDeserializedMission.status;
+                creationTime = mission.creationTime; // Keep
+              };
+              Vector.put(missionsV2, i, updatedMission);
               missionFound := true;
             };
           };
         };
       };
 
-      // If the mission was not found, add a new one
       if (not missionFound) {
-        Vector.add<Types.MissionV2>(missionsV2, newDeserializedMission);
+
+        let missionToAdd : Types.MissionV2 = {
+          var id = newDeserializedMission.id;
+          var title = newDeserializedMission.title;
+          var description = newDeserializedMission.description;
+          var obj1 = newDeserializedMission.obj1;
+          var obj2 = newDeserializedMission.obj2;
+          var inputPlaceholder = newDeserializedMission.inputPlaceholder;
+          var startDate = newDeserializedMission.startDate;
+          var endDate = newDeserializedMission.endDate;
+          var recursive = newDeserializedMission.recursive;
+          var points = newDeserializedMission.points;
+          var functionName1 = newDeserializedMission.functionName1;
+          var functionName2 = newDeserializedMission.functionName2;
+          var image = newDeserializedMission.image;
+          var secretCodes = newDeserializedMission.secretCodes;
+          var mode = newDeserializedMission.mode;
+          var requiredPreviousMissionId = newDeserializedMission.requiredPreviousMissionId;
+          var iconUrl = newDeserializedMission.iconUrl;
+          var token = newDeserializedMission.token;
+          var subAccount = newDeserializedMission.subAccount;
+          var subMissions = newDeserializedMission.subMissions;
+          var maxUsers = newDeserializedMission.maxUsers;
+          var usersThatCompleted = null; // Empty
+          var status = newDeserializedMission.status;
+          creationTime = Time.now(); // New
+        };
+        Vector.add<Types.MissionV2>(missionsV2, missionToAdd);
       };
     };
-
     return;
   };
 
@@ -681,7 +728,7 @@ actor class Backend() {
   public shared (msg) func missionOne(userId : Principal, canisterId : Text) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -718,7 +765,7 @@ actor class Backend() {
   public shared (msg) func missionTwo(userId : Principal, canisterId : Text) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -772,7 +819,7 @@ actor class Backend() {
   public shared (msg) func missionOpenChat(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
         getUserByPrincipal : query (Principal) -> async ?Types.SerializedGlobalUser;
       };

@@ -14,7 +14,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
   <GlobalProvider>
     <BrowserRouter>
-      <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io/", targets: [canisterId, "dcdzc-hiaaa-aaaag-qm74q-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
+      <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://apcy6-tiaaa-aaaag-qkfda-cai.icp0.io/", targets: [canisterId, "tui2b-giaaa-aaaag-qnbpq-cai"] }} authType={IdentityKitAuthType.DELEGATION}>
         <RadialBackground>
           <Routes>
             <Route path="/" element={<App />} />

@@ -21,6 +21,10 @@ import Debug "mo:base/Debug";
 
 actor class Backend() {
 
+  let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+
+  let doAddress : Text = "do.konecta.one";
+
   private var globalStreakPercentage : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
 
   stable var serializedGlobalStreakPercentage : [(Text, Nat)] = [];
@@ -43,7 +47,7 @@ actor class Backend() {
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
 
-    if (msg.caller == Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai")) {
+    if (msg.caller == Principal.fromText(indexCanisterId)) {
 
       // For merging timestamps by day, we use the following constant:
       let nanosecPerDay : Int = 86400 * 1000000000; // 86400 seconds * 1e9 = 86,400,000,000,000 ns
@@ -191,7 +195,7 @@ actor class Backend() {
   public shared composite query (msg) func hasAcceptedTerms(userId : Principal) : async Bool {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -215,7 +219,7 @@ actor class Backend() {
   public shared (msg) func acceptTerms(userId : Principal) : async () {
     if (userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -470,7 +474,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserStreakAmount(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -487,7 +491,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserStreakPercentage(userId : Principal) : async Nat {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -504,7 +508,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserAllStreak(userId : Principal) : async Types.SerializedUserStreak {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -534,7 +538,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserStreakTime(userId : Principal) : async Int {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -583,7 +587,7 @@ actor class Backend() {
 
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -786,7 +790,7 @@ actor class Backend() {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -811,7 +815,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -850,7 +854,7 @@ actor class Backend() {
   public shared (msg) func submitCode(userId : Principal, missionId : Nat, code : Text) : async Bool {
     if (isAdmin(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
-      let indexC = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let indexC = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -1017,7 +1021,7 @@ actor class Backend() {
   public shared composite query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -1127,35 +1131,82 @@ actor class Backend() {
 
   public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMissionV2) : async () {
     if (isAdmin(msg.caller)) {
-      // Convert SerializedMission to a mutable Mission
-      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
 
-      // Check if the mission already exists in the vector
+      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
       var missionFound = false;
 
       let size = Vector.size(missionsV2);
       for (i in Iter.range(0, size - 1)) {
-        let existingMissionOpt = Vector.get(missionsV2, i); // This returns ?Mission
-
-        // Properly handle the optional ?Mission value
+        let existingMissionOpt = Vector.get(missionsV2, i);
         switch (existingMissionOpt) {
           case (mission) {
-            // Unwrap the Mission
             if (mission.id == newMission.id) {
-              // Update the existing mission using Vector.put
-              Vector.put(missionsV2, i, newDeserializedMission);
+              let updatedMission : Types.MissionV2 = {
+                var id = newDeserializedMission.id;
+                var title = newDeserializedMission.title;
+                var description = newDeserializedMission.description;
+                var obj1 = newDeserializedMission.obj1;
+                var obj2 = newDeserializedMission.obj2;
+                var inputPlaceholder = newDeserializedMission.inputPlaceholder;
+                var startDate = newDeserializedMission.startDate;
+                var endDate = newDeserializedMission.endDate;
+                var recursive = newDeserializedMission.recursive;
+                var mintime = newDeserializedMission.mintime;
+                var maxtime = newDeserializedMission.maxtime;
+                var functionName1 = newDeserializedMission.functionName1;
+                var functionName2 = newDeserializedMission.functionName2;
+                var image = newDeserializedMission.image;
+                var secretCodes = newDeserializedMission.secretCodes;
+                var mode = newDeserializedMission.mode;
+                var requiredPreviousMissionId = newDeserializedMission.requiredPreviousMissionId;
+                var iconUrl = newDeserializedMission.iconUrl;
+                var token = newDeserializedMission.token;
+                var subAccount = newDeserializedMission.subAccount;
+                var subMissions = newDeserializedMission.subMissions;
+                var maxUsers = newDeserializedMission.maxUsers;
+                var usersThatCompleted = mission.usersThatCompleted; // Keep
+                var status = newDeserializedMission.status;
+                creationTime = mission.creationTime; // Keep
+              };
+              Vector.put(missionsV2, i, updatedMission);
               missionFound := true;
             };
           };
         };
       };
 
-      // If the mission was not found, add a new one
       if (not missionFound) {
-        Vector.add<Types.MissionV2>(missionsV2, newDeserializedMission);
+
+        let missionToAdd : Types.MissionV2 = {
+          var id = newDeserializedMission.id;
+          var title = newDeserializedMission.title;
+          var description = newDeserializedMission.description;
+          var obj1 = newDeserializedMission.obj1;
+          var obj2 = newDeserializedMission.obj2;
+          var inputPlaceholder = newDeserializedMission.inputPlaceholder;
+          var startDate = newDeserializedMission.startDate;
+          var endDate = newDeserializedMission.endDate;
+          var recursive = newDeserializedMission.recursive;
+          var mintime = newDeserializedMission.mintime;
+          var maxtime = newDeserializedMission.maxtime;
+          var functionName1 = newDeserializedMission.functionName1;
+          var functionName2 = newDeserializedMission.functionName2;
+          var image = newDeserializedMission.image;
+          var secretCodes = newDeserializedMission.secretCodes;
+          var mode = newDeserializedMission.mode;
+          var requiredPreviousMissionId = newDeserializedMission.requiredPreviousMissionId;
+          var iconUrl = newDeserializedMission.iconUrl;
+          var token = newDeserializedMission.token;
+          var subAccount = newDeserializedMission.subAccount;
+          var subMissions = newDeserializedMission.subMissions;
+          var maxUsers = newDeserializedMission.maxUsers;
+          var usersThatCompleted = null; // Empty
+          var status = newDeserializedMission.status;
+          creationTime = Time.now(); // New
+        };
+        Vector.add<Types.MissionV2>(missionsV2, missionToAdd);
       };
     };
-
     return;
   };
 
@@ -1219,7 +1270,7 @@ actor class Backend() {
 
   public shared (msg) func completeMainMission(userUUID : Text) : async () {
 
-    if (Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai") == msg.caller) {
+    if (Principal.fromText(indexCanisterId) == msg.caller) {
 
       // Generate random points between 3600 and 21600
       let pointsEarnedOpt = getRandomNumberBetween(Vector.get(missionsV2, 0).mintime, Vector.get(missionsV2, 0).maxtime);
@@ -1318,7 +1369,7 @@ actor class Backend() {
 
     if (isAdmin(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         setPFPProgress : (Principal) -> async Text;
       };
 
@@ -1428,7 +1479,7 @@ actor class Backend() {
       let payloadJson = serializeTextArrayToJson(payloadArray);
 
       // 4. Prepare the headers for the request
-      let host : Text = "do.konecta.one";
+      let host = doAddress;
       let url = "https://" # host # "/twitterstuff";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
@@ -1497,7 +1548,7 @@ actor class Backend() {
       let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
 
       // 4. Prepare the headers for the request
-      let host : Text = "do.konecta.one";
+      let host = doAddress;
       let url = "https://" # host # "/storeRetweetId";
 
       // 5. Prepare the body for the POST request (the JSON-serialized array)
@@ -1602,6 +1653,28 @@ actor class Backend() {
     };
   };
 
+  public shared (msg) func resetUser(userUUID : Text) : async () {
+
+    if (isAdmin(msg.caller)) {
+
+      let userMissionsOpt = globalUserProgress.get(userUUID);
+
+      switch (userMissionsOpt) {
+        case null { return };
+
+        case (?userMissions) {
+          for ((missionId, _) in userMissions.entries()) {
+            if (missionId != 0) {
+              userMissions.delete(missionId);
+            };
+          };
+
+          globalUserProgress.put(userUUID, userMissions);
+        };
+      };
+    };
+  };
+
   // Function to get trusted origins for NFID authentication
 
   public shared query func icrc28_trusted_origins() : async Types.Icrc28TrustedOriginsResponse {
@@ -1665,7 +1738,7 @@ actor class Backend() {
       let ic : Types.IC = actor ("aaaaa-aa");
 
       // 2. SETUP ARGUMENTS FOR HTTP GET request to test the middleman server
-      let host : Text = "do.konecta.one";
+      let host = doAddress;
       let url = "https://" # host # "/ping";
 
       let http_request : Types.HttpRequestArgs = {
@@ -1691,45 +1764,97 @@ actor class Backend() {
     return false;
   };
 
-  public shared (msg) func userFollowsNuance(userUUID : Text, username : Text) : async Bool {
-    if (isAdmin(msg.caller)) {
-
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
-        getNuanceIDByUUID : query (Text) -> async Text;
+  public shared (msg) func followKonectaNuanceMission(userId : Principal) : async Text {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      let indexC = actor (indexCanisterId) : actor {
+        getUUID : query (Principal) -> async Text;
+        getNFIDbyUUID : query Text -> async ?Principal;
+        isNuanceHandleUsed : query (Text, Text) -> async Bool;
         addNuanceHandleToUserByUUID : (Text, Text) -> async ();
       };
 
-      let nuanceIDOpt = await index.getNuanceIDByUUID(userUUID);
+      let userUUID = await indexC.getUUID(userId);
+      let konectaNuancePrincipal = Principal.fromText("zj7td-kvwb6-b7gjw-rcple-b77lb-2kv4w-gb7qi-okqqw-st2fd-goyrz-hqe");
 
-      if (nuanceIDOpt != "") {
-        return false;
+      let nfidFut = indexC.getNFIDbyUUID(userUUID);
+
+      type UserListItem = {
+        bio : Text;
+        socialChannelsUrls : [Text];
+        principal : Text;
+        displayName : Text;
+        followersCount : Text;
+        website : Text;
+        isVerified : Bool;
+        handle : Text;
+        fontType : Text;
+        avatar : Text;
       };
 
-      let mission = await getMissionById(11);
-      switch mission {
-        case (?mission) {
-          let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
-          let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
-          let newRecord : Types.SerializedMissionRecord = {
-            timestamp = Time.now();
-            pointsEarned = pointsEarnedNat;
-            tweetId = null;
-          };
+      let nuanceActor = actor ("rtqeo-eyaaa-aaaaf-qaana-cai") : actor {
+        getFollowersByPrincipalId : query Principal -> async [UserListItem];
+      };
+      let followersFut = nuanceActor.getFollowersByPrincipalId(konectaNuancePrincipal);
 
-          let nuanceProgress : Types.SerializedProgress = {
-            completionHistory = [newRecord];
-            usedCodes = [(username, true)];
-          };
-
-          await updateUserProgress(userUUID, 11, nuanceProgress);
-          await index.addNuanceHandleToUserByUUID(userUUID, username);
-          return true;
+      let nfidAccount = await nfidFut;
+      switch (nfidAccount) {
+        case null {
+          return "Link a NFID account to complete this mission";
         };
-        case null return false;
+        case (?account) {
+          let nfidAccountText = Principal.toText(account);
+          let followers = await followersFut;
+
+          var accountExists : Bool = false;
+          var foundHandle : Text = "";
+          for (item in followers.vals()) {
+            if (item.principal == nfidAccountText) {
+              accountExists := true;
+              foundHandle := item.handle;
+            };
+          };
+
+          if (accountExists) {
+            let used = await indexC.isNuanceHandleUsed(userUUID, foundHandle);
+            if (not used) {
+              let mission = await getMissionById(11);
+              switch mission {
+                case (?mission) {
+                  let pointsEarnedOpt = getRandomNumberBetween(mission.mintime, mission.maxtime);
+                  let pointsEarnedNat : Nat = Int.abs(pointsEarnedOpt);
+                  let newRecord : Types.SerializedMissionRecord = {
+                    timestamp = Time.now();
+                    pointsEarned = pointsEarnedNat;
+                    tweetId = null;
+                  };
+
+                  let nuanceProgress : Types.SerializedProgress = {
+                    completionHistory = [newRecord];
+                    usedCodes = [(foundHandle, true)];
+                  };
+
+                  // Run the update calls concurrently.
+                  let updateFut = async {
+                    await updateUserProgress(userUUID, 11, nuanceProgress);
+                  };
+                  let addHandleFut = async {
+                    await indexC.addNuanceHandleToUserByUUID(userUUID, foundHandle);
+                  };
+                  await updateFut;
+                  await addHandleFut;
+                  return "Success";
+                };
+                case null {};
+              };
+            } else {
+              return "You can't use the same account twice";
+            };
+          } else {
+            return "You are not following the nuance account";
+          };
+        };
       };
-
     };
-    return false;
+    return "Not authorized";
   };
-
 };

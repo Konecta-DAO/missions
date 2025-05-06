@@ -8,6 +8,8 @@ import { Actor } from '@dfinity/agent';
 import { idlFactory as idlFactoryIndex } from '../../../../../declarations/index/index.did.js';
 import { idlFactory, canisterId } from '../../../../../declarations/backend/index.js';
 import { idlFactory as idlFactoryDefault } from '../../../../../declarations/dfinity_backend/index.js';
+import { IndexCanisterId } from '../../../../main.tsx';
+import { toast } from 'react-hot-toast';
 
 interface ProfileModalProps {
     closeModal: () => void;
@@ -25,7 +27,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
     const disableAllButtons = (disable: boolean) => {
         setAreButtonsDisabled(disable);
     };
-
 
     const handleCloseModal = () => {
         setIsClosing(true);
@@ -57,7 +58,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
     const handleCopyPrincipalId = () => {
         const principalText = globalID.principalId!.toText();
         navigator.clipboard.writeText(principalText)
-            .then(() => alert('Principal ID copied to clipboard!'))
+            .then(() => toast.success('Principal ID copied to clipboard!'))
     };
 
     const formatCooldown = (ns: number): string => {
@@ -112,7 +113,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             if (walletType === "Oisy") {
                 const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent!,
-                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                    canisterId: IndexCanisterId,
                 });
                 response = await actorIndex.linkOisyAccount(globalID.principalId, targetPrincipal) as string;
                 const actor = Actor.createActor(idlFactory, {
@@ -132,7 +133,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                 // For other wallet types, use the initiateLink function.
                 const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: globalID.agent!,
-                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                    canisterId: IndexCanisterId,
                 });
                 response = await actorIndex.initiateLink(globalID.principalId, signerId, targetPrincipal, walletType) as string;
                 const actor = Actor.createActor(idlFactory, {
@@ -148,10 +149,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                 });
                 await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
             }
-            alert(response);
+            toast(response);
         } catch (error: any) {
             console.error("Error initiating link:", error);
-            alert("Error initiating link: " + error.message);
+            toast.error("Error initiating link: " + error.message);
         } finally {
             disableAllButtons(false);
         }
@@ -167,11 +168,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
 
             const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: globalID.agent!,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                canisterId: IndexCanisterId,
             });
 
             const canonicalUUID = await actorIndex.getUUID(globalID.principalId);
-            const response = await actorIndex.acceptLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId, canonicalUUID);
+            const response = await actorIndex.acceptLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId, canonicalUUID) as string;
             const actor = Actor.createActor(idlFactory, {
                 agent: globalID.agent!,
                 canisterId,
@@ -185,7 +186,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             });
 
             await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
-            alert(response);
+            toast(response);
         } catch (error) {
             console.error("Error accepting link:", error);
         } finally {
@@ -203,10 +204,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
 
             const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: globalID.agent!,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                canisterId: IndexCanisterId,
             });
 
-            const response = await actorIndex.rejectLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId);
+            const response = await actorIndex.rejectLink(Principal.fromText(info.pendingRequest.requester), globalID.principalId) as string;
             const actor = Actor.createActor(idlFactory, {
                 agent: globalID.agent!,
                 canisterId,
@@ -220,7 +221,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             });
 
             await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
-            alert(response);
+            toast(response);
         } catch (error) {
             console.error("Error rejecting link:", error);
         } finally {
@@ -238,12 +239,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
 
             const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: globalID.agent!,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                canisterId: IndexCanisterId,
             });
 
             const response = await actorIndex.unlinkPrincipal(
                 Principal.fromText(info.linkedPrincipal)
-            );
+            ) as string;
             const actor = Actor.createActor(idlFactory, {
                 agent: globalID.agent!,
                 canisterId,
@@ -257,7 +258,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
             });
 
             await fetchData.fetchAll(actor, actors, actorIndex, globalID.canisterIds!, globalID.principalId, setPlacestate, setPlacestate);
-            alert(response);
+            toast(response);
         } catch (error) {
             console.error("Error unlinking account:", error);
         } finally {
@@ -295,7 +296,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                             📋
                         </button>
                     </div>
-                    {/* 
+
 
                     {!signerId ? (
                         <p>Loading accounts...</p>
@@ -307,15 +308,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                     <h3>{info.walletType}</h3>
                                     {info.linkedPrincipal ? (
                                         <>
-                                            <p>
-                                                {info.walletType}: {info.linkedPrincipal}
+                                            <p style={{ marginLeft: '10px' }}>
+                                                {info.linkedPrincipal}
                                             </p>
-                                            <button
-                                                onClick={() => handleUnlink(info.walletType)}
-                                                disabled={areButtonsDisabled}
-                                            >
-                                                Unlink
-                                            </button>
+                                            {info.walletType === "Oisy" ? (
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(info.linkedPrincipal!)}
+                                                    disabled={areButtonsDisabled}
+                                                    title="Copy linked principal"
+                                                    className={styles.copyButton}
+                                                >
+                                                    📋
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUnlink(info.walletType)}
+                                                    disabled={areButtonsDisabled}
+                                                >
+                                                    Unlink
+                                                </button>
+                                            )}
                                         </>
                                     ) : info.pendingRequest ? (
                                         <>
@@ -382,7 +394,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                                 </div>
                             ))
                     )}
-                    */}
+
                 </div>
             </div>
         </div>

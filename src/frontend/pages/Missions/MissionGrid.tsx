@@ -184,23 +184,27 @@ const MissionGridComponent: React.FC = () => {
     }, [globalID.projects]);
 
     const displayedMissions: Array<{ mission: AnyMission; projectId: string }> = useMemo(() => {
+        let missions: Array<{ mission: AnyMission; projectId: string }>;
+        
         if (selectedProject === 'konecta') {
-            return globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
+            missions = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
         } else if (selectedProject) {
             const projectObj = globalID.projects.find(
                 (p) => p.name.toLowerCase() === selectedProject.toLowerCase()
             );
-            if (projectObj) {
-                return (globalID.missionsMap[projectObj.id] ?? []).map(m => ({ mission: m, projectId: projectObj.id }));
-            }
-            return [];
+            missions = projectObj 
+                ? (globalID.missionsMap[projectObj.id] ?? []).map(m => ({ mission: m, projectId: projectObj.id }))
+                : [];
         } else {
             const allProjectMissions = Object.entries(globalID.missionsMap).flatMap(([projId, missions]) =>
                 missions.map(m => ({ mission: m, projectId: projId }))
             );
             const konectaMissions = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
-            return [...konectaMissions, ...allProjectMissions];
+            missions = [...konectaMissions, ...allProjectMissions];
         }
+        
+        // Sort numerically by mission id
+        return missions.sort((a, b) => Number(a.mission.id) - Number(b.mission.id));
     }, [selectedProject, globalID.missions, globalID.missionsMap, globalID.projects]);
 
     return (

@@ -24,6 +24,7 @@ import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
 import { SerializedProjectMissions } from '../../../declarations/index/index.did.js';
+import { IndexCanisterId } from '../../main.tsx';
 
 // const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
@@ -47,7 +48,7 @@ const Home: React.FC = () => {
 
       const actorIndex = Actor.createActor(idlFactoryIndex, {
         agent: agent!,
-        canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+        canisterId: IndexCanisterId,
       });
 
       const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];

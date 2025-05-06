@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { createPortal } from 'react-dom';
+import { Toaster } from 'react-hot-toast';
 import './index.scss';
 import { canisterId as backId } from '../declarations/backend/index.js';
 import { BrowserRouter } from 'react-router-dom';
@@ -16,18 +18,26 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory } from '../declarations/index/index.js';
 import { SerializedProjectMissions } from '../declarations/index/index.did.js';
 
+type Env = "TEST" | "PROD";
+let environment: Env = "TEST";
+
+// @ts-ignore
+export const IndexCanisterId = environment === "PROD" ? 'tui2b-giaaa-aaaag-qnbpq-cai' : 'q3itu-vqaaa-aaaag-qngyq-cai';
+// @ts-ignore
+export const derivationOrigin = environment === "PROD" ? "https://pre.konecta.one" : "https://y7mum-taaaa-aaaag-qklxq-cai.icp0.io";
+
 const fetchTargets = async (): Promise<string[]> => {
 
   const agent = HttpAgent.createSync();
 
   const actor = Actor.createActor(idlFactory, {
     agent: agent!,
-    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+    canisterId: IndexCanisterId,
   });
 
   const projects = await actor.getAllProjectMissions() as SerializedProjectMissions[];
   const targets: string[] = projects.map(project => project.canisterId.toText());
-  return [backId, 'tui2b-giaaa-aaaag-qnbpq-cai', ...targets];
+  return [backId, IndexCanisterId, ...targets];
 };
 
 (async () => {
@@ -40,7 +50,7 @@ const fetchTargets = async (): Promise<string[]> => {
     <React.StrictMode>
       <GlobalProvider>
         <BrowserRouter>
-          <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: "https://pre.konecta.one/", targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+          <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: derivationOrigin, targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
             <UsergeekProvider>
               <RadialBackground>
                 <Routes>
@@ -54,6 +64,25 @@ const fetchTargets = async (): Promise<string[]> => {
           </IdentityKitProvider>
         </BrowserRouter>
       </GlobalProvider>
+
+      {createPortal(
+        <Toaster
+          position="bottom-center"
+          toastOptions={{
+            duration: 7500,
+            style: {
+              zIndex: 99999,
+              padding: '16px 24px',
+              fontSize: '16px',
+              minWidth: '280px',
+              maxWidth: '90vw',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            },
+          }}
+        />,
+        document.body,
+      )}
     </React.StrictMode>,
   );
 

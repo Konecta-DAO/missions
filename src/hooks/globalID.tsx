@@ -12,7 +12,7 @@ export interface ProjectData {
     icon: string;
 }
 
-interface GlobalIDType {
+export interface GlobalIDType {
     principalId: Principal | null;
     setPrincipal: (value: Principal) => void;
     missions: SerializedMissionV2[];

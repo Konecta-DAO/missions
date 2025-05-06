@@ -23,6 +23,7 @@ import { useMediaQuery } from 'react-responsive';
 import TermsModal from './Components/TermsModal/TermsModal.tsx';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../declarations/index/index.did.js';
 import ProfileModal from './Components/ProfileModal/ProfileModal.tsx';
+import { IndexCanisterId } from '../../main.tsx';
 
 interface ButtonItem {
     name: string;
@@ -100,7 +101,7 @@ const Missions: React.FC = () => {
 
                 const actorIndex = Actor.createActor(idlFactoryIndex, {
                     agent: agent!,
-                    canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                    canisterId: IndexCanisterId,
                 });
 
                 const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
@@ -108,9 +109,7 @@ const Missions: React.FC = () => {
 
                 if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null && globalID.canisterIds.length > 0) {
                     disconnect();
-                    navigate('/konnect', {
-                        state: { from: location.pathname }
-                    });
+                    window.location.href = '/konnect';
                 } else {
                     const mappedProjects: ProjectData[] = projects.map((project) => ({
                         id: project.canisterId.toText(),
@@ -125,10 +124,7 @@ const Missions: React.FC = () => {
                 }
 
             } else {
-                // User is not logged in; redirect to home page
-                navigate('/konnect', {
-                    state: { from: location.pathname }
-                });
+                window.location.href = '/konnect';
             }
         }, 1000); // Wait for 1000ms before proceeding
 
@@ -146,7 +142,7 @@ const Missions: React.FC = () => {
             });
             const actorIndex = Actor.createActor(idlFactoryIndex, {
                 agent: agent!,
-                canisterId: 'tui2b-giaaa-aaaag-qnbpq-cai',
+                canisterId: IndexCanisterId,
             });
             const principal = await agent.getPrincipal();
 
@@ -233,9 +229,7 @@ const Missions: React.FC = () => {
             const timer = setTimeout(() => {
                 if (!dataloaded) {
                     disconnect();
-                    navigate('/konnect', {
-                        state: { from: location.pathname }
-                    });
+                    window.location.href = '/konnect';
                 }
             }, 10000);
             return () => clearTimeout(timer);

@@ -1,3 +1,5 @@
+import { doAddress } from "../frontend/pages/Missions/Components/MissionFunctionsComponent.ts";
+
 // ptwUtils.ts
 export interface PTWData {
     words: string[];
@@ -17,7 +19,7 @@ export const fetchPTWData = async (missionId: number): Promise<PTWData | null> =
     }
 
     try {
-        const response = await fetch("https://do.konecta.one/getPTW", {
+        const response = await fetch(`https://${doAddress}/getPTW`, {
             method: "GET",
             credentials: "include",
         });

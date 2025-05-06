@@ -16,6 +16,7 @@ import { checkMissionCompletion } from '../../missionUtils.ts';
 import { isMobileOnly } from 'react-device-detect';
 import { Usergeek } from 'usergeek-ic-js';
 import TweetEmbed from './TweetEmbed.tsx';
+import { useIdentityKit } from '@nfid/identitykit/react';
 
 type UserId = Principal;
 
@@ -57,6 +58,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
     const globalID = useGlobalID();
     const navigate = useNavigate();
     const fetchData = useFetchData();
+    const { disconnect } = useIdentityKit();
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState('a');
     const [placestate, setPlacestate] = useState(false);
@@ -223,7 +225,7 @@ const Mission7View: React.FC<Mission7ViewProps> = ({
         if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
             setLoading(true);
             try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, setPlacestate); //disconnect
+                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, disconnect);
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
             }

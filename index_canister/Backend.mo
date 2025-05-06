@@ -18,6 +18,10 @@ import Blob "mo:base/Blob";
 
 actor class Backend() {
 
+  let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+
+  let konectaCanisterId : Text = "ynkdv-7qaaa-aaaag-qkluq-cai";
+
   stable var projects : Vector.Vector<Types.ProjectMissions> = Vector.new<Types.ProjectMissions>();
 
   private var principalToUUID : TrieMap.TrieMap<Principal, Text> = TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
@@ -41,6 +45,8 @@ actor class Backend() {
   stable var unlinkedPrincipals : [Principal] = [];
 
   stable var failedTransfers : [(Principal, Text)] = [];
+
+  stable var uuidToRedditHandle : [(Text, Text)] = [];
 
   stable let currentVersion : Text = "V2.0";
 
@@ -219,7 +225,6 @@ actor class Backend() {
   };
 
   public shared (msg) func initiateLink(requester : Principal, requesterType : Text, target : Principal, targetType : Text) : async Text {
-    return "disabled";
     if (msg.caller != requester) {
       return "Unauthorized: Caller does not match the requester.";
     };
@@ -304,7 +309,6 @@ actor class Backend() {
   };
 
   public shared (msg) func acceptLink(requester : Principal, target : Principal, canonicalUUID : Text) : async Text {
-    return "disabled";
     if (msg.caller != target) {
       return "Unauthorized: Only the target account can accept the link request.";
     };
@@ -386,9 +390,6 @@ actor class Backend() {
   };
 
   public shared (msg) func rejectLink(requester : Principal, target : Principal) : async Text {
-
-    return "disabled";
-
     if (msg.caller != target) {
       return "Unauthorized: Only the target account can reject the link request.";
     };
@@ -469,6 +470,32 @@ actor class Backend() {
         return "Oisy account linked successfully.";
       };
     };
+  };
+
+  public shared query (msg) func getOisyWallet(userId : Principal) : async ?Principal {
+    if (isAdmin(msg.caller) or isProject(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
+      let uuid = getUserUUID(userId);
+      switch (uuidToLinkedAccounts.get(uuid)) {
+        case (?linkedAccounts) {
+          let oisyEntry = Array.find(
+            linkedAccounts,
+            func(entry : (Text, Principal)) : Bool {
+              let (accType, _) = entry;
+              accType == "Oisy";
+            },
+          );
+          switch (oisyEntry) {
+            case (?entry) {
+              let (_, oisyPrincipal) = entry;
+              return ?oisyPrincipal;
+            };
+            case null { return null };
+          };
+        };
+        case null { return null };
+      };
+    };
+    return null;
   };
 
   public shared query (msg) func getPendingLinkRequestsForTarget(target : Principal) : async [Types.LinkRequest] {
@@ -631,7 +658,7 @@ actor class Backend() {
       principalToUUID.put(userId, uuid);
       uuidToLinkedAccounts.put(uuid, [(accountType, userId)]);
 
-      let konectaCanister = actor ("onpqf-diaaa-aaaag-qkeda-cai") : actor {
+      let konectaCanister = actor (konectaCanisterId) : actor {
         completeMainMission : (Text) -> async ();
       };
 
@@ -644,7 +671,7 @@ actor class Backend() {
 
   public query (msg) func getUUID(userId : Principal) : async Text {
 
-    if (isAdmin(msg.caller) or isProject(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+    if (isAdmin(msg.caller) or isProject(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {
 
       switch (principalToUUID.get(userId)) {
         case (?uuid) { return uuid };
@@ -669,7 +696,7 @@ actor class Backend() {
   public query (msg) func getUserSubaccount(uuid : Text) : async [Nat8] {
 
     if (isAdmin(msg.caller) or (getUserUUID(msg.caller)) == uuid) {
-      let encoded = Text.encodeUtf8(uuid # "tui2b-giaaa-aaaag-qnbpq-cai");
+      let encoded = Text.encodeUtf8(uuid # indexCanisterId);
 
       let hashBlob = Sha256.fromBlob(#sha256, encoded);
 
@@ -847,7 +874,7 @@ actor class Backend() {
           let canonicalSubaccount : [Nat8] = await getUserSubaccount(canonicalUUID);
 
           // Define the ledger principal (used for constructing the Account record)
-          let ledgerPrincipal = Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai");
+          let ledgerPrincipal = Principal.fromText(indexCanisterId);
 
           // Process each token canister
           for (tokenPrincipal in Iter.fromArray(mergingTokens)) {
@@ -915,7 +942,7 @@ actor class Backend() {
             };
           };
 
-          let konectaActor = actor ("onpqf-diaaa-aaaag-qkeda-cai") : actor {
+          let konectaActor = actor (konectaCanisterId) : actor {
             //CAMBIAR
             mergeAccounts : (Text, Text) -> async Text;
           };
@@ -963,6 +990,22 @@ actor class Backend() {
       };
     };
     return null;
+  };
+
+  public shared query (msg) func getAllUsers() : async [(Text, Types.SerializedGlobalUser)] {
+    if (isAdmin(msg.caller)) {
+      let uuidToUserEntries = uuidToUser.entries();
+      return Iter.toArray(
+        Iter.map<(Text, Types.GlobalUser), (Text, Types.SerializedGlobalUser)>(
+          uuidToUserEntries,
+          func(pair : (Text, Types.GlobalUser)) : (Text, Types.SerializedGlobalUser) {
+            let (key, user) = pair;
+            (key, Serialization.serializeUser(user));
+          },
+        )
+      );
+    };
+    return [];
   };
 
   public query (msg) func getUserByPrincipal(userId : Principal) : async ?Types.SerializedGlobalUser {
@@ -1137,20 +1180,131 @@ actor class Backend() {
     return [];
   };
 
-  public shared query (msg) func isTwitterIdUsed(twitterhandle : Text) : async Bool {
+  public shared query (msg) func isTwitterIdUsed(userUUID : Text, twitterhandle : Text) : async Bool {
     if (isAdmin(msg.caller)) {
-      for ((_, user) in uuidToUser.entries()) {
-        switch (user.twitterhandle) {
-          case (?th) {
-            if (th == twitterhandle) {
-              return true;
+      for ((uuid, user) in uuidToUser.entries()) {
+        if (uuid != userUUID) {
+          switch (user.twitterhandle) {
+            case (?th) {
+              if (th == twitterhandle) {
+                return true;
+              };
             };
+            case null {};
           };
-          case null {};
         };
       };
     };
     return false;
+  };
+
+  public shared query (msg) func isRedditUsed(userUUID : Text, reddithandle : Text) : async Bool {
+    if (isAdmin(msg.caller)) {
+      let matching = Array.find(
+        uuidToRedditHandle,
+        func(pair : (Text, Text)) : Bool {
+          let (id, handle) = pair;
+          (id != userUUID) and (handle == reddithandle);
+        },
+      );
+      switch (matching) {
+        case (?_) { return true };
+        case null { return false };
+      };
+    };
+    return false;
+  };
+
+  public shared query (msg) func isDiscordUsed(userUUID : Text, discordHandle : Text) : async Bool {
+    if (isAdmin(msg.caller)) {
+      for ((uuid, user) in uuidToUser.entries()) {
+        // skip the user themselves
+        if (uuid != userUUID) {
+          switch (user.discordUser) {
+            case (?dh) {
+              if (dh == discordHandle) {
+                return true;
+              };
+            };
+            case null { /* no discord handle on this record */ };
+          };
+        };
+      };
+    };
+    return false;
+  };
+
+  public shared query (msg) func isNuanceHandleUsed(userUUID : Text, nuanceHandle : Text) : async Bool {
+    if (isAdmin(msg.caller)) {
+      for ((uuid, user) in uuidToUser.entries()) {
+        if (uuid != userUUID) {
+          switch (user.nuanceUser) {
+            case (?nHandle) {
+              if (nHandle == nuanceHandle) {
+                return true;
+              };
+            };
+            case null {};
+          };
+        };
+      };
+    };
+    return false;
+  };
+
+  public shared query (msg) func getNFIDbyUUID(uuid : Text) : async ?Principal {
+    if (isAdmin(msg.caller) or (isProject(msg.caller)) or (getUserUUID(msg.caller)) == uuid) {
+      switch (uuidToLinkedAccounts.get(uuid)) {
+        case (?accounts) {
+          // Look for an account with type "NFIDW"
+          let nfAccount = Array.find(
+            accounts,
+            func(entry : (Text, Principal)) : Bool {
+              let (accType, _) = entry;
+              accType == "NFIDW";
+            },
+          );
+          switch (nfAccount) {
+            case (?(_, principal)) { return ?principal };
+            case null {};
+          };
+        };
+        case null {};
+      };
+    };
+    return null;
+  };
+
+  // Returns, for each UUID in the input array, the NFIDW principal (if any).
+  public shared query (msg) func getBatchNFIDbyUUID(uuids : [Text]) : async [(Text, ?Principal)] {
+    // Only admins or project canister calls can fetch in bulk
+    if (not (isAdmin(msg.caller) or isProject(msg.caller))) {
+      return [];
+    };
+
+    var results : [(Text, ?Principal)] = [];
+    for (uuid in Iter.fromArray(uuids)) {
+      switch (uuidToLinkedAccounts.get(uuid)) {
+        case (?accounts) {
+          // find the NFIDW entry in the linked‐accounts list
+          let nfEntry = Array.find<(Text, Principal)>(
+            accounts,
+            func(entry) : Bool { entry.0 == "NFIDW" },
+          );
+          switch (nfEntry) {
+            case (?(_, p)) { results := Array.append(results, [(uuid, ?p)]) };
+            case null {
+              results := Array.append(results, [(uuid, null)]);
+            };
+          };
+        };
+        case null {
+          // no linked accounts at all
+          results := Array.append(results, [(uuid, null)]);
+        };
+      };
+    };
+    results;
   };
 
   public shared query (msg) func getPFPProgress(userId : Principal) : async ?Text {
@@ -1297,6 +1451,28 @@ actor class Backend() {
     };
   };
 
+  public shared query (msg) func getDiscordByUUID(uuid : Text) : async Text {
+    if (not isAdmin(msg.caller)) {
+      return "";
+    };
+
+    switch (uuidToUser.get(uuid)) {
+      case (null) {
+        return "";
+      };
+      case (?globalUser) {
+        switch (globalUser.discordUser) {
+          case (null) {
+            return "";
+          };
+          case (?discordID) {
+            return discordID;
+          };
+        };
+      };
+    };
+  };
+
   public shared (msg) func addTwitterInfo(uuid : Text, twitterId : Nat, twitterHandle : Text) : async () {
     if (isAdmin(msg.caller)) {
       switch (uuidToUser.get(uuid)) {
@@ -1310,6 +1486,47 @@ actor class Backend() {
             var deducedPoints = user.deducedPoints;
             var ocProfile = user.ocProfile;
             var discordUser = user.discordUser;
+            var telegramUser = user.telegramUser;
+            var nuanceUser = user.nuanceUser;
+            var nnsPrincipal = user.nnsPrincipal;
+            var firstname = user.firstname;
+            var lastname = user.lastname;
+            var username = user.username;
+            var email = user.email;
+            var bio = user.bio;
+            var categories = user.categories;
+            var profilepic = user.profilepic;
+            var coverphoto = user.coverphoto;
+            var country = user.country;
+            var timezone = user.timezone;
+            var icrc1tokens = user.icrc1tokens;
+            var nft721 = user.nft721;
+          };
+          uuidToUser.put(uuid, updatedUser);
+        };
+        case null {};
+      };
+    };
+  };
+
+  public shared (msg) func addRedditInfo(uuid : Text, redditHandle : Text) : async () {
+    if (isAdmin(msg.caller)) {
+      uuidToRedditHandle := Array.append(uuidToRedditHandle, [(uuid, redditHandle)]);
+    };
+  };
+
+  public shared (msg) func addDiscordInfo(uuid : Text, discordHandle : Text) : async () {
+    if (isAdmin(msg.caller)) {
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+          let updatedUser : Types.GlobalUser = {
+            var twitterid = user.twitterid;
+            var twitterhandle = user.twitterhandle;
+            creationTime = user.creationTime;
+            var pfpProgress = user.pfpProgress;
+            var deducedPoints = user.deducedPoints;
+            var ocProfile = user.ocProfile;
+            var discordUser = ?discordHandle;
             var telegramUser = user.telegramUser;
             var nuanceUser = user.nuanceUser;
             var nnsPrincipal = user.nnsPrincipal;

@@ -124,7 +124,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
             setLoading(true);
             try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, navigate, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, disconnect);
+                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, disconnect);
             } catch (error) {
                 console.error(`Error executing function: ${functionName}`, error);
             }

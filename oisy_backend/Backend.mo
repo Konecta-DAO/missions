@@ -21,6 +21,8 @@ import Debug "mo:base/Debug";
 
 actor class Backend() {
 
+  let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+
   private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
   // Stable storage for serialized data
@@ -29,7 +31,7 @@ actor class Backend() {
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
 
-    if (msg.caller == Principal.fromText("tui2b-giaaa-aaaag-qnbpq-cai")) {
+    if (msg.caller == Principal.fromText(indexCanisterId)) {
 
       // 4. Merge globalglobalUserProgress (UserMissions = TrieMap<Nat, Progress>)
       var mergedglobalUserProgress : TrieMap.TrieMap<Nat, Types.Progress> = switch (globalUserProgress.get(canonicalUUID)) {
@@ -318,7 +320,7 @@ actor class Backend() {
 
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -341,7 +343,7 @@ actor class Backend() {
   public shared composite query (msg) func getUserProgress(userId : Principal) : async ?[(Nat, Types.SerializedProgress)] {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -440,7 +442,7 @@ actor class Backend() {
   public shared composite query (msg) func getTotalSecondsForUser(userId : Principal) : async ?Nat {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -511,35 +513,80 @@ actor class Backend() {
 
   public shared (msg) func addOrUpdateMission(newMission : Types.SerializedMissionV2) : async () {
     if (isAdmin(msg.caller)) {
-      // Convert SerializedMission to a mutable Mission
-      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
 
-      // Check if the mission already exists in the vector
+      let newDeserializedMission = Serialization.deserializeMissionV2(newMission);
       var missionFound = false;
 
       let size = Vector.size(missionsV2);
       for (i in Iter.range(0, size - 1)) {
-        let existingMissionOpt = Vector.get(missionsV2, i); // This returns ?Mission
-
-        // Properly handle the optional ?Mission value
+        let existingMissionOpt = Vector.get(missionsV2, i);
         switch (existingMissionOpt) {
           case (mission) {
-            // Unwrap the Mission
             if (mission.id == newMission.id) {
-              // Update the existing mission using Vector.put
-              Vector.put(missionsV2, i, newDeserializedMission);
+              let updatedMission : Types.MissionV2 = {
+                var id = newDeserializedMission.id;
+                var title = newDeserializedMission.title;
+                var description = newDeserializedMission.description;
+                var obj1 = newDeserializedMission.obj1;
+                var obj2 = newDeserializedMission.obj2;
+                var inputPlaceholder = newDeserializedMission.inputPlaceholder;
+                var startDate = newDeserializedMission.startDate;
+                var endDate = newDeserializedMission.endDate;
+                var recursive = newDeserializedMission.recursive;
+                var points = newDeserializedMission.points;
+                var functionName1 = newDeserializedMission.functionName1;
+                var functionName2 = newDeserializedMission.functionName2;
+                var image = newDeserializedMission.image;
+                var secretCodes = newDeserializedMission.secretCodes;
+                var mode = newDeserializedMission.mode;
+                var requiredPreviousMissionId = newDeserializedMission.requiredPreviousMissionId;
+                var iconUrl = newDeserializedMission.iconUrl;
+                var token = newDeserializedMission.token;
+                var subAccount = newDeserializedMission.subAccount;
+                var subMissions = newDeserializedMission.subMissions;
+                var maxUsers = newDeserializedMission.maxUsers;
+                var usersThatCompleted = mission.usersThatCompleted; // Keep
+                var status = newDeserializedMission.status;
+                creationTime = mission.creationTime; // Keep
+              };
+              Vector.put(missionsV2, i, updatedMission);
               missionFound := true;
             };
           };
         };
       };
 
-      // If the mission was not found, add a new one
       if (not missionFound) {
-        Vector.add<Types.MissionV2>(missionsV2, newDeserializedMission);
+
+        let missionToAdd : Types.MissionV2 = {
+          var id = newDeserializedMission.id;
+          var title = newDeserializedMission.title;
+          var description = newDeserializedMission.description;
+          var obj1 = newDeserializedMission.obj1;
+          var obj2 = newDeserializedMission.obj2;
+          var inputPlaceholder = newDeserializedMission.inputPlaceholder;
+          var startDate = newDeserializedMission.startDate;
+          var endDate = newDeserializedMission.endDate;
+          var recursive = newDeserializedMission.recursive;
+          var points = newDeserializedMission.points;
+          var functionName1 = newDeserializedMission.functionName1;
+          var functionName2 = newDeserializedMission.functionName2;
+          var image = newDeserializedMission.image;
+          var secretCodes = newDeserializedMission.secretCodes;
+          var mode = newDeserializedMission.mode;
+          var requiredPreviousMissionId = newDeserializedMission.requiredPreviousMissionId;
+          var iconUrl = newDeserializedMission.iconUrl;
+          var token = newDeserializedMission.token;
+          var subAccount = newDeserializedMission.subAccount;
+          var subMissions = newDeserializedMission.subMissions;
+          var maxUsers = newDeserializedMission.maxUsers;
+          var usersThatCompleted = null; // Empty
+          var status = newDeserializedMission.status;
+          creationTime = Time.now(); // New
+        };
+        Vector.add<Types.MissionV2>(missionsV2, missionToAdd);
       };
     };
-
     return;
   };
 
@@ -670,7 +717,7 @@ actor class Backend() {
   public shared (msg) func verifyOisyICP(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -683,9 +730,7 @@ actor class Backend() {
         icrc1_balance_of : query (Types.Account) -> async (Types.Icrc1Tokens);
       };
 
-      var canisterIdIndex = "tui2b-giaaa-aaaag-qnbpq-cai";
-
-      let indexcanister = actor (canisterIdIndex) : actor {
+      let indexcanister = actor (indexCanisterId) : actor {
         getOisyWallet : query (Principal) -> async (?Principal);
       };
 
@@ -727,7 +772,7 @@ actor class Backend() {
   public shared (msg) func verifyOisyOG(userId : Principal) : async Text {
     if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
 
-      let index = actor ("tui2b-giaaa-aaaag-qnbpq-cai") : actor {
+      let index = actor (indexCanisterId) : actor {
         getUUID : query (Principal) -> async Text;
       };
 
@@ -757,9 +802,7 @@ actor class Backend() {
 
       if (hasCanisterEnoughICP >= 10_000 + 10_000) {
 
-        var canisterIdIndex = "tui2b-giaaa-aaaag-qnbpq-cai";
-
-        let indexcanister = actor (canisterIdIndex) : actor {
+        let indexcanister = actor (indexCanisterId) : actor {
           getOisyWallet : query (Principal) -> async (?Principal);
         };
 
@@ -819,10 +862,10 @@ actor class Backend() {
                     icrc1_fee : query () -> async (Nat);
                   };
 
-                  let result : Types.Icrc1TransferResult = await ledgercanister.icrc1_transfer(icrc1TransferArg);
+                  // let result : Types.Icrc1TransferResult = await ledgercanister.icrc1_transfer(icrc1TransferArg);
 
-                  switch (result) {
-                    case (#Ok(_blockIndex)) {
+                  switch (true) {
+                    case (true) {
                       let missionRecord : Types.MissionRecord = {
                         var timestamp = Time.now();
                         var pointsEarned = 10000;
@@ -836,9 +879,9 @@ actor class Backend() {
                       await updateUserProgress(userUUID, 1, tempP);
                       return "Success";
                     };
-                    case (#Err(err)) {
+                    case (false) {
                       return "Error from transfer: Details: "
-                      # debug_show (err);
+                      //# debug_show (err);
                     };
                   };
 
@@ -864,6 +907,164 @@ actor class Backend() {
     } else {
       return "Unauthorized";
     };
+  };
+
+  stable var mission1Transfered : [Principal] = [];
+
+  public shared (msg) func resetFirstCampaign() : async () {
+
+    if (not isAdmin(msg.caller)) { Debug.trap("Unauthorized") };
+
+    mission1Transfered := [];
+  };
+
+  public shared (msg) func testICPFunction(requirements : [Nat], missions : [Nat], icpAmount : Nat) : async [(Principal, Nat)] {
+    // 1. Admin check
+    if (not isAdmin(msg.caller)) { Debug.trap("Unauthorized") };
+
+    // 2. Filter users who have completed all 'requirements'
+    var recipients : [Text] = [];
+    for ((userUUID, userMissions) in globalUserProgress.entries()) {
+      var meetsReqs : Bool = true;
+      for (reqId in Iter.fromArray(requirements)) {
+        switch (userMissions.get(reqId)) {
+          case (?progress) {
+            if (Array.size(progress.completionHistory) == 0) {
+              meetsReqs := false;
+            };
+          };
+          case null {
+            meetsReqs := false;
+          };
+        };
+      };
+      if (meetsReqs) {
+        recipients := Array.append(recipients, [userUUID]);
+      };
+    };
+
+    // 3. Sum each recipient’s earned points over the given 'missions'
+    var userPointsList : [(Text, Nat)] = [];
+    var totalPoints : Nat = 0;
+    for (userUUID in Iter.fromArray(recipients)) {
+      let ?userMissions = globalUserProgress.get(userUUID);
+      var earned : Nat = 0;
+      for (mId in Iter.fromArray(missions)) {
+        switch (userMissions.get(mId)) {
+          case (?progress) {
+            for (record in Iter.fromArray(progress.completionHistory)) {
+              earned += record.pointsEarned;
+            };
+          };
+          case null { /* zero points if not completed */ };
+        };
+      };
+      userPointsList := Array.append(userPointsList, [(userUUID, earned)]);
+      totalPoints += earned;
+    };
+
+    // 4. Resolve all UUIDs → Principals in one batch call
+    let indexCan = actor (indexCanisterId) : actor {
+      getBatchNFIDbyUUID : query [Text] -> async [(Text, ?Principal)];
+    };
+    let batchResults = await indexCan.getBatchNFIDbyUUID(recipients);
+
+    // 5. Fetch the per‑transfer fee
+    let ledgerCan = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai") : actor {
+      icrc1_fee : query () -> async Nat;
+    };
+    let fee : Nat = await ledgerCan.icrc1_fee();
+
+    // 6. Convert requested ICP into e8s and build proportional payouts
+    let totalRequested : Nat = icpAmount * 100_000_000;
+    var payouts : [(Principal, Nat)] = [];
+    for ((userUUID, maybePrincipal) in Iter.fromArray(batchResults)) {
+      switch (maybePrincipal) {
+        case (?principal) {
+          // lookup this user’s earned points
+          let maybePair = Array.find<(Text, Nat)>(userPointsList, func(p) { p.0 == userUUID });
+          let userEarned : Nat = switch (maybePair) {
+            case (?pair) { pair.1 };
+            case null { 0 };
+          };
+          // gross share in e8s
+          let gross : Nat = if (totalPoints > 0) (totalRequested * userEarned) / totalPoints else 0;
+          // net after fee
+          let net : Nat = if (gross >= fee) gross - fee else Debug.trap("Fee exceeds per‑user allocation");
+          payouts := Array.append(payouts, [(principal, net)]);
+        };
+        case null { /* skip if no principal */ };
+      };
+    };
+
+    return payouts;
+  };
+
+  public shared (msg) func testICPFunction2(recipient : Principal, e8sAmount : Nat) : async Types.Icrc1TransferResult {
+
+    // 1. Only admins may run this
+    if (not isAdmin(msg.caller)) { Debug.trap("Unauthorized") };
+
+    if (
+      Array.find<Principal>(
+        mission1Transfered,
+        func(p : Principal) : Bool { p == recipient },
+      ) != null
+    ) {
+      Debug.trap("Recipient has already been paid");
+    };
+
+    // 2. Build the transfer arguments
+    let toAccount : Types.Account = {
+      owner = recipient;
+      subaccount = null;
+    };
+    let transferArg : Types.TransferArg = {
+      from_subaccount = null;
+      to = toAccount;
+      amount = e8sAmount;
+      fee = null;
+      memo = null;
+      created_at_time = null;
+    };
+
+    // 3. Call the ledger canister
+    let ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai") : actor {
+      icrc1_transfer : (Types.TransferArg) -> async Types.Icrc1TransferResult;
+    };
+    let result = await ledger.icrc1_transfer(transferArg);
+
+    // 4. On success, record the recipient; otherwise just propagate the error
+    switch (result) {
+      case (#Ok(_txId)) {
+        mission1Transfered := Array.append(mission1Transfered, [recipient]);
+        result;
+      };
+      case (#Err(err)) {
+        result;
+      };
+    };
+  };
+
+  public shared (msg) func testGetBalance() : async Types.Icrc1Tokens {
+
+    // Only admins allowed
+    if (not isAdmin(msg.caller)) { Debug.trap("Unauthorized") };
+
+    // Build the account descriptor
+    let account : Types.Account = {
+      owner = Principal.fromText("eyark-fqaaa-aaaag-qm7oa-cai");
+      subaccount = null;
+    };
+
+    // Call the ledger canister
+    let ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai") : actor {
+      icrc1_balance_of : query (Types.Account) -> async Types.Icrc1Tokens;
+    };
+
+    // Fetch and return the balance
+    let balance = await ledger.icrc1_balance_of(account);
+    return balance;
   };
 
   public query func http_request(req : Types.HttpRequest) : async Types.HttpResponse {
@@ -918,157 +1119,6 @@ actor class Backend() {
         };
       };
     };
-  };
-
-  private func serializeTextArrayToJson(arr : [Text]) : Text {
-
-    var jsonText = "[";
-    var isFirst = true;
-    for (text in arr.vals()) {
-      if (not isFirst) {
-        jsonText #= ",";
-      };
-      jsonText #= "\"" # text # "\"";
-      isFirst := false;
-    };
-    jsonText #= "]";
-    return jsonText;
-  };
-
-  public shared (msg) func setPTW(payloadArray : [Text]) : async Text {
-    if (isAdmin(msg.caller)) {
-      // 1. DECLARE IC MANAGEMENT CANISTER
-      let ic : Types.IC = actor ("aaaaa-aa");
-
-      // 2. Add cycles for the HTTP request
-      Cycles.add<system>(22_935_266_640);
-
-      // 3. Serialize the array into a JSON array
-      let payloadJson = serializeTextArrayToJson(payloadArray);
-
-      // 4. Prepare the headers for the request
-      let host : Text = "do.konecta.one";
-      let url = "https://" # host # "/oisyPTW";
-
-      // 5. Prepare the body for the POST request (the JSON-serialized array)
-      let body : Blob = Text.encodeUtf8(payloadJson);
-      let bodyAsNat8 : [Nat8] = Blob.toArray(body);
-
-      // 6. Define the HTTP request
-      let http_request : Types.HttpRequestArgs = {
-        url = url;
-        max_response_bytes = null;
-        headers = [
-          { name = "Content-Type"; value = "application/json" },
-
-        ];
-        body = ?bodyAsNat8; // Ensure body is an optional Blob
-        method = #post; // Use variant for POST method
-        transform = null;
-      };
-
-      // 7. Make the HTTP outcall
-      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-
-      // 8. Handle the response
-      if (http_response.status == 200) {
-        if (http_response.body.size() > 0) {
-          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-            case (?decodedBody) {
-              return "POST request successful: " # decodedBody;
-            };
-            case (null) {
-              return "POST request successful but failed to decode body";
-            };
-          };
-        } else {
-          return "POST request successful but no body in response";
-        };
-      } else {
-        if (http_response.body.size() > 0) {
-          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-            case (?decodedBody) {
-              return "POST request failed: " # decodedBody;
-            };
-            case (null) {
-              return "POST request failed and failed to decode body";
-            };
-          };
-        } else {
-          return "POST request failed and no body in response";
-        };
-      };
-    };
-    return "";
-  };
-
-  public shared (msg) func postRT(payload : Text) : async Text {
-    if (isAdmin(msg.caller)) {
-      // 1. DECLARE IC MANAGEMENT CANISTER
-      let ic : Types.IC = actor ("aaaaa-aa");
-
-      // 2. Add cycles for the HTTP request
-      Cycles.add<system>(22_935_266_640);
-
-      // 3. Serialize the array into a JSON array
-      let payloadJson = "{\"id\": \"" # payload # "\"}"; // Create JSON with "id"
-
-      // 4. Prepare the headers for the request
-      let host : Text = "do.konecta.one";
-      let url = "https://" # host # "/storeRetweetId";
-
-      // 5. Prepare the body for the POST request (the JSON-serialized array)
-      let body : Blob = Text.encodeUtf8(payloadJson);
-      let bodyAsNat8 : [Nat8] = Blob.toArray(body);
-
-      // 6. Define the HTTP request
-      let http_request : Types.HttpRequestArgs = {
-        url = url;
-        max_response_bytes = null;
-        headers = [
-          { name = "Content-Type"; value = "application/json" },
-
-        ];
-        body = ?bodyAsNat8; // Ensure body is an optional Blob
-        method = #post; // Use variant for POST method
-        transform = null;
-      };
-
-      Cycles.add<system>(22_935_266_640);
-
-      // 7. Make the HTTP outcall
-      let http_response : Types.HttpResponsePayload = await ic.http_request(http_request);
-
-      // 8. Handle the response
-      if (http_response.status == 200) {
-        if (http_response.body.size() > 0) {
-          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-            case (?decodedBody) {
-              return "POST request successful: " # decodedBody;
-            };
-            case (null) {
-              return "POST request successful but failed to decode body";
-            };
-          };
-        } else {
-          return "POST request successful but no body in response";
-        };
-      } else {
-        if (http_response.body.size() > 0) {
-          switch (Text.decodeUtf8(Blob.fromArray(http_response.body))) {
-            case (?decodedBody) {
-              return "POST request failed: " # decodedBody;
-            };
-            case (null) {
-              return "POST request failed and failed to decode body";
-            };
-          };
-        } else {
-          return "POST request failed and no body in response";
-        };
-      };
-    };
-    return "";
   };
 
   public query func availableCycles() : async Nat {
