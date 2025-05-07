@@ -13,6 +13,7 @@ import { Principal } from "@dfinity/principal";
 import { IndexCanisterId } from "../../../main.tsx";
 import { GlobalIDType } from "../../../../hooks/globalID.tsx";
 import { toast } from 'react-hot-toast';
+import { ICToolkitMissionType } from "../../../../declarations/ictoolkit_backend/ictoolkit_backend.did.js";
 
 export const doAddress = "dotest.konecta.one";
 
@@ -492,23 +493,30 @@ const MissionFunctionsComponent = {
         const actor = Actor.createActor(idlFactoryICT, {
             agent: globalID.agent!,
             canisterId: "rye2s-biaaa-aaaag-qng6a-cai",
-        })
-        const a = await actor.missionsMainEndpoint(
-            { PointsVote: null },
-            globalID.principalId,
-            [["jfnic-kaaaa-aaaaq-aadla-cai", "3143"]]
-        );
+        });
 
-        if (a === true) {
+        const payload: [ICToolkitMissionType, [] | [string[]]][] = [
+            [{ PointsVote: null }, [["jfnic-kaaaa-aaaaq-aadla-cai", "3143"]]],
+            [{ RewardVoteOnToolkit: null }, [["jfnic-kaaaa-aaaaq-aadla-cai", "3143"]]],
+        ];
+
+        const results = await actor.missionsMainEndpoint(
+            payload,
+            globalID.principalId
+        ) as boolean[];
+
+        // show the raw true/false array
+        toast.success(`Results: ${results.map(r => r.toString()).join(", ")}`);
+
+        if (results.every(r => r)) {
             Usergeek.trackEvent("Oisy Mission Two: Be an Oisy OG");
             refreshAll(globalID, fetchData, setPlacestate, disconnect, setLoading, closeModal);
-            toast.success("Voted!");
+            toast.success("All missions succeeded!");
         } else {
-            toast.error("Non Voted");
+            toast.error("Some missions failed.");
             setLoading(false);
-        };
+        }
     },
-
 };
 
 export default MissionFunctionsComponent;

@@ -1421,7 +1421,7 @@ actor class Backend() {
     return hex;
   };
 
-  public shared (msg) func missionsMainEndpoint(missionType : Types.ICToolkitMissionType, principal : Principal, metadata : ?[Text]) : async Bool {
+  private func processOne(caller : Principal, missionType : Types.ICToolkitMissionType, principal : Principal, metadata : ?[Text]) : async Bool {
     // ─── 1) only non‐Vote/CreateHistorical missions require admin caller ───
     /* if (missionType != #PointsVote and missionType != #PointsCreateProposal and missionType != #RewardVoteOnToolkit) {
     if (msg.caller != Principal.fromText("aaaaa-aa")) {
@@ -1523,20 +1523,20 @@ actor class Backend() {
                       Option.isSome(
                         Array.find<NeuronPermission>(
                           nn.permissions,
-                          func(p) { p.principal == ?msg.caller }
+                          func(p) { p.principal == ?caller },
                         )
                       )
                     ) {
                       eligibleNeurons := Array.append(eligibleNeurons, [nn]);
                     };
                   };
-                  case (#Error _) {}
+                  case (#Error _) {};
                 };
               };
-              case null {}
+              case null {};
             };
           };
-          case null {}
+          case null {};
         };
       };
       if (eligibleNeurons.size() == 0) {
@@ -1567,7 +1567,7 @@ actor class Backend() {
               return false;
             };
             case (#Proposal pdata) {
-              if (missionType == #PointsVote) {
+              if (missionType == #PointsVote or missionType == #RewardVoteOnToolkit) {
                 // Check if any of the principal's neurons voted
                 let voted = switch (
                   Array.find<(Text, Ballot)>(
@@ -1626,13 +1626,14 @@ actor class Backend() {
         #PointsHotkeyNeuron1Time or
         #PointsSaveProposalDraft or
         #PointsFavoriteSNS or
-        #PointsSignupEmailNotification
+        #PointsSignupEmailNotification or
+        #RewardVoteOnToolkit
       ) {
         if (Option.isSome(existingOpt)) { return false };
       };
       case (
         #PointsVote or
-        #PointsCreateProposal or #RewardVoteOnToolkit
+        #PointsCreateProposal
       ) {
         // recursive–24h:
         switch (existingOpt) {
@@ -1690,6 +1691,85 @@ actor class Backend() {
     userMissions.put(missionId, updatedProg);
     globalUserProgress.put(userUUID, userMissions);
     return true;
+  };
+
+  private func missionTypeToText(m : Types.ICToolkitMissionType) : Text {
+    switch m {
+      case (#PointsCreateProposal) { "PointsCreateProposal" };
+      case (#PointsFavoriteSNS) { "PointsFavoriteSNS" };
+      case (#PointsHotkeyNeuron1Time) { "PointsHotkeyNeuron1Time" };
+      case (#PointsSaveProposalDraft) { "PointsSaveProposalDraft" };
+      case (#PointsSignupEmailNotification) { "PointsSignupEmailNotification" };
+      case (#PointsVote) { "PointsVote" };
+      case (#RewardSaveProposalDraft) { "RewardSaveProposalDraft" };
+      case (#RewardFavoriteSNS) { "RewardFavoriteSNS" };
+      case (#RewardHotkeyNeuron) { "RewardHotkeyNeuron" };
+      case (#RewardVoteOnToolkit) { "RewardVoteOnToolkit" };
+      case (#RewardSignupEmailNotification) { "RewardSignupEmailNotification" };
+    };
+  };
+
+  public shared (msg) func missionsMainEndpoint(inputs : [(Types.ICToolkitMissionType, ?[Text])], principal : Principal) : async [Bool] {
+    // ─── 1) Reject duplicate mission‐types ───
+    let seen = TrieMap.TrieMap<Types.ICToolkitMissionType, Bool>(
+      func(x, y) { x == y },
+      func(x) { Text.hash(missionTypeToText(x)) },
+    );
+    for ((mt, _) in inputs.vals()) {
+      if (Option.isSome(seen.get(mt))) {
+        Debug.trap("Duplicate mission type in call");
+      };
+      seen.put(mt, true);
+    };
+
+    // ─── 2) Process each mission in order ───
+    var results : [Bool] = [];
+    for ((mt, meta) in inputs.vals()) {
+      let ok = await processOne(msg.caller, mt, principal, meta);
+      results := Array.append(results, [ok]);
+    };
+
+    // ─── 3) Return array of successes/failures ───
+    return results;
+  };
+
+  public shared func hasNeuronVotedOnProposal() : async Bool {
+    let neuronHex : Text = "2c553c0225b739c88006dc8ce332d5aef9b22286d02cd3a2d91bc965899a1a0d";
+    let proposalId : Nat64 = Nat64.fromNat(234);
+
+    let governanceCanister = actor ("tr3th-kiaaa-aaaaq-aab6q-cai") : actor {
+      get_proposal : shared query GetProposal -> async GetProposalResponse;
+    };
+
+    // 1) Fetch the proposal
+    let resp = await governanceCanister.get_proposal({
+      proposal_id = ?{ id = proposalId };
+    });
+
+    // 2) Drill into the result
+    switch (resp.result) {
+      case (?res) {
+        switch (res) {
+          case (#Proposal p) {
+            // 3) Scan the ballots array for our neuronHex
+            for ((voterHex, _) in p.ballots.vals()) {
+              if (voterHex == neuronHex) {
+                return true;
+              };
+            };
+            return false;
+          };
+          case (#Error e) {
+            Debug.print("Governance canister error: " # e.error_message);
+            return false;
+          };
+        };
+      };
+      case null {
+        Debug.print("No proposal data returned");
+        return false;
+      };
+    };
   };
 
   public query func availableCycles() : async Nat {
