@@ -1,4 +1,7 @@
 {
+  "actions": {
+    "ic": "3c7h6-daaaa-aaaag-qnhhq-cai"
+  },
   "admin_frontend": {
     "ic": "apcy6-tiaaa-aaaag-qkfda-cai",
     "test": "mweeb-mqaaa-aaaag-qkp5a-cai"
@@ -32,5 +35,8 @@
   },
   "stats_frontend": {
     "ic": "5bxlt-ryaaa-aaaag-qkhea-cai"
+  },
+  "test_backend": {
+    "ic": "3635p-uaaaa-aaaag-qnhfq-cai"
   }
 }

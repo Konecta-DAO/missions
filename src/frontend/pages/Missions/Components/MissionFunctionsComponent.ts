@@ -64,7 +64,7 @@ function refreshAll(globalID: GlobalIDType, fetchData: any, setPlacestate: React
 interface TwitterAuthConfig {
     globalID: GlobalIDType;
     type: 'follow' | 'retweet' | 'tweet' | 'bio' | 'redditJoin' | 'discordMember';
-    name: 'konecta' | 'diggy' | 'oisy' | 'mushroom' | 'dfinity';
+    name: 'konecta' | 'diggy' | 'oisy' | 'mushroom' | 'dfinity' | 'ictoolkit';
     missionId: bigint;
     trackEventName: string;
     successMessage: string;
@@ -489,33 +489,59 @@ const MissionFunctionsComponent = {
             disconnect,
         });
     },
-    goICT6: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+    goHKN: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        window.open("https://ic-toolkit.app/sns-management/proposals", '_blank');
+        setLoading(false);
+    },
+    goSPD: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        window.open("https://ic-toolkit.app/sns-management/proposals", '_blank');
+        setLoading(false);
+    },
+    goFSNS: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        window.open("https://ic-toolkit.app/sns-management/proposals", '_blank');
+        setLoading(false);
+    },
+    goVTK: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        window.open("https://ic-toolkit.app/sns-management/proposals", '_blank');
+        setLoading(false);
+    },
+    goSEN: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        window.open("https://ic-toolkit.app/email-updates", '_blank');
+        setLoading(false);
+    },
+    ICTmain: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+
         const actor = Actor.createActor(idlFactoryICT, {
             agent: globalID.agent!,
             canisterId: "rye2s-biaaa-aaaag-qng6a-cai",
-        });
+        })
+        const a = await actor.rewardHotkeyIfNeuronHolder(input) as boolean;
 
-        const payload: [ICToolkitMissionType, [] | [string[]]][] = [
-            [{ PointsVote: null }, [["jfnic-kaaaa-aaaaq-aadla-cai", "3143"]]],
-            [{ RewardVoteOnToolkit: null }, [["jfnic-kaaaa-aaaaq-aadla-cai", "3143"]]],
-        ];
-
-        const results = await actor.missionsMainEndpoint(
-            payload,
-            globalID.principalId
-        ) as boolean[];
-
-        // show the raw true/false array
-        toast.success(`Results: ${results.map(r => r.toString()).join(", ")}`);
-
-        if (results.every(r => r)) {
-            Usergeek.trackEvent("Oisy Mission Two: Be an Oisy OG");
+        if (a) {
+            Usergeek.trackEvent("ICToolkit Mission 0/5");
             refreshAll(globalID, fetchData, setPlacestate, disconnect, setLoading, closeModal);
-            toast.success("All missions succeeded!");
+            toast.success("Success!");
         } else {
-            toast.error("Some missions failed.");
+            toast.error("Principal doesn't have any neurons hotkeyed in this SNS");
             setLoading(false);
-        }
+        };
+    },
+    ictF1: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        window.open("https://twitter.com/intent/tweet?text=I've%20earned%202%20%24ICP%20by%20completing%20missions%20on%20%40ic_toolkit%20with%20%40KonectA_Dao", '_blank');
+        setLoading(false);
+    },
+    ICTF2: async (globalID: GlobalIDType, fetchData: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, closeModal: () => void, missionid: bigint, _input: any, setPlacestate: React.Dispatch<React.SetStateAction<boolean>>, disconnect: () => Promise<void>) => {
+        handleTwitterAuth({
+            globalID,
+            type: "tweet",
+            name: "ictoolkit",
+            missionId: missionid,
+            trackEventName: "ICToolkit: Tweet",
+            successMessage: "Success!",
+            notFoundMessage: "No Tweet Found!",
+            errorMessage: "We broke the roof! Twitter API has reached its limit for our Dev account. Please try again later.",
+            closeModal, setLoading, fetchData, setPlacestate, disconnect,
+        });
     },
 };
 

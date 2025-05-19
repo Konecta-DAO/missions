@@ -31,9 +31,14 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
         (proj) => proj.name === 'DIGGY'
     )
 
+    const icToolkitProject = globalID.projects.find(
+        (proj) => proj.name.toLowerCase() === 'ictoolkit'
+    );
+
     const isOisyProject = oisyProject && oisyProject.id === canisterId;
     const isDiggyProject = diggyProject && diggyProject.id === canisterId;
-
+    const isICToolkitProject = !!(icToolkitProject && icToolkitProject.id === canisterId);
+    const isICToolkitMission7 = isICToolkitProject && mission.id === 7n;
 
     const isOisyWalletValid = useMemo(() => globalID.walletLinkInfos.some(
         (info) =>
@@ -44,7 +49,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
 
     // State to track remaining time in seconds
     const [remainingTime, setRemainingTime] = useState<number | null>(null);
-
+    const [mission6CooldownTime, setMission6CooldownTime] = useState<number | null>(null);
     // Convert endDate from nanoseconds to milliseconds
     const endDateMs = Number(mission.endDate) !== 0 ? Number(mission.endDate) / 1_000_000 : 0;
 
@@ -64,6 +69,8 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     // Determine mission availability and tooltip text
     const isAvailableMission = !missionCompleted && requiredMissionCompleted && !isMissionLocked;
 
+
+
     let tooltipText: string | null = null;
 
     if (!requiredMissionCompleted && !missionCompleted) {
@@ -79,6 +86,86 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     const countdownLabel = mission.recursive
         ? 'This Mission will reset in'
         : 'This Mission ends in';
+
+    let finalGradientStartColor: string;
+    let finalGradientEndColor: string;
+
+    if (isICToolkitProject) {
+        finalGradientStartColor = '#651fff';
+        finalGradientEndColor = '#b388ff';
+    } else {
+        finalGradientStartColor = getGradientStartColor(Number(mission.mode));
+        finalGradientEndColor = getGradientEndColor(Number(mission.mode));
+    }
+
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout | undefined = undefined;
+
+        // Check if it's the specific mission (e.g., ID 6), is recursive, and is marked as completed.
+        if (mission.id === 6n && mission.recursive && missionCompleted) {
+            const progressListNested = globalID.userProgressMap?.[canisterId];
+            let latestCompletionTimestamp: bigint | null = null;
+
+            if (progressListNested) {
+                progressListNested.forEach((progressList: any[] | null) => {
+                    progressList?.forEach((entry: any[] | null) => {
+                        if (Array.isArray(entry) && entry.length === 2) {
+                            const [progressId, progressData] = entry;
+                            if (progressId?.toString() === mission.id.toString() && progressData && Array.isArray(progressData.completionHistory)) {
+                                progressData.completionHistory.forEach((record: any) => {
+                                    if (record && record.timestamp != null) {
+                                        try {
+                                            const currentTimestamp = BigInt(record.timestamp);
+                                            if (latestCompletionTimestamp === null || currentTimestamp > latestCompletionTimestamp) {
+                                                latestCompletionTimestamp = currentTimestamp;
+                                            }
+                                        } catch (e) {
+                                            console.error("Error converting timestamp to BigInt:", record.timestamp, e);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+
+            if (latestCompletionTimestamp !== null) {
+                const lastCompletionTimeMs = Number(latestCompletionTimestamp / 1_000_000n); // Nanoseconds to milliseconds
+                const cooldownDurationMs = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+                const cooldownEndTimeMs = lastCompletionTimeMs + cooldownDurationMs;
+
+                const updateCooldown = () => {
+                    const nowMs = Date.now();
+                    const diffSeconds = Math.floor((cooldownEndTimeMs - nowMs) / 1000);
+
+                    if (diffSeconds <= 0) {
+                        setMission6CooldownTime(null); // Cooldown finished
+                        if (intervalId) clearInterval(intervalId);
+                        // After cooldown, the mission should appear available.
+                        // `missionCompleted` might still be true from the last cycle.
+                        // `isRecursiveCompleted` would also be true.
+                        // This leads to `styles.IncompleteMission` class, making it look available.
+                    } else {
+                        setMission6CooldownTime(diffSeconds);
+                    }
+                };
+
+                updateCooldown(); // Initial call
+                intervalId = setInterval(updateCooldown, 1000);
+            } else {
+                // No completion history found for this recursive mission, or timestamp issue
+                setMission6CooldownTime(null);
+            }
+        } else {
+            // Not mission 6, or not recursive, or not completed in the current check
+            setMission6CooldownTime(null);
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [mission.id, mission.recursive, missionCompleted, globalID.userProgressMap, canisterId]);
 
     // Effect for countdown timer
     useEffect(() => {
@@ -110,19 +197,17 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     }, [location.pathname]);
 
     // Early return if mission has ended or time hasn't started
-    if (endDateMs > 0 && (remainingTime === null || remainingTime <= 0)) {
+    if (endDateMs > 0 && (remainingTime === null || remainingTime <= 0) && !(mission.id === 6n && mission6CooldownTime !== null && mission6CooldownTime > 0)) {
         return null;
     }
 
     let missionClass = styles.IncompleteMission;
-    if (isRecursiveCompleted) {
-        missionClass = styles.IncompleteMission;
+    if (isRecursiveCompleted || (mission.id === 6n && mission6CooldownTime !== null)) {
+        missionClass = styles.IncompleteMission; // Makes it look available or waiting
     } else if (missionCompleted) {
         missionClass = styles.CompletedMission;
     } else if (isAvailableMission) {
         missionClass = styles.AvailableMission;
-    } else {
-        missionClass = styles.IncompleteMission;
     }
 
     const formatRemainingTime = (seconds: number): string => {
@@ -155,7 +240,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 backgroundImage: `url(https://${BASE_URL}.raw.icp0.io${mission.image})`,
             }}
             onClick={() => {
-                if (missionCompleted || isAvailableMission) {
+                if (missionCompleted || isAvailableMission || (mission.id === 6n && mission6CooldownTime !== null)) {
                     handleCardClick();
                 }
             }}
@@ -184,11 +269,11 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                             >
                                 <stop
                                     offset="0%"
-                                    stopColor={getGradientStartColor(Number(mission.mode))}
+                                    stopColor={finalGradientStartColor}
                                 />
                                 <stop
                                     offset="100%"
-                                    stopColor={getGradientEndColor(Number(mission.mode))}
+                                    stopColor={finalGradientEndColor}
                                 />
                             </linearGradient>
                         </defs>
@@ -209,7 +294,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             </div>
 
             {/* Smaller Circle */}
-            {(missionCompleted || !requiredMissionCompleted || isMissionLocked) && (
+            {(missionCompleted || !requiredMissionCompleted || isMissionLocked) && !(mission.id === 6n && mission6CooldownTime !== null) && (
                 <svg
                     className={styles.SmallMissionCircle}
                     viewBox="0 0 100 100"
@@ -225,11 +310,11 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                         >
                             <stop
                                 offset="0%"
-                                stopColor={getGradientStartColor(Number(mission.mode))}
+                                stopColor={finalGradientStartColor}
                             />
                             <stop
                                 offset="100%"
-                                stopColor={getGradientEndColor(Number(mission.mode))}
+                                stopColor={finalGradientEndColor}
                             />
                         </linearGradient>
                     </defs>
@@ -271,7 +356,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             )}
 
             {/* Checkmark for Completed Missions */}
-            {missionCompleted && (
+            {missionCompleted && !isRecursiveCompleted && !(mission.id === 6n && mission6CooldownTime !== null) && (
                 <svg
                     className={styles.Checkmark}
                     viewBox="0 0 24 24"
@@ -301,11 +386,11 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                     >
                         <stop
                             offset="0%"
-                            stopColor={getGradientStartColor(Number(mission.mode))}
+                            stopColor={finalGradientStartColor}
                         />
                         <stop
                             offset="100%"
-                            stopColor={getGradientEndColor(Number(mission.mode))}
+                            stopColor={finalGradientEndColor}
                         />
                     </linearGradient>
                 </defs>
@@ -321,11 +406,15 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             </svg>
 
             {/* Conditional Text for Recursive Completed Missions */}
-            {isRecursiveCompleted && (
+            {missionCompleted && isICToolkitProject && mission.id === 6n && mission6CooldownTime === null ? (
+                <div className={styles.MissionUnavailableText}>
+                    Mission complete! Keep voting for more points.
+                </div>
+            ) : isRecursiveCompleted ? (
                 <div className={styles.MissionUnavailableText}>
                     Mission will be available again when the timer ends
                 </div>
-            )}
+            ) : null}
 
             {/* Time Display at Bottom Left Corner */}
             <div className={styles.TimeDisplay}>
@@ -354,13 +443,16 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
 
 
             {/* Countdown Timer at Bottom Right Corner */}
-            {endDateMs > 0 && remainingTime !== null && remainingTime > 0 && (
-                (mission.recursive) && (
-                    <div className={styles.CountdownDisplay}>
-                        {countdownLabel}: {formatRemainingTime(remainingTime)}
-                    </div>
-                )
-            )}
+            {mission.id === 6n && mission6CooldownTime !== null && mission6CooldownTime > 0 ? (
+                <div className={styles.CountdownDisplay}>
+                    Resets in: {formatRemainingTime(mission6CooldownTime)}
+                </div>
+            ) : (endDateMs > 0 && remainingTime !== null && remainingTime > 0 && mission.recursive) ? (
+                // Show general mission.endDate timer only if not overridden by Mission 6 cooldown
+                <div className={styles.CountdownDisplay}>
+                    {countdownLabel}: {formatRemainingTime(remainingTime)}
+                </div>
+            ) : null}
         </div>
     );
 };

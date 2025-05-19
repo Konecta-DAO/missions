@@ -342,7 +342,7 @@ module Types {
   public type Icrc1BlockIndex = Nat;
 
   public type Icrc1TransferError = {
-  #BadFee : { expected_fee : Icrc1Tokens };
+    #BadFee : { expected_fee : Icrc1Tokens };
     #BadBurn : { min_burn_amount : Icrc1Tokens };
     #InsufficientFunds : { balance : Icrc1Tokens };
     #TooOld;
@@ -369,5 +369,10 @@ module Types {
     #PointsSaveProposalDraft;
     #PointsFavoriteSNS;
     #PointsSignupEmailNotification;
+  };
+
+  public type SupportedStandard = {
+    url : Text;
+    name : Text;
   };
 };

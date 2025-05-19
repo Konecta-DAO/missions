@@ -19,18 +19,24 @@ function isKonectaMission(
     return 'mintime' in mission && 'maxtime' in mission;
 }
 
+const ICTOOLKIT_PROJECT_NAME_LOWERCASE = 'ictoolkit';
+
 const MissionGridComponent: React.FC = () => {
     const globalID = useGlobalID();
     const { projectSlug, missionSlug } = useParams<{ projectSlug?: string; missionSlug?: string }>();
     const [tooltipContent, setTooltipContent] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
     const [isOisyModalOpen, setIsOisyModalOpen] = useState(false);
-
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-
     const navigate = useNavigate();
 
     const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
+
+    const filteredGlobalProjects = useMemo(() => {
+        return globalID.projects.filter(
+            p => p.name.toLowerCase() !== ICTOOLKIT_PROJECT_NAME_LOWERCASE
+        );
+    }, [globalID.projects]);
 
     const isOisyWalletValid = useMemo(() => globalID.walletLinkInfos.some(
         (info) =>
@@ -39,55 +45,51 @@ const MissionGridComponent: React.FC = () => {
             info.linkedPrincipal.trim() !== ''
     ), [globalID.walletLinkInfos]);
 
+    const project = useMemo(() => {
+        if (!projectSlug) return null;
+        const lowerCaseSlug = projectSlug.toLowerCase();
+
+        if (lowerCaseSlug === ICTOOLKIT_PROJECT_NAME_LOWERCASE) { // Explicitly handle ICToolkit slug
+            return null;
+        }
+        if (lowerCaseSlug === 'konecta') {
+            return 'konecta';
+        }
+        // Find project in the filtered list
+        return filteredGlobalProjects.find(
+            (p) => p.name.toLowerCase() === lowerCaseSlug
+        ) || null;
+    }, [projectSlug, filteredGlobalProjects]);
+
     useEffect(() => {
         if (projectSlug) {
-            if (projectSlug.toLowerCase() === 'konecta') {
+            const lowerCaseSlug = projectSlug.toLowerCase();
+
+            if (lowerCaseSlug === ICTOOLKIT_PROJECT_NAME_LOWERCASE) {
+                setSelectedProject(null);
+                navigate('/'); // Redirect if ICToolkit slug is directly accessed
+                return;
+            }
+
+            if (project === 'konecta') {
                 setSelectedProject('konecta');
-            } else if (projectSlug.toLowerCase() === 'oisy') {
-                // Check if principalId exists
-                if (globalID.principalId != null) {
-                    // Check if oisyWallet is an instance of Principal
-                    if (!isOisyWalletValid) {
-                        navigate('/');
+            } else if (project && typeof project === 'object') { // Project is a valid object from filteredGlobalProjects
+                if (project.name.toLowerCase() === 'oisy') {
+                    if (globalID.principalId != null && !isOisyWalletValid) {
                         setSelectedProject(null);
+                        navigate('/'); // Oisy wallet invalid, redirect
                         return;
                     }
                 }
-                // Proceed to set 'OISY' as selected project if conditions are met
-                const project = globalID.projects.find(
-                    (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
-                );
-                if (project) {
-                    setSelectedProject(project.name);
-                } else {
-                    setSelectedProject(null);
-                }
-            } else {
-                const project = globalID.projects.find(
-                    (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
-                );
-                if (project) {
-                    setSelectedProject(project.name);
-                } else {
-                    setSelectedProject(null);
-                }
+                setSelectedProject(project.name);
+            } else { // projectSlug exists, but `project` is null (e.g., invalid slug)
+                setSelectedProject(null);
+                navigate('/'); // Redirect for other invalid slugs
             }
-        } else {
+        } else { // No projectSlug (e.g., root path)
             setSelectedProject(null);
         }
-    }, [projectSlug, globalID.projects, globalID.principalId]);
-
-    const project = useMemo(() => {
-        if (!projectSlug) return null;
-        if (projectSlug.toLowerCase() === 'konecta') {
-            return 'konecta';
-        } else {
-            // see if there's a matching project by name
-            return globalID.projects.find(
-                (p) => p.name.toLowerCase() === projectSlug.toLowerCase()
-            ) || null;
-        }
-    }, [projectSlug, globalID.projects]);
+    }, [projectSlug, project, globalID.principalId, isOisyWalletValid, navigate]);
 
     const parsedMissionId = useMemo(() => {
         if (!missionSlug) return null;
@@ -122,25 +124,26 @@ const MissionGridComponent: React.FC = () => {
         setTooltipPosition({ top: clientY + 10, left: clientX + 10 });
     };
 
-    const handleMissionClick = (mission: AnyMission, projectId: string) => {
+    const handleMissionClick = (mission: AnyMission, projectIdOrKonecta: string) => {
         const shortSlug = mission.title.split(' ').slice(0, 3)
             .map((word) => word.replace(/[^a-zA-Z0-9]/g, ''))
             .join('-')
             .toLowerCase();
-
         const routeSlug = `${shortSlug}-${mission.id.toString()}`;
 
-        if (isKonectaMission(mission)) {
+        if (isKonectaMission(mission) || projectIdOrKonecta === 'konecta') {
             navigate(`/konecta/${routeSlug}`);
-        } else {
-            const proj = globalID.projects.find((p) => p.id === projectId);
-            if (proj) {
-                navigate(`/${proj.name}/${routeSlug}`);
+        } else { // It's a project mission, projectIdOrKonecta is the project ID
+            const projectObject = filteredGlobalProjects.find((p) => p.id === projectIdOrKonecta);
+            if (projectObject) { // Found in filtered list, so it's not ICToolkit
+                navigate(`/${projectObject.name}/${routeSlug}`);
             } else {
+                // Fallback if project ID from mission isn't in filtered list (data inconsistency)
                 navigate('/');
             }
         }
     };
+
 
     const handleMouseLeave = () => {
         setTooltipContent(null);
@@ -176,36 +179,75 @@ const MissionGridComponent: React.FC = () => {
     const closeOisyModal = () => setIsOisyModalOpen(false);
 
     const sortedProjects = useMemo(() => {
-        const projectsCopy = [...globalID.projects];
-        const oisyProjectIndex = projectsCopy.findIndex(p => p.name.toLowerCase() === 'oisy');
-        if (oisyProjectIndex === -1) return projectsCopy;
-        const [oisyProject] = projectsCopy.splice(oisyProjectIndex, 1);
-        return [oisyProject, ...projectsCopy];
-    }, [globalID.projects]);
+        const projectsToDisplay = [...filteredGlobalProjects]; // Use the filtered list
+        const oisyProjectIndex = projectsToDisplay.findIndex(p => p.name.toLowerCase() === 'oisy');
+        if (oisyProjectIndex > -1) { // Check if Oisy project exists
+            const [oisyProject] = projectsToDisplay.splice(oisyProjectIndex, 1);
+            return [oisyProject, ...projectsToDisplay];
+        }
+        return projectsToDisplay; // Return (potentially modified) list if Oisy wasn't found or already first
+    }, [filteredGlobalProjects]);
 
     const displayedMissions: Array<{ mission: AnyMission; projectId: string }> = useMemo(() => {
-        let missions: Array<{ mission: AnyMission; projectId: string }>;
-        
+        let missionsToSort: Array<{ mission: AnyMission; projectId: string }> = [];
+
         if (selectedProject === 'konecta') {
-            missions = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
-        } else if (selectedProject) {
-            const projectObj = globalID.projects.find(
+            missionsToSort = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
+            missionsToSort.sort((a, b) => Number(a.mission.id) - Number(b.mission.id));
+        } else if (selectedProject) { // A specific project is selected (and it's not ICToolkit)
+            const projectObj = filteredGlobalProjects.find( // Find from the filtered list
                 (p) => p.name.toLowerCase() === selectedProject.toLowerCase()
             );
-            missions = projectObj 
+            missionsToSort = projectObj
                 ? (globalID.missionsMap[projectObj.id] ?? []).map(m => ({ mission: m, projectId: projectObj.id }))
                 : [];
-        } else {
-            const allProjectMissions = Object.entries(globalID.missionsMap).flatMap(([projId, missions]) =>
-                missions.map(m => ({ mission: m, projectId: projId }))
-            );
-            const konectaMissions = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
-            missions = [...konectaMissions, ...allProjectMissions];
+            missionsToSort.sort((a, b) => Number(a.mission.id) - Number(b.mission.id));
+        } else { // "All" projects selected (selectedProject is null)
+            const konectaMissionItems = globalID.missions?.map(m => ({ mission: m, projectId: 'konecta' })) ?? [];
+
+            const allProjectMissionItems = Object.entries(globalID.missionsMap).flatMap(([projId, projectMissionsList]) => {
+                // Check against original globalID.projects to identify ICToolkit by its ID for filtering
+                const projectDetails = globalID.projects.find(p => p.id === projId);
+                if (projectDetails && projectDetails.name.toLowerCase() === ICTOOLKIT_PROJECT_NAME_LOWERCASE) {
+                    return []; // Exclude missions from ICToolkit
+                }
+                return projectMissionsList.map(m => ({ mission: m, projectId: projId }));
+            });
+
+            missionsToSort = [...konectaMissionItems, ...allProjectMissionItems];
+
+            missionsToSort.sort((itemA, itemB) => {
+                const aIsKonecta = itemA.projectId === 'konecta';
+                const bIsKonecta = itemB.projectId === 'konecta';
+
+                if (aIsKonecta && !bIsKonecta) return -1;
+                if (!aIsKonecta && bIsKonecta) return 1;
+
+                if (!aIsKonecta && !bIsKonecta) { // Both are non-Konecta project missions
+                    // These lookups are on the original globalID.projects to get names for sorting.
+                    // Missions from ICToolkit are already filtered out of missionsToSort.
+                    const projectA_details = globalID.projects.find(p => p.id === itemA.projectId);
+                    const projectB_details = globalID.projects.find(p => p.id === itemB.projectId);
+
+                    // Fallback name 'zzzz' ensures undefined projects sort last if any slip through,
+                    // though ICToolkit missions themselves are already excluded.
+                    const projectAName = projectA_details ? projectA_details.name.toLowerCase() : 'zzzz';
+                    const projectBName = projectB_details ? projectB_details.name.toLowerCase() : 'zzzz';
+
+                    const aIsOisy = projectAName === 'oisy';
+                    const bIsOisy = projectBName === 'oisy';
+
+                    if (aIsOisy && !bIsOisy) return -1;
+                    if (!aIsOisy && bIsOisy) return 1;
+
+                    if (projectAName < projectBName) return -1;
+                    if (projectAName > projectBName) return 1;
+                }
+                return Number(itemA.mission.id) - Number(itemB.mission.id); // Final sort by mission ID
+            });
         }
-        
-        // Sort numerically by mission id
-        return missions.sort((a, b) => Number(a.mission.id) - Number(b.mission.id));
-    }, [selectedProject, globalID.missions, globalID.missionsMap, globalID.projects]);
+        return missionsToSort;
+    }, [selectedProject, globalID.missions, globalID.missionsMap, globalID.projects, filteredGlobalProjects]);
 
     return (
         <>

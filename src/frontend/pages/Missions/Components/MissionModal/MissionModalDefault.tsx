@@ -25,6 +25,48 @@ interface MissionModalProps {
 
 const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
 
+const ICToolkitMissionZeroOptions = [
+    { name: 'ALICE', id: 'oa5dz-haaaa-aaaaq-aaegq-cai' },
+    { name: 'BOOM DAO', id: 'xomae-vyaaa-aaaaq-aabhq-cai' },
+    { name: 'Catalyze', id: 'umz53-fiaaa-aaaaq-aabmq-cai' },
+    { name: 'Cecil The Lion DAO', id: 'jt5an-tqaaa-aaaaq-aaevq-cai' },
+    { name: 'DecideAI DAO', id: 'xvj4b-paaaa-aaaaq-aabfa-cai' },
+    { name: 'DOLR AI', id: '6wcax-haaaa-aaaaq-aaava-cai' },
+    { name: 'Dragginz', id: 'zqfso-syaaa-aaaaq-aaafq-cai' },
+    { name: 'ELNA AI', id: 'gdnpl-daaaa-aaaaq-aacna-cai' },
+    { name: 'Estate DAO', id: 'bmjwo-aqaaa-aaaaq-aac4a-cai' },
+    { name: 'FomoWell', id: 'o3y74-5yaaa-aaaaq-aaeea-cai' },
+    { name: 'FuelEV', id: 'nmkto-maaaa-aaaaq-aaemq-cai' },
+    { name: 'Gold DAO', id: 'tr3th-kiaaa-aaaaq-aab6q-cai' },
+    { name: 'IC Explorer', id: 'icx6s-lyaaa-aaaaq-aaeqa-cai' },
+    { name: 'ICFC', id: 'detjl-sqaaa-aaaaq-aacqa-cai' },
+    { name: 'ICLighthouse DAO', id: 'hodlf-miaaa-aaaaq-aackq-cai' },
+    { name: 'ICPanda', id: 'dwv6s-6aaaa-aaaaq-aacta-cai' },
+    { name: 'ICPEx', id: 'lseuu-xyaaa-aaaaq-aaeya-cai' },
+    { name: 'ICPSwap', id: 'cvzxu-kyaaa-aaaaq-aacvq-cai' },
+    { name: 'ICVC', id: 'ntzq5-dyaaa-aaaaq-aadtq-cai' },
+    { name: 'Kinic', id: '74ncn-fqaaa-aaaaq-aaasa-cai' },
+    { name: 'KongSwap', id: 'oypg6-faaaa-aaaaq-aadza-cai' },
+    { name: 'Mimic', id: '4l7o7-uiaaa-aaaaq-aaa2q-cai' },
+    { name: 'Motoko', id: 'k34pm-nqaaa-aaaaq-aadca-cai' },
+    { name: 'Neutrinite', id: 'eqsml-lyaaa-aaaaq-aacdq-cai' },
+    { name: 'NFID Wallet', id: 'mpg2i-yyaaa-aaaaq-aaeka-cai' },
+    { name: 'Nuance', id: 'rqch6-oaaaa-aaaaq-aabta-cai' },
+    { name: 'OpenChat', id: '2jvtu-yqaaa-aaaaq-aaama-cai' },
+    { name: 'ORIGYN', id: 'lnxxh-yaaaa-aaaaq-aadha-cai' },
+    { name: 'Personal DAO', id: 'iqrjl-hiaaa-aaaaq-aaeta-cai' },
+    { name: 'PokedBots', id: 'ni4my-zaaaa-aaaaq-aadra-cai' },
+    { name: 'Sneed', id: 'fi3zi-fyaaa-aaaaq-aachq-cai' },
+    { name: 'SONIC', id: 'qgj7v-3qaaa-aaaaq-aabwa-cai' },
+    { name: 'Swampies', id: 'lyqgk-ziaaa-aaaaq-aadeq-cai' },
+    { name: 'TACO DAO', id: 'lhdfz-wqaaa-aaaaq-aae3q-cai' },
+    { name: 'TRAX', id: 'elxqo-raaaa-aaaaq-aacba-cai' },
+    { name: 'WaterNeuron', id: 'jfnic-kaaaa-aaaaq-aadla-cai' },
+    { name: 'Yuku AI', id: 'auadn-oqaaa-aaaaq-aacya-cai' },
+    { name: '---- (formerly known as CYCLES-TRANSFER-STATION)', id: 'igbbe-6yaaa-aaaaq-aadnq-cai' },
+    { name: '---- ex Seers ----', id: 'rceqh-cqaaa-aaaaq-aabqa-cai' }
+];
+
 const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId, canisterId }) => {
     const globalID = useGlobalID();
     const navigate = useNavigate();
@@ -37,27 +79,49 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         return BigInt(Date.now()) * 1_000_000n;
     });
 
+    const [selectedICToolkitCanister, setSelectedICToolkitCanister] = useState(ICToolkitMissionZeroOptions[0]?.id || '');
+
     const mission = useMemo(() => {
         // Ensure canisterId is provided
         if (!canisterId) {
             console.error('No canisterId provided to MissionModal.');
             return null;
         }
-    
+
         // Fetch missions for the specific project using canisterId
         const missionsForProject = globalID.missionsMap[canisterId] || [];
         const foundMission = missionsForProject.find(
             (m: SerializedMissionDefault) => m.id === selectedMissionId
         );
-    
+
         if (!foundMission) {
             console.error(`Mission with ID ${selectedMissionId} not found for canister ${canisterId}.`);
         }
-    
+
         return foundMission || null;
     }, [globalID.missionsMap, canisterId, selectedMissionId]);
 
     if (!mission) return null;
+
+    const projectForGradient = useMemo(() => {
+        return globalID.projects.find(p => p.id === canisterId);
+    }, [globalID.projects, canisterId]);
+
+    const isICToolkitProject = useMemo(() => {
+        return projectForGradient ? projectForGradient.name.toLowerCase() === 'ictoolkit' : false;
+    }, [projectForGradient]);
+
+    useEffect(() => {
+        if (mission) {
+            if (isICToolkitProject && (mission.id === 0n || mission.id === 5n)) {
+                const initialId = ICToolkitMissionZeroOptions[0]?.id || '';
+                setSelectedICToolkitCanister(initialId);
+                setInputValue(initialId);
+            } else if (Number(mission.mode) !== 2) {
+                setInputValue('');
+            }
+        }
+    }, [mission, isICToolkitProject]);
 
     useEffect(() => {
         const updateTime = () => {
@@ -86,10 +150,21 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     }, [loading, closeModal]);
 
     // Memoize gradient colors
-    const gradientColors = useMemo(() => ({
-        start: getGradientStartColor(Number(mission.mode)),
-        end: getGradientEndColor(Number(mission.mode)),
-    }), [mission.mode]);
+    const gradientColors = useMemo(() => {
+        if (!mission) {
+            return { start: '#CCCCCC', end: '#AAAAAA' };
+        }
+        if (isICToolkitProject) {
+            return {
+                start: '#651fff',
+                end: '#b388ff',
+            };
+        }
+        return {
+            start: getGradientStartColor(Number(mission.mode)),
+            end: getGradientEndColor(Number(mission.mode)),
+        };
+    }, [mission, isICToolkitProject]);
 
     const missionCompleted = useMemo(() => checkMissionCompletionDefault(globalID.userProgressMap, canisterId, mission), [globalID.userProgressMap, mission]);
 
@@ -131,7 +206,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         } else {
             console.error(`Function ${functionName} not found`);
         }
-    }, [globalID, navigate, fetchData, closeModal]);
+    }, [globalID, fetchData, closeModal, mission, inputValue, disconnect]);
 
     // Memoize button styles
     const buttonGradientStyle = useMemo(() => ({
@@ -152,6 +227,55 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
     const renderButtons = useMemo(() => {
         if (missionCompleted) {
             return <div className={styles.CompletedText}>Mission Completed!</div>;
+        }
+
+        if (isICToolkitProject && (mission.id === 0n || mission.id === 5n)) {
+            const functionNameToExecute = mission.functionName2; // Or mission.functionName1?.[0] based on specific need
+            const buttonText = mission.obj2 || 'Execute'; // Fallback button text
+
+            return (
+                <>
+                    <div style={{
+                        padding: '3px',
+                        borderRadius: '25px',
+                        background: `linear-gradient(to right, ${gradientColors.end}, ${gradientColors.start})`,
+                        marginRight: '10px',
+                        display: 'inline-block',
+                    }}>
+                        <select
+                            value={selectedICToolkitCanister}
+                            onChange={(e) => {
+                                setSelectedICToolkitCanister(e.target.value);
+                                setInputValue(e.target.value);
+                            }}
+                            style={{ ...missionInputStyle, width: '300px', minWidth: '200px' }}
+                            disabled={loading}
+                            className={styles.InputContent}
+                        >
+                            {ICToolkitMissionZeroOptions.map(option => (
+                                <option key={option.id} value={option.id} style={{ backgroundColor: 'black', color: 'white' }}>
+                                    {option.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    {functionNameToExecute && (
+                        <button
+                            onClick={() => executeFunction(functionNameToExecute)}
+                            style={buttonGradientStyle}
+                            disabled={loading}
+                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
+                        >
+                            <div className={styles.buttonContent}>
+                                {loading && <div className={styles.spinner} />}
+                                <span className={loading ? styles.loadingText : ''}>
+                                    {loading ? 'Loading...' : buttonText}
+                                </span>
+                            </div>
+                        </button>
+                    )}
+                </>
+            );
         }
 
         const functionName1 = mission.functionName1?.[0];
@@ -243,7 +367,20 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         }
 
         return null;
-    }, [missionCompleted, mission, executeFunction, buttonGradientStyle, loading]);
+    }, [
+        mission,
+        missionCompleted,
+        isICToolkitProject,
+        selectedICToolkitCanister,
+        inputValue, 
+        executeFunction,
+        buttonGradientStyle,
+        missionInputStyle, 
+        gradientColors,
+        loading,
+        setInputValue,
+        setSelectedICToolkitCanister
+    ]);
 
 
 

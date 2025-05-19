@@ -43,8 +43,6 @@ type ModalState = {
 const Missions: React.FC = () => {
     const globalID = useGlobalID();
     const { user, identity } = useIdentityKit();
-    const navigate = useNavigate();
-    const location = useLocation();
 
     const fetchData = useFetchData();
     const [dataloaded, setDataloaded] = useState(false);

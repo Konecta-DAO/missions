@@ -25,6 +25,7 @@ import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
 import { SerializedProjectMissions } from '../../../declarations/index/index.did.js';
 import { IndexCanisterId } from '../../main.tsx';
+import { NFIDW } from '@nfid/identitykit';
 
 // const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
@@ -41,7 +42,6 @@ const Home: React.FC = () => {
   const [isKonectaModalOpen, setIsKonectaModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isnfiding, setIsnfiding] = useState(false);
-  const [userId, setUserId] = useState('');
 
   const setData = async (agent: HttpAgent) => {
     if (agent) {
@@ -69,9 +69,6 @@ const Home: React.FC = () => {
 
         (actorIndex.getUserByPrincipal(a) as Promise<SerializedGlobalUser[]>).then(async (b) => {
           if (Array.isArray(b) && b.length !== 0) {
-            if (userId !== '' && b[0].ocProfile.length > 0) {
-              actorIndex.addOCProfile(a, userId);
-            }
             globalID.setPrincipal(a);
             globalID.setUser(b);
             navigate(fromPath, { replace: true });
@@ -84,12 +81,11 @@ const Home: React.FC = () => {
               delegation.delegations &&
               delegation.delegations.length > 0
             ) {
-
+              if (localStorage.getItem('signerId') !== 'NFIDW') {
+                disconnect();
+              };
               (actorIndex.createUser(a, localStorage.getItem('signerId')) as Promise<SerializedGlobalUser[]>).then(
                 async (newUser) => {
-                  if (userId !== '') {
-                    actorIndex.addOCProfile(a, userId);
-                  }
                   globalID.setPrincipal(a);
                   globalID.setUser(newUser);
 
@@ -104,23 +100,6 @@ const Home: React.FC = () => {
       });
     }
   };
-
-
-  useEffect(() => {
-    const extractQueryParams = () => {
-      const queryString = window.location.search;
-
-
-      const urlParams = new URLSearchParams(queryString);
-
-      const ocUserId = urlParams.get('oc_userid');
-
-      if (ocUserId) {
-        setUserId(ocUserId);
-      }
-    };
-    extractQueryParams();
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {

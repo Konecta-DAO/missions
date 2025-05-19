@@ -7,6 +7,20 @@
         "node_compatibility": true
       }
     },
+    "actions": {
+      "type": "motoko",
+      "main": "actions_canister/Backend.mo",
+      "declarations": {
+        "node_compatibility": true
+      }
+    },
+    "test_backend": {
+      "type": "motoko",
+      "main": "NewProject/Backend.mo",
+      "declarations": {
+        "node_compatibility": true
+      }
+    },
     "dfinity_backend": {
       "type": "motoko",
       "main": "dfinity_backend/Backend.mo",
