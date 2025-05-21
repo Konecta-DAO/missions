@@ -4,8 +4,13 @@ import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 import Text "mo:base/Text";
 import Array "mo:base/Array";
+import Nat32 "mo:base/Nat32";
+import Time "mo:base/Time";
+import Hash "mo:base/Hash";
+import Blob "mo:base/Blob";
 import NewTypes "NewTypes";
 import Json "mo:json";
+import StableTrieMap "../StableTrieMap";
 
 module Helpers {
 
@@ -145,5 +150,30 @@ module Helpers {
                 };
             };
         };
+    };
+
+    public func generateAssetId(originalFileNameText : Text, assetContent : Blob) : Text {
+        let timestamp = Int.toText(Time.now());
+        // Sanitize and shorten originalFileNameText for use in URL
+        // Remove non-alphanumeric (except dot for extension), replace spaces, lowercase
+        var safeName = "";
+        var dotSeen = false;
+        for (c in originalFileNameText.chars()) {
+            if (c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z' or c >= '0' and c <= '9') {
+                safeName := safeName # Text.toLowercase(Text.fromChar(c));
+            } else if (c == '.' and not dotSeen) {
+                safeName := safeName # ".";
+                dotSeen := true; // only allow one dot
+            } else if (Text.size(safeName) < 30 and (c == '-' or c == '_')) {
+                // limit size
+                safeName := safeName # Text.fromChar(c);
+            };
+        };
+        if (Text.size(safeName) == 0 or safeName == ".") {
+            safeName := "asset";
+        };
+        // Using a hash of the content for better uniqueness if names collide
+        let contentHash = Nat32.toText(Blob.hash(assetContent));
+        return timestamp # "_" # contentHash # "_" # safeName;
     };
 };

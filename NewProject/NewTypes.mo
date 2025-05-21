@@ -6,6 +6,102 @@ import StableTrieMap "../StableTrieMap";
 
 module NewTypes {
 
+    public type SerializedGlobalUser = {
+        twitterid : ?Nat;
+        twitterhandle : ?Text;
+        creationTime : Int;
+        pfpProgress : Text;
+        deducedPoints : Nat;
+        ocProfile : ?Text;
+        discordUser : ?Text;
+        telegramUser : ?Text;
+        nuanceUser : ?Text;
+        nnsPrincipal : ?Principal;
+        firstname : ?Text;
+        lastname : ?Text;
+        username : ?Text;
+        email : ?Text;
+        bio : ?Text;
+        categories : ?[Text];
+        profilepic : ?Text;
+        coverphoto : ?Text;
+        country : ?Text;
+        timezone : ?Text;
+        icrc1tokens : ?[Principal];
+        nft721 : ?[Principal];
+    };
+
+    public type Icrc28TrustedOriginsResponse = {
+        trusted_origins : [Text];
+    };
+
+    public type Permissions = {
+
+        // Admin
+        var addAdmin : Bool;
+        var removeAdmin : Bool;
+        var editAdmin : Bool;
+        var viewAdmins : Bool;
+
+        // Project Info
+        var editProjectInfo : Bool;
+
+        // Missions
+
+        var createMission : Bool;
+        var editMissionInfo : Bool;
+        var editMissionFlow : Bool;
+        var updateMissionStatus : Bool;
+
+        // User Progress
+
+        var viewAnyUserProgress : Bool;
+        var resetUserProgress : Bool;
+        var adjustUserProgress : Bool;
+    };
+
+    public type SerializedPermissions = {
+        addAdmin : Bool;
+        removeAdmin : Bool;
+        editAdmin : Bool;
+        viewAdmins : Bool;
+        editProjectInfo : Bool;
+        createMission : Bool;
+        editMissionInfo : Bool;
+        editMissionFlow : Bool;
+        updateMissionStatus : Bool;
+        viewAnyUserProgress : Bool;
+        resetUserProgress : Bool;
+        adjustUserProgress : Bool;
+    };
+
+    public type PermissionKey = {
+        // Admin Management
+        #CanAddAdmin;
+        #CanRemoveAdmin;
+        #CanEditAdminPermissions;
+        #CanViewAdmins;
+
+        // Project Info
+        #CanEditProjectInfo;
+
+        // Missions
+        #CanCreateMission;
+        #CanEditMissionInfo;
+        #CanEditMissionFlow;
+        #CanUpdateMissionStatus;
+
+        // User Progress
+        #CanViewAnyUserProgress;
+        #CanResetUserProgress;
+        #CanAdjustUserProgress;
+    };
+
+    public type ImageUploadInput = {
+        #Url : Text;
+        #Asset : { originalFileName : Text; content : Blob };
+    };
+
     public type ProjectContactInfo = {
         var xAccountUrl : ?Text;
         var telegramGroupUrl : ?Text;
@@ -18,6 +114,7 @@ module NewTypes {
 
     public type ProjectDetails = {
         var name : Text;
+        var isVisible : Bool;
         var iconUrl : ?Text;
         var bannerUrl : ?Text;
         var description : Text;
@@ -39,6 +136,7 @@ module NewTypes {
 
     public type SerializedProjectDetails = {
         name : Text;
+        isVisible : Bool;
         iconUrl : ?Text;
         bannerUrl : ?Text;
         description : Text;

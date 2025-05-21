@@ -23,7 +23,7 @@ actor class Backend() {
 
   let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
-  let doAddress : Text = "do.konecta.one";
+  let doAddress : Text = "dotest.konecta.one";
 
   private var globalStreakPercentage : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
 
@@ -1699,6 +1699,10 @@ actor class Backend() {
       "https://okowr-oqaaa-aaaag-qkedq-cai.raw.ic0.app",
       "https://5bxlt-ryaaa-aaaag-qkhea-cai.raw.ic0.app",
       "https://y7mum-taaaa-aaaag-qklxq-cai.raw.ic0.app",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.icp0.io",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.raw.icp0.io",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.ic0.app",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.raw.ic0.app",
     ];
 
     return {

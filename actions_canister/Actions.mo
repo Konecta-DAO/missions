@@ -7,8 +7,7 @@ import Nat64 "mo:base/Nat64";
 import Nat32 "mo:base/Nat32";
 import GovernanceTypes "GovernanceTypes";
 import Helpers "Helpers";
-// --- Placeholder Action Handler Functions ---
-// These would be private and async, containing the actual logic for each action.
+
 module Actions {
 
     type HandlerOk = {

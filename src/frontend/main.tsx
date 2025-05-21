@@ -35,8 +35,9 @@ const fetchTargets = async (): Promise<string[]> => {
     canisterId: IndexCanisterId,
   });
 
-  const projects = await actor.getAllProjectMissions() as SerializedProjectMissions[];
-  const targets: string[] = projects.map(project => project.canisterId.toText());
+  const projectPrincipals = await actor.getProjects() as { toText: () => string }[];
+  // Map the principals to their text representations
+  const targets: string[] = projectPrincipals.map(principal => principal.toText());
   return [backId, IndexCanisterId, ...targets];
 };
 

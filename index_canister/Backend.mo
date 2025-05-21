@@ -15,6 +15,8 @@ import UUID "mo:uuid/UUID";
 import Sha256 "mo:sha2/Sha256";
 import Nat8 "mo:base/Nat8";
 import Blob "mo:base/Blob";
+import Option "mo:base/Option";
+import Debug "mo:base/Debug";
 
 actor class Backend() {
 
@@ -23,6 +25,8 @@ actor class Backend() {
   let konectaCanisterId : Text = "ynkdv-7qaaa-aaaag-qkluq-cai";
 
   stable var projects : Vector.Vector<Types.ProjectMissions> = Vector.new<Types.ProjectMissions>();
+
+  stable var projectsV2 : Vector.Vector<Principal> = Vector.new<Principal>();
 
   private var principalToUUID : TrieMap.TrieMap<Principal, Text> = TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
 
@@ -51,6 +55,15 @@ actor class Backend() {
   stable let currentVersion : Text = "V2.0";
 
   // Pre-upgrade function
+
+  public shared func addProjectV2(project : Principal) : async Bool {
+    Vector.add(projectsV2, project);
+    return true;
+  };
+
+  public shared query func getProjects() : async [Principal] {
+    return Vector.toArray(projectsV2);
+  };
 
   system func preupgrade() {
 
@@ -1155,8 +1168,8 @@ actor class Backend() {
 
   private func isProject(principalId : Principal) : Bool {
     return Array.find<Principal>(
-      Array.map<Types.ProjectMissions, Principal>(Vector.toArray(projects), func(p) : Principal { p.canisterId }),
-      func(id) : Bool {
+      Vector.toArray(projectsV2),
+      func(id : Principal) : Bool {
         id == principalId;
       },
     ) != null;
@@ -1589,6 +1602,117 @@ actor class Backend() {
     };
   };
 
+  private func getPrimaryAccountFromList(linkedAccountsList : [(Text, Principal)]) : (?Principal, ?Text) {
+    var nfidPrincipal : ?Principal = null;
+    var oisyPrincipal : ?Principal = null;
+    var iiPrincipal : ?Principal = null;
+
+    var otherFirstPrincipal : ?Principal = null; // To store the first encountered non-preferred account
+    var otherFirstType : ?Text = null;
+
+    if (Array.size(linkedAccountsList) == 0) {
+      return (null, null);
+    };
+
+    for ((accType, principal) in Iter.fromArray(linkedAccountsList)) {
+      if (accType == "NFIDW" and nfidPrincipal == null) {
+        // Take the first NFIDW encountered
+        nfidPrincipal := ?principal;
+      } else if (accType == "Oisy" and oisyPrincipal == null) {
+        // Take the first Oisy
+        oisyPrincipal := ?principal;
+      } else if (accType == "InternetIdentity" and iiPrincipal == null) {
+        // Take the first II
+        iiPrincipal := ?principal;
+      };
+
+      // Capture the first 'other' account in case no preferred types are found
+      // and if we haven't already found one of the preferred types.
+      // This ensures we only store an "other" if a preferred type isn't immediately found.
+      if (otherFirstPrincipal == null and accType != "NFIDW" and accType != "Oisy" and accType != "InternetIdentity") {
+        otherFirstPrincipal := ?principal;
+        otherFirstType := ?accType;
+      };
+    };
+
+    if (Option.isSome(nfidPrincipal)) { return (nfidPrincipal, ?"NFIDW") } else if (Option.isSome(oisyPrincipal)) {
+      return (oisyPrincipal, ?"Oisy");
+    } else if (Option.isSome(iiPrincipal)) {
+      return (iiPrincipal, ?"InternetIdentity");
+    } else if (Option.isSome(otherFirstPrincipal)) {
+      return (otherFirstPrincipal, otherFirstType);
+    } // Return the first 'other' if no preferred found
+    else {
+      // This case implies the list might have contained only preferred types, but they were null (not possible for Principal)
+      // or the list was empty (handled at the start), or became empty.
+      // As a final fallback, if the list somehow had entries but none matched the above,
+      // take the absolute first one. This is defensive.
+      if (Array.size(linkedAccountsList) > 0) {
+        let (firstType, firstPrincipal) = linkedAccountsList[0];
+        return (?firstPrincipal, ?firstType);
+      };
+      return (null, null); // Should be covered by the empty check at the start
+    };
+  };
+
+  public shared query (msg) func getBatchPrimaryAccounts(userUUIDs : [Text]) : async [(Text, ?Principal, ?Text)] {
+    if (not isProject(msg.caller)) {
+      Debug.trap("getBatchPrimaryAccounts: Caller is not authorized.");
+    };
+
+    var results : [(Text, ?Principal, ?Text)] = [];
+
+    for (uuid in Iter.fromArray(userUUIDs)) {
+      switch (uuidToLinkedAccounts.get(uuid)) {
+        case (null) {
+          // UUID not found in the map
+          results := Array.append(results, [(uuid, null, null)]);
+        };
+        case (?linkedAccountsList) {
+          // UUID found, process its linked accounts
+          let (primaryPrincipal, primaryAccountType) = getPrimaryAccountFromList(linkedAccountsList);
+          results := Array.append(results, [(uuid, primaryPrincipal, primaryAccountType)]);
+        };
+      };
+    };
+    return results;
+  };
+
+  public shared query (msg) func getBatchGlobalUsers(userUUIDs : [Text]) : async [(Text, ?Types.SerializedGlobalUser)] {
+    if (not isProject(msg.caller)) {
+      Debug.trap("getBatchGlobalUsers: Caller is not authorized.");
+    };
+
+    var results : [(Text, ?Types.SerializedGlobalUser)] = [];
+
+    for (uuid in Iter.fromArray(userUUIDs)) {
+      switch (uuidToUser.get(uuid)) {
+        case (null) {
+          // UUID not found in the map
+          results := Array.append(results, [(uuid, null)]);
+        };
+        case (?user) {
+          // UUID found, serialize the user
+          let serializedUser = Serialization.serializeUser(user);
+          results := Array.append(results, [(uuid, ?serializedUser)]);
+        };
+      };
+    };
+    return results;
+  };
+
+  public shared query (msg) func getLinkedAccountsForUUID(uuid : Text) : async [(Text, Principal)] {
+
+    if (not isProject(msg.caller)) {
+      Debug.trap("getBatchGlobalUsers: Caller is not authorized.");
+    };
+
+    switch (uuidToLinkedAccounts.get(uuid)) {
+      case (null) { return [] }; // No entry for UUID means no linked accounts
+      case (?accountsList) { return accountsList }; // Return the list of (AccountType, Principal)
+    };
+  };
+
   public query func availableCycles() : async Nat {
     return Cycles.balance();
   };
@@ -1620,6 +1744,10 @@ actor class Backend() {
       "https://okowr-oqaaa-aaaag-qkedq-cai.raw.ic0.app",
       "https://5bxlt-ryaaa-aaaag-qkhea-cai.raw.ic0.app",
       "https://y7mum-taaaa-aaaag-qklxq-cai.raw.ic0.app",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.icp0.io",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.raw.icp0.io",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.ic0.app",
+      "https://3qzqh-pqaaa-aaaag-qnheq-cai.raw.ic0.app",
     ];
 
     return {

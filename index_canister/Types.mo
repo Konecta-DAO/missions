@@ -202,62 +202,6 @@ module Types {
     avatar : Text;
   };
 
-  public type KonectaMissionV2 = {
-    var id : Nat; // Mission Number
-    var title : Text; // Title of the Mission
-    var description : Text; // Description of the Mission
-    var obj1 : ?Text; // Text for First Button or Input (optional)
-    var obj2 : Text; // Text for Second Button (optional)
-    var inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
-    var startDate : Int; // Start date of the mission (Unix timestamp)
-    var endDate : Int; // End date of the mission (Unix timestamp)
-    var recursive : Bool; // If the mission is recursive
-    var mintime : Int; // Minimum time to earn on the mission
-    var maxtime : Int; // Maximum time to earn on the mission
-    var functionName1 : ?Text; // Function Name to call on First Button (optional)
-    var functionName2 : Text; // Function Name to call on Second Button (optional)
-    var image : Text; // Image for the mission
-    var secretCodes : ?Text; // List of secret codes for the mission (optional)
-    var mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
-    var requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
-    var iconUrl : Text;
-    var token : Bool;
-    var subAccount : ?[Int8];
-    var subMissions : ?Vector.Vector<MissionV2>;
-    var maxUsers : ?Nat;
-    var usersThatCompleted : ?[(Principal, Int)];
-    var status : Text;
-    creationTime : Int;
-  };
-
-  public type KonectaSerializedMissionV2 = {
-    id : Nat; // Mission Number
-    title : Text; // Title of the Mission
-    description : Text; // Description of the Mission
-    obj1 : ?Text; // Text for First Button or Input (optional)
-    obj2 : Text; // Text for Second Button (optional)
-    inputPlaceholder : ?Text; // Placeholder text for the input field (optional)
-    startDate : Int; // Start date of the mission (Unix timestamp)
-    endDate : Int; // End date of the mission (Unix timestamp)
-    recursive : Bool; // If the mission is recursive
-    mintime : Int; // Minimum time to earn on the mission
-    maxtime : Int; // Maximum time to earn on the mission
-    functionName1 : ?Text; // Function Name to call on First Button (optional)
-    functionName2 : Text; // Function Name to call on Second Button (optional)
-    image : Text; // Image for the mission
-    secretCodes : ?Text; // List of secret codes for the mission (optional)
-    mode : Nat; // 0: Description + Button , 1: Description + Two Buttons, 2: Description + Input + Button
-    requiredPreviousMissionId : ?Nat; // Optional ID of the required previous mission
-    iconUrl : Text;
-    token : Bool;
-    subAccount : ?[Int8];
-    subMissions : ?[SerializedMissionV2];
-    maxUsers : ?Nat;
-    usersThatCompleted : ?[(Principal, Int)];
-    status : Text;
-    creationTime : Int;
-  };
-
   public type MissionV2 = {
     var id : Nat; // Mission Number
     var title : Text; // Title of the Mission

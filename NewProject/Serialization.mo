@@ -3,6 +3,40 @@ import Iter "mo:base/Iter";
 import StableTrieMap "../StableTrieMap";
 module Serialization {
 
+    public func deserializePermissions(permissions : NewTypes.SerializedPermissions) : NewTypes.Permissions {
+        {
+            var addAdmin = permissions.addAdmin;
+            var removeAdmin = permissions.removeAdmin;
+            var editAdmin = permissions.editAdmin;
+            var viewAdmins = permissions.viewAdmins;
+            var editProjectInfo = permissions.editProjectInfo;
+            var createMission = permissions.createMission;
+            var editMissionInfo = permissions.editMissionInfo;
+            var editMissionFlow = permissions.editMissionFlow;
+            var updateMissionStatus = permissions.updateMissionStatus;
+            var viewAnyUserProgress = permissions.viewAnyUserProgress;
+            var resetUserProgress = permissions.resetUserProgress;
+            var adjustUserProgress = permissions.adjustUserProgress;
+        };
+    };
+
+    public func serializePermissions(permissions : NewTypes.Permissions) : NewTypes.SerializedPermissions {
+        {
+            addAdmin = permissions.addAdmin;
+            removeAdmin = permissions.removeAdmin;
+            editAdmin = permissions.editAdmin;
+            viewAdmins = permissions.viewAdmins;
+            editProjectInfo = permissions.editProjectInfo;
+            createMission = permissions.createMission;
+            editMissionInfo = permissions.editMissionInfo;
+            editMissionFlow = permissions.editMissionFlow;
+            updateMissionStatus = permissions.updateMissionStatus;
+            viewAnyUserProgress = permissions.viewAnyUserProgress;
+            resetUserProgress = permissions.resetUserProgress;
+            adjustUserProgress = permissions.adjustUserProgress;
+        };
+    };
+
     public func serializeUserActionStepState(actionState : NewTypes.UserActionStepState) : NewTypes.SerializedUserActionStepState {
         {
             attempts = actionState.attempts;
@@ -62,7 +96,7 @@ module Serialization {
             stepStates = Iter.toArray(
                 Iter.map<(Nat, NewTypes.UserActionStepState), (Nat, NewTypes.SerializedUserActionStepState)>(
                     StableTrieMap.entries(userprogress.stepStates),
-                    step_state_transformer // Use the explicitly typed helper function
+                    step_state_transformer,
                 )
             );
             currentStepId = userprogress.currentStepId;
@@ -88,11 +122,12 @@ module Serialization {
     public func serializeProjectDetails(details : NewTypes.ProjectDetails) : NewTypes.SerializedProjectDetails {
         {
             name = details.name;
+            isVisible = details.isVisible;
             iconUrl = details.iconUrl;
             bannerUrl = details.bannerUrl;
             description = details.description;
             aboutInfo = details.aboutInfo;
-            contactInfo = serializeProjectContactInfo(details.contactInfo); // Use the new function here
+            contactInfo = serializeProjectContactInfo(details.contactInfo);
             lastUpdated = details.lastUpdated;
             updatedBy = details.updatedBy;
         };
