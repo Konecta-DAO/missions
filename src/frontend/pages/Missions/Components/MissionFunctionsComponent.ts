@@ -1,4 +1,4 @@
-import { Actor } from "@dfinity/agent";
+/* import { Actor } from "@dfinity/agent";
 import { canisterId, idlFactory } from "../../../../declarations/backend/index.js";
 import { idlFactory as idlFactoryNFID, canisterId as canisterIdNFID } from '../../../../declarations/nfid/index.js';
 import { idlFactory as idlFactoryDFINITY } from '../../../../declarations/dfinity_backend/index.js';
@@ -545,4 +545,4 @@ const MissionFunctionsComponent = {
     },
 };
 
-export default MissionFunctionsComponent;
+export default MissionFunctionsComponent; */

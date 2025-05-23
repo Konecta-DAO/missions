@@ -1,344 +1,212 @@
+// src/pages/ProjectExplorerPage/Components/HistoryModal/HistoryModal.tsx (or your path)
+
 import React, { useMemo, useState } from 'react';
 import styles from './HistoryModal.module.scss';
-import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
-import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.webp';
-import { getGradientEndColor, getGradientStartColor } from '../../../../../utils/colorUtils.ts';
-import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { SerializedMissionV2, SerializedMissionRecord, SerializedProgress } from '../../../../../declarations/backend/backend.did.js';
+import { formatDate } from '../../../../../components/Utilities.tsx'; // Assuming formatDate takes bigint or number
+import AchievementDesktop from '../../../../../../public/assets/Achievements_Desktop.webp'; // Static asset
+// getGradientStartColor, getGradientEndColor are not used in this adapted version unless for points display
+
 import IcpIcon from '../../../../../../public/assets/icp_logo.svg';
-import DiggyGoldIcon from '../../../../../../public/assets/DiggyCoin.webp';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import { SerializedMission } from '../../../../../declarations/test_backend/test_backend.did.js';
+// import DiggyGoldIcon from '../../../../../../public/assets/DiggyCoin.webp'; // If still needed for specific project rewards
 
 interface HistoryModalProps {
     closeModal: () => void;
 }
 
-interface AllEntryBase {
-    timestamp: bigint;
-    pointsEarned: bigint;
+interface HistoryEntryData {
+    key: string; // For React list
+    type: 'missionCompletion' | 'streakClaim';
+    timestamp: bigint; // Nanoseconds for sorting
+    projectName?: string;
+    projectIconUrl?: string | null; // Optional from SerializedProjectDetails
+    missionName?: string;
+    rewardTextDisplay: string; // Formatted text e.g., "Earned 100 Points"
 }
 
-interface MissionEntry extends AllEntryBase {
-    type: 'mission';
-    missionId: bigint;
-    mission: SerializedMissionV2;
-    record: SerializedMissionRecord;
-    formattedTitle: string;
-}
+// Helper to determine reward text (simplified for Phase 1)
+const getRewardText = (mission: SerializedMission | undefined): string => {
+    if (!mission) return "Reward info unavailable";
 
-interface StreakEntry extends AllEntryBase {
-    type: 'streak';
-}
+    const minAmt = Number(mission.minRewardAmount);
+    let displayAmount = minAmt.toString();
 
-interface MapEntry extends AllEntryBase {
-    type: 'map';
-    canisterID: string;
-    missionId: bigint;
-}
+    if (mission.maxRewardAmount && mission.maxRewardAmount.length > 0 && Number(mission.maxRewardAmount[0]) > minAmt) {
+        displayAmount = `${minAmt} - ${Number(mission.maxRewardAmount[0])}`;
+    }
+
+    if (mission.rewardType.hasOwnProperty('Points')) return `Earned ${displayAmount} Points`;
+    if (mission.rewardType.hasOwnProperty('ICPToken')) {
+        // For ICRC1, the amount is in base units (e8s for ICP).
+        // You might want to format this (e.g., divide by 10**8 for ICP).
+        const icpAmount = (minAmt / (10 ** 8)).toFixed(4); // Example formatting for ICP
+        let icpDisplayAmount = icpAmount;
+        if (mission.maxRewardAmount && mission.maxRewardAmount.length > 0 && Number(mission.maxRewardAmount[0]) > minAmt) {
+            const maxIcpAmount = (Number(mission.maxRewardAmount[0]) / (10 ** 8)).toFixed(4);
+            icpDisplayAmount = `${icpAmount} - ${maxIcpAmount}`;
+        }
+        return `Earned ${icpDisplayAmount} ICP`;
+    }
+    if (mission.rewardType.hasOwnProperty('TIME')) return `Earned ${displayAmount} TIME`; // Assuming TIME is a direct Nat value
+    if (mission.rewardType.hasOwnProperty('None')) return `Completed (No direct reward)`;
+    return 'Reward processed';
+};
 
 
-type AllEntry = MissionEntry | StreakEntry | MapEntry;
 const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
-    const globalID = useGlobalID();
+    const {
+        userProgress,       // New: Map<string, Map<Nat, SerializedUserMissionProgress>>
+        projects,           // New: SerializedProjectDetails[] (includes canisterId)
+        missions: allProjectMissions, // New: Map<string, Map<Nat, SerializedMission>>
+        totalUserStreak,    // Old streak data - TODO: Update type and handling if this feature is kept
+    } = useGlobalID();
+
     const [isClosing, setIsClosing] = useState(false);
 
     const handleCloseModal = () => {
         setIsClosing(true);
         setTimeout(() => {
             closeModal();
-        }, 500);
+        }, 500); // Animation duration
     };
 
-    const constructTweetUrl = (tweetId: string) => `https://twitter.com/i/web/status/${tweetId}`;
+    // const constructTweetUrl = (tweetId: string) => `https://twitter.com/i/web/status/${tweetId}`; // Keep if tweet IDs are part of flowOutputs
 
-    const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
+    const BASE_ASSET_URL = process.env.REACT_APP_ASSETS_CANISTER_ID ? // Example for assets
+        `https://${process.env.REACT_APP_ASSETS_CANISTER_ID}.raw.icp0.io` : '';
 
-    const projectsMap = useMemo(() => {
-        const map = new Map<string, ProjectData>();
-        globalID.projects.forEach(project => {
-            map.set(project.id, project);
-        });
-        return map;
-    }, [globalID.projects]);
 
-    const renderProgress = () => {
-        const userProgress = globalID.userProgress;
-        const totalUserStreak = globalID.totalUserStreak;
-        const userProgressMap = globalID.userProgressMap;
+    const processedHistoryEntries = useMemo((): HistoryEntryData[] => {
+        const allEntries: HistoryEntryData[] = [];
 
-        const allEntries: AllEntry[] = [];
-
-        // Flatten all progress entries into a single array
+        // 1. Process Mission Completions from new userProgress structure
         if (userProgress) {
-            userProgress.forEach((nestedEntry) => {
-                nestedEntry.forEach((innerEntry: any) => {
-                    if (Array.isArray(innerEntry) && innerEntry.length === 2) {
-                        const missionId = innerEntry[0] as bigint;
-                        const progress = innerEntry[1] as SerializedProgress;
+            userProgress.forEach((projectMissionsProgress, projectCanisterId) => {
+                const projectDetails = projects.find(p => p.canisterId === projectCanisterId);
+                const projectName = projectDetails ? projectDetails.name : `Project (${projectCanisterId.substring(0, 5)}...)`;
+                const projectIconUrl = projectDetails?.iconUrl && projectDetails.iconUrl.length > 0 ? projectDetails.iconUrl[0] : null;
 
-                        const mission = globalID.missions.find(m => String(m.id) === String(missionId));
-                        if (!mission) {
-                            return;
-                        }
+                const missionsForThisProject = allProjectMissions.get(projectCanisterId);
 
-                        const requiredMissionTitle = mission.title || '';
-                        const formattedTitle = requiredMissionTitle.split(":")[1]?.trim() || '';
+                projectMissionsProgress.forEach((missionProg, missionId) => {
+                    // Check for actual completion based on status and completionTime
+                    if (missionProg.overallStatus.hasOwnProperty('CompletedSuccess') &&
+                        missionProg.completionTime && missionProg.completionTime.length > 0) {
 
-                        progress.completionHistory.forEach((record) => {
-                            allEntries.push({
-                                type: 'mission',
-                                timestamp: record.timestamp,
-                                pointsEarned: record.pointsEarned,
-                                missionId,
-                                mission,
-                                record,
-                                formattedTitle,
-                            });
+                        const completionTs = BigInt(missionProg.completionTime[0]!); // Assuming Int from candid is bigint or number
+                        const missionDetails = missionsForThisProject?.get(missionId);
+                        const missionName = missionDetails ? missionDetails.name : `Mission ID ${missionId.toString()}`;
+                        const rewardText = getRewardText(missionDetails);
+
+                        allEntries.push({
+                            key: `mission-${projectCanisterId}-${missionId.toString()}-${completionTs.toString()}`,
+                            type: 'missionCompletion',
+                            timestamp: completionTs,
+                            projectName,
+                            projectIconUrl,
+                            missionName,
+                            rewardTextDisplay: rewardText,
                         });
                     }
                 });
             });
         }
 
-        if (totalUserStreak) {
-            totalUserStreak.forEach(([timestamp, pointsEarned]) => {
-                allEntries.push({
-                    type: 'streak',
-                    timestamp,
-                    pointsEarned,
-                });
-            });
-        }
-
-        function isProgressElementTuple(element: any): element is [bigint, SerializedProgress] {
-            return Array.isArray(element) && element.length === 2 && typeof element[0] === 'bigint';
-        }
-
-        function isProgressElementNested(element: any): element is [[bigint, SerializedProgress]] {
-            return Array.isArray(element) && element.length === 1 && Array.isArray(element[0]) && element[0].length === 2 && typeof element[0][0] === 'bigint';
-        }
-
-        function isArrayOfTuples(element: any): element is [bigint, SerializedProgress][] {
-            return (
-                Array.isArray(element) &&
-                element.every(
-                    (item) =>
-                        Array.isArray(item) &&
-                        item.length === 2 &&
-                        typeof item[0] === 'bigint' &&
-                        typeof item[1] === 'object'
-                )
-            );
-        }
-
-        function handleOneMission(
-            missionId: bigint,
-            progress: SerializedProgress,
-            canisterID: string,
-        ) {
-            if (progress?.completionHistory) {
-                progress.completionHistory.forEach((record: SerializedMissionRecord) => {
+        // 2. TODO: Process Streak Claims (if global streaks are kept and totalUserStreak is populated correctly)
+        // This part needs to be adapted based on the new type and source of totalUserStreak
+        // For example, if totalUserStreak becomes an array of { timestamp: bigint, pointsEarned: bigint, type: 'streak' }
+        if (totalUserStreak && Array.isArray(totalUserStreak)) { // Assuming totalUserStreak is now an array like [{timestamp: bigint, points: bigint}]
+            totalUserStreak.forEach((streakRecord: any, index: number) => { // Replace 'any' with actual new streak record type
+                if (streakRecord.timestamp && streakRecord.pointsEarned) { // Basic check
                     allEntries.push({
-                        type: 'map',
-                        timestamp: record.timestamp,
-                        pointsEarned: record.pointsEarned,
-                        canisterID,
-                        missionId,
+                        key: `streak-${streakRecord.timestamp.toString()}-${index}`,
+                        type: 'streakClaim',
+                        timestamp: BigInt(streakRecord.timestamp), // Ensure it's bigint
+                        rewardTextDisplay: `Claimed Daily Streak: +${streakRecord.pointsEarned.toString()} TIME/Points`, // Adjust text
+                        // projectName and missionName would be undefined/null for streaks
                     });
-                });
-            }
-        }
-
-
-        // Process userProgressMap
-        if (userProgressMap) {
-            Object.entries(userProgressMap).forEach(([key, progressArray]) => {
-                if (progressArray && Array.isArray(progressArray)) {
-                    progressArray.forEach((progressElement, progressIndex) => {
-
-                        if (isProgressElementTuple(progressElement)) {
-                            // Case 1: Direct tuple
-                            const [missionId, progress] = progressElement;
-                            handleOneMission(missionId, progress, key);
-                        }
-                        else if (isProgressElementNested(progressElement)) {
-                            // Case 2: Nested tuple
-                            const [missionId, progress] = progressElement[0] as [bigint, SerializedProgress];
-                            handleOneMission(missionId, progress, key);
-                        } else if (isArrayOfTuples(progressElement)) {
-                            // Case 3: Array of multiple tuples [[timestamp, progress], [timestamp, progress], ...]
-                            (progressElement as [bigint, SerializedProgress][]).forEach(([missionId, progress]) =>
-                                handleOneMission(missionId, progress, key)
-                            );
-                        } else {
-                            console.warn(`Unexpected structure for progressElement at key "${key}", progressIndex ${progressIndex}:`, progressElement);
-                            return; // Skip this element
-                        }
-                    });
-                } else {
-                    console.warn(`Invalid progressArray for key "${key}":`, progressArray);
                 }
             });
         }
 
+        // 3. Sort all entries by timestamp (most recent first)
+        allEntries.sort((a, b) => {
+            if (a.timestamp < b.timestamp) return 1;
+            if (a.timestamp > b.timestamp) return -1;
+            return 0;
+        });
 
-        // Sort the flat array by timestamp (most recent first)
-        allEntries.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+        return allEntries;
 
-        // Render the sorted entries
-        return (
-            <>
-                {allEntries.map((entry, index) => {
-                    if (entry.type === 'mission') {
-                        const { missionId, mission, record, formattedTitle } = entry as MissionEntry;
+    }, [userProgress, projects, allProjectMissions, totalUserStreak]);
 
-                        return (
-                            <div key={`mission-${missionId}-${index}`} className={styles.ProgressEntry}>
-                                <div className={styles.EntryContent}>
-                                    <h3>{formatDate(record.timestamp)}</h3>
-                                    <p>Completed the mission: {formattedTitle}</p>
-                                    {record.tweetId && record.tweetId.length > 0 && (
-                                        <a
-                                            href={constructTweetUrl(record.tweetId[0] ?? '')}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={styles.TweetLink}
-                                        >
-                                            {Number(mission.id) === 5 ? "Retweeted Tweet" : "Tweet"}
-                                        </a>
-                                    )}
-                                </div>
-                                <div
-                                    className={styles.RightSection}
-                                    style={{
-                                        background: `linear-gradient(135deg, ${getGradientStartColor(
-                                            Number(mission.mode)
-                                        )}, ${getGradientEndColor(Number(mission.mode))})`,
-                                    }}
-                                >
-                                    <div className={styles.PointsEarned}>
-                                        +{convertSecondsToHMS(Number(record.pointsEarned))}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    } else if (entry.type === 'streak') {
-                        const { timestamp, pointsEarned } = entry as StreakEntry;
 
-                        return (
-                            <div key={`streak-${timestamp}-${index}`} className={styles.ProgressEntry}>
-                                <div className={styles.EntryContent}>
-                                    <h3>{formatDate(timestamp)}</h3>
-                                    <p>Claimed the Daily Streak</p>
-                                </div>
-                                <div
-                                    className={styles.RightSection}
-                                    style={{
-                                        background: `linear-gradient(135deg, darkred, red)`,
-                                    }}
-                                >
-                                    <div className={styles.PointsEarned}>
-                                        +{convertSecondsToHMS(Number(pointsEarned))}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    } else if (entry.type === 'map') {
-                        const { timestamp, pointsEarned, canisterID, missionId } = entry as MapEntry;
+    const renderHistoryList = () => {
+        if (processedHistoryEntries.length === 0) {
+            return <p className={styles.NoHistory}>No history yet. Complete some missions!</p>;
+        }
 
-                        // Retrieve the mission title from missionsMap using canisterID
-                        const missions = globalID.missionsMap[canisterID];
-                        const mission = missions.find(m => Number(m.id) === Number(missionId));
-                        const missionTitle = mission ? mission.title : 'Unknown Mission';
-
-                        // Retrieve the project name from projectsMap using canisterID
-                        const project = projectsMap.get(canisterID);
-                        const projectName = project ? project.name : 'Unknown Project';
-                        const projectIcon = project ? `https://${BASE_URL}.raw.icp0.io${project.icon}` : '';
-
-                        return (
-                            <div key={`map-${timestamp}-${index}`} className={styles.ProgressEntry}>
-                                <div className={styles.EntryContent}>
-                                    <h3>{formatDate(timestamp)}</h3>
-                                    <p style={{ display: 'flex', alignItems: 'center' }}>
-                                        Completed the Mission: {missionTitle} (
-                                        {projectIcon && (
-                                            <img
-                                                src={projectIcon}
-                                                alt={`${projectName} icon`}
-                                                className={styles.ProjectIcon}
-                                            />
-                                        )}
-                                        {projectName})
-                                    </p>
-                                </div>
-                                <div
-                                    className={styles.RightSection}
-                                    style={{
-                                        background: `linear-gradient(135deg, #4CAF50, #81C784)`,
-                                    }}
-                                >
-                                    <div className={styles.PointsEarned}>
-                                        {projectName === "DIGGY" ? (
-                                            <>
-                                                +{pointsEarned.toString()} GOLD{' '}
-                                                <img
-                                                    src={DiggyGoldIcon}
-                                                    alt="GOLD"
-                                                    className={styles.IcpIcon}
-                                                />
-                                            </>
-                                        ) : (mission && mission.token === true ? (
-                                            <>
-                                                +{(Number(pointsEarned) / 10 ** 8).toString()}{' '}
-                                                <img
-                                                    src={IcpIcon}
-                                                    alt="ICP"
-                                                    className={styles.IcpIcon}
-                                                />
-                                            </>
-                                        ) : (
-                                            <>+{pointsEarned.toString()} points</>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    } else {
-                        return null;
-                    }
-                })}
-            </>
-        );
+        return processedHistoryEntries.map((entry) => {
+            // Use existing styles, but populate with new data structure
+            return (
+                <div key={entry.key} className={styles.ProgressEntry}>
+                    <div className={styles.EntryContent}>
+                        <h3>{formatDate(entry.timestamp)}</h3>
+                        {entry.type === 'missionCompletion' && (
+                            <p style={{ display: 'flex', alignItems: 'center' }}>
+                                {entry.projectIconUrl &&
+                                    <img
+                                        src={entry.projectIconUrl.startsWith('http') ? entry.projectIconUrl : `${BASE_ASSET_URL}${entry.projectIconUrl}`}
+                                        alt={`${entry.projectName} icon`}
+                                        className={styles.ProjectIcon} // Use existing style
+                                    />
+                                }
+                                Completed: <strong>{entry.missionName}</strong> ({entry.projectName})
+                            </p>
+                        )}
+                        {entry.type === 'streakClaim' && (
+                            <p>Claimed Daily Streak</p>
+                        )}
+                        <p className={styles.RewardText}>{entry.rewardTextDisplay}</p>
+                        {/* Add TweetLink logic here if 'flowOutputs' for a mission contains a tweetId */}
+                    </div>
+                    <div
+                        className={styles.RightSection}
+                        // The gradient logic for points might be harder to replicate if mission.mode isn't directly available
+                        // For Phase 1, we can use a generic style or a simplified one
+                        style={{ background: 'linear-gradient(135deg, #555, #333)' }}
+                    >
+                        <div className={styles.PointsEarned}>
+                            {/* This used to show points. Now it's part of rewardTextDisplay */}
+                            {entry.type === 'missionCompletion' ? 'MISSION' : 'STREAK'}
+                        </div>
+                    </div>
+                </div>
+            );
+        });
     };
 
     return (
-        <div className={styles.ModalOverlay}>
+        <div className={styles.ModalOverlay} onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}>
             <div className={`${styles.ModalContent} ${isClosing ? styles.hide : ''}`}>
                 <button className={styles.CloseButton} onClick={handleCloseModal}>X</button>
-                <div className={styles.Achievements}>
+                <div className={styles.Achievements}> {/* This title seems fixed */}
                     <h2>Achievements</h2>
                 </div>
                 <div className={styles.LeftSection}>
-                    {renderProgress()}
+                    {renderHistoryList()}
                 </div>
                 <div className={styles.RightHexContainer}>
                     <div className={styles.Hexagon}>
-                        <img src={AchievementDesktop} className={styles.Kamimage} alt="Cool Kami Picture" />
+                        <img src={AchievementDesktop} className={styles.Kamimage} alt="Achievements Visual" />
                     </div>
                 </div>
-
-                <svg style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    top: 0,
-                    left: 0,
-                    zIndex: -1
-                }}
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none">
+                {/* The decorative SVG border - kept as is */}
+                <svg style={{ position: 'absolute', width: '100%', height: '100%', top: 0, left: 0, zIndex: -1 }}
+                    viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
-                        <linearGradient id="blue-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <linearGradient id="history-blue-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" style={{ stopColor: "#3A77EF", stopOpacity: 1 }} />
                             <stop offset="25%" style={{ stopColor: "#33CBDA", stopOpacity: 1 }} />
                             <stop offset="50%" style={{ stopColor: "#3A77EF", stopOpacity: 1 }} />
@@ -348,12 +216,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                     </defs>
                     <path d="M 5 0 L 5 91 L 86 91 L 95 73 L 95 0"
                         style={{
-                            stroke: 'url(#blue-gradient)',
-                            strokeWidth: 8,
-                            strokeLinejoin: 'round',
-                            transform: 'translateY(0.3%)',
-                            fill: 'none',
-                            vectorEffect: 'non-scaling-stroke'
+                            stroke: 'url(#history-blue-gradient)', strokeWidth: 8, strokeLinejoin: 'round',
+                            transform: 'translateY(0.3%)', fill: 'none', vectorEffect: 'non-scaling-stroke'
                         }} />
                 </svg>
             </div>

@@ -1,0 +1,117 @@
+// src/frontend/pages/UserDashboardPage/UserDashboardPage.module.scss
+.dashboardPage {
+    padding: 20px 4%;
+    color: #e0e0e0;
+}
+
+.dashboardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #3a3f7260;
+
+    h1 {
+        font-size: 2.2rem;
+        color: #fff;
+        margin: 0;
+    }
+}
+
+.pointsDisplay {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #a8ff78; // Bright color for points
+    background-color: rgba(168, 255, 120, 0.1);
+    padding: 8px 15px;
+    border-radius: 8px;
+}
+
+.dashboardSection {
+    margin-bottom: 40px;
+
+    h2 {
+        font-size: 1.6rem;
+        color: #c6c0f0;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #3a3f7230;
+    }
+
+    p {
+        // For empty state messages
+        color: #a09cb8;
+        font-style: italic;
+    }
+}
+
+.missionList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 15px; // Spacing between list items
+}
+
+.missionListItem,
+.missionListItemCompleted {
+    background-color: #1c1830;
+    border: 1px solid #332d50;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border-color: #6C63FF;
+    }
+}
+
+.missionListItemCompleted {
+    // Slightly different style if needed, e.g., more subdued
+    opacity: 0.85;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+
+.missionItemIcon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 6px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.missionItemInfo {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.missionItemName {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 3px;
+}
+
+.missionItemProject,
+.missionItemDate {
+    font-size: 0.85rem;
+    color: #a09cb8;
+}
+
+.missionItemAction {
+    font-size: 1.2rem;
+    color: #6C63FF;
+    margin-left: 15px;
+}

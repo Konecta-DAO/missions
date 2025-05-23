@@ -1,0 +1,112 @@
+.projectCard {
+    background-color: #1c1830;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+
+    &:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(50, 50, 90, 0.3);
+    }
+}
+
+.bannerArea {
+    width: 100%;
+    height: 140px;
+    overflow: hidden;
+}
+
+.bannerImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.contentArea {
+    padding: 15px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    color: #e0e0e0;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.projectIcon {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-right: 15px;
+    border: 2px solid #3a3f72;
+    background-color: #2a2640;
+}
+
+.projectName {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.projectDescription {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #b0aacb;
+    margin-bottom: 15px;
+    flex-grow: 1;
+}
+
+.footer {
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid #3a3f7260;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 5px;
+}
+
+.tag {
+    background-color: #3a3f72;
+    color: #d0cdee;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.missionStats {
+    font-size: 0.8rem;
+    color: #8c88a2;
+    display: flex;
+    align-items: center;
+}
+
+.viewProjectLink {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #7f79f5;
+    text-decoration: none;
+
+    .projectCard:hover & {
+        color: #9893ff;
+    }
+}

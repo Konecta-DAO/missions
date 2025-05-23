@@ -1,0 +1,39 @@
+.missionGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; // Spacing between cards
+    padding: 20px 0; // Padding around the grid
+    justify-content: flex-start; // Align cards to the start
+
+    @media (max-width: 600px) {
+        justify-content: center; // Center cards on small screens if they become single column
+    }
+}
+
+.loadingMissions,
+.noMissions {
+    text-align: center;
+    padding: 40px;
+    font-size: 1.2rem;
+    color: #a09cb8;
+}
+
+.Tooltip {
+    position: fixed;
+    background-color: rgba(96, 56, 188, 0.95); // Slightly more opaque
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    z-index: 10000; // High z-index
+    pointer-events: none;
+    max-width: 280px;
+    word-wrap: break-word;
+    white-space: normal;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    // Add slight fade-in/out if desired
+    // opacity: 0;
+    // transition: opacity 0.2s ease-in-out;
+    // &.visible { opacity: 1; }
+}

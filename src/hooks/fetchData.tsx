@@ -1,11 +1,13 @@
-import { ActorSubclass } from '@dfinity/agent';
-import { SerializedMissionV2, SerializedProgress, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
-import { useGlobalID } from './globalID.tsx';
-import { Principal } from '@dfinity/principal';
-import { convertSecondsToHMS } from '../components/Utilities.tsx';
 import { useCallback } from 'react';
+import { Actor, ActorSubclass } from '@dfinity/agent';
+import type { Principal } from '@dfinity/principal';
+
+import { useGlobalID } from './globalID.tsx';
+import { idlFactory as indexIdlFactory, canisterId as indexCanisterIdString } from '../declarations/index/index.js';
+import { idlFactory as projectBackendIdlFactory, SerializedMission } from '../declarations/test_backend/test_backend.did.js';
 import { LinkRequest, SerializedGlobalUser } from '../declarations/index/index.did.js';
+import { SerializedUserMissionProgress, SerializedProjectDetails as BackendSerializedProjectDetails, ActionResultFromActions, Result_2, Result_5 } from '../declarations/test_backend/test_backend.did.js';
+import { SerializedProjectDetails } from '../frontend/types.ts';
 
 export interface WalletLinkInfo {
     walletType: string;
@@ -17,196 +19,456 @@ export interface WalletLinkInfo {
 
 const useFetchData = () => {
     const {
-        setMissions,
-        setUserProgress,
-        setUser,
-        setTimerText,
-        setPFPstatus,
-        setTwitterHandle,
-        setUserStreakAmount,
-        setUserLastTimeStreak,
-        setStreakResetTime,
-        setTotalUserStreak,
-        setUserStreakPercentage,
+        agent,
+        projects, // Get current projects to update the list
+        setProjects,
+        setIsLoadingProjects, // You might want a specific loading state for single project view
+        // ... other setters from useGlobalID
         setMissionsForProject,
-        setUserProgressForProject,
-        setPointsForProject,
-        setWalletLinkInfos
+        setUserProgressForMission,
+        setUserGlobalProfile,
+        setWalletLinkInfos,
     } = useGlobalID();
 
-    const hasAccepted = useCallback(async (actor: ActorSubclass, ae: Principal, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
-        const hasAccepted = await actor.hasAcceptedTerms(ae) as boolean;
-        if (!hasAccepted) {
-            setTerms(false);
+    const getIndexActor = useCallback((): ActorSubclass | null => {
+        if (!agent) {
+            console.error("Agent not initialized in getIndexActor");
+            return null;
         }
-    }, []);
-
-    const fetchWalletLinkInfo = useCallback(async (signerId: string, actorIndex: ActorSubclass, ae: Principal) => {
-        // 1. Get allowed wallet types.
-        const allowedTypes = await actorIndex.getAllowedAccountTypes() as string[];
-        const walletTypes = allowedTypes.filter((type) => type !== signerId);
-
-        // 2 & 3. Fetch linked accounts and pending link requests in parallel.
-        const [linkedAccounts, pendingRequests] = await Promise.all([
-            actorIndex.getLinkedAccountsForPrincipal(ae) as Promise<[string, Principal][]>,
-            actorIndex.getPendingLinkRequestsForTarget(ae) as Promise<LinkRequest[]>,
-        ]);
-
-        // Process linked accounts.
-        const linkedMap: { [key: string]: string } = {};
-        linkedAccounts.forEach(([type, principal]) => {
-            linkedMap[type] = principal.toText();
+        return Actor.createActor(indexIdlFactory, {
+            agent,
+            canisterId: indexCanisterIdString,
         });
+    }, [agent]);
 
-        // Process pending requests.
-        const pendingMap: { [key: string]: { requester: string; requesterType: string } } = {};
-        pendingRequests.forEach((req: any) => {
-            if (req.status === "pending") {
-                pendingMap[req.requesterType] = {
-                    requester: req.requester.toText(),
-                    requesterType: req.requesterType,
-                };
+    const getProjectBackendActor = useCallback((projectCanisterId: string | Principal): ActorSubclass | null => {
+        if (!agent) {
+            console.error("Agent not initialized in getProjectBackendActor");
+            return null;
+        }
+        if (!projectCanisterId) {
+            console.error("Project canister ID is missing in getProjectBackendActor");
+            return null;
+        }
+        return Actor.createActor(projectBackendIdlFactory, {
+            agent,
+            canisterId: projectCanisterId,
+        });
+    }, [agent]);
+
+    // --- PROJECT DATA FETCHING ---
+    const fetchAllProjectDetailsAndSet = useCallback(async () => {
+
+        const indexActor = getIndexActor();
+        if (!indexActor) {
+            setIsLoadingProjects(false); // Ensure loading state is reset
+            return;
+        }
+
+        setIsLoadingProjects(true);
+        try {
+
+            const projectPrincipals = await indexActor.getProjects() as Principal[];
+
+            if (!projectPrincipals || projectPrincipals.length === 0) {
+                setProjects([]);
+                setIsLoadingProjects(false);
+                return;
             }
-        });
+            projectPrincipals.forEach(p => console.log("Principal to process:", p.toText()));
 
-        // 4. Get cooldowns for each wallet type in parallel.
-        const cooldownPromises = walletTypes.map(async (walletType) => {
-            const cooldown = Number(await actorIndex.getLinkCooldownForPrincipal(ae, walletType) as bigint);
-            return {
-                walletType,
-                linkedPrincipal: linkedMap[walletType],
-                pendingRequest: pendingMap[walletType],
-                cooldown,
-                inputValue: '',
-            } as WalletLinkInfo;
-        });
+            const projectDetailsPromises = projectPrincipals.map(async (principal) => {
+                const projectActor = getProjectBackendActor(principal);
+                if (!projectActor) {
+                    console.error(`WorkspaceAllProjectDetailsAndSet: Could not create projectActor for ${principal.toText()}`);
+                    return null;
+                }
+                try {
+                    const details = await projectActor.getProjectDetails() as BackendSerializedProjectDetails;
+                    if (!details) {
+                        return null;
+                    }
+                    return { ...details, canisterId: principal.toText() } as SerializedProjectDetails;
+                } catch (e) {
+                    console.error(`WorkspaceAllProjectDetailsAndSet: Failed to fetch details for project ${principal.toText()}:`, e);
+                    return null;
+                }
+            });
 
-        const walletInfos = await Promise.all(cooldownPromises);
-        setWalletLinkInfos(walletInfos);
-    }, [setWalletLinkInfos]);
+            const settledResults = await Promise.allSettled(projectDetailsPromises);
+            const successfullyFetchedDetails: SerializedProjectDetails[] = [];
+            settledResults.forEach(result => {
+                if (result.status === 'fulfilled' && result.value) {
+                    if (result.value.isVisible) { // Client-side filter
+                        successfullyFetchedDetails.push(result.value);
+                    }
+                } else if (result.status === 'rejected') {
+                    console.error("fetchAllProjectDetailsAndSet: A project detail fetch promise was rejected:", result.reason);
+                } else if (result.status === 'fulfilled' && !result.value) {
+                    console.warn("fetchAllProjectDetailsAndSet: A project detail fetch promise was fulfilled but returned null.");
+                }
+            });
 
-    // Fetch missions
-    const fetchMissions = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[]) => {
-        // Start fetching all missions from the primary actor
-        const missionsPromise = actor.getAllMissions() as Promise<SerializedMissionV2[]>;
+            setProjects(successfullyFetchedDetails);
+        } catch (error) {
+            console.error("Error in fetchAllProjectDetailsAndSet (authenticated call):", error);
+            setProjects([]); // Clear projects on error
+        } finally {
+            setIsLoadingProjects(false);
+        }
+    }, [agent, getIndexActor, getProjectBackendActor, setProjects, setIsLoadingProjects]);
 
-        // Start fetching missions for each actor
-        const projectMissionsPromises = actors.map(async (a, index) => {
-            const projectMissionsRaw = await a.getAllMissions();
-            const projectMissions = projectMissionsRaw as SerializedMissionDefault[];
-            const projectId = targets[index];
+    // --- NEW FUNCTION TO FETCH SINGLE PROJECT DETAILS ---
+    const fetchSingleProjectDetailsAndSet = useCallback(async (
+        projectCanisterId: string
+    ): Promise<SerializedProjectDetails | null> => {
+        console.log(`WorkspaceSingleProjectDetailsAndSet: Called for ${projectCanisterId}`);
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) {
+            console.error(`WorkspaceSingleProjectDetailsAndSet: Could not create projectActor for ${projectCanisterId}`);
+            return null;
+        }
 
-            setMissionsForProject(projectId, projectMissions);
-        });
+        try {
+            const details = await projectActor.getProjectDetails() as BackendSerializedProjectDetails;
+            if (!details) {
+                console.warn(`WorkspaceSingleProjectDetailsAndSet: Details for ${projectCanisterId} are null/undefined from backend.`);
+                return null;
+            }
 
-        // Wait for all missions to be fetched
-        const missions = await missionsPromise;
-        await Promise.all(projectMissionsPromises);
+            const projectDataWithId = { ...details, canisterId: projectCanisterId } as SerializedProjectDetails;
 
-        // Update the state with the primary missions
-        setMissions(missions);
-    }, [setMissions, setMissionsForProject]);
+            // Compute the new projects array based on the current 'projects' state
+            // 'projects' is from the useGlobalID() hook and is in the dependency array of this useCallback
+            const currentProjects = projects;
+            const existingProjectIndex = currentProjects.findIndex(p => p.canisterId === projectCanisterId);
 
-    const fetchUserProgress = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
-        // Start fetching user progress from the primary actor
-        const userProgressPromise = actor.getUserProgress(ae) as Promise<[bigint, SerializedProgress][]>;
+            let newProjectsArray: SerializedProjectDetails[];
 
-        // Start fetching user progress for each actor
-        const projectUserProgressPromises = actors.map(async (a, index) => {
-            const projectUserProgress = await a.getUserProgress(ae) as [bigint, SerializedProgressDefault][];
-            const projectId = targets[index];
-            setUserProgressForProject(projectId, projectUserProgress);
-        });
+            if (existingProjectIndex !== -1) {
+                // Update existing project
+                newProjectsArray = [...currentProjects];
+                newProjectsArray[existingProjectIndex] = projectDataWithId;
+            } else {
+                // Add new project to the list
+                newProjectsArray = [...currentProjects, projectDataWithId];
+            }
 
-        // Wait for all promises to resolve
-        const userProgress = await userProgressPromise;
-        await Promise.all(projectUserProgressPromises);
+            // Call setProjects with the directly computed new array
+            setProjects(newProjectsArray);
 
-        // Update the state with the primary user progress
-        setUserProgress(userProgress);
-    }, [setUserProgress, setUserProgressForProject]);
+            console.log(`WorkspaceSingleProjectDetailsAndSet: Successfully fetched and updated/added project ${projectCanisterId}`);
+            return projectDataWithId;
+        } catch (e) {
+            console.error(`WorkspaceSingleProjectDetailsAndSet: Failed to fetch details for project ${projectCanisterId}:`, e);
+            return null;
+        }
+    }, [agent, getProjectBackendActor, setProjects, projects]);
 
-    // Fetch user details
-    const fetchUser = useCallback(async (actorIndex: ActorSubclass, ae: Principal) => {
+    // --- MISSION DATA FETCHING ---
+    const fetchMissionsForProjectAndSet = useCallback(async (projectCanisterId: string) => {
+        if (!projectCanisterId) return;
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) return;
 
-        const userPromise = actorIndex.getUserByPrincipal(ae) as Promise<SerializedGlobalUser[]>;
-        const user = await userPromise;
+        try {
+            // VERIFY: Method name and return type from ProjectBackendActorInterface
+            const missionsResult = await projectActor.getAllMissions() as Array<[bigint, SerializedMission]>;
 
-        setUser(user);
-        setPFPstatus(user[0]?.pfpProgress || '');
-        setTwitterHandle(user[0]?.twitterhandle?.length ? user[0]?.twitterhandle[0]?.toString() : '');
-    }, [setUser, setPFPstatus, setTwitterHandle]);
+            const missionsMap = new Map<bigint, SerializedMission>();
+            if (missionsResult) { // Ensure missionsResult is not null/undefined
+                missionsResult.forEach(([id, mission]) => {
+                    missionsMap.set(id, mission);
+                });
+            }
+            setMissionsForProject(projectCanisterId, missionsMap);
+        } catch (error) {
+            console.error(`Error fetching missions for project ${projectCanisterId}:`, error);
+        }
+    }, [getProjectBackendActor, setMissionsForProject]);
 
-    const fetchUserSeconds = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], targets: string[], ae: Principal) => {
-        // Start fetching total seconds for user from the primary actor
-        const userSecondsPromise = actor.getTotalSecondsForUser(ae) as Promise<bigint>;
 
-        // Start fetching total seconds for each actor
-        const projectUserSecondsPromises = actors.map(async (a, index) => {
-            const projectUserSeconds = await a.getTotalSecondsForUser(ae) as bigint;
-            const projectId = targets[index];
-            setPointsForProject(projectId, projectUserSeconds);
-        });
+    // --- USER PROGRESS FETCHING ---
+    const fetchUserProgressForProjectAndSet = useCallback(async (projectCanisterId: string, userPrincipal: Principal) => {
+        if (!projectCanisterId || !userPrincipal) return;
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) return;
 
-        // Wait for all promises to resolve
-        const userSeconds = await userSecondsPromise;
-        await Promise.all(projectUserSecondsPromises);
+        try {
+            // VERIFY: Method name, parameters, and return type from ProjectBackendActorInterface
+            // Assuming it returns an optional array: `[] | [Array<[bigint, SerializedUserMissionProgress]>]`
+            const progressResultOpt = await projectActor.getAllUserMissionsProgress(userPrincipal) as [Array<[bigint, SerializedUserMissionProgress]>];
 
-        // Update the state with the primary user's total seconds
-        setTimerText(convertSecondsToHMS(Number(userSeconds)));
-    }, [setTimerText, setPointsForProject]);
+            if (progressResultOpt && progressResultOpt.length > 0) {
+                const progressArray = progressResultOpt[0];
+                progressArray.forEach(([missionId, progress]) => {
+                    setUserProgressForMission(projectCanisterId, missionId, progress);
+                });
+            } else {
+                // No progress for this project, or an empty array was returned.
+                // Clear any existing progress for this project for this user.
+                // This requires knowing which missions *had* progress to clear them individually,
+                // or a function in useGlobalID to clear all progress for a project.
+                // For simplicity, if there's a `clearMissionsForProject` like function for progress:
+                // useGlobalID().clearUserProgressForProject(projectCanisterId); // Assuming such a function
+                // Or iterate through known missions for the project and clear progress for each.
+                // For now, we're only adding/updating progress.
+                const currentProjectProgress = useGlobalID().userProgress.get(projectCanisterId);
+                if (currentProjectProgress && currentProjectProgress.size > 0) {
+                    // If you want to clear, you'd iterate and call clearUserProgressForMission, or add a bulk clear.
+                    // For now, if backend says "no progress", we ensure no stale progress is shown by effectively replacing it.
+                    // The current setUserProgressForMission will overwrite individual entries. If the backend sends empty, nothing gets overwritten with new data.
+                    // A robust way is to clear prior progress for this project before setting new, or have the backend guarantee full state.
+                    // Let's assume if progressResultOpt is empty, we should clear out the existing progress map for this project.
+                    const emptyProgressMap = new Map<bigint, SerializedUserMissionProgress>();
+                    // If useGlobalID had `setUserProgressForEntireProject(projectId, map)`, that would be cleaner here.
+                    // For now, if the backend returns nothing, no new calls to setUserProgressForMission occur.
+                    // The `clearAllUserProgressForProject(projectId)` might be a good addition to global state.
+                }
+            }
+        } catch (error) {
+            console.error(`Error fetching user progress for project ${projectCanisterId}:`, error);
+        }
+    }, [getProjectBackendActor, setUserProgressForMission, useGlobalID]); // Added useGlobalID for state access example
 
-    // Fetch user PFP status
-    const fetchUserPFPstatus = useCallback(async (actor: ActorSubclass, ae: Principal) => {
-        const userPFPstatus = await actor.setPFPProgressLoading(ae) as string;
-        setPFPstatus(userPFPstatus);
-        return userPFPstatus;
-    }, [setPFPstatus]);
+    const fetchUserMissionProgressAndSet = useCallback(async (
+        projectCanisterId: string,
+        missionId: bigint,
+        userPrincipal: Principal
+    ): Promise<SerializedUserMissionProgress | null> => { // Explicitly define return type
+        if (!projectCanisterId || !missionId || !userPrincipal) {
+            console.warn("fetchUserMissionProgressAndSet: Missing parameters.");
+            return null; // Return null if parameters are missing
+        }
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) {
+            console.error("fetchUserMissionProgressAndSet: Could not create projectActor.");
+            return null; // Return null if actor creation fails
+        }
 
-    const fetchUserStreak = useCallback(async (actor: ActorSubclass, ae: Principal) => {
-        const [
-            userStreak,
-            streakResetTime,
-            userLastTimeStreak,
-            totalUserStreak,
-            userStreakPercentage,
-        ] = await Promise.all([
-            actor.getUserStreakAmount(ae) as Promise<bigint>,
-            actor.getStreakTime() as Promise<bigint>,
-            actor.getUserStreakTime(ae) as Promise<bigint>,
-            actor.getUserAllStreak(ae) as Promise<SerializedUserStreak>,
-            actor.getUserStreakPercentage(ae) as Promise<bigint>,
-        ]);
+        try {
+            // Assuming backend returns: [] for None (not found), or [SerializedUserMissionProgress] for Some (found)
+            const progressResultArray = await projectActor.getUserMissionProgress(userPrincipal, missionId) as SerializedUserMissionProgress[];
 
-        setUserStreakAmount(userStreak);
-        setStreakResetTime(streakResetTime);
-        setUserLastTimeStreak(userLastTimeStreak);
-        setTotalUserStreak(totalUserStreak);
-        setUserStreakPercentage(userStreakPercentage);
-    }, [setUserStreakAmount, setStreakResetTime, setUserLastTimeStreak, setTotalUserStreak, setUserStreakPercentage]);
+            if (progressResultArray && progressResultArray.length > 0) {
+                const progress = progressResultArray[0];
+                setUserProgressForMission(projectCanisterId, missionId, progress);
+                return progress; // <-- Return the fetched progress
+            } else {
+                // No progress for this specific mission.
+                // You might want to explicitly clear it from global state if that's the desired behavior
+                // e.g., useGlobalID().clearUserProgressForMission(projectCanisterId, missionId);
+                return null; // <-- Return null if no progress is found
+            }
+        } catch (error) {
+            console.error(`Error fetching user progress for mission ${missionId.toString()} in project ${projectCanisterId}:`, error);
+            return null; // <-- Return null on error
+        }
+    }, [getProjectBackendActor, setUserProgressForMission]);
 
-    const fetchAll = useCallback(async (actor: ActorSubclass, actors: ActorSubclass[], actorIndex: ActorSubclass, targets: string[], ae: Principal, setDataLoaded: React.Dispatch<React.SetStateAction<boolean>>, setTerms: React.Dispatch<React.SetStateAction<boolean>>) => {
-        await Promise.all([
-            fetchUserProgress(actor, actors, targets, ae),
-            fetchUserSeconds(actor, actors, targets, ae),
-            fetchUserStreak(actor, ae),
-            fetchMissions(actor, actors, targets),
-            fetchUser(actorIndex, ae),
-            fetchWalletLinkInfo('ic', actorIndex, ae)
-        ]);
-        setDataLoaded(true);
-    }, [fetchMissions, fetchUserProgress, fetchUser, fetchUserSeconds, fetchUserStreak]);
+
+    // --- MISSION INTERACTION ---
+    const executeBackendActionStep = useCallback(async (
+        projectCanisterId: string,
+        missionId: bigint,
+        stepIdToExecute: bigint,
+        userInputJson: string,
+        userPrincipal: Principal
+    ): Promise<ActionResultFromActions | null> => {
+        if (!projectCanisterId || !userPrincipal) {
+            console.error("Missing projectCanisterId or userPrincipal for executeBackendActionStep");
+            return null;
+        }
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) return null;
+
+        try {
+
+            console.log("Executing backend action step with the following parameters:", {
+                projectCanisterId,
+                missionId,
+                stepIdToExecute,
+                userInputJson,
+                userPrincipal
+            });
+
+            // VERIFY: Method name and parameters from ProjectBackendActorInterface
+            const result = await projectActor.executeActionStep(
+                missionId,
+                stepIdToExecute,
+                userInputJson,
+                userPrincipal
+            ) as Result_5;
+
+            console.log("executeBackendActionStep result:", result);
+
+            if ('ok' in result) {
+                const actionResult = result.ok;
+                // After a successful action, re-fetch the progress for this specific mission to update the UI
+                await fetchUserMissionProgressAndSet(projectCanisterId, missionId, userPrincipal);
+                return actionResult;
+            } else {
+                console.error("Error executing action step:", result.err);
+                return null;
+            }
+        } catch (error) {
+            console.error("Network or other error executing action step:", error);
+            // throw error;
+            return null;
+        }
+    }, [getProjectBackendActor, fetchUserMissionProgressAndSet]);
+
+
+    const startBackendMission = useCallback(async (projectCanisterId: string, missionId: bigint, userPrincipal: Principal): Promise<SerializedUserMissionProgress | null> => {
+        if (!projectCanisterId || !userPrincipal) return null;
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) return null;
+
+        try {
+            // VERIFY: Method name and parameters (startMission likely takes missionId, userPrincipal is implicit msg.caller on backend)
+            const result = await projectActor.startMission(missionId) as Result_2;
+
+            if ('ok' in result) {
+                const progress = result.ok;
+                setUserProgressForMission(projectCanisterId, missionId, progress);
+                return progress;
+            } else {
+                console.error("Error starting mission:", result.err);
+                return null;
+            }
+        } catch (error) {
+            console.error("Network or other error starting mission:", error);
+            return null;
+        }
+    }, [getProjectBackendActor, setUserProgressForMission]);
+
+
+    // --- USER GLOBAL PROFILE ---
+    const fetchUserGlobalProfileAndSet = useCallback(async (userPrincipal: Principal) => {
+        if (!userPrincipal) return;
+        const indexActor = getIndexActor();
+        if (!indexActor) return;
+
+        try {
+            // VERIFY: Method name and return type from IndexCanisterActorInterface
+            // Assuming getUserProfileByPrincipal or similar, returning an optional or array with one element
+            const profileResult = await indexActor.getUserByPrincipal(userPrincipal) as [SerializedGlobalUser];
+
+            if (profileResult && profileResult.length > 0) {
+                setUserGlobalProfile(profileResult[0]);
+            } else {
+                setUserGlobalProfile(null);
+            }
+        } catch (error) {
+            console.error(`Error fetching global user profile for principal ${userPrincipal.toText()}:`, error);
+            setUserGlobalProfile(null);
+        }
+    }, [getIndexActor, setUserGlobalProfile]);
+
+    // --- FETCH WALLET LINK INFO (Example adaptation - VERIFY IndexCanister methods) ---
+    const fetchWalletLinkInfoAndSet = useCallback(async (userPrincipal: Principal) => {
+        if (!userPrincipal) return;
+        const indexActor = getIndexActor();
+        if (!indexActor) return;
+
+        try {
+            const signerIdForBackend = "ic"; // Or however this is determined
+            const allowedTypes = await indexActor.getAllowedAccountTypes() as string[]; // VERIFY
+            const walletTypesToFetch = allowedTypes.filter((type) => type !== signerIdForBackend);
+
+            const [linkedAccountsResult, pendingRequestsResult] = await Promise.all([
+                indexActor.getLinkedAccountsForPrincipal(userPrincipal) as Promise<Array<[string, Principal]>>, // VERIFY
+                indexActor.getPendingLinkRequestsForTarget(userPrincipal) as Promise<LinkRequest[]>,          // VERIFY, define LinkRequest
+            ]);
+
+            const linkedMap: { [key: string]: string } = {};
+            if (linkedAccountsResult) linkedAccountsResult.forEach(([type, principal]) => {
+                linkedMap[type] = principal.toText();
+            });
+
+            const pendingMap: { [key: string]: { requester: string; requesterType: string } } = {};
+            if (pendingRequestsResult) pendingRequestsResult.forEach((req: any) => { // Replace 'any' with actual LinkRequest type
+                if (req.status === "pending") {
+                    pendingMap[req.requesterType] = {
+                        requester: req.requester.toText(),
+                        requesterType: req.requesterType,
+                    };
+                }
+            });
+
+            const cooldownPromises = walletTypesToFetch.map(async (walletType) => {
+                const cooldownBigInt: bigint = await indexActor.getLinkCooldownForPrincipal(userPrincipal, walletType) as bigint; // VERIFY
+                return {
+                    walletType,
+                    linkedPrincipal: linkedMap[walletType],
+                    pendingRequest: pendingMap[walletType],
+                    cooldown: Number(cooldownBigInt),
+                    inputValue: '',
+                } as WalletLinkInfo;
+            });
+
+            const walletInfos = await Promise.all(cooldownPromises);
+            setWalletLinkInfos(walletInfos);
+
+        } catch (error) {
+            console.error("Error fetching wallet link info:", error);
+            setWalletLinkInfos([]);
+        }
+    }, [getIndexActor, setWalletLinkInfos]);
+
+
+    // --- MASTER FETCH FUNCTION ---
+    const fetchInitialPlatformData = useCallback(async (userPrincipal: Principal | null) => {
+        if (!userPrincipal) {
+            // Handle logout: clear user-specific data
+            setUserGlobalProfile(null);
+            // useGlobalID().clearAllUserProgress(); // Assuming you add this to global state
+            // setWalletLinkInfos([]);
+            // ... reset other user-specific states
+            setIsLoadingProjects(true); // Prepare for potential next login
+            setProjects([]); // Clear projects if they shouldn't persist across users
+            return;
+        }
+
+        // For login
+        setIsLoadingProjects(true);
+        try {
+            // Fetch global user profile first
+            await fetchUserGlobalProfileAndSet(userPrincipal);
+            // Then fetch all project details
+            await fetchAllProjectDetailsAndSet();
+            // Potentially fetch wallet link info
+            // await fetchWalletLinkInfoAndSet(userPrincipal);
+
+            // TODO: Fetch global streak info here if applicable
+
+        } catch (error) {
+            console.error("Error during initial platform data fetch:", error);
+            // Potentially set a global error state
+        } finally {
+            // setIsLoadingProjects(false); // fetchAllProjectDetailsAndSet handles its own for projects
+        }
+    }, [
+        fetchUserGlobalProfileAndSet,
+        fetchAllProjectDetailsAndSet,
+        // fetchWalletLinkInfoAndSet, // Add if used
+        setUserGlobalProfile,
+        // useGlobalID, // For clearAllUserProgress etc.
+        setIsLoadingProjects,
+        setProjects
+    ]);
 
     return {
-        fetchMissions,
-        fetchUserProgress,
-        fetchUser,
-        fetchUserSeconds,
-        fetchUserPFPstatus,
-        fetchUserStreak,
-        fetchAll,
-        hasAccepted,
-        fetchWalletLinkInfo
+        fetchInitialPlatformData,
+        fetchAllProjectDetailsAndSet,
+        fetchSingleProjectDetailsAndSet,
+        fetchMissionsForProjectAndSet,
+        fetchUserProgressForProjectAndSet,
+        fetchUserMissionProgressAndSet,
+        executeBackendActionStep,
+        startBackendMission,
+        fetchUserGlobalProfileAndSet,
+        fetchWalletLinkInfoAndSet,
     };
 };
 

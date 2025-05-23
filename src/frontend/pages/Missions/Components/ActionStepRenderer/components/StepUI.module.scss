@@ -1,0 +1,90 @@
+.stepContainer {
+    padding: 10px 0;
+    color: #e0e0e0; // Assuming light text on dark modal background
+}
+
+.stepDescription {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: #c0b8e0; // Softer text for description
+    white-space: pre-wrap; // Preserve line breaks from description
+}
+
+.inputForm {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.inputGroup {
+    margin-bottom: 15px;
+}
+
+.inputLabel {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #a09cb8;
+}
+
+.requiredAsterisk {
+    color: #ff7b7b; // Reddish for required
+    margin-left: 4px;
+}
+
+.inputField {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #443e66;
+    background-color: #120f22; // Darker input background
+    color: #e0e0e0;
+    font-size: 1rem;
+    box-sizing: border-box;
+
+    &:focus {
+        outline: none;
+        border-color: #7f79f5;
+        box-shadow: 0 0 0 2px rgba(127, 121, 245, 0.3);
+    }
+
+    &:disabled {
+        background-color: #2a2640;
+        cursor: not-allowed;
+    }
+}
+
+textarea.inputField {
+    // Specific styling for textarea if you add it
+    min-height: 80px;
+    resize: vertical;
+}
+
+.buttonContainer {
+    margin-top: 20px;
+    text-align: right; // Or center, or flex-end
+}
+
+.actionButton {
+    background-color: #6C63FF; // Primary action color
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background-color: #534bff;
+    }
+
+    &:disabled {
+        background-color: #4a4466;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+}

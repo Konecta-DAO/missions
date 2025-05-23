@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+/* import React, { useEffect, useMemo, useState } from 'react';
 import styles from '../../Missions.module.scss';
 import { useLocation } from 'react-router-dom';
 import { checkMissionCompletionDefault, checkRequiredMissionCompletionDefault } from '../../missionUtils.ts';
@@ -248,12 +248,12 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             onMouseLeave={handleMouseLeave}
         >
             <div>
-                {/* Mission Title */}
+               
                 <div className={styles.MissionTitleWrapper}>
                     <div className={styles.MissionTitle}>{mission.title}</div>
                 </div>
                 <div className={styles.MissionBadge}>
-                    {/* Gradient Circle */}
+                    
                     <svg
                         className={styles.MissionCircle}
                         viewBox="0 0 100 100"
@@ -284,7 +284,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                             fill={`url(#circleGradient${mission.id})`}
                         />
                     </svg>
-                    {/* Mission Icon */}
+                    
                     <img
                         src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
                         alt="Mission Icon"
@@ -293,7 +293,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 </div>
             </div>
 
-            {/* Smaller Circle */}
+  
             {(missionCompleted || !requiredMissionCompleted || isMissionLocked) && !(mission.id === 6n && mission6CooldownTime !== null) && (
                 <svg
                     className={styles.SmallMissionCircle}
@@ -327,7 +327,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 </svg>
             )}
 
-            {/* Lock for Locked Missions */}
+            
             {!missionCompleted && isMissionLocked && (
                 <svg
                     className={styles.SmallWhiteCircle}
@@ -355,7 +355,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 </svg>
             )}
 
-            {/* Checkmark for Completed Missions */}
+            
             {missionCompleted && !isRecursiveCompleted && !(mission.id === 6n && mission6CooldownTime !== null) && (
                 <svg
                     className={styles.Checkmark}
@@ -370,7 +370,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 </svg>
             )}
 
-            {/* Gradient Line */}
+            
             <svg
                 className={styles.MissionLine}
                 viewBox="0 0 100 100"
@@ -405,7 +405,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 />
             </svg>
 
-            {/* Conditional Text for Recursive Completed Missions */}
+            
             {missionCompleted && isICToolkitProject && mission.id === 6n && mission6CooldownTime === null ? (
                 <div className={styles.MissionUnavailableText}>
                     Mission complete! Keep voting for more points.
@@ -416,7 +416,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
                 </div>
             ) : null}
 
-            {/* Time Display at Bottom Left Corner */}
+            
             <div className={styles.TimeDisplay}>
                 {isDiggyProject ? (
                     <div className={styles.IcpDisplay}>
@@ -442,7 +442,7 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
             </div>
 
 
-            {/* Countdown Timer at Bottom Right Corner */}
+            
             {mission.id === 6n && mission6CooldownTime !== null && mission6CooldownTime > 0 ? (
                 <div className={styles.CountdownDisplay}>
                     Resets in: {formatRemainingTime(mission6CooldownTime)}
@@ -457,4 +457,4 @@ const MissionDefault: React.FC<MissionProps> = ({ mission, handleCardClick, hand
     );
 };
 
-export default MissionDefault;
+export default MissionDefault; */

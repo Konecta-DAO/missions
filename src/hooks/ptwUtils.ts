@@ -1,4 +1,4 @@
-import { doAddress } from "../frontend/pages/Missions/Components/MissionFunctionsComponent.ts";
+/* import { doAddress } from "../frontend/pages/Missions/Components/MissionFunctionsComponent.ts";
 
 // ptwUtils.ts
 export interface PTWData {
@@ -12,7 +12,7 @@ export interface PTWData {
  * Fetches PTW data based on the missionId.
  * @param missionId - The ID of the mission.
  * @returns The PTW data or null if missionId is not 4 or an error occurs.
- */
+
 export const fetchPTWData = async (missionId: number): Promise<PTWData | null> => {
     if (missionId !== 4) {
         return null;
@@ -40,7 +40,7 @@ export const fetchPTWData = async (missionId: number): Promise<PTWData | null> =
  * Generates PTW content as a string based on the PTW data.
  * @param ptwData - The PTW data fetched from the API.
  * @returns A string with the PTW content or null if there's nothing to display.
- */
+
 export const generatePTWContent = (ptwData: PTWData | null): string | null => {
     if (!ptwData) return null;
 
@@ -61,3 +61,4 @@ export const generatePTWContent = (ptwData: PTWData | null): string | null => {
 
     return ptwContent !== "Make sure to use" ? ptwContent : null;
 };
+ */

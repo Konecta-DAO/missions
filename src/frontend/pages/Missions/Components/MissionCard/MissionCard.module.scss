@@ -1,0 +1,281 @@
+.missionCard {
+    background-color: #2a2640; // Darker card background
+    border: 1px solid #443e66;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px;
+    width: calc(33.333% - 20px); // Example for 3 columns, adjust as needed
+    min-width: 280px; // Minimum width for smaller screens before wrapping
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    color: #e0e0e0;
+    position: relative; // For overlay and background image
+    background-size: cover;
+    background-position: center;
+    overflow: hidden; // Ensures overlay and content fit within rounded corners
+    display: flex; // Make card a flex container to use flex-grow on description
+    flex-direction: column; // Stack elements vertically
+    min-height: 280px; // Ensure a consistent minimum height
+    justify-content: space-between;
+
+    &.locked {
+        border-left: 5px solid #757575; // Grey for locked
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    &.userCompleted {
+        // User specifically completed this
+        border-left: 5px solid #0277BD; // A distinct blue, different from overall "completed"
+    }
+
+    &.inProgress {
+        border-left: 5px solid #FF8F00; // An orange for in-progress
+    }
+
+    &.upcoming {
+        border-left: 5px solid #5E35B1; // A purple for upcoming
+    }
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    // Status-specific styles (can be expanded)
+    &.draft {
+        border-left: 5px solid grey;
+    }
+
+    &.active {
+        border-left: 5px solid #4CAF50;
+    }
+
+    // Green
+    &.paused {
+        border-left: 5px solid #FFC107;
+    }
+
+    // Amber
+    &.completed {
+        border-left: 5px solid #2196F3;
+    }
+
+    // Blue
+    &.expired {
+        border-left: 5px solid #F44336;
+        opacity: 0.7;
+    }
+
+    // Red
+
+    @media (max-width: 992px) {
+        width: calc(50% - 20px); // 2 columns on medium screens
+    }
+
+    @media (max-width: 600px) {
+        width: calc(100% - 20px); // 1 column on small screens
+    }
+}
+
+.cardOverlay {
+    // To ensure text is readable over a background image
+    background-color: rgba(30, 26, 50, 0.8); // Semi-transparent overlay
+    padding: 15px;
+    border-radius: इन्हेरिट; // Inherit from parent card if image is full background
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    justify-content: space-between;
+}
+
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.missionIcon {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.titleAndTags {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden; // For missionName ellipsis
+}
+
+.missionName {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tagsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.tagPill {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+
+.recursiveIcon {
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
+.missionDescription {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    color: #c0b8e0;
+    flex-grow: 1; // Allows description to take up available space
+    flex-grow: 1; // Allows description to take up space pushing footer down
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    border-top: 1px solid #443e6670;
+    padding-top: 8px;
+    margin-top: auto; // This is key if cardOverlay is display:flex, flex-direction:column
+    align-items: flex-end;
+}
+
+.rewardInfo {
+    color: #a8ff78; // Bright color for reward
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    img.rewardIcon {
+        // If you add a class to the reward icon img
+        width: 16px;
+        height: 16px;
+    }
+}
+
+.statusBadge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 0.75rem;
+
+    &.draftBadge {
+        background-color: grey;
+        color: white;
+    }
+
+    &.activeBadge {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    &.pausedBadge {
+        background-color: #FFC107;
+        color: black;
+    }
+
+    &.completedBadge {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    &.expiredBadge {
+        background-color: #F44336;
+        color: white;
+    }
+
+    &.lockedBadge {
+        background-color: #757575;
+        color: white;
+    }
+
+    &.upcomingBadge {
+        background-color: #5E35B1;
+        color: white;
+    }
+
+    &.inprogressBadge {
+        background-color: #FF8F00;
+        color: white;
+    }
+
+    &.usercompletedBadge {
+        background-color: #0277BD;
+        color: white;
+    }
+
+    &.endedBadge {
+        background-color: #2196F3;
+        color: white;
+    }
+}
+
+
+.userCompletedCheckmark {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.5rem; // Adjust size
+    // Add a background or shadow to make it pop if needed
+}
+
+.ctaButton {
+    background-color: #6C63FF;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-top: 10px; // Space above button
+    transition: background-color 0.2s ease;
+    align-self: stretch; // Make button full width of its container in footer if desired
+    text-align: center;
+
+    &:hover:not(:disabled) {
+        background-color: #534bff;
+    }
+
+    &:disabled {
+        background-color: #4a4466;
+        color: #8c88a2;
+        cursor: not-allowed;
+    }
+}
+
+.countdown {
+    font-size: 0.75rem;
+    color: #ffc107; // Amber for countdown/warning
+    margin-top: 5px;
+    text-align: right;
+}

@@ -44,6 +44,7 @@
     "lottie-react": "^2.4.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.2.0",
+    "react-confetti": "^6.4.0",
     "react-datepicker": "^7.4.0",
     "react-device-detect": "^2.2.3",
     "react-dom": "^19.0.0",

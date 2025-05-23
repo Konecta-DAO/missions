@@ -29,3 +29,30 @@ body {
 html {
   overflow: hidden;
 }
+
+::-webkit-scrollbar {
+  width: 10px;
+  background-color: #3b1560;
+  /* Base of the scrollbar area */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #f8961e;
+  border-radius: 5px;
+  border: 2px solid #3b1560;
+  /* Creates a "padding" effect around the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #fca311;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #31124f;
+  /* The track the thumb slides along */
+}
+
+::-webkit-scrollbar-corner {
+  background-color: #3b1560;
+  /* Corner when both scrollbars are present */
+}

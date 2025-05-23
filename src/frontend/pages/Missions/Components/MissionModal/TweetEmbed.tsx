@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+/* import React, { useEffect, useState, useRef, useCallback } from 'react';
 import styles from './MissionModal.module.scss';
 import getTWtoRT from '../../../../../hooks/getTWtoRT.ts';
 
@@ -136,3 +136,4 @@ const TweetEmbed: React.FC<TweetEmbedProps> = ({ missionId }) => {
 };
 
 export default React.memo(TweetEmbed);
+ */

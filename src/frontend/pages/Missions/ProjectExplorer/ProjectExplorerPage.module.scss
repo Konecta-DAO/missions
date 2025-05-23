@@ -1,0 +1,210 @@
+.pageContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.projectsDisplayArea {
+    padding: 20px 5%;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    h1 {
+        color: #fff;
+        margin-bottom: 30px;
+        font-size: 2.2rem;
+        text-align: center;
+    }
+}
+
+.projectGrid {
+    // For PROJECT cards
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    width: 100%;
+    max-width: 1600px;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.NoProjectsMessage {
+    color: #a09cb8;
+    font-size: 1.2rem;
+    text-align: center;
+    margin-top: 40px;
+}
+
+.projectCard {
+    background-color: #1a162c;
+    border: 1px solid #332d50;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    h2 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #c6c0f0;
+        font-size: 1.5rem;
+    }
+
+    p {
+        margin-bottom: 8px;
+        line-height: 1.6;
+        font-size: 0.95rem;
+    }
+}
+
+.projectBanner {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 10px;
+}
+
+.projectInfo {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.projectIcon {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #4a4466;
+    flex-shrink: 0;
+}
+
+.projectDescription {
+    color: #a09cb8;
+    flex-grow: 1;
+}
+
+.viewButton {
+    background-color: #6C63FF;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+        background-color: #534bff;
+    }
+}
+
+.MobileMessage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 20px;
+    box-sizing: border-box;
+    flex-grow: 1;
+}
+
+.loadingOverlayWrapper {
+    z-index: 10000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+
+.controlsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+    width: 100%;
+    max-width: 1200px; // Or your preferred max width for controls
+    align-items: center;
+
+    @media (min-width: 768px) {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+.searchBar {
+    width: 100%;
+    flex-grow: 1; // Allows search bar to take more space on larger screens
+
+    input[type="text"] {
+        width: 100%;
+        padding: 10px 15px;
+        border-radius: 8px;
+        border: 1px solid #443e66; // Match theme
+        background-color: #1c1830; // Match theme
+        color: #e0e0e0; // Match theme
+        font-size: 1rem;
+        box-sizing: border-box;
+
+        &:focus {
+            outline: none;
+            border-color: #6C63FF; // Accent color
+            box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.3);
+        }
+    }
+}
+
+.filterSortControls {
+    display: flex;
+    gap: 10px;
+    width: 100%; // Full width on mobile
+    flex-shrink: 0; // Prevent shrinking when next to search bar
+
+    @media (min-width: 768px) {
+        width: auto; // Auto width on larger screens
+    }
+
+    select {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background-color: #1c1830;
+        color: #e0e0e0;
+        border: 1px solid #443e66;
+        font-size: 0.9rem;
+        flex-grow: 1; // Make selects share space on mobile
+
+        @media (min-width: 768px) {
+            flex-grow: 0;
+            min-width: 180px; // Min width for dropdowns on larger screens
+        }
+
+        &:focus {
+            outline: none;
+            border-color: #6C63FF;
+            box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.3);
+        }
+    }
+}

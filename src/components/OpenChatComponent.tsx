@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { initialise } from '@open-ic/openchat-xframe';
 import { Actor } from '@dfinity/agent';
 import { idlFactory } from '../declarations/backend/backend.did.js';
-import { ProjectData, useGlobalID } from '../hooks/globalID.tsx';
+import { useGlobalID } from '../hooks/globalID.tsx';
 import { canisterId } from '../declarations/backend/index.js';
 import useFetchData from '../hooks/fetchData.tsx';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../declarations/index/index.did.js';
@@ -133,7 +133,7 @@ const OpenChat: React.FC = () => {
                                 const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
                                 const targets: string[] = projects.map(project => project.canisterId.toText());
 
-                                if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
+                      /*           if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
                                     toast('A new project has been added to Konecta! Refreshing the page...', { icon: '👀' });
                                     disconnect();
                                     window.location.href = '/konnect';
@@ -152,7 +152,7 @@ const OpenChat: React.FC = () => {
                                         });
                                     });
                                     fetchData.fetchAll(actor, actors, actorIndex, targets, globalID.principalId, setPlacestate, setPlacestate);
-                                }
+                                } */
 
                             }
                         },

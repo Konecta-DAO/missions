@@ -1,591 +1,265 @@
-.ModalBackground {
+.modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0);
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
-  animation: fadeIn 0.5s forwards;
+  z-index: 1000;
 }
 
-.MissionModal {
+.modalContent {
+  background-color: #1c1830;
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
   position: relative;
-  width: 28%;
-  height: 75%;
-  background-color: #151320;
-  border-radius: 10px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  transform: translateY(100vh);
-  animation: slideUp 0.5s forwards;
-}
-
-.MissionImageWrapper {
-  position: relative;
-  width: 100%;
-  height: 50%;
-}
-
-.MissionImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.GradientOverlay {
-  position: relative;
-  bottom: 7px;
-  left: 0;
-  width: 100%;
-  height: 30%;
-  background: linear-gradient(to bottom, transparent, #151320);
-}
-
-.MissionContent {
-  padding: 1.15vh;
-  flex: 1;
-  width: 83%;
-  font-size: clamp(10px, 1.7vh, 22px);
-  line-height: 1.2em;
-  font-weight: 500;
-  position: relative;
-  left: 7%;
-  user-select: all;
-}
-
-.MissionContent7 {
-  padding: 1.15vh;
-  height: 100%;
-  font-size: 1.67vh;
-  line-height: 1.25em;
-  font-weight: 500;
-}
-
-.ButtonInputs {
-  padding-left: 1.15vh;
-  padding-right: 1.15vh;
-  padding-top: 0.5vh;
-  padding-bottom: 0.5vh;
-  flex: 1;
-  width: 80%;
-  transform: translateX(7%);
-}
-
-.MissionTitleWrapper {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  background-color: rgba(21, 19, 32, 1);
-  width: 100%;
-  height: 8%;
-  position: absolute;
-  top: 0;
-  z-index: 1;
-}
-
-.MissionTitle {
-  color: #fff;
-  font-weight: bold;
-  text-align: center;
-  text-transform: uppercase;
-  margin: 0;
-  font-size: 1vw;
-  line-height: 1.15em;
-  transform: translate(15.25%);
-  width: 75%;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.MissionLine {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.MissionLine7 {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.MissionLine2 {
-  position: absolute;
-  top: 0;
-  left: -3px;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.MissionActions {
-  margin-top: 0.25vw;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1vw;
-}
-
-.InputButtonWrapper {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-button {
-  padding: 10px 20px;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 1.1vw;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.CompletedText {
-  font-size: 1vw;
-  color: white;
-  text-align: center;
-  font-weight: 500;
-}
-
-.MissionCircle {
-  position: absolute;
-  top: -0.5vw;
-  right: -3%;
-  width: 17%;
-  height: auto;
-  z-index: 4;
-  pointer-events: none;
-}
-
-.MissionIcon {
-  position: absolute;
-  top: 1.4vh;
-  right: 1.75%;
-  width: 9%;
-  height: auto;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.Mission7Content {
-  position: absolute;
-  top: 11.5%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80%;
+  color: #e0e0e0;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
 
   h2 {
-    text-align: center;
-    font-size: 2vh;
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 15px;
   }
-
-
-}
-
-.Mission7Desc0 {
-  position: absolute;
-  top: 50%;
-  width: 60%;
-  left: 41%;
-  font-weight: 900;
-  font-size: 2vh;
 
   p {
-    margin-bottom: 1vh;
+    margin-bottom: 10px;
+    line-height: 1.6;
   }
 }
 
-.Mission7Desc {
+.closeButton {
   position: absolute;
-  top: 20%;
-  width: 60%;
-  left: 28%;
-
-  p {
-    margin-bottom: 1vh;
-  }
-}
-
-.Mission7Desc2 {
-  position: absolute;
-  top: 20%;
-  width: 60%;
-  left: 20%;
-  text-align: center;
-
-  p {
-    margin-bottom: 1vh;
-  }
-}
-
-.Kami1 {
-  width: auto;
-  height: 54%;
-  position: absolute;
-  bottom: 0;
-  z-index: -1;
-  left: 20%;
-}
-
-.Kami2 {
-  width: auto;
-  height: 43.5%;
-  position: absolute;
-  bottom: 0;
-  z-index: -1;
-  left: 20%;
-}
-
-.Kami3 {
-  width: auto;
-  height: 29.75%;
-  position: absolute;
-  bottom: 0;
-  z-index: -1;
-  left: 8%;
-}
-
-.Kami4 {
-  width: auto;
-  height: 36.75%;
-  position: absolute;
-  bottom: 37%;
-  z-index: 0;
-  left: 20%;
-  pointer-events: none;
-}
-
-.Mission7Sub {
-  margin-top: 1.5vh;
-}
-
-.Mission7Sub2 {
-  margin-top: 75%;
-  left: 9%;
-  position: relative;
-}
-
-.Mission7Button {
-  background-image: linear-gradient(-180deg, #37AEE2 0%, #1E96C8 100%);
-  border-radius: 25px;
-  box-sizing: border-box;
-  color: #FFFFFF;
-  display: flex;
-  font-size: 2vh;
-  justify-content: center;
-  padding: 0.5vw;
-  text-decoration: none;
-  width: 25vh;
-  border: 0;
-  cursor: pointer;
-}
-
-.Mission7Button2 {
-  background-image: linear-gradient(-180deg, #37aee2, #1e96c8);
-  border-radius: 25px;
-  box-sizing: border-box;
-  color: #fff;
-  display: flex;
-  font-size: 3vh;
-  justify-content: center;
-  padding: 0.5vw;
-  text-decoration: none;
-  width: 84%;
-  border: 0;
-  cursor: pointer;
-}
-
-.greyedOutButton {
-  background-color: grey;
-  cursor: not-allowed;
-}
-
-
-.loadingOverlayWrapper {
-  z-index: 10;
-}
-
-.buttonContent {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.customButton {
-  padding: 10px 20px;
-  color: white;
+  top: 15px;
+  right: 15px;
+  background: none;
   border: none;
-  border-radius: 25px;
+  color: #a09cb8;
+  font-size: 1.5rem;
   cursor: pointer;
-  font-size: 1.1vw;
-  font-weight: bold;
-  text-transform: uppercase;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-}
-
-.InputContent {
-  padding: 10px 20px;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  font-size: 1.1vw;
-  font-weight: bold;
-  text-transform: uppercase;
-  width: 7vw;
-}
-
-.InputContent::placeholder {
-  color: white;
-  opacity: .75;
-}
-
-.loadingButton {
-  align-items: center;
-  justify-content: center;
-}
-
-.loadingText {
-  margin-left: 8px;
-}
-
-.spinner {
-  display: inline-block;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #fff;
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  animation: spin 1s linear infinite;
-}
-
-.tweetEmbedContainer {
-  margin: 20px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-top: 12px;
-  margin-bottom: 12px;
-}
-
-.toggleButton {
-  padding: 10px 20px;
-  background-color: #FF5F38;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1vw;
-  transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: #DB9E2D;
+    color: #ffffff;
   }
 }
 
-.scrollableContainer {
-  width: 16vw;
-  margin-top: 10px;
-  height: 6vw;
-  overflow-y: auto;
-  border: 2px solid #e36e43;
-  border-radius: 5px;
-  background-color: #1a1a1a;
+.actionAreaPlaceholder {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #3a3f7260;
+  text-align: center;
 
-  &::-webkit-scrollbar {
-    width: 10px;
-    background-color: #3b1560;
-  }
+  button {
+    background-color: #6C63FF;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
 
-  &::-webkit-scrollbar-thumb {
-    background-color: #f8961e;
-    border-radius: 5px;
-    border: 2px solid #3b1560;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: #fca311;
-  }
-
-  &::-webkit-scrollbar-track {
-    background-color: #31124f;
-  }
-
-  &::-webkit-scrollbar-corner {
-    background-color: #3b1560;
+    &:hover {
+      background-color: #534bff;
+    }
   }
 }
 
-.tweetEmbed {
-  width: 100%;
-  height: 100%;
+.missionHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+
+  h2 {
+    margin: 0 0 0 15px;
+  }
+}
+
+.missionModalIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.missionModalDescription {
+  font-size: 0.95rem;
+  color: #c0b8e0;
+  margin-bottom: 20px;
+}
+
+.separator {
   border: none;
-  transform: translateY(-7%);
+  border-top: 1px solid #3a3f7260;
+  margin: 20px 0;
 }
 
-.timeline {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 1.5vh;
-  top: 18%;
-  position: absolute;
-  left: 16%;
+.loadingMessage {
+  text-align: center;
+  padding: 15px;
+  color: #7f79f5;
 }
 
-.timelineStep {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+.feedbackMessage {
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 6px;
+  text-align: center;
 
-.timelineNumber {
-  position: absolute;
-  left: -125%;
-  top: calc(3% - -0.5vh);
-  color: #FFFFFF;
-  font-weight: 700;
-}
-
-.timelineNode {
-  width: 1.5vw;
-  height: 1.5vw;
-  border-radius: 50%;
-  border: 0.17vw solid #FFFFFF;
-  background-color: #34AADC;
-  position: relative;
-  z-index: 1;
-  min-width: 2.25vh;
-  min-height: 2.25vh;
-}
-
-.previousNode {
-  background-color: #006994;
-  border: 0.17vw solid #A0A0A0;
-}
-
-.timelineLine {
-  width: 4px;
-  height: 6vh;
-  background-color: #34AADC;
-}
-
-.previousLine {
-  background-color: #006994;
-}
-
-.timelineEndLine {
-  width: 4px;
-  height: calc(16.75vh - 16px);
-  background-color: #FFFFFF;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
+  &.success {
+    background-color: #28a74520;
+    color: #a8ff78;
+    border: 1px solid #28a74580;
   }
 
-  100% {
-    transform: rotate(360deg);
+  &.error {
+    background-color: #dc354520;
+    color: #ff7b7b;
+    border: 1px solid #dc354580;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    background-color: rgba(0, 0, 0, 0);
+.actionStepArea {
+  margin-top: 20px;
+
+  h4 {
+    color: #e0e0e0;
+    margin-bottom: 10px;
   }
 
-  to {
-    background-color: rgba(0, 0, 0, 0.75);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100vh);
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #a09cb8;
   }
 
-  to {
-    transform: translateY(0);
-  }
-}
-
-
-@media (max-width: 1024px) {
-  .MissionModal {
-    width: 90%;
-    height: 75%;
-  }
-
-  .MissionTitle {
-    font-size: 3.25vw;
-  }
-
-  .MissionContent {
-    font-size: 1.67vh;
-    width: 75%;
-    padding-top: 0.5vh;
-    padding-bottom: 0.5vh;
-    transform: translateX(12%);
+  input[type="text"] {
+    width: calc(100% - 20px);
+    padding: 8px 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border: 1px solid #443e66;
+    background-color: #120f22;
+    color: #e0e0e0;
   }
 
   button {
-    font-size: 2.2vw;
+    background-color: #6C63FF;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #534bff;
+    }
+
+    &:disabled {
+      background-color: #4a4466;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.missionRewardReminder {
+  font-size: 0.9rem;
+  color: var(--secondary-text-color, #c0b8e0);
+  margin-bottom: 15px;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+
+  strong {
+    color: var(--primary-text-color, #e0e0e0);
+  }
+}
+
+.stepTracker {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  // border-bottom: 1px solid var(--secondary-border-color, #3a3f7260); // Separator if needed
+}
+
+.stepText {
+  display: block;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--primary-text-color, #e0e0e0);
+  margin-bottom: 8px;
+}
+
+.progressBarContainer {
+  width: 100%;
+  height: 8px;
+  background-color: var(--disabled-bg-color, #4a4466);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: var(--accent-color, #6C63FF);
+  border-radius: 4px;
+  transition: width 0.3s ease-in-out;
+}
+
+.startMissionSection {
+  text-align: center;
+  padding: 20px;
+
+  p {
+    margin-bottom: 15px;
   }
 
-  .CompletedText {
-    font-size: 3.5vw;
+  .ctaButton {
+    // Can reuse styles from ActionStepRenderer or define specific ones
+    // Similar to .actionButton styles from ActionStepRenderer
+    background-color: var(--accent-color, #6C63FF);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.05rem;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background-color: var(--accent-hover-color, #534bff);
+    }
+
+    &:disabled {
+      background-color: var(--disabled-bg-color, #4a4466);
+      cursor: not-allowed;
+    }
+  }
+}
+
+.missionCompletionStatus {
+  text-align: center;
+  padding: 20px;
+
+  h3 {
+    color: var(--success-color, #a8ff78); // Or error color
+    margin-bottom: 10px;
   }
 
-  .customButton {
-    font-size: 3vw;
+  p {
+    font-size: 0.95rem;
   }
+}
 
-  .MissionActions {
-    margin-top: -3.75vw;
-    gap: 4vw;
-  }
-
-  .MissionImageWrapper {
-    height: 29vh;
-  }
-
-  .ButtonInputs {
-    padding-top: 2vh;
-    transform: translateX(12%);
-  }
-
-  .scrollableContainer {
-    width: 64vw;
-    height: 25vw;
-  }
-
-  .toggleButton {
-    font-size: 1.75vh;
-    padding: 7px 13px;
-  }
-
-
+.loadingMessage {
+  // Already present, ensure it's styled appropriately
+  text-align: center;
+  padding: 15px;
+  color: var(--accent-color, #7f79f5); // Or a neutral info color
+  font-style: italic;
 }

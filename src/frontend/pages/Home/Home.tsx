@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Home.module.scss';
 import HomeBackgroundOverlay from './HomeBackground/HomeBackgroundOverlay.tsx';
@@ -16,18 +16,14 @@ import HelpButton from '../../components/HelpButton/HelpButton.tsx';
 import SpeechBubble from '../../components/SpeechBubble/SpeechBubble.tsx';
 import "@nfid/identitykit/react/styles.css"
 import { ConnectWallet, useIdentityKit } from "@nfid/identitykit/react"
-import { ProjectData, useGlobalID } from '../../../hooks/globalID.tsx';
+import { useGlobalID } from '../../../hooks/globalID.tsx';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory as idlFactoryIndex, SerializedGlobalUser } from '../../../declarations/index/index.did.js';
 import KonectaModal from '../Missions/Components/KonectaModal/KonectaModal.tsx';
 import InfoModal from '../Missions/Components/InfoModal/InfoModal.tsx';
 import LoadingOverlay from '../../../components/LoadingOverlay.tsx';
 import { Usergeek } from 'usergeek-ic-js';
-import { SerializedProjectMissions } from '../../../declarations/index/index.did.js';
 import { IndexCanisterId } from '../../main.tsx';
-import { NFIDW } from '@nfid/identitykit';
-
-// const canisterIdDFINITY = "2mg2s-uqaaa-aaaag-qna5a-cai";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -43,24 +39,13 @@ const Home: React.FC = () => {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isnfiding, setIsnfiding] = useState(false);
 
-  const setData = async (agent: HttpAgent) => {
+  const setData = useCallback(async (agent: HttpAgent) => {
     if (agent) {
 
       const actorIndex = Actor.createActor(idlFactoryIndex, {
         agent: agent!,
         canisterId: IndexCanisterId,
       });
-
-      const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
-      const targets: string[] = projects.map(project => project.canisterId.toText());
-      const mappedProjects: ProjectData[] = projects.map((project) => ({
-        id: project.canisterId.toText(),
-        name: project.name,
-        icon: project.icon,
-      }));
-
-      globalID.setProjects(mappedProjects);
-      globalID.setCanisterIds(targets);
 
       setIsnfiding(true);
 
@@ -70,7 +55,7 @@ const Home: React.FC = () => {
         (actorIndex.getUserByPrincipal(a) as Promise<SerializedGlobalUser[]>).then(async (b) => {
           if (Array.isArray(b) && b.length !== 0) {
             globalID.setPrincipal(a);
-            globalID.setUser(b);
+            globalID.setUserGlobalProfile(b[0]);
             navigate(fromPath, { replace: true });
           } else {
             const identityAny = identity as any;
@@ -87,7 +72,7 @@ const Home: React.FC = () => {
               (actorIndex.createUser(a, localStorage.getItem('signerId')) as Promise<SerializedGlobalUser[]>).then(
                 async (newUser) => {
                   globalID.setPrincipal(a);
-                  globalID.setUser(newUser);
+                  globalID.setUserGlobalProfile(newUser[0]);
 
                   Usergeek.trackEvent('Mission 0: Registered');
                   navigate(fromPath, { replace: true });
@@ -99,7 +84,7 @@ const Home: React.FC = () => {
         });
       });
     }
-  };
+  }, [globalID, navigate, fromPath, identity, disconnect]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -116,10 +101,12 @@ const Home: React.FC = () => {
         if (process.env.NODE_ENV !== "production") {
           agent.fetchRootKey();
         }
-
+        globalID.setAgent(agent);
         await setData(agent);
       } else {
         disconnect();
+        globalID.setAgent(null);
+        globalID.setPrincipal(null);
       };
     };
 

@@ -92,10 +92,10 @@ const AccessOisyModal: React.FC<AccessOisyModalProps> = ({ closeModal }) => {
                         canisterId: IndexCanisterId,
                     });
                     const response = await actorIndex.linkOisyAccount(globalID.principalId, walletPrincipal) as string;
-                    fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
+                    //fetchData.fetchWalletLinkInfo(signerId!, actorIndex, globalID.principalId!);
                     if (response === "Oisy account linked successfully.") {
                         toast.success(response);
-                    } else{
+                    } else {
                         toast.error(response);
                     }
                 }

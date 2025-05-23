@@ -1,4 +1,4 @@
-import React, { act, useEffect, useRef, useState } from 'react';
+/* import React, { act, useEffect, useRef, useState } from 'react';
 
 import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { formatTimeRemaining } from '../../../../../components/Utilities.tsx';
@@ -335,7 +335,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 }}
             >
                 <defs>
-                    {/* Gradients */}
+                    {/* Gradients 
                     <linearGradient
                         id="SVGID_1_"
                         gradientUnits="userSpaceOnUse"
@@ -822,3 +822,4 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 };
 
 export default DailyStreakButtonComponent;
+ */

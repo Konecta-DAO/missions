@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+/* import React, { useState } from 'react';
 import styles from './HistoryModalMobile.module.scss';
 import { convertSecondsToHMS, formatDate } from '../../../../../components/Utilities.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
@@ -149,20 +149,20 @@ const HistoryModalMobile: React.FC<HistoryModalProps> = ({ closeModal }) => {
     return (
         <div className={styles.MobileModalOverlay}>
             <div className={`${styles.MobileModalContent} ${isClosing ? styles.hide : ''}`}>
-                {/* Close Button (X) */}
+                {/* Close Button (X) 
                 <button className={styles.CloseButton} onClick={handleCloseModal}>X</button>
 
-                {/* Modal Title */}
+                {/* Modal Title 
                 <div className={styles.ModalHeader}>
                     <h2 className={styles.ModalTitle}>Achievements</h2>
                 </div>
 
-                {/* Top Image */}
+                {/* Top Image 
                 <div className={styles.Achievements}>
                     <img src={TopImage} className={styles.TopImage} alt="Top Banner" />
                 </div>
 
-                {/* Progress List */}
+                {/* Progress List 
                 <div className={styles.ProgressList}>
                     {renderProgress()}
                 </div>
@@ -172,3 +172,4 @@ const HistoryModalMobile: React.FC<HistoryModalProps> = ({ closeModal }) => {
 };
 
 export default HistoryModalMobile;
+ */

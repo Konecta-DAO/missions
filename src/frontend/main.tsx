@@ -4,19 +4,23 @@ import { createPortal } from 'react-dom';
 import { Toaster } from 'react-hot-toast';
 import './index.scss';
 import { canisterId as backId } from '../declarations/backend/index.js';
-import { BrowserRouter } from 'react-router-dom';
-import { IdentityKitProvider } from "@nfid/identitykit/react"
-import { NFIDW, InternetIdentity } from "@nfid/identitykit"
+import { BrowserRouter, Navigate, useLocation } from 'react-router-dom';
+import { IdentityKitProvider, useIdentityKit } from "@nfid/identitykit/react";
+import { NFIDW } from "@nfid/identitykit";
 import { GlobalProvider } from '../hooks/globalID.tsx';
 import { Routes, Route } from 'react-router-dom';
 import RadialBackground from '../components/RadialBackground/RadialBackground.tsx';
 import Home from './pages/Home/Home.tsx';
-import Missions from './pages/Missions/Missions.tsx';
 import UsergeekProvider from '../components/UsergeekProvider.tsx';
-import { IdentityKitAuthType } from "@nfid/identitykit"
+import { IdentityKitAuthType } from "@nfid/identitykit";
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory } from '../declarations/index/index.js';
-import { SerializedProjectMissions } from '../declarations/index/index.did.js';
+import ProjectExplorerPage from './pages/Missions/ProjectExplorer/ProjectExplorerPage.tsx';
+import { Principal } from '@dfinity/principal';
+import ProjectViewPage from './ProjectViewPage/ProjectViewPage.tsx';
+import MainLayout from './pages/Missions/Components/MainLayout/MainLayout.tsx';
+import ProtectedRouteLayout from './pages/Missions/Components/ProtectedRouteLayout/ProtectedRouteLayout.tsx';
+import UserDashboardPage from './pages/Missions/Components/UserDashboardPage/UserDashboardPage.tsx';
 
 type Env = "TEST" | "PROD";
 let environment: Env = "TEST";
@@ -26,8 +30,21 @@ export const IndexCanisterId = environment === "PROD" ? 'tui2b-giaaa-aaaag-qnbpq
 // @ts-ignore
 export const derivationOrigin = environment === "PROD" ? "https://pre.konecta.one" : "https://y7mum-taaaa-aaaag-qklxq-cai.icp0.io";
 
-const fetchTargets = async (): Promise<string[]> => {
+const NavigateToKonnectOrFallback: React.FC = () => {
+  const { identity, user } = useIdentityKit();
+  const location = useLocation();
 
+  const isAuthenticated = !!(user?.principal && user.principal.toText() !== "2vxsx-fae" && identity);
+
+  if (!isAuthenticated && location.pathname !== "/konnect") {
+    return <Navigate to="/konnect" state={{ from: location }} replace />;
+  }
+
+  return <ProjectExplorerPage />;
+};
+
+
+const fetchTargets = async (): Promise<string[]> => {
   const agent = HttpAgent.createSync();
 
   const actor = Actor.createActor(idlFactory, {
@@ -35,30 +52,47 @@ const fetchTargets = async (): Promise<string[]> => {
     canisterId: IndexCanisterId,
   });
 
-  const projectPrincipals = await actor.getProjects() as { toText: () => string }[];
-  // Map the principals to their text representations
+  const projectPrincipals = await actor.getProjects() as Principal[];
+  // console.log(projectPrincipals);
   const targets: string[] = projectPrincipals.map(principal => principal.toText());
+  // console.log(targets);
   return [backId, IndexCanisterId, ...targets];
 };
 
 (async () => {
-
-  // Fetch the targets from the endpoint
   const fetchedTargets = await fetchTargets();
 
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-
     <React.StrictMode>
       <GlobalProvider>
         <BrowserRouter>
-          <IdentityKitProvider signers={[NFIDW]} featuredSigner={NFIDW} signerClientOptions={{ derivationOrigin: derivationOrigin, targets: fetchedTargets, idleOptions: { idleTimeout: 604800000 }, }} authType={IdentityKitAuthType.DELEGATION}>
+          <IdentityKitProvider
+            signers={[NFIDW]}
+            featuredSigner={NFIDW}
+            signerClientOptions={{
+              derivationOrigin: derivationOrigin,
+              targets: fetchedTargets,
+              idleOptions: { idleTimeout: 604800000 },
+            }}
+            authType={IdentityKitAuthType.DELEGATION}
+          >
             <UsergeekProvider>
               <RadialBackground>
                 <Routes>
-                  <Route path="/" element={<Missions />} />
-                  <Route path="/:projectSlug/:missionSlug" element={<Missions />} />
-                  <Route path="/:projectSlug" element={<Missions />} />
+                  {/* Route for Home (Konnect) - NO TopBar */}
                   <Route path="/konnect" element={<Home />} />
+
+                  {/* Routes WITH TopBar, nested under MainLayout */}
+                  <Route element={<ProtectedRouteLayout />}>
+                    <Route path="/" element={<ProjectExplorerPage />} />
+                    <Route path="/projects" element={<ProjectExplorerPage />} />
+                    <Route path="/project/:projectCanisterId/:projectSlug?" element={<ProjectViewPage />} />
+                    <Route path="/project/:projectCanisterId/:projectSlug?/mission/:missionId/:missionSlug?" element={<ProjectViewPage />} />
+                    <Route path="/dashboard" element={<UserDashboardPage />} />
+                  </Route>
+
+                  {/* Fallback for any other unmatched route */}
+                  <Route path="*" element={<NavigateToKonnectOrFallback />} />
                 </Routes>
               </RadialBackground>
             </UsergeekProvider>
@@ -86,5 +120,4 @@ const fetchTargets = async (): Promise<string[]> => {
       )}
     </React.StrictMode>,
   );
-
 })();

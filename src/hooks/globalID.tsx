@@ -1,121 +1,195 @@
-import { Principal } from '@dfinity/principal';
-import React, { createContext, useState, useContext, useMemo } from 'react';
-import { SerializedMissionV2, SerializedProgress, SerializedUserStreak } from '../declarations/backend/backend.did.js';
-import { SerializedMissionV2 as SerializedMissionDefault, SerializedProgress as SerializedProgressDefault } from '../declarations/oisy_backend/oisy_backend.did.js';
-import { HttpAgent } from '@dfinity/agent';
-import { SerializedGlobalUser } from '../declarations/index/index.did.js';
-import { WalletLinkInfo } from './fetchData.tsx';
+// src/hooks/globalID.tsx
 
-export interface ProjectData {
-    id: string;
-    name: string;
-    icon: string;
-}
+import React, { createContext, useState, useContext, useMemo, useCallback } from 'react';
+import type { Principal } from '@dfinity/principal';
+import type { HttpAgent } from '@dfinity/agent';
+
+// Keep WalletLinkInfo if its structure is stable and defined
+// For now, assuming it's imported. If it also changes with NewTypes, it needs an update.
+import type { WalletLinkInfo } from './fetchData.tsx'; // Or its actual definition location
+import { SerializedGlobalUser } from '../declarations/index/index.did.js';
+import { SerializedMission, SerializedUserMissionProgress } from '../declarations/test_backend/test_backend.did.js';
+import { SerializedProjectDetails } from '../frontend/types.ts';
 
 export interface GlobalIDType {
     principalId: Principal | null;
-    setPrincipal: (value: Principal) => void;
-    missions: SerializedMissionV2[];
-    setMissions: (missions: SerializedMissionV2[]) => void;
-    userProgress: Array<[bigint, SerializedProgress]> | null;
-    setUserProgress: (progress: Array<[bigint, SerializedProgress]> | null) => void;
-    user: SerializedGlobalUser[] | null;
-    setUser: (user: SerializedGlobalUser[]) => void;
-    timerText: string;
-    setTimerText: (text: string) => void;
-    twitterhandle: string | null;
-    setTwitterHandle: (handle: string) => void;
-    userPFPstatus: string;
-    setPFPstatus: (status: string) => void;
+    setPrincipal: (value: Principal | null) => void;
     agent: HttpAgent | null;
-    setAgent: (agent: HttpAgent) => void;
-    celebOverlay: boolean;
-    setCelebOverlay: (value: boolean) => void;
+    setAgent: (agent: HttpAgent | null) => void;
+
+    // Unified Project Data
+    projects: SerializedProjectDetails[];
+    setProjects: (projects: SerializedProjectDetails[]) => void;
+    isLoadingProjects: boolean;
+    setIsLoadingProjects: (loading: boolean) => void;
+
+    // Unified Mission Data
+    missions: Map<string, Map<bigint, SerializedMission>>; // Key: projectCanisterId.toText(), then missionId
+    setMissionsForProject: (projectId: string, missionsForThisProject: Map<bigint, SerializedMission>) => void;
+    clearMissionsForProject: (projectId: string) => void;
+    clearAllMissions: () => void;
+
+    // Unified User Progress Data
+    userProgress: Map<string, Map<bigint, SerializedUserMissionProgress>>; // Key: projectCanisterId.toText(), then missionId
+    setUserProgressForMission: (projectId: string, missionId: bigint, progress: SerializedUserMissionProgress) => void;
+    clearUserProgressForMission: (projectId: string, missionId: bigint) => void;
+    clearAllUserProgress: () => void;
+
+    // Currently Selected/Viewed Project
+    activeProjectCanisterId: string | null;
+    setActiveProjectCanisterId: (id: string | null) => void;
+
+    // Global User Profile
+    userGlobalProfile: SerializedGlobalUser | null;
+    setUserGlobalProfile: (profile: SerializedGlobalUser | null) => void;
+
+    // Wallet Link Info
+    walletLinkInfos: WalletLinkInfo[];
+    setWalletLinkInfos: React.Dispatch<React.SetStateAction<WalletLinkInfo[]>>;
+
+    // Streak related info (Assuming these are still global features)
+    // TODO: Resolve 'any' for totalUserStreak and confirm source/relevance of streak data
+    timerText: string; // Display for aggregated points/time
+    setTimerText: (text: string) => void;
     userStreakAmount: bigint;
     setUserStreakAmount: (value: bigint) => void;
     userLastTimeStreak: bigint;
     setUserLastTimeStreak: (value: bigint) => void;
     streakResetTime: bigint;
     setStreakResetTime: (value: bigint) => void;
-    totalUserStreak: SerializedUserStreak | null;
-    setTotalUserStreak: (value: SerializedUserStreak | null) => void;
+    totalUserStreak: any | null; // Placeholder - Needs proper type from NewTypes or backend
+    setTotalUserStreak: (value: any | null) => void;
     userStreakPercentage: bigint;
     setUserStreakPercentage: (value: bigint) => void;
-    isOisy: boolean;
-    setIsOisy: (value: boolean) => void;
-    canisterIds: string[] | null;
-    setCanisterIds: (canisterIds: string[]) => void;
-    projects: ProjectData[];
-    setProjects: React.Dispatch<React.SetStateAction<ProjectData[]>>;
-    missionsMap: { [key: string]: SerializedMissionDefault[] };
-    setMissionsForProject: (projectId: string, missions: SerializedMissionDefault[]) => void;
-    userProgressMap: { [key: string]: Array<[bigint, SerializedProgressDefault]> | null };
-    setUserProgressForProject: (projectId: string, progress: Array<[bigint, SerializedProgressDefault]> | null) => void;
-    pointsMap: { [key: string]: bigint };
-    setPointsForProject: (projectId: string, points: bigint) => void;
-    walletLinkInfos: WalletLinkInfo[];
-    setWalletLinkInfos: React.Dispatch<React.SetStateAction<WalletLinkInfo[]>>;
 }
 
-const GlobalID = createContext<GlobalIDType | undefined>(undefined);
+const initialState: GlobalIDType = {
+    principalId: null,
+    setPrincipal: () => console.warn('setPrincipal called before GlobalProvider mounted'),
+    agent: null,
+    setAgent: () => console.warn('setAgent called before GlobalProvider mounted'),
+    projects: [],
+    setProjects: () => console.warn('setProjects called before GlobalProvider mounted'),
+    isLoadingProjects: true,
+    setIsLoadingProjects: () => console.warn('setIsLoadingProjects called before GlobalProvider mounted'),
+    missions: new Map(),
+    setMissionsForProject: () => console.warn('setMissionsForProject called before GlobalProvider mounted'),
+    clearMissionsForProject: () => console.warn('clearMissionsForProject called before GlobalProvider mounted'),
+    clearAllMissions: () => console.warn('clearAllMissions called before GlobalProvider mounted'),
+    userProgress: new Map(),
+    setUserProgressForMission: () => console.warn('setUserProgressForMission called before GlobalProvider mounted'),
+    clearUserProgressForMission: () => console.warn('clearUserProgressForMission called before GlobalProvider mounted'),
+    clearAllUserProgress: () => console.warn('clearAllUserProgress called before GlobalProvider mounted'),
+    activeProjectCanisterId: null,
+    setActiveProjectCanisterId: () => console.warn('setActiveProjectCanisterId called before GlobalProvider mounted'),
+    userGlobalProfile: null,
+    setUserGlobalProfile: () => console.warn('setUserGlobalProfile called before GlobalProvider mounted'),
+    walletLinkInfos: [],
+    setWalletLinkInfos: () => console.warn('setWalletLinkInfos called before GlobalProvider mounted'),
+    timerText: '00:00:00',
+    setTimerText: () => console.warn('setTimerText called before GlobalProvider mounted'),
+    userStreakAmount: 0n,
+    setUserStreakAmount: () => console.warn('setUserStreakAmount called before GlobalProvider mounted'),
+    userLastTimeStreak: 0n,
+    setUserLastTimeStreak: () => console.warn('setUserLastTimeStreak called before GlobalProvider mounted'),
+    streakResetTime: 0n,
+    setStreakResetTime: () => console.warn('setStreakResetTime called before GlobalProvider mounted'),
+    totalUserStreak: null,
+    setTotalUserStreak: () => console.warn('setTotalUserStreak called before GlobalProvider mounted'),
+    userStreakPercentage: 0n,
+    setUserStreakPercentage: () => console.warn('setUserStreakPercentage called before GlobalProvider mounted'),
+};
+
+const GlobalID = createContext<GlobalIDType>(initialState);
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [principalId, setPrincipal] = useState<Principal | null>(null);
+    const [principalId, setPrincipal] = useState<Principal | null>(initialState.principalId);
+    const [agent, setAgent] = useState<HttpAgent | null>(initialState.agent);
+    const [projects, setProjects] = useState<SerializedProjectDetails[]>(initialState.projects);
+    const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(initialState.isLoadingProjects);
+    const [missions, setMissionsInternal] = useState<Map<string, Map<bigint, SerializedMission>>>(initialState.missions);
+    const [userProgress, setUserProgressInternal] = useState<Map<string, Map<bigint, SerializedUserMissionProgress>>>(initialState.userProgress);
+    const [activeProjectCanisterId, setActiveProjectCanisterId] = useState<string | null>(initialState.activeProjectCanisterId);
+    const [userGlobalProfile, setUserGlobalProfile] = useState<SerializedGlobalUser | null>(initialState.userGlobalProfile);
+    const [walletLinkInfos, setWalletLinkInfos] = useState<WalletLinkInfo[]>(initialState.walletLinkInfos);
 
-    const [missions, setMissions] = useState<SerializedMissionV2[]>([]);
-    const [userProgress, setUserProgress] = useState<Array<[bigint, SerializedProgressDefault]> | null>([]);
-    const [user, setUser] = useState<SerializedGlobalUser[] | null>([]);
-    const [timerText, setTimerText] = useState<string>('00:00:00');
-    const [twitterhandle, setTwitterHandle] = useState<string | null>('');
-    const [userPFPstatus, setPFPstatus] = useState<string>('');
-    const [agent, setAgent] = useState<HttpAgent | null>(null);
-    const [celebOverlay, setCelebOverlay] = useState<boolean>(false);
-    const [userStreakAmount, setUserStreakAmount] = useState<bigint>(0n);
-    const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(0n);
-    const [streakResetTime, setStreakResetTime] = useState<bigint>(0n);
-    const [totalUserStreak, setTotalUserStreak] = useState<SerializedUserStreak | null>(null);
-    const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(0n);
+    // Streak related state
+    const [timerText, setTimerText] = useState<string>(initialState.timerText);
+    const [userStreakAmount, setUserStreakAmount] = useState<bigint>(initialState.userStreakAmount);
+    const [userLastTimeStreak, setUserLastTimeStreak] = useState<bigint>(initialState.userLastTimeStreak);
+    const [streakResetTime, setStreakResetTime] = useState<bigint>(initialState.streakResetTime);
+    const [totalUserStreak, setTotalUserStreak] = useState<any | null>(initialState.totalUserStreak); // TODO: Replace 'any'
+    const [userStreakPercentage, setUserStreakPercentage] = useState<bigint>(initialState.userStreakPercentage);
 
-    const [isOisy, setIsOisy] = useState<boolean>(false);
-    const [canisterIds, setCanisterIds] = useState<string[] | null>([]);
-    const [projects, setProjects] = useState<ProjectData[]>([]);
-    const [missionsMap, setMissionsMap] = useState<{ [key: string]: SerializedMissionDefault[] }>({});
-    const [userProgressMap, setUserProgressMap] = useState<{ [key: string]: Array<[bigint, SerializedProgressDefault]> | null }>({});
-    const [pointsMap, setPointsMap] = useState<{ [key: string]: bigint }>({});
+    const setMissionsForProject = useCallback((projectId: string, missionsForThisProject: Map<bigint, SerializedMission>) => {
+        setMissionsInternal(prev => new Map(prev).set(projectId, new Map(missionsForThisProject))); // Ensure inner map is also new for deep immutability if needed
+    }, []);
 
-    const [walletLinkInfos, setWalletLinkInfos] = useState<WalletLinkInfo[]>([]);
+    const clearMissionsForProject = useCallback((projectId: string) => {
+        setMissionsInternal(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(projectId);
+            return newMap;
+        });
+    }, []);
 
-    const setMissionsForProject = (projectId: string, missions: SerializedMissionDefault[]) => {
-        setMissionsMap((prev) => ({ ...prev, [projectId]: missions }));
-    };
+    const clearAllMissions = useCallback(() => {
+        setMissionsInternal(new Map());
+    }, []);
 
-    const setUserProgressForProject = (projectId: string, progress: Array<[bigint, SerializedProgressDefault]> | null) => {
-        setUserProgressMap((prev) => ({ ...prev, [projectId]: progress }));
-    };
+    const setUserProgressForMission = useCallback((projectId: string, missionId: bigint, progress: SerializedUserMissionProgress) => {
+        setUserProgressInternal(prev => {
+            const newOuterMap = new Map(prev);
+            const projectProgressMap = new Map(newOuterMap.get(projectId) || []); // Ensure project map exists
+            projectProgressMap.set(missionId, progress);
+            newOuterMap.set(projectId, projectProgressMap);
+            return newOuterMap;
+        });
+    }, []);
 
-    const setPointsForProject = (projectId: string, points: bigint) => {
-        setPointsMap((prev) => ({ ...prev, [projectId]: points }));
-    };
+    const clearUserProgressForMission = useCallback((projectId: string, missionId: bigint) => {
+        setUserProgressInternal(prev => {
+            const newOuterMap = new Map(prev);
+            const projectProgressMap = new Map(newOuterMap.get(projectId) || []);
+            projectProgressMap.delete(missionId);
+            if (projectProgressMap.size === 0) {
+                newOuterMap.delete(projectId);
+            } else {
+                newOuterMap.set(projectId, projectProgressMap);
+            }
+            return newOuterMap;
+        });
+    }, []);
+
+    const clearAllUserProgress = useCallback(() => {
+        setUserProgressInternal(new Map());
+    }, []);
 
     const value = useMemo(() => ({
         principalId,
         setPrincipal,
-        missions,
-        setMissions,
-        userProgress,
-        setUserProgress,
-        user,
-        setUser,
-        timerText,
-        setTimerText,
-        twitterhandle,
-        setTwitterHandle,
-        userPFPstatus,
-        setPFPstatus,
         agent,
         setAgent,
-        celebOverlay,
-        setCelebOverlay,
+        projects,
+        setProjects,
+        isLoadingProjects,
+        setIsLoadingProjects,
+        missions,
+        setMissionsForProject,
+        clearMissionsForProject,
+        clearAllMissions,
+        userProgress,
+        setUserProgressForMission,
+        clearUserProgressForMission,
+        clearAllUserProgress,
+        activeProjectCanisterId,
+        setActiveProjectCanisterId,
+        userGlobalProfile,
+        setUserGlobalProfile,
+        walletLinkInfos,
+        setWalletLinkInfos,
+        timerText,
+        setTimerText,
         userStreakAmount,
         setUserStreakAmount,
         userLastTimeStreak,
@@ -126,42 +200,17 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTotalUserStreak,
         userStreakPercentage,
         setUserStreakPercentage,
-        isOisy,
-        setIsOisy,
-        canisterIds,
-        setCanisterIds,
-        projects,
-        setProjects,
-        missionsMap,
-        setMissionsForProject,
-        userProgressMap,
-        setUserProgressForProject,
-        pointsMap,
-        setPointsForProject,
-        walletLinkInfos,
-        setWalletLinkInfos,
     }), [
-        principalId,
-        missions,
-        userProgress,
-        user,
-        timerText,
-        twitterhandle,
-        userPFPstatus,
-        agent,
-        celebOverlay,
-        userStreakAmount,
-        userLastTimeStreak,
-        streakResetTime,
-        totalUserStreak,
-        userStreakPercentage,
-        isOisy,
-        canisterIds,
-        projects,
-        missionsMap,
-        userProgressMap,
-        pointsMap,
-        walletLinkInfos,
+        principalId, agent, projects, isLoadingProjects, missions, userProgress,
+        activeProjectCanisterId, userGlobalProfile, walletLinkInfos, timerText,
+        userStreakAmount, userLastTimeStreak, streakResetTime, totalUserStreak, userStreakPercentage,
+        // Setters are stable, but including them for completeness if needed or if not using useCallback for them
+        setPrincipal, setAgent, setProjects, setIsLoadingProjects,
+        setMissionsForProject, clearMissionsForProject, clearAllMissions,
+        setUserProgressForMission, clearUserProgressForMission, clearAllUserProgress,
+        setActiveProjectCanisterId, setUserGlobalProfile, setWalletLinkInfos,
+        setTimerText, setUserStreakAmount, setUserLastTimeStreak, setStreakResetTime,
+        setTotalUserStreak, setUserStreakPercentage
     ]);
 
     return (
@@ -171,13 +220,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 };
 
-
-
-export const useGlobalID = () => {
-
+export const useGlobalID = (): GlobalIDType => {
     const context = useContext(GlobalID);
-    if (!context) {
-        throw new Error('useGlobalID must be used within a GlobalProvider');
+    if (context === initialState || context === undefined) { // Check against initial/undefined more robustly
+        throw new Error('useGlobalID must be used within a GlobalProvider, or GlobalProvider is not yet fully initialized.');
     }
     return context;
 };

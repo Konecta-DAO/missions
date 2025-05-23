@@ -1050,49 +1050,6 @@ module JsonUtils {
         return #ok({ var name; var steps; var completionLogic });
     };
 
-    private func deserializeParameterDataTypeFromJson(jsonVal : Json.Json) : Result.Result<Types.ParameterDataType, Text> {
-        switch (jsonVal) {
-            case (#string(s)) {
-                switch (s) {
-                    // simple scalar types
-                    case ("#Text") { return #ok(#Text) };
-                    case ("#Nat") { return #ok(#Nat) };
-                    case ("#Nat64") { return #ok(#Nat64) };
-                    case ("#Int") { return #ok(#Int) };
-                    case ("#Principal") { return #ok(#Principal) };
-                    case ("#Bool") { return #ok(#Bool) };
-                    case ("#JsonText") { return #ok(#JsonText) };
-                    // flattened array types
-                    case ("#ArrayText") { return #ok(#ArrayText) };
-                    case ("#ArrayNat") { return #ok(#ArrayNat) };
-                    case ("#ArrayNat64") { return #ok(#ArrayNat64) };
-                    case ("#ArrayInt") { return #ok(#ArrayInt) };
-                    case ("#ArrayBool") { return #ok(#ArrayBool) };
-                    case ("#ArrayPrincipal") { return #ok(#ArrayPrincipal) };
-                    // flattened optional types
-                    case ("#OptText") { return #ok(#OptText) };
-                    case ("#OptNat") { return #ok(#OptNat) };
-                    case ("#OptNat64") { return #ok(#OptNat64) };
-                    case ("#OptInt") { return #ok(#OptInt) };
-                    case ("#OptBool") { return #ok(#OptBool) };
-                    case ("#OptPrincipal") { return #ok(#OptPrincipal) };
-                    // anything else is unknown
-                    case (_) {
-                        return #err(
-                            "Unknown ParameterDataType tag: '" # s # "'."
-                        );
-                    };
-                };
-            };
-            case _ {
-                return #err(
-                    "Invalid JSON for ParameterDataType: expected a string tag, got " #
-                    Json.stringify(jsonVal, null)
-                );
-            };
-        };
-    };
-
     public func deserializePreviousStepOutputs(
         jsonText : Text // This is the JSON string from ProjectCanister, e.g., '{"1": {"outputKey":"value"}, "2": {}}'
     ) : Result.Result<TrieMap.TrieMap<Nat, Json.Json>, Text> {
@@ -1338,9 +1295,11 @@ module JsonUtils {
 
     public func serializeExecuteActionResultToJsonObj(resultToSerialize : Types.ExecuteActionResult) : Result.Result<Json.Json, Text> {
         var fields : [(Text, Json.Json)] = [
-            ("stepIdProcessed", Json.int(Int.abs(resultToSerialize.stepIdProcessed))),
-            ("actionInstanceIdProcessed", Json.int(Int.abs(resultToSerialize.actionInstanceIdProcessed))),
+            ("stepIdProcessed", Json.int(resultToSerialize.stepIdProcessed)),
+            ("actionInstanceIdProcessed", Json.int(resultToSerialize.actionInstanceIdProcessed)),
             ("overallSuccess", Json.bool(resultToSerialize.overallSuccess)),
+            ("executionStatus", Json.str(serializeActionStatusToString(resultToSerialize.executionStatus))),
+            ("actionOutcome", Json.str(serializeActionOutcomeToString(resultToSerialize.actionOutcome))),
         ];
 
         if (Option.isSome(resultToSerialize.message)) {
@@ -1362,6 +1321,46 @@ module JsonUtils {
                 fields := Array.append(fields, [("returnedDataJson", Json.nullable())]);
             };
         };
+        switch (resultToSerialize.nextStepIdToProcess) {
+            case (?natVal) {
+                fields := Array.append(fields, [("nextStepIdToProcess", Json.int(natVal))]);
+            };
+            case null {
+                fields := Array.append(fields, [("nextStepIdToProcess", Json.nullable())]);
+            };
+        };
+
+        switch (resultToSerialize.isFlowCompleted) {
+            case (?boolVal) {
+                fields := Array.append(fields, [("isFlowCompleted", Json.bool(boolVal))]);
+            };
+            case null {
+                fields := Array.append(fields, [("isFlowCompleted", Json.nullable())]);
+            };
+        };
         return #ok(Json.obj(fields));
+    };
+
+    public func serializeActionStatusToString(status : Types.ActionStatus) : Text {
+        switch (status) {
+            case (#Ok) { "Ok" };
+            case (#Error) { "Error" };
+            case (#Pending) { "Pending" };
+            case (#RequiresUserAction) { "RequiresUserAction" };
+            case (#InvalidParameters) { "InvalidParameters" };
+            case (#PreconditionNotMet) { "PreconditionNotMet" };
+            case (#HandlerNotFound) { "HandlerNotFound" };
+            case (#ApiError) { "ApiError" };
+        };
+    };
+
+    public func serializeActionOutcomeToString(outcome : Types.ActionOutcome) : Text {
+        switch (outcome) {
+            case (#Success) { "Success" };
+            case (#Failed) { "Failed" };
+            case (#AlreadyDone) { "AlreadyDone" };
+            case (#NotApplicable) { "NotApplicable" };
+            case (#PendingVerification) { "PendingVerification" };
+        };
     };
 };

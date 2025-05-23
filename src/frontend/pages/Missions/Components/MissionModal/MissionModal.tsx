@@ -1,363 +1,315 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import styles from './MissionModal.module.scss';
-import { useNavigate } from 'react-router-dom';
-import { getGradientStartColor, getGradientEndColor, rgbToRgba } from '../../../../../utils/colorUtils.ts';
-import missionFunctions from '../MissionFunctionsComponent.ts';
-import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { checkMissionCompletion, checkRequiredMissionCompletion } from '../../missionUtils.ts';
-import PTWContent from './PTWContent.tsx';
-import TweetEmbed from './TweetEmbed.tsx';
-import Mission7View from './Mission7View.tsx';
-import { useIdentityKit } from '@nfid/identitykit/react';
+import useFetchData from '../../../../../hooks/fetchData.tsx';
+import { SerializedMission, SerializedUserMissionProgress, UserOverallMissionStatus } from '../../../../../declarations/test_backend/test_backend.did.js';
+import { ActionFlow, ActionStep as ParsedActionStepType } from '../../../../types.ts';
+import ActionStepRenderer from '../ActionStepRenderer/ActionStepRenderer.tsx';
+import { constructRawIcpAssetUrl } from '../../../../../utils/utils.ts';
+import Confetti from 'react-confetti';
 
-declare global {
-    interface Window {
-        twttr: any;
+// parseActionFlow remains the same
+const parseActionFlow = (jsonString: string): ActionFlow | null => {
+    try {
+        const parsed = JSON.parse(jsonString);
+        if (parsed && Array.isArray(parsed.steps) && parsed.completionLogic) {
+            return parsed as ActionFlow;
+        }
+        console.error("Parsed actionFlowJson is missing essential properties (steps, completionLogic).", parsed);
+        return null;
+    } catch (error) {
+        console.error("Error parsing actionFlowJson:", error);
+        return null;
     }
-}
+};
+
+// Helper for reward display (similar to MissionCard, could be a shared util)
+const getRewardDisplay = (rewardType: any, minAmount: bigint, maxAmountOpt?: bigint[]): string => {
+    const minAmt = Number(minAmount);
+    let displayAmount = minAmt.toLocaleString();
+    if (maxAmountOpt && maxAmountOpt[0] && Number(maxAmountOpt[0]) > minAmt) {
+        displayAmount = `${minAmt.toLocaleString()} - ${Number(maxAmountOpt[0]).toLocaleString()}`;
+    }
+    if (rewardType.hasOwnProperty('Points')) return `🪙 ${displayAmount} Points`;
+    if (rewardType.hasOwnProperty('ICPToken')) return `💧 ${displayAmount} ICP`;
+    if (rewardType.hasOwnProperty('TIME')) return `⏱️ ${displayAmount} TIME`;
+    if (rewardType.hasOwnProperty('None')) return 'No direct reward';
+    return `${displayAmount} Reward`;
+};
 
 
 interface MissionModalProps {
+    mission: SerializedMission;
+    missionId: bigint;
+    projectCanisterId: string;
     closeModal: () => void;
-    selectedMissionId: bigint;
 }
 
-const BASE_URL = process.env.DEV_IMG_CANISTER_ID;
+const MissionModal: React.FC<MissionModalProps> = ({
+    mission,
+    missionId,
+    projectCanisterId,
+    closeModal,
+}) => {
+    const { principalId, userProgress: globalUserProgress } = useGlobalID();
+    const { executeBackendActionStep, fetchUserMissionProgressAndSet, startBackendMission } = useFetchData();
 
-const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMissionId }) => {
-    const globalID = useGlobalID();
-    const navigate = useNavigate();
-    const fetchData = useFetchData();
-    const [loading, setLoading] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const [placestate, setPlacestate] = useState(false);
-    const { disconnect } = useIdentityKit();
-    const [currentTimeNano, setCurrentTimeNano] = useState(() => {
-        return BigInt(Date.now()) * 1_000_000n;
-    });
+    const [parsedActionFlow, setParsedActionFlow] = useState<ActionFlow | null>(null);
+    const [currentMissionUserProgress, setCurrentMissionUserProgress] = useState<SerializedUserMissionProgress | null>(null);
+    const [currentStepId, setCurrentStepId] = useState<bigint | null>(null);
+    const [currentStepDefinition, setCurrentStepDefinition] = useState<ParsedActionStepType | null>(null);
+    const [userInputForCurrentStep, setUserInputForCurrentStep] = useState<Record<string, any>>({});
+    const [isLoadingAction, setIsLoadingAction] = useState<boolean>(false);
+    const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+    const [isStartingMission, setIsStartingMission] = useState(false);
+    const [showConfetti, setShowConfetti] = useState(false);
 
-    const mission = useMemo(() => {
-        return globalID.missions?.find((m: { id: bigint }) => m.id === selectedMissionId);
-    }, [globalID.missions, selectedMissionId]);
-
-    if (!mission) return null;
-
+    // 1. Parse ActionFlow when mission changes (existing - good)
     useEffect(() => {
-        const updateTime = () => {
-            setCurrentTimeNano(BigInt(Date.now()) * 1_000_000n);
-        };
+        if (mission?.actionFlowJson) {
+            const flow = parseActionFlow(mission.actionFlowJson);
+            setParsedActionFlow(flow);
+            if (!flow) {
+                setFeedbackMessage({ type: 'error', text: "Error: Could not load mission steps." });
+            }
+        } else {
+            setParsedActionFlow(null);
+            setFeedbackMessage({ type: 'error', text: "Error: Mission data is incomplete." });
+        }
+    }, [mission]);
 
-        updateTime();
-
-        const intervalId = setInterval(updateTime, 1000);
-
-        return () => clearInterval(intervalId);
-    }, []);
-
+    // 2. Load or Initialize UserProgress (existing - good, minor tweaks for start)
     useEffect(() => {
-        if (currentTimeNano >= mission?.endDate! && mission?.endDate! !== BigInt(0)) {
-            closeModal();
+        if (projectCanisterId && missionId !== null && principalId && parsedActionFlow) {
+            const projectProgressMap = globalUserProgress.get(projectCanisterId);
+            const missionProg = projectProgressMap?.get(missionId);
+
+            if (missionProg) {
+                setCurrentMissionUserProgress(missionProg); // Set local state from global state
+                // Reset feedback if progress is loaded and not just "NotStarted"
+                if (!missionProg.overallStatus.hasOwnProperty('NotStarted')) {
+                    // Only clear feedback if it's not an error/info from a previous action on this same modal instance
+                    if (feedbackMessage && feedbackMessage.text !== "Mission started!" && !feedbackMessage.text.startsWith("Error:")) {
+                        // setFeedbackMessage(null); // Be careful not to clear fresh feedback too quickly
+                    }
+                }
+            } else {
+                fetchUserMissionProgressAndSet(projectCanisterId, missionId, principalId)
+                    .then((fetchedProgress) => {
+                        if (fetchedProgress) {
+                            setCurrentMissionUserProgress(fetchedProgress);
+                        } else if (parsedActionFlow?.steps.length > 0) {
+                            const firstStepIdOpt = parsedActionFlow.steps[0]?.stepId;
+                            setCurrentMissionUserProgress({
+                                overallStatus: { NotStarted: null } as UserOverallMissionStatus,
+                                stepStates: [],
+                                currentStepId: firstStepIdOpt ? [firstStepIdOpt] : [],
+                                flowOutputs: [],
+                                completionTime: [],
+                                claimedRewardTime: [],
+                                lastActiveTime: BigInt(0)
+                            });
+                        }
+                    }).catch(e => {
+                        console.error("Error fetching initial mission progress in modal:", e);
+                        setFeedbackMessage({ type: 'error', text: "Could not load mission progress." });
+                    });
+            }
         }
-    }, [currentTimeNano]);
+        // Ensure principalId is included if its change should re-trigger progress loading
+    }, [projectCanisterId, missionId, principalId, globalUserProgress, parsedActionFlow, fetchUserMissionProgressAndSet]);
 
-    if (!mission) return null;
+    // 3. Determine Current Step to Display (existing - good)
+    useEffect(() => {
+        if (parsedActionFlow && currentMissionUserProgress && !currentMissionUserProgress.overallStatus.hasOwnProperty('NotStarted')) {
+            let activeStepId: bigint | null = null;
+            if (currentMissionUserProgress.currentStepId && currentMissionUserProgress.currentStepId.length > 0) {
+                activeStepId = currentMissionUserProgress.currentStepId[0]!;
+            } else if (!currentMissionUserProgress.overallStatus.hasOwnProperty('CompletedSuccess') && !currentMissionUserProgress.overallStatus.hasOwnProperty('CompletedFailure')) {
+                // If not completed and no currentStepId, default to first step if flow not completed
+                activeStepId = parsedActionFlow.steps[0]?.stepId || null;
+            }
+            setCurrentStepId(activeStepId);
 
-    // Memoize background click handler
-    const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        if (loading) return; // Do nothing if loading is true
-        if ((e.target as HTMLElement).classList.contains(styles.ModalBackground)) {
-            closeModal(); // Close modal only if clicked outside and not loading
+            if (activeStepId !== null) {
+                const stepDef = parsedActionFlow.steps.find(s => s.stepId.toString() === activeStepId!.toString());
+                setCurrentStepDefinition(stepDef || null);
+                if (!stepDef) {
+                    setFeedbackMessage({ type: 'error', text: `Error: Step ID ${activeStepId.toString()} not found in flow.` });
+                }
+            } else {
+                setCurrentStepDefinition(null); // No active step if flow completed or no steps
+            }
+            setUserInputForCurrentStep({}); // Reset input when step changes
+        } else if (currentMissionUserProgress?.overallStatus.hasOwnProperty('NotStarted')) {
+            setCurrentStepId(null);
+            setCurrentStepDefinition(null);
         }
-    }, [loading, closeModal]);
+    }, [parsedActionFlow, currentMissionUserProgress]);
 
-    const missionId = BigInt(mission.id);
+    const handleUserInputChange = (key: string, value: any) => {
+        setUserInputForCurrentStep(prev => ({ ...prev, [key]: value }));
+    };
 
-    // Memoize gradient colors
-    const gradientColors = useMemo(() => ({
-        start: getGradientStartColor(Number(mission.mode)),
-        end: getGradientEndColor(Number(mission.mode)),
-    }), [mission.mode]);
+    const handleStartMission = async () => {
+        if (!projectCanisterId || missionId === null || !principalId) return;
+        setIsStartingMission(true);
+        setFeedbackMessage({ type: 'info', text: "Starting mission..." });
+        try {
+            const startedProgress = await startBackendMission(projectCanisterId, missionId, principalId);
+            if (startedProgress) {
+                // The global state was updated by startBackendMission via setUserProgressForMission.
+                // The useEffect listening to globalUserProgress will update currentMissionUserProgress.
+                setFeedbackMessage({ type: 'success', text: "Mission started!" });
+            } else {
+                // This case might not be hit if startBackendMission throws on null/error
+                setFeedbackMessage({ type: 'error', text: "Failed to start mission. Progress not returned." });
+            }
+        } catch (error: any) {
+            setFeedbackMessage({ type: 'error', text: `Failed to start mission: ${error.message || error}` });
+        }
+        setIsStartingMission(false);
+    };
 
-    const missionCompleted = useMemo(() => checkMissionCompletion(globalID.userProgress, mission), [globalID.userProgress, missionId]);
+    const handleSubmitStep = async () => {
+        if (!projectCanisterId || !principalId || currentStepId === null || missionId === null) { /* ... */ return; }
+        setIsLoadingAction(true);
+        setFeedbackMessage(null); // Clear previous feedback
+        const userInputJson = JSON.stringify(userInputForCurrentStep);
 
-    if (Number(selectedMissionId) === 7 && !missionCompleted) {
+        try {
+
+
+            
+            const actionServiceResponse = await executeBackendActionStep(
+                projectCanisterId,
+                missionId,
+                currentStepId,
+                userInputJson,
+                principalId
+            );
+
+            if (actionServiceResponse) {
+                // Feedback based on the direct response of the action.
+                setFeedbackMessage({
+                    type: actionServiceResponse.success ? 'success' : 'info', // Corrected property
+                    text: actionServiceResponse.message?.[0] || (actionServiceResponse.success ? "Step successful!" : "Step processed.") // Corrected property
+                });
+
+                // The globalUserProgress will be updated by fetchUserMissionProgressAndSet inside executeBackendActionStep.
+                // The useEffect listening to globalUserProgress will then update currentMissionUserProgress and UI.
+
+                // Check if the flow is completed based on the direct response, for immediate UI feedback
+                // The definitive completion status will come from the re-fetched currentMissionUserProgress.
+                if (actionServiceResponse.isFlowCompleted && actionServiceResponse.isFlowCompleted[0]) {
+                    if (actionServiceResponse.success) { // Corrected property
+                        // The re-fetched progress will soon confirm completion and update the UI.
+                        // We set the message and trigger confetti optimistically for better UX.
+                        setFeedbackMessage({ type: 'success', text: `Mission "${mission.name}" completed! ${actionServiceResponse.message?.[0] || ''}`.trim() });
+                        setShowConfetti(true);
+                        setTimeout(() => setShowConfetti(false), 5000); // Show confetti for 5 seconds
+                    }
+                }
+            } else {
+                // This case might not be hit if executeBackendActionStep throws
+                setFeedbackMessage({ type: 'error', text: "No response from action execution." });
+            }
+        } catch (error: any) {
+            setFeedbackMessage({ type: 'error', text: `Action failed: ${error.message || JSON.stringify(error)}` });
+        }
+        setIsLoadingAction(false);
+    };
+
+    const missionIconDisplayUrl = mission.iconUrl?.[0]?.trim() && projectCanisterId
+        ? constructRawIcpAssetUrl(mission.iconUrl[0], projectCanisterId)
+        : '/assets/KonectaIconPB.webp';
+
+    const totalSteps = parsedActionFlow?.steps.length || 0;
+    const currentStepIndex = useMemo(() => {
+        if (!currentStepId || !parsedActionFlow?.steps) return -1;
+        return parsedActionFlow.steps.findIndex(s => s.stepId.toString() === currentStepId.toString());
+    }, [currentStepId, parsedActionFlow?.steps]);
+
+    const progressPercentage = totalSteps > 0 && currentStepIndex !== -1 ? ((currentStepIndex + 1) / totalSteps) * 100 : 0;
+    const isMissionStructurallyCompleted = currentMissionUserProgress?.overallStatus.hasOwnProperty('CompletedSuccess') || currentMissionUserProgress?.overallStatus.hasOwnProperty('CompletedFailure');
+
+
+    if (!mission || !parsedActionFlow) { // Initial loading or error parsing flow
         return (
-            <>
-                <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
-                    <div className={styles.MissionModal}>
-
-                        <div>
-                            {/* Mission Title */}
-                            <div className={styles.MissionTitleWrapper}>
-                                <div className={styles.MissionTitle}>
-                                    {mission.title}
-                                </div>
-                            </div>
-                            <div className={styles.MissionBadge}>
-                                {/* Gradient Circle */}
-                                <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
-                                    <defs>
-                                        <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor={gradientColors.start} />
-                                            <stop offset="100%" stopColor={gradientColors.end} />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
-                                </svg>
-                                {/* Mission Icon */}
-                                <img
-                                    src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
-                                    alt="Mission Icon"
-                                    className={styles.MissionIcon}
-                                />
-                            </div>
-                        </div>
-                        {/* Mission Content */}
-                        <div className={styles.MissionContent7}>
-                            <Mission7View
-                                mission={mission}
-                                closeModal={closeModal}
-                            />
-                        </div>
-                    </div>
+            <div className={styles.modalOverlay} onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
+                <div className={styles.modalContent}>
+                    <button onClick={closeModal} className={styles.closeButton} aria-label="Close mission details">X</button>
+                    <p>{feedbackMessage?.text || "Loading mission details..."}</p>
                 </div>
-            </>
+            </div>
         );
     }
 
-
-    // Memoize mission completion checks
-
-
-    const { requiredMissionCompleted } = useMemo(() => checkRequiredMissionCompletion(globalID, mission), [globalID, mission]);
-
-    // Redirect if mission requirements not met
-    useEffect(() => {
-        if (!requiredMissionCompleted && !missionCompleted) {
-            navigate('/');
-        }
-    }, [requiredMissionCompleted, missionCompleted, navigate]);
-
-
-
-    // Handle beforeunload event
-    const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
-        if (loading) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    }, [loading]);
-
-    useEffect(() => {
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [handleBeforeUnload]);
-
-    // Execute mission functions
-    const executeFunction = useCallback(async (functionName?: string) => {
-        if (functionName && missionFunctions[functionName as keyof typeof missionFunctions]) {
-            setLoading(true);
-            try {
-                await missionFunctions[functionName as keyof typeof missionFunctions](globalID, fetchData, setLoading, closeModal, mission.id, inputValue, setPlacestate, disconnect);
-            } catch (error) {
-                console.error(`Error executing function: ${functionName}`, error);
-            }
-        } else {
-            console.error(`Function ${functionName} not found`);
-        }
-    }, [globalID, navigate, fetchData, closeModal]);
-
-    // Memoize button styles
-    const buttonGradientStyle = useMemo(() => ({
-        backgroundImage: `linear-gradient(to right, ${gradientColors.end}, ${gradientColors.start})`,
-    }), [gradientColors]);
-
-    const missionInputStyle = useMemo(() => ({
-        border: 'none',
-        borderRadius: 'inherit',
-        padding: '10px 20px',
-        width: '11vw',
-        color: 'white',
-        outline: 'none',
-        background: 'black',
-    }), [gradientColors]);
-
-    // Memoize button rendering
-    const renderButtons = useMemo(() => {
-        if (missionCompleted) {
-            return <div className={styles.CompletedText}>Mission Completed!</div>;
-        }
-
-        const functionName1 = mission.functionName1?.[0];
-        const functionName2 = mission.functionName2;
-
-        const missionMode = Number(mission.mode);
-        if (missionMode === 0) {
-            return (
-                <button
-                    onClick={() => executeFunction(functionName2)}
-                    style={buttonGradientStyle}
-                    disabled={loading}
-                    className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
-                >
-                    <div className={styles.buttonContent}>
-                        {loading && <div className={styles.spinner} />}
-                        <span className={loading ? styles.loadingText : ''}>
-                            {loading ? 'Loading...' : mission.obj2}
-                        </span>
-                    </div>
-                </button>
-            );
-        }
-
-        if (missionMode === 1) {
-            return (
-                <>
-                    {functionName1 && (
-                        <button
-                            onClick={() => executeFunction(functionName1)}
-                            style={buttonGradientStyle}
-                            disabled={loading}
-                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
-                        >
-                            <div className={styles.buttonContent}>
-                                {loading && <div className={styles.spinner} />}
-                                <span className={loading ? styles.loadingText : ''}>
-                                    {loading ? 'Loading...' : mission.obj1}
-                                </span>
-                            </div>
-                        </button>
-                    )}
-                    {functionName2 && (
-                        <button
-                            onClick={() => executeFunction(functionName2)}
-                            style={buttonGradientStyle}
-                            disabled={loading}
-                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
-                        >
-                            <div className={styles.buttonContent}>
-                                {loading && <div className={styles.spinner} />}
-                                <span className={loading ? styles.loadingText : ''}>
-                                    {loading ? 'Loading...' : mission.obj2}
-                                </span>
-                            </div>
-                        </button>
-                    )}
-                </>
-            );
-        }
-
-        if (missionMode === 2) {
-            return (
-                <>
-                    <div style={{
-                        padding: '3px',
-                        borderRadius: '25px',
-                        background: `linear-gradient(to right, ${gradientColors.end}, ${gradientColors.start})`,
-                    }}>
-                        <input type="text" placeholder={mission.inputPlaceholder[0] || ''} disabled={loading} style={missionInputStyle} className={styles.InputContent} value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
-                    </div>
-                    {functionName2 && (
-                        <button
-                            onClick={() => executeFunction(functionName2)}
-                            style={buttonGradientStyle}
-                            disabled={loading}
-                            className={`${styles.customButton} ${loading ? styles.loadingButton : ''}`}
-                        >
-                            <div className={styles.buttonContent}>
-                                {loading && <div className={styles.spinner} />}
-                                <span className={loading ? styles.loadingText : ''}>
-                                    {loading ? 'Loading...' : mission.obj2}
-                                </span>
-                            </div>
-                        </button>
-                    )}
-                </>
-            );
-        }
-
-        return null;
-    }, [missionCompleted, mission, executeFunction, buttonGradientStyle, loading]);
-
-
-
     return (
-        <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
-            <div className={styles.MissionModal}>
+        <div className={styles.modalOverlay} onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
+            {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} />}
+            <div className={styles.modalContent} role="dialog" aria-labelledby="missionModalTitle" aria-describedby="missionModalDescription">
+                <button onClick={closeModal} className={styles.closeButton} aria-label="Close mission details">X</button>
 
-                {/* Mission Image */}
-                <div className={styles.MissionImageWrapper}>
-                    <img
-                        src={`https://${BASE_URL}.raw.icp0.io${mission.image}`}
-                        alt="Mission Image"
-                        className={styles.MissionImage}
-                    />
-                    <div
-                        className={styles.GradientOverlay}
-                        style={{
-                            background: `linear-gradient(${rgbToRgba(gradientColors.start, 30)} 0%, transparent 100%)`
-                        }}
-                    />
+                <div className={styles.missionHeader}>
+                    <img src={missionIconDisplayUrl} alt="" className={styles.missionModalIcon} />
+                    <h2 id="missionModalTitle">{mission.name}</h2>
                 </div>
+                <p id="missionModalDescription" className={styles.missionModalDescription}>{mission.description}</p>
+                <div className={styles.missionRewardReminder}> {/* NEW: Reward Reminder */}
+                    <strong>Reward:</strong> {getRewardDisplay(mission.rewardType, mission.minRewardAmount, mission.maxRewardAmount)}
+                </div>
+                <hr className={styles.separator} />
 
-                {/* Gradient Line */}
-                <svg className={styles.MissionLine} viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id={`lineGradient${mission.id}`} x1="0%" y1="0%" x2="100%">
-                            <stop offset="0%" stopColor={gradientColors.start} />
-                            <stop offset="100%" stopColor={gradientColors.end} />
-                        </linearGradient>
-                    </defs>
-                    <path d="M 5 0 L 5 96 L 74 96 L 95 80 L 95 0" stroke={`url(#lineGradient${mission.id})`} strokeWidth="10" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" fill="none" />
-                </svg>
+                {isLoadingAction && <p className={styles.loadingMessage}>Processing action...</p>}
+                {isStartingMission && <p className={styles.loadingMessage}>Starting mission...</p>}
+                {feedbackMessage && <p className={`${styles.feedbackMessage} ${styles[feedbackMessage.type]}`}>{feedbackMessage.text}</p>}
 
-                <div>
-                    {/* Mission Title */}
-                    <div className={styles.MissionTitleWrapper}>
-                        <div className={styles.MissionTitle}>
-                            {mission.title}
+                {currentMissionUserProgress?.overallStatus.hasOwnProperty('NotStarted') ? (
+                    <div className={styles.startMissionSection}>
+                        <p>This mission is ready to begin!</p>
+                        <button onClick={handleStartMission} disabled={isStartingMission} className={styles.ctaButton}>
+                            {isStartingMission ? "Starting..." : "Start Mission"}
+                        </button>
+                    </div>
+                ) : isMissionStructurallyCompleted ? (
+                    <div className={styles.missionCompletionStatus}>
+                        <h3>
+                            {currentMissionUserProgress?.overallStatus.hasOwnProperty('CompletedSuccess')
+                                ? `🎉 Mission Complete! 🎉`
+                                : `🚫 Mission Attempt Ended.`}
+                        </h3>
+                        <p>
+                            {currentMissionUserProgress?.overallStatus.hasOwnProperty('CompletedSuccess')
+                                ? `You've successfully completed "${mission.name}". Well done!`
+                                : `This mission attempt has concluded. Check your progress or try again if available.`}
+                        </p>
+                        {/* Optionally show outputs or claimed reward status */}
+                    </div>
+                ) : currentStepDefinition ? (
+                    <>
+                        <div className={styles.stepTracker}> {/* NEW: Step Tracking & Progress Bar */}
+                            <span className={styles.stepText}>
+                                Step {currentStepIndex + 1} of {totalSteps}: {currentStepDefinition.description?.[0] || 'Process current step'}
+                            </span>
+                            <div className={styles.progressBarContainer}>
+                                <div className={styles.progressBarFill} style={{ width: `${progressPercentage}%` }}></div>
+                            </div>
                         </div>
-                    </div>
-                    <div className={styles.MissionBadge}>
-                        {/* Gradient Circle */}
-                        <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor={gradientColors.start} />
-                                    <stop offset="100%" stopColor={gradientColors.end} />
-                                </linearGradient>
-                            </defs>
-                            <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
-                        </svg>
-                        {/* Mission Icon */}
-                        <img
-                            src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
-                            alt="Mission Icon"
-                            className={styles.MissionIcon}
+                        <ActionStepRenderer
+                            stepDefinition={currentStepDefinition}
+                            userInput={userInputForCurrentStep}
+                            onUserInputChange={handleUserInputChange}
+                            onSubmitStep={handleSubmitStep}
+                            isLoadingAction={isLoadingAction}
                         />
-                    </div>
-                </div>
-                {/* Mission Content */}
-                <div className={styles.MissionContent}>
-                    <p>{mission.description}</p>
-                    {/* Tweet Component */}
-                    <PTWContent missionId={Number(missionId)} />
-                    {/* Retweet Embed Component */}
-                    <TweetEmbed missionId={Number(missionId)} />
-                </div>
-
-                <div className={styles.ButtonInputs}>
-                    <div className={styles.MissionActions}>
-                        {renderButtons}
-                    </div>
-                </div>
-
+                    </>
+                ) : (
+                    <p className={styles.loadingMessage}>Loading current step or mission flow has ended...</p>
+                )}
             </div>
         </div>
     );
 };
 
-export default React.memo(MissionModal);
+export default MissionModal;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+/* import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import styles from './MissionModal.module.scss';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
@@ -388,7 +388,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
         <div className={styles.ModalBackground} onClick={handleBackgroundClick}>
             <div className={styles.MissionModal}>
 
-                {/* Mission Image */}
+                
                 <div className={styles.MissionImageWrapper}>
                     <img
                         src={`https://${BASE_URL}.raw.icp0.io${mission.image}`}
@@ -403,7 +403,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                     />
                 </div>
 
-                {/* Gradient Line */}
+                
                 <svg className={styles.MissionLine} viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
                         <linearGradient id={`lineGradient${mission.id}`} x1="0%" y1="0%" x2="100%">
@@ -415,14 +415,14 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                 </svg>
 
                 <div>
-                    {/* Mission Title */}
+                    
                     <div className={styles.MissionTitleWrapper}>
                         <div className={styles.MissionTitle}>
                             {mission.title}
                         </div>
                     </div>
                     <div className={styles.MissionBadge}>
-                        {/* Gradient Circle */}
+                        
                         <svg className={styles.MissionCircle} viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>
                                 <linearGradient id={`circleGradient${mission.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -432,7 +432,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                             </defs>
                             <circle cx="50" cy="50" r="50" fill={`url(#circleGradient${mission.id})`} />
                         </svg>
-                        {/* Mission Icon */}
+                        
                         <img
                             src={`https://${BASE_URL}.raw.icp0.io${mission.iconUrl}`}
                             alt="Mission Icon"
@@ -440,7 +440,7 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
                         />
                     </div>
                 </div>
-                {/* Mission Content */}
+                
                 <div className={styles.MissionContent}>
                     <ReactMarkdown
                         children={mission.description}
@@ -466,3 +466,4 @@ const MissionModal: React.FC<MissionModalProps> = ({ closeModal, selectedMission
 };
 
 export default React.memo(MissionModal);
+ */

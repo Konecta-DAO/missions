@@ -1,0 +1,93 @@
+// src/pages/Missions/Components/ActionStepRenderer/ActionStepRenderer.module.scss
+.actionStepRendererContainer {
+    padding: 15px 0;
+    border-top: 1px solid var(--secondary-border-color, #3a3f7260); // Using CSS var for theming
+    margin-top: 15px;
+}
+
+.inputForm {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    label {
+        font-size: 0.9em;
+        color: var(--secondary-text-color, #a09cb8);
+        font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    input[type="number"] {
+        // Add other input types as needed
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--input-border-color, #443e66);
+        background-color: var(--input-bg-color, #120f22);
+        color: var(--primary-text-color, #e0e0e0);
+        font-size: 0.95rem;
+        box-sizing: border-box;
+
+        &:focus {
+            outline: none;
+            border-color: var(--accent-color, #6C63FF);
+            box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.3);
+        }
+    }
+}
+
+.requiredMarker {
+    color: var(--error-color, #ff7b7b);
+    margin-left: 4px;
+}
+
+.validationError {
+    font-size: 0.8em;
+    color: var(--error-color, #ff7b7b);
+    margin-top: 2px;
+}
+
+.actionButton {
+    background-color: var(--accent-color, #6C63FF);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    margin-top: 10px; // Space if it's after inputs
+
+    &:hover:not(:disabled) {
+        background-color: var(--accent-hover-color, #534bff);
+    }
+
+    &:disabled {
+        background-color: var(--disabled-bg-color, #4a4466);
+        color: var(--disabled-text-color, #8c88a2);
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+}
+
+.informationalContent,
+.redirectContent,
+.noUiContent {
+    p {
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+}
+
+.errorMessage {
+    color: var(--error-color, #ff7b7b);
+    font-style: italic;
+}

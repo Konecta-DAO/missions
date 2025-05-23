@@ -28,6 +28,158 @@ actor class Backend() {
         tags : ?[Text]; // Allows filtering by one or more tags (e.g., all must match, or any)
     };
 
+    public shared func initialize() {
+        // This check ensures that we only populate the definitions on the first installation,
+        // as the stable map will persist across upgrades.
+        if (StableTrieMap.isEmpty(actionDefinitions)) {
+            // --- Define Action: twitter_follow_v1 ---
+            let twitterFollowDef : Types.ActionDefinition = {
+                id = "twitter_follow_v1";
+                var name = "Follow on Twitter";
+                var descriptionTemplate = "Follow the account @{{accounts}} on Twitter.";
+                platform = #Twitter;
+                var version = 1;
+                var defaultUIType = #ButtonOnly({ buttonText = "Verify Follow" });
+                var parameterSchema = [{
+                    name = "accounts";
+                    dataType = #ArrayText;
+                    isRequired = true;
+                    var inputLabel = "Twitter Handle";
+                    var helpText = ?"The Twitter account(s) to follow, without the '@'.";
+                    var defaultValueJson = null;
+                    var validationRegex = null;
+                }];
+                var outputSchemaJson = ?"{ \"followedAccounts\": [{ \"account\": \"string\", \"status\": \"#Success|#Failed|#AlreadyDone\" }] }";
+                var executionHandler = "twitter_follow_handler_v1";
+                var tags = ?["twitter", "social", "follow"];
+            };
+            // Correct syntax for StableTrieMap insertion
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, twitterFollowDef.id, twitterFollowDef);
+
+            // --- Define Action: twitter_like_v1 ---
+            let twitterLikeDef : Types.ActionDefinition = {
+                id = "twitter_like_v1";
+                var name = "Like a Tweet";
+                var descriptionTemplate = "Like the tweet with ID {{tweetIds}}.";
+                platform = #Twitter;
+                var version = 1;
+                var defaultUIType = #ButtonOnly({ buttonText = "Verify Like" });
+                var parameterSchema = [{
+                    name = "tweetIds";
+                    dataType = #ArrayText;
+                    isRequired = true;
+                    var inputLabel = "Tweet ID";
+                    var helpText = ?"The ID of the tweet to like.";
+                    var defaultValueJson = null;
+                    var validationRegex = null;
+                }];
+                var outputSchemaJson = ?"{ \"likedTweets\": [{ \"tweetId\": \"string\", \"status\": \"#Success|#Failed|#AlreadyDone\" }] }";
+                var executionHandler = "twitter_like_handler_v1"; // Assumes a handler exists
+                var tags = ?["twitter", "social", "like"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, twitterLikeDef.id, twitterLikeDef);
+
+            // --- Define Action: discord_join_server_v1 ---
+            let discordJoinDef : Types.ActionDefinition = {
+                id = "discord_join_server_v1";
+                var name = "Join Discord Server";
+                var descriptionTemplate = "Join the Discord server.";
+                platform = #Discord;
+                var version = 1;
+                var defaultUIType = #ButtonOnly({
+                    buttonText = "Verify Membership";
+                });
+                var parameterSchema = [{
+                    name = "serverIds";
+                    dataType = #ArrayText;
+                    isRequired = true;
+                    var inputLabel = "Server ID";
+                    var helpText = ?"The ID of the Discord server to join.";
+                    var defaultValueJson = null;
+                    var validationRegex = null;
+                }];
+                var outputSchemaJson = ?"{ \"serverId\": \"string\", \"serverName\": \"string\", \"joinStatus\": \"#Success|#Failed|#AlreadyDone\" }";
+                var executionHandler = "discord_join_handler_v1"; // Assumes a handler exists
+                var tags = ?["discord", "social", "community"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, discordJoinDef.id, discordJoinDef);
+
+            // --- Define Action: sns_vote_proposal_v1 ---
+            let snsVoteDef : Types.ActionDefinition = {
+                id = "sns_vote_proposal_v1";
+                var name = "Check SNS Proposal Vote";
+                var descriptionTemplate = "Verify if user {{principalToCheck}} has voted on proposal #{{proposalId}} in the {{snsCanisterId}} SNS.";
+                platform = #SNS;
+                var version = 1;
+                var defaultUIType = #ButtonOnly({ buttonText = "Verify Vote" });
+                var parameterSchema = [
+                    {
+                        name = "snsCanisterId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "SNS Canister ID";
+                        var helpText = ?"The Principal ID of the SNS governance canister.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "proposalId";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "Proposal ID";
+                        var helpText = ?"The ID of the proposal to check the vote on.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "principalToCheck";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "User's Principal";
+                        var helpText = ?"The Principal ID of the user whose vote should be checked.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = ?"{ \"snsCanisterId\": \"principal\", \"proposalId\": 1, \"principalChecked\": \"principal\", \"hasVoted\": true, \"voteCasted\": \"#Yes|#No|null\", \"verificationStatus\": \"#Success|#Failed\" }";
+                var executionHandler = "sns_vote_handler_v1";
+                var tags = ?["sns", "governance", "vote", "on-chain"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, snsVoteDef.id, snsVoteDef);
+
+            // --- Define Action: validate_code_v1 ---
+            let validateCodeDef : Types.ActionDefinition = {
+                id = "validate_code_v1";
+                var name = "Validate a Code";
+                var descriptionTemplate = "Enter the secret code to complete this action.";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #InputAndButton({
+                    inputFields = [{
+                        keyForUserInput = "codeToValidate";
+                        inputLabel = "Secret Code";
+                        placeholder = ?"Enter your code here";
+                        isRequired = true;
+                    }];
+                    buttonText = "Validate Code";
+                });
+                var parameterSchema = [{
+                    name = "codeListId";
+                    dataType = #ArrayText;
+                    isRequired = true;
+                    var inputLabel = "Code List";
+                    var helpText = ?"An array containing the code to be validated.";
+                    var defaultValueJson = null;
+                    var validationRegex = null;
+                }];
+                var outputSchemaJson = ?"{ \"code\": \"string\", \"isValid\": true, \"message\": \"string\", \"attemptsRemaining\": 1 }";
+                var executionHandler = "validate_code_handler_v1";
+                var tags = ?["utility", "code", "validation"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateCodeDef.id, validateCodeDef);
+        };
+    };
+
     // Function to add an admin ID
 
     public shared (msg) func addAdminId(newAdminId : Principal) : async Result.Result<Null, Text> {
@@ -624,18 +776,53 @@ actor class Backend() {
         // Helper to serialize the final result record to JSON text
         func buildResultJson(resultRecord : Types.ExecuteActionResult) : Text {
             switch (JsonUtils.serializeExecuteActionResultToJsonObj(resultRecord)) {
-                case (#ok(jsonObj)) { return Json.stringify(jsonObj, null) };
+                case (#ok(jsonObj)) {
+                    return Json.stringify(jsonObj, null); // Primary, good path
+                };
                 case (#err(e)) {
+                    // Fallback path, needs fixing
                     Debug.print("CRITICAL: Failed to serialize ExecuteActionResult: " # e);
-                    return "{\"stepIdProcessed\":" # Nat.toText(resultRecord.stepIdProcessed) #
-                    ",\"actionInstanceIdProcessed\":" # Nat.toText(resultRecord.actionInstanceIdProcessed) #
-                    ",\"overallSuccess\":" # Bool.toText(resultRecord.overallSuccess) #
-                    ",\"executionStatus\":{\"Error\":null}" #
-                    ",\"actionOutcome\":{\"Failed\":null}" #
-                    ",\"message\":\"Internal error: Failed to serialize result. " # e # "\"" #
-                    ",\"returnedDataJson\":null" #
-                    ",\"nextStepIdToProcess\":null" #
-                    ",\"isFlowCompleted\":" # (if (Option.isSome(resultRecord.isFlowCompleted)) Bool.toText(Option.get(resultRecord.isFlowCompleted, false)) else "null") # "}";
+
+                    // 1. Properly escape the error message 'e' for JSON string embedding
+                    let safe_e_backslash_escaped = Text.replace(e, #text("\\"), "\\\\"); // Replace \ with \\
+                    let safe_e_fully_escaped = Text.replace(safe_e_backslash_escaped, #text("\""), "\\\""); // Replace " with \"
+                    // You might need to add more replacements for other JSON special characters like \n, \r, \t, \b, \f
+                    // For example:
+                    // let safe_e_newline_escaped = Text.replace(safe_e_fully_escaped, #text("\n"), "\\n");
+                    // ... and so on for other characters.
+
+                    // 2. Serialize status and outcome as strings, consistent with the main path
+                    let executionStatusStr = JsonUtils.serializeActionStatusToString(resultRecord.executionStatus);
+                    let actionOutcomeStr = JsonUtils.serializeActionOutcomeToString(resultRecord.actionOutcome);
+
+                    // 3. Construct the JSON string carefully
+                    var fields : [Text] = [];
+                    fields := Array.append(fields, ["\"stepIdProcessed\":" # Nat.toText(resultRecord.stepIdProcessed)]);
+                    fields := Array.append(fields, ["\"actionInstanceIdProcessed\":" # Nat.toText(resultRecord.actionInstanceIdProcessed)]);
+                    fields := Array.append(fields, ["\"overallSuccess\":" # Bool.toText(resultRecord.overallSuccess)]);
+                    fields := Array.append(fields, ["\"executionStatus\":\"" # executionStatusStr # "\""]);
+                    fields := Array.append(fields, ["\"actionOutcome\":\"" # actionOutcomeStr # "\""]);
+                    fields := Array.append(fields, ["\"message\":\"Internal error: Failed to serialize result. " # safe_e_fully_escaped # "\""]); // Use the escaped message
+                    fields := Array.append(fields, ["\"returnedDataJson\":null"]);
+
+                    switch (resultRecord.nextStepIdToProcess) {
+                        case (?n) {
+                            fields := Array.append(fields, ["\"nextStepIdToProcess\":" # Nat.toText(n)]);
+                        };
+                        case null {
+                            fields := Array.append(fields, ["\"nextStepIdToProcess\":null"]);
+                        };
+                    };
+                    switch (resultRecord.isFlowCompleted) {
+                        case (?b) {
+                            fields := Array.append(fields, ["\"isFlowCompleted\":" # Bool.toText(b)]);
+                        };
+                        case null {
+                            fields := Array.append(fields, ["\"isFlowCompleted\":null"]);
+                        };
+                    };
+
+                    return "{" # Text.join(",", Array.vals(fields)) # "}";
                 };
             };
         };
@@ -1009,5 +1196,22 @@ actor class Backend() {
 
         // --- 9. Serialize finalResultRecord to JSON text and return it. ---
         return buildResultJson(finalResultRecord);
+    };
+
+    type Icrc28TrustedOriginsResponse = {
+        trusted_origins : [Text];
+    };
+
+    public shared query func icrc28_trusted_origins() : async Icrc28TrustedOriginsResponse {
+        let trusted_origins : [Text] = [
+            "https://3qzqh-pqaaa-aaaag-qnheq-cai.icp0.io",
+            "https://3qzqh-pqaaa-aaaag-qnheq-cai.raw.icp0.io",
+            "https://3qzqh-pqaaa-aaaag-qnheq-cai.ic0.app",
+            "https://3qzqh-pqaaa-aaaag-qnheq-cai.raw.ic0.app",
+        ];
+
+        return {
+            trusted_origins;
+        };
     };
 };

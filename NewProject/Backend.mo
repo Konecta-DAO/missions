@@ -786,8 +786,8 @@ actor class ProjectBackend() {
         rewardType : NewTypes.RewardType,
         startTime : Int,
         endTime : ?Int,
-        iconUrl : ?Text,
-        imageUrl : ?Text,
+        iconInput : ?NewTypes.ImageUploadInput, // Changed parameter
+        imageInput : ?NewTypes.ImageUploadInput, // Changed parameter
         tags : ?[Text],
         requiredPreviousMissionId : ?[Nat],
         requiredMissionLogic : ?{ #All; #Any },
@@ -801,70 +801,94 @@ actor class ProjectBackend() {
         let currentTime = Time.now();
         let existingMissionOpt = StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId);
 
-        if (Option.isNull(existingMissionOpt)) {
-            // Creating a new mission
-            if (not hasPermission(msg.caller, #CanCreateMission)) {
-                return #err("Caller does not have permission to create missions (#CanCreateMission).");
-            };
-        } else {
-            // Updating an existing mission
-            let existingMission : NewTypes.Mission = switch (existingMissionOpt) {
-                case null { Debug.trap("Mission not found during update.") };
-                case (?m) { m };
-            };
-            var requiresEditInfo = false;
-            var requiresEditFlow = false;
-
-            if (
-                existingMission.name != name or
-                existingMission.description != description or
-                existingMission.minRewardAmount != rewardAmount or
-                existingMission.maxRewardAmount != maxRewardAmount or
-                existingMission.rewardType != rewardType or
-                existingMission.startTime != startTime or
-                existingMission.endTime != endTime or
-                existingMission.iconUrl != iconUrl or
-                existingMission.imageUrl != imageUrl or
-                existingMission.tags != tags or
-                existingMission.requiredPreviousMissionId != requiredPreviousMissionId or
-                existingMission.requiredMissionLogic != requiredMissionLogic or
-                existingMission.isRecursive != isRecursive or
-                existingMission.recursiveTimeCooldown != recursiveTimeCooldown or
-                existingMission.maxCompletionsPerUser != maxCompletionsPerUser or
-                existingMission.maxTotalCompletions != maxTotalCompletions or
-                existingMission.status != initialStatus or
-                existingMission.priority != priority
-            ) {
-                requiresEditInfo := true;
-            };
-
-            if (existingMission.actionFlowJson != actionFlowRepresentation) {
-                requiresEditFlow := true;
-            };
-
-            if (requiresEditInfo and not hasPermission(msg.caller, #CanEditMissionInfo)) {
-                return #err("Caller does not have permission to edit mission info (#CanEditMissionInfo).");
-            };
-            if (requiresEditFlow and not hasPermission(msg.caller, #CanEditMissionFlow)) {
-                return #err("Caller does not have permission to edit mission flow (#CanEditMissionFlow).");
-            };
-            if (not requiresEditInfo and not requiresEditFlow) {
-                if (not (hasPermission(msg.caller, #CanEditMissionInfo) or hasPermission(msg.caller, #CanEditMissionFlow))) {
-                    return #err("Caller lacks permissions to edit mission info or flow, and no changes detected.");
+        // --- Step 1: Process image/icon inputs to get final URLs ---
+        // Helper function to process an image/icon input against an optional existing URL
+        func processImageInput(inputOpt : ?NewTypes.ImageUploadInput, existingUrlOpt : ?Text) : Result.Result<?Text, Text> {
+            // If there's an input, it overwrites the existing URL. Otherwise, the existing URL is kept.
+            switch (inputOpt) {
+                case null { return #ok(existingUrlOpt) }; // No new input, so we keep the existing URL
+                case (?input) {
+                    switch (input) {
+                        case (#Url(urlText)) {
+                            return #ok(?urlText); // Input is a URL, return it
+                        };
+                        case (#Asset(asset)) {
+                            // Input is an asset, store it and return the resulting path
+                            switch (storeProjectAsset(asset.originalFileName, asset.content)) {
+                                case (#ok(path)) { return #ok(?path) };
+                                case (#err(errMsg)) {
+                                    return #err("Failed to store asset: " # errMsg);
+                                };
+                            };
+                        };
+                    };
                 };
             };
         };
 
+        // Safely get existing URLs using a switch for type safety
+        let existingIconUrl = switch (existingMissionOpt) {
+            case (?m) m.iconUrl;
+            case null null;
+        };
+        let existingImageUrl = switch (existingMissionOpt) {
+            case (?m) m.imageUrl;
+            case null null;
+        };
+
+        // Process inputs to get final URLs, returning early if asset storage fails
+        let finalIconUrl = switch (processImageInput(iconInput, existingIconUrl)) {
+            case (#ok(url)) url;
+            case (#err(e)) { return #err("Icon processing failed: " # e) };
+        };
+        let finalImageUrl = switch (processImageInput(imageInput, existingImageUrl)) {
+            case (#ok(url)) url;
+            case (#err(e)) { return #err("Image processing failed: " # e) };
+        };
+
+        // --- Step 2: Perform permission checks ---
+        switch (existingMissionOpt) {
+            case null {
+                // CREATING a new mission: Check for #CanCreateMission permission
+                if (not hasPermission(msg.caller, #CanCreateMission)) {
+                    return #err("Caller does not have permission to create missions (#CanCreateMission).");
+                };
+            };
+            case (?existingMission) {
+                // UPDATING an existing mission: Check for edit permissions based on what changed
+                var requiresEditInfo = existingMission.name != name or existingMission.description != description or existingMission.minRewardAmount != rewardAmount or existingMission.maxRewardAmount != maxRewardAmount or existingMission.rewardType != rewardType or existingMission.startTime != startTime or existingMission.endTime != endTime or existingMission.iconUrl != finalIconUrl or existingMission.imageUrl != finalImageUrl or existingMission.tags != tags or existingMission.requiredPreviousMissionId != requiredPreviousMissionId or existingMission.requiredMissionLogic != requiredMissionLogic or existingMission.isRecursive != isRecursive or existingMission.recursiveTimeCooldown != recursiveTimeCooldown or existingMission.maxCompletionsPerUser != maxCompletionsPerUser or existingMission.maxTotalCompletions != maxTotalCompletions or existingMission.status != initialStatus or existingMission.priority != priority;
+
+                let requiresEditFlow = existingMission.actionFlowJson != actionFlowRepresentation;
+
+                if (requiresEditInfo and not hasPermission(msg.caller, #CanEditMissionInfo)) {
+                    return #err("Caller does not have permission to edit mission info (#CanEditMissionInfo).");
+                };
+                if (requiresEditFlow and not hasPermission(msg.caller, #CanEditMissionFlow)) {
+                    return #err("Caller does not have permission to edit mission flow (#CanEditMissionFlow).");
+                };
+                if (not requiresEditInfo and not requiresEditFlow) {
+                    // If nothing changed, return early, but first check if they have *any* edit permission to even make the call
+                    if (not hasPermission(msg.caller, #CanEditMissionInfo) and not hasPermission(msg.caller, #CanEditMissionFlow)) {
+                        return #err("Caller lacks permissions to edit this mission.");
+                    };
+                };
+            };
+        };
+
+        // --- Step 3: Determine other final mission fields ---
         let (creationTimeForEntry, creatorForEntry, currentTotalCompletionsForEntry, usersWhoCompletedCountForEntry, updatesForEntry) = switch (existingMissionOpt) {
             case null {
+                // For new missions
                 (currentTime, msg.caller, 0, StableTrieMap.new<Text, Nat>(), [(currentTime, msg.caller)]);
             };
             case (?m) {
+                // For existing missions, preserve original data and add an update record
                 (m.creationTime, m.creator, m.currentTotalCompletions, m.usersWhoCompletedCount, Array.append(m.updates, [(currentTime, msg.caller)]));
             };
         };
 
-        let newMission : NewTypes.Mission = {
+        // --- Step 4: Construct and store the final mission object ---
+        let missionToStore : NewTypes.Mission = {
             var name = name;
             var description = description;
             var actionFlowJson = actionFlowRepresentation;
@@ -875,8 +899,8 @@ actor class ProjectBackend() {
             var endTime = endTime;
             var status = initialStatus;
             creator = creatorForEntry;
-            var imageUrl = imageUrl;
-            var iconUrl = iconUrl;
+            var imageUrl = finalImageUrl;
+            var iconUrl = finalIconUrl;
             var tags = tags;
             var requiredPreviousMissionId = requiredPreviousMissionId;
             var requiredMissionLogic = requiredMissionLogic;
@@ -890,7 +914,8 @@ actor class ProjectBackend() {
             var updates = updatesForEntry;
             var priority = priority;
         };
-        StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId, newMission);
+        StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId, missionToStore);
+
         return #ok(null);
     };
 

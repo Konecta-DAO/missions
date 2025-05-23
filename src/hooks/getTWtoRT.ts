@@ -1,4 +1,4 @@
-import { doAddress } from "../frontend/pages/Missions/Components/MissionFunctionsComponent.ts";
+/* import { doAddress } from "../frontend/pages/Missions/Components/MissionFunctionsComponent.ts";
 
 const getTWtoRT = async (): Promise<string> => {
     const response = await fetch(`https://${doAddress}/getRToday`, {
@@ -14,4 +14,4 @@ const getTWtoRT = async (): Promise<string> => {
     return data.retwId;
 };
 
-export default getTWtoRT;
+export default getTWtoRT; */
