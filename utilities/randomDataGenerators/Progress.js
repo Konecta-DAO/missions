@@ -1,5 +1,5 @@
-const { Ed25519KeyIdentity } = require('@dfinity/identity');
-const fs = require('fs');
+import { Ed25519KeyIdentity } from '@dfinity/identity';
+import { writeFileSync } from 'fs';
 
 // Set the number of entries you want to generate
 const NUM_ENTRIES = 10000;
@@ -112,7 +112,7 @@ function main() {
     const jsonData = generateJson(NUM_ENTRIES);
 
     // Save the generated data to a file
-    fs.writeFileSync('generated_data.json', JSON.stringify(jsonData, null, 2), 'utf-8');
+    writeFileSync('generated_data.json', JSON.stringify(jsonData, null, 2), 'utf-8');
     console.log(`JSON data generation complete. Saved to 'generated_data.json' with ${NUM_ENTRIES} principals.`);
 }
 

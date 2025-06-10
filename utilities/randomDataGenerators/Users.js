@@ -1,5 +1,5 @@
-const { Ed25519KeyIdentity } = require('@dfinity/identity');
-const fs = require('fs');
+import { Ed25519KeyIdentity } from '@dfinity/identity';
+import { writeFileSync } from 'fs';
 
 // Function to generate a unique Principal from Ed25519KeyIdentity
 function generatePrincipal(existingSet) {
@@ -112,7 +112,7 @@ function main() {
     const jsonData = generateJson(NUM_ENTRIES);
 
     // Save the generated data to a file
-    fs.writeFileSync('generated_entries.json', JSON.stringify(jsonData, null, 2), 'utf-8');
+    writeFileSync('generated_entries.json', JSON.stringify(jsonData, null, 2), 'utf-8');
     console.log(`\nJSON data generation complete. Saved to 'generated_entries.json' with ${NUM_ENTRIES} entries.`);
 }
 
