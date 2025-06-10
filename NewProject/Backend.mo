@@ -458,7 +458,15 @@ actor class ProjectBackend() {
         };
 
         // Add the newly defined mission to the main missions map.
-        StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, placeholderMissionId, placeholderMission);
+        StableTrieMap.put<Nat, NewTypes.Mission>(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            placeholderMissionId,
+            placeholderMission,
+        );
 
         Debug.print("Default Placeholder Mission with ID " # Nat.toText(placeholderMissionId) # " has been successfully added.");
         return #ok(placeholderMissionId);
@@ -467,7 +475,16 @@ actor class ProjectBackend() {
     public shared func addSecondPlaceholderMission() : async Result.Result<Nat, Text> {
         let placeholderMissionId : Nat = 1; // Mission ID for this second placeholder
 
-        if (StableTrieMap.containsKey(missions, Nat.equal, Hash.hash, placeholderMissionId)) {
+        if (
+            StableTrieMap.containsKey(
+                missions,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                placeholderMissionId,
+            )
+        ) {
             Debug.print("Placeholder mission with ID " # Nat.toText(placeholderMissionId) # " already exists. No action taken.");
             return #err("Placeholder mission with ID " # Nat.toText(placeholderMissionId) # " already exists.");
         };
@@ -555,13 +572,21 @@ actor class ProjectBackend() {
             var priority = ?(1 : Nat); // Slightly lower priority than the very first mission
         };
 
-        StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, placeholderMissionId, secondPlaceholderMission);
+        StableTrieMap.put<Nat, NewTypes.Mission>(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            placeholderMissionId,
+            secondPlaceholderMission,
+        );
 
         Debug.print("Second Placeholder Mission (Secret Code Challenge) with ID " # Nat.toText(placeholderMissionId) # " has been successfully added.");
         return #ok(placeholderMissionId);
     };
 
-    public shared (msg) func generateAnalyticsSeed() : async Result.Result<Null, Text> {
+    public shared (_msg) func generateAnalyticsSeed() : async Result.Result<Null, Text> {
 
         type SerializedGlobalUser = {
             bio : ?Text;
@@ -616,7 +641,7 @@ actor class ProjectBackend() {
                 overall_status_param : NewTypes.UserOverallMissionStatus,
             ) : NewTypes.UserMissionProgress {
                 // Use missionId and uuid_hash for more varied, yet deterministic, timestamps per mission per user
-                let combined_hash = Hash.hash(Nat32.toNat(for_uuid_hash) + missionId); // Ensure Nat32 for hash input if needed, or just add Nats then hash.
+                let combined_hash = Text.hash(Nat.toText(Nat32.toNat(for_uuid_hash) + missionId)); // Ensure Nat32 for hash input if needed, or just add Nats then hash.
                 // Nat32.fromNat might trap if missionId is too large.
                 // A simpler way for combined_hash might be:
                 // let combined_hash = Hash.hash(for_uuid_hash) + Hash.hash(missionId); // if direct arithmetic on Nat32 is not what you want for randomness source
@@ -649,11 +674,27 @@ actor class ProjectBackend() {
                         var lastAttemptTime = ?lastActive;
                         var lastMessageFromAction = ?("Mock: Verified by seed");
                     };
-                    StableTrieMap.put(stepStatesMap, Nat.equal, Hash.hash, step_zero, step0VerifiedState);
+                    StableTrieMap.put(
+                        stepStatesMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        step_zero,
+                        step0VerifiedState,
+                    );
                     currentStepIdOpt := null;
 
                     if (missionId == 1) {
-                        StableTrieMap.put(flowOutputsMap, Nat.equal, Hash.hash, step_zero, "{\"mock_output\": \"seeded_success_code\"}");
+                        StableTrieMap.put(
+                            flowOutputsMap,
+                            Nat.equal,
+                            func(n : Nat) : Hash.Hash {
+                                return Text.hash(Nat.toText(n));
+                            },
+                            step_zero,
+                            "{\"mock_output\": \"seeded_success_code\"}",
+                        );
                     };
                     if (Nat32.rem(combined_hash, 2) == 0) {
                         // 50% chance to claim reward
@@ -678,7 +719,15 @@ actor class ProjectBackend() {
                             ?"Mock: Input needed";
                         } else { null };
                     };
-                    StableTrieMap.put(stepStatesMap, Nat.equal, Hash.hash, step_zero, step0InProgressState);
+                    StableTrieMap.put(
+                        stepStatesMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        step_zero,
+                        step0InProgressState,
+                    );
 
                 } else if (overall_status_param == #CompletedFailure) {
                     let failure_offset_ns = Int.abs(Nat32.toNat(Nat32.rem(combined_hash, 120))) * 1_000_000_000; // 0-120s
@@ -691,7 +740,15 @@ actor class ProjectBackend() {
                         var lastAttemptTime = ?lastActive;
                         var lastMessageFromAction = ?("Mock: Failed by seed");
                     };
-                    StableTrieMap.put(stepStatesMap, Nat.equal, Hash.hash, step_zero, step0FailedState);
+                    StableTrieMap.put(
+                        stepStatesMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        step_zero,
+                        step0FailedState,
+                    );
                     currentStepIdOpt := ?step_zero;
                 };
 
@@ -711,10 +768,27 @@ actor class ProjectBackend() {
                 let status0 = if (Nat32.rem(h, 2) == 0) #CompletedSuccess else #InProgress;
                 // ***** CORRECTED CALL *****
                 let progress0 = makeProgressRecord(0, h, status0);
-                StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, 0, progress0);
+                StableTrieMap.put(
+                    userMissionsMap,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    0,
+                    progress0,
+                );
 
                 if (status0 == #CompletedSuccess) {
-                    switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, 0)) {
+                    switch (
+                        StableTrieMap.get<Nat, NewTypes.Mission>(
+                            missions,
+                            Nat.equal,
+                            func(n : Nat) : Hash.Hash {
+                                return Text.hash(Nat.toText(n));
+                            },
+                            0,
+                        )
+                    ) {
                         case (?m0) {
                             // m0 is now your mission 0 record
                             m0.currentTotalCompletions += 1;
@@ -729,7 +803,15 @@ actor class ProjectBackend() {
                                 uuid,
                                 newCount,
                             );
-                            StableTrieMap.put(missions, Nat.equal, Hash.hash, 0, m0);
+                            StableTrieMap.put(
+                                missions,
+                                Nat.equal,
+                                func(n : Nat) : Hash.Hash {
+                                    return Text.hash(Nat.toText(n));
+                                },
+                                0,
+                                m0,
+                            );
                         };
                         case null {
                             Debug.print("CRITICAL: Mission 0 not found during update.");
@@ -743,10 +825,27 @@ actor class ProjectBackend() {
                 let status1 = if (Nat32.rem(h, 5) < 3) #CompletedSuccess else #InProgress;
                 // ***** CORRECTED CALL *****
                 let progress1 = makeProgressRecord(1, h, status1);
-                StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, 1, progress1);
+                StableTrieMap.put(
+                    userMissionsMap,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    1,
+                    progress1,
+                );
 
                 if (status1 == #CompletedSuccess) {
-                    switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, 1)) {
+                    switch (
+                        StableTrieMap.get<Nat, NewTypes.Mission>(
+                            missions,
+                            Nat.equal,
+                            func(n : Nat) : Hash.Hash {
+                                return Text.hash(Nat.toText(n));
+                            },
+                            1,
+                        )
+                    ) {
                         case (?m1) {
                             m1.currentTotalCompletions += 1;
                             let newCount = Option.get(
@@ -760,7 +859,15 @@ actor class ProjectBackend() {
                                 uuid,
                                 newCount,
                             );
-                            StableTrieMap.put(missions, Nat.equal, Hash.hash, 1, m1);
+                            StableTrieMap.put(
+                                missions,
+                                Nat.equal,
+                                func(n : Nat) : Hash.Hash {
+                                    return Text.hash(Nat.toText(n));
+                                },
+                                1,
+                                m1,
+                            );
                         };
                         case null {
                             Debug.print("CRITICAL: Mission 1 not found during update.");
@@ -799,7 +906,14 @@ actor class ProjectBackend() {
         priority : ?Nat,
     ) : async Result.Result<Null, Text> {
         let currentTime = Time.now();
-        let existingMissionOpt = StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId);
+        let existingMissionOpt = StableTrieMap.get<Nat, NewTypes.Mission>(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+        );
 
         // --- Step 1: Process image/icon inputs to get final URLs ---
         // Helper function to process an image/icon input against an optional existing URL
@@ -914,7 +1028,15 @@ actor class ProjectBackend() {
             var updates = updatesForEntry;
             var priority = priority;
         };
-        StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId, missionToStore);
+        StableTrieMap.put<Nat, NewTypes.Mission>(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+            missionToStore,
+        );
 
         return #ok(null);
     };
@@ -923,20 +1045,46 @@ actor class ProjectBackend() {
         if (not hasPermission(msg.caller, #CanUpdateMissionStatus)) {
             return #err("Caller does not have permission to update mission status (#CanUpdateMissionStatus).");
         };
-        switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+        switch (
+            StableTrieMap.get<Nat, NewTypes.Mission>(
+                missions,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                missionId,
+            )
+        ) {
             case (null) { return #err("Mission not found.") };
             case (?mission) {
                 var updatedMission = mission;
                 updatedMission.status := newStatus;
                 updatedMission.updates := Array.append(updatedMission.updates, [(Time.now(), msg.caller)]);
-                StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId, updatedMission);
+                StableTrieMap.put<Nat, NewTypes.Mission>(
+                    missions,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    missionId,
+                    updatedMission,
+                );
                 return #ok(null);
             };
         };
     };
 
     public shared query (msg) func getMission(missionId : Nat) : async ?NewTypes.SerializedMission {
-        switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+        switch (
+            StableTrieMap.get<Nat, NewTypes.Mission>(
+                missions,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                missionId,
+            )
+        ) {
             case null { return null };
             case (?mission) {
                 let isAnAdmin = StableTrieMap.containsKey(adminPermissions, Principal.equal, Principal.hash, msg.caller);
@@ -990,7 +1138,16 @@ actor class ProjectBackend() {
         ) {
             case null { return null };
             case (?userMissionsMap) {
-                switch (StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(userMissionsMap, Nat.equal, Hash.hash, missionId)) {
+                switch (
+                    StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(
+                        userMissionsMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        missionId,
+                    )
+                ) {
                     case null { return null };
                     case (?missionProgressObject) {
                         return ?Serialization.serializeUserMissionProgress(missionProgressObject);
@@ -1021,10 +1178,28 @@ actor class ProjectBackend() {
         ) {
             case null { return null };
             case (?userMissionsMap) {
-                switch (StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(userMissionsMap, Nat.equal, Hash.hash, missionId)) {
+                switch (
+                    StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(
+                        userMissionsMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        missionId,
+                    )
+                ) {
                     case null { return null };
                     case (?missionProgressObject) {
-                        switch (StableTrieMap.get<Nat, NewTypes.UserActionStepState>(missionProgressObject.stepStates, Nat.equal, Hash.hash, stepId)) {
+                        switch (
+                            StableTrieMap.get<Nat, NewTypes.UserActionStepState>(
+                                missionProgressObject.stepStates,
+                                Nat.equal,
+                                func(n : Nat) : Hash.Hash {
+                                    return Text.hash(Nat.toText(n));
+                                },
+                                stepId,
+                            )
+                        ) {
                             case null { return null };
                             case (?actionStepState) {
                                 return ?Serialization.serializeUserActionStepState(actionStepState);
@@ -1057,7 +1232,16 @@ actor class ProjectBackend() {
         ) {
             case null { return null };
             case (?userMissionsMap) {
-                switch (StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(userMissionsMap, Nat.equal, Hash.hash, missionId)) {
+                switch (
+                    StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(
+                        userMissionsMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        missionId,
+                    )
+                ) {
                     case null { return null };
                     case (?missionProgressObject) {
                         var serializedStepStates : [(Nat, NewTypes.SerializedUserActionStepState)] = [];
@@ -1112,7 +1296,16 @@ actor class ProjectBackend() {
         };
         let userUUID = await indexActor.getUUID(principal);
 
-        switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+        switch (
+            StableTrieMap.get<Nat, NewTypes.Mission>(
+                missions,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                missionId,
+            )
+        ) {
             case null { return false };
             case (?m) {
                 return Option.get(StableTrieMap.get<Text, Nat>(m.usersWhoCompletedCount, Text.equal, Text.hash, userUUID), 0) > 0;
@@ -1121,7 +1314,16 @@ actor class ProjectBackend() {
     };
 
     private func getMissionCompletionsCountForUser(userUUID : Text, missionId : Nat) : Nat {
-        switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+        switch (
+            StableTrieMap.get<Nat, NewTypes.Mission>(
+                missions,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                missionId,
+            )
+        ) {
             case null { return 0 };
             case (?m) {
                 return Option.get(StableTrieMap.get<Text, Nat>(m.usersWhoCompletedCount, Text.equal, Text.hash, userUUID), 0);
@@ -1156,7 +1358,14 @@ actor class ProjectBackend() {
         };
         let userUUID = await indexActor.getUUID(principal);
 
-        let missionOpt = StableTrieMap.get(missions, Nat.equal, Hash.hash, missionId);
+        let missionOpt = StableTrieMap.get(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+        );
         let mission : NewTypes.Mission = switch (missionOpt) {
             case null { return #err("Mission not found.") };
             case (?m) m;
@@ -1184,7 +1393,15 @@ actor class ProjectBackend() {
                     if (mission.status != #Expired) {
                         var mutMission = mission;
                         mutMission.status := #Expired;
-                        StableTrieMap.put(missions, Nat.equal, Hash.hash, missionId, mutMission);
+                        StableTrieMap.put(
+                            missions,
+                            Nat.equal,
+                            func(n : Nat) : Hash.Hash {
+                                return Text.hash(Nat.toText(n));
+                            },
+                            missionId,
+                            mutMission,
+                        );
                     };
                     return #err("Mission has ended.");
                 };
@@ -1221,7 +1438,14 @@ actor class ProjectBackend() {
             StableTrieMap.get(userProgress, Text.equal, Text.hash, userUUID),
             StableTrieMap.new<Nat, NewTypes.UserMissionProgress>(),
         );
-        var existingProgressOpt = StableTrieMap.get(userMissionsMap, Nat.equal, Hash.hash, missionId);
+        var existingProgressOpt = StableTrieMap.get(
+            userMissionsMap,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+        );
 
         // 4. Max Completions Per User & Recursive Logic
         let userCompletionCount = getMissionCompletionsCountForUser(userUUID, missionId);
@@ -1257,7 +1481,15 @@ actor class ProjectBackend() {
                 if (mission.status != #Completed) {
                     var mutMission = mission;
                     mutMission.status := #Completed;
-                    StableTrieMap.put(missions, Nat.equal, Hash.hash, missionId, mutMission);
+                    StableTrieMap.put(
+                        missions,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        missionId,
+                        mutMission,
+                    );
                 };
                 return #err("Mission has reached its total completion limit.");
             };
@@ -1289,7 +1521,15 @@ actor class ProjectBackend() {
                 prog.overallStatus == #CompletedSuccess and mission.isRecursive or prog.overallStatus == #Abandoned or
                 prog.overallStatus == #CompletedFailure
             ) {
-                StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, missionId, newProgress);
+                StableTrieMap.put(
+                    userMissionsMap,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    missionId,
+                    newProgress,
+                );
                 StableTrieMap.put(userProgress, Text.equal, Text.hash, userUUID, userMissionsMap);
                 return #ok(Serialization.serializeUserMissionProgress(newProgress));
             } else if (prog.overallStatus == #InProgress) {
@@ -1299,7 +1539,15 @@ actor class ProjectBackend() {
             };
         } else {
             // First time starting this mission for this user
-            StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, missionId, newProgress);
+            StableTrieMap.put(
+                userMissionsMap,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                missionId,
+                newProgress,
+            );
             StableTrieMap.put(userProgress, Text.equal, Text.hash, userUUID, userMissionsMap);
             return #ok(Serialization.serializeUserMissionProgress(newProgress));
         };
@@ -1322,7 +1570,14 @@ actor class ProjectBackend() {
         };
         let userUUID = await indexActor.getUUID(principal);
         // 2. Retrieve Mission
-        let missionOpt = StableTrieMap.get(missions, Nat.equal, Hash.hash, missionId);
+        let missionOpt = StableTrieMap.get(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+        );
         let mission : NewTypes.Mission = switch (missionOpt) {
             case null {
                 return #err("Mission not found.");
@@ -1337,7 +1592,15 @@ actor class ProjectBackend() {
             case (?endTimeVal) {
                 if (Time.now() > endTimeVal) {
                     mission.status := #Expired;
-                    StableTrieMap.put(missions, Nat.equal, Hash.hash, missionId, mission);
+                    StableTrieMap.put(
+                        missions,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        missionId,
+                        mission,
+                    );
                     return #err("Mission has ended.");
                 };
             };
@@ -1351,7 +1614,14 @@ actor class ProjectBackend() {
         };
         let userMissionsMap = Option.get(userMissionsMapOpt, StableTrieMap.new<Nat, NewTypes.UserMissionProgress>());
 
-        var missionProgressOpt = StableTrieMap.get(userMissionsMap, Nat.equal, Hash.hash, missionId);
+        var missionProgressOpt = StableTrieMap.get(
+            userMissionsMap,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+        );
         if (Option.isNull(missionProgressOpt)) {
             return #err("Mission not started by the user. Please start the mission first.");
         };
@@ -1383,7 +1653,7 @@ actor class ProjectBackend() {
                 case (#ok(parsedInnerJson)) {
                     fieldsForPreviousOutputs := Array.append(fieldsForPreviousOutputs, [(Nat.toText(stepId), parsedInnerJson)]);
                 };
-                case (#err(parseError)) {
+                case (#err(_)) {
                     fieldsForPreviousOutputs := Array.append(fieldsForPreviousOutputs, [(Nat.toText(stepId), Json.str(dataJsonText))]);
                 };
             };
@@ -1406,7 +1676,14 @@ actor class ProjectBackend() {
             );
         } catch (_e) {
             var stepState = Option.get(
-                StableTrieMap.get(missionProgress.stepStates, Nat.equal, Hash.hash, stepIdToExecute),
+                StableTrieMap.get(
+                    missionProgress.stepStates,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    stepIdToExecute,
+                ),
                 (
                     {
                         var status = #NotStarted;
@@ -1420,9 +1697,25 @@ actor class ProjectBackend() {
             stepState.lastAttemptTime := ?Time.now();
             stepState.status := #FailedVerification;
             stepState.lastMessageFromAction := ?"Failed to communicate with Actions Service.";
-            StableTrieMap.put(missionProgress.stepStates, Nat.equal, Hash.hash, stepIdToExecute, stepState);
+            StableTrieMap.put(
+                missionProgress.stepStates,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                stepIdToExecute,
+                stepState,
+            );
             missionProgress.lastActiveTime := Time.now();
-            StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, missionId, missionProgress);
+            StableTrieMap.put(
+                userMissionsMap,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                missionId,
+                missionProgress,
+            );
             StableTrieMap.put(userProgress, Text.equal, Text.hash, userUUID, userMissionsMap);
 
             return #err("Action service call failed");
@@ -1433,7 +1726,14 @@ actor class ProjectBackend() {
             case (#ok(res)) res;
             case (#err(parseErr)) {
                 var stepState = Option.get(
-                    StableTrieMap.get(missionProgress.stepStates, Nat.equal, Hash.hash, stepIdToExecute),
+                    StableTrieMap.get(
+                        missionProgress.stepStates,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        stepIdToExecute,
+                    ),
                     (
                         {
                             var status = #NotStarted;
@@ -1447,9 +1747,25 @@ actor class ProjectBackend() {
                 stepState.lastAttemptTime := ?Time.now();
                 stepState.status := #FailedVerification;
                 stepState.lastMessageFromAction := ?"Invalid response from Actions Service.";
-                StableTrieMap.put(missionProgress.stepStates, Nat.equal, Hash.hash, stepIdToExecute, stepState);
+                StableTrieMap.put(
+                    missionProgress.stepStates,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    stepIdToExecute,
+                    stepState,
+                );
                 missionProgress.lastActiveTime := Time.now();
-                StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, missionId, missionProgress);
+                StableTrieMap.put(
+                    userMissionsMap,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    missionId,
+                    missionProgress,
+                );
                 StableTrieMap.put(userProgress, Text.equal, Text.hash, userUUID, userMissionsMap);
 
                 return #err("Failed to parse action service response: " # parseErr);
@@ -1466,7 +1782,14 @@ actor class ProjectBackend() {
             var lastMessageFromAction = null;
         };
         var stepState = Option.get(
-            StableTrieMap.get(missionProgress.stepStates, Nat.equal, Hash.hash, processedStepId),
+            StableTrieMap.get(
+                missionProgress.stepStates,
+                Nat.equal,
+                func(n : Nat) : Hash.Hash {
+                    return Text.hash(Nat.toText(n));
+                },
+                processedStepId,
+            ),
             defaultStepState,
         );
 
@@ -1480,7 +1803,15 @@ actor class ProjectBackend() {
             // Store returned data if any
             switch (parsedActionResult.returnedDataJson) {
                 case (?dataJson) {
-                    StableTrieMap.put(missionProgress.flowOutputs, Nat.equal, Hash.hash, processedStepId, dataJson);
+                    StableTrieMap.put(
+                        missionProgress.flowOutputs,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        processedStepId,
+                        dataJson,
+                    );
                 };
                 case null {};
             };
@@ -1505,7 +1836,15 @@ actor class ProjectBackend() {
             };
         };
 
-        StableTrieMap.put(missionProgress.stepStates, Nat.equal, Hash.hash, processedStepId, stepState);
+        StableTrieMap.put(
+            missionProgress.stepStates,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            processedStepId,
+            stepState,
+        );
         missionProgress.lastActiveTime := Time.now();
 
         missionProgress.currentStepId := parsedActionResult.nextStepIdToProcess;
@@ -1538,7 +1877,15 @@ actor class ProjectBackend() {
                     };
                     case null {};
                 };
-                StableTrieMap.put<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId, mission);
+                StableTrieMap.put<Nat, NewTypes.Mission>(
+                    missions,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    missionId,
+                    mission,
+                );
 
             } else {
                 // Flow completed, but the last action was not successful
@@ -1554,7 +1901,15 @@ actor class ProjectBackend() {
             };
         };
 
-        StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, missionId, missionProgress);
+        StableTrieMap.put(
+            userMissionsMap,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+            missionProgress,
+        );
         StableTrieMap.put(userProgress, Text.equal, Text.hash, userUUID, userMissionsMap);
 
         return #ok(parsedActionResult);
@@ -1626,7 +1981,16 @@ actor class ProjectBackend() {
         for ((id, mission) in StableTrieMap.entries(missions)) {
             var estimated_starts_for_mission : Nat = 0;
             for ((_uuid, missionsProgressMap) in StableTrieMap.entries(userProgress)) {
-                if (StableTrieMap.containsKey(missionsProgressMap, Nat.equal, Hash.hash, id)) {
+                if (
+                    StableTrieMap.containsKey(
+                        missionsProgressMap,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        id,
+                    )
+                ) {
                     estimated_starts_for_mission += 1;
                 };
             };
@@ -1679,7 +2043,16 @@ actor class ProjectBackend() {
                 };
 
                 var completions_by_user_this_mission : Nat = 0;
-                switch (StableTrieMap.get(missions, Nat.equal, Hash.hash, mission_id)) {
+                switch (
+                    StableTrieMap.get(
+                        missions,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        mission_id,
+                    )
+                ) {
                     case (?m) {
                         completions_by_user_this_mission := Option.get(
                             StableTrieMap.get(m.usersWhoCompletedCount, Text.equal, Text.hash, user_uuid),
@@ -1729,7 +2102,16 @@ actor class ProjectBackend() {
         switch (StableTrieMap.get(userProgress, Text.equal, Text.hash, user_uuid)) {
             case null { return null };
             case (?user_missions_map) {
-                switch (StableTrieMap.get(user_missions_map, Nat.equal, Hash.hash, mission_id)) {
+                switch (
+                    StableTrieMap.get(
+                        user_missions_map,
+                        Nat.equal,
+                        func(n : Nat) : Hash.Hash {
+                            return Text.hash(Nat.toText(n));
+                        },
+                        mission_id,
+                    )
+                ) {
                     case null { return null };
                     case (?progress) {
                         var step_summary : [(Nat, NewTypes.UserActionStepStatus, Nat)] = [];
@@ -1745,7 +2127,14 @@ actor class ProjectBackend() {
 
     public shared query func get_aggregated_mission_funnel(missionId : Nat) : async Result.Result<[AnalyticsTypes.AggregatedFunnelStep], Text> {
         // 1. Retrieve the Mission
-        let missionOpt = StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId);
+        let missionOpt = StableTrieMap.get<Nat, NewTypes.Mission>(
+            missions,
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+            missionId,
+        );
         let mission : NewTypes.Mission = switch (missionOpt) {
             case null {
                 return #err("Mission not found with ID: " # Nat.toText(missionId));
@@ -1791,7 +2180,7 @@ actor class ProjectBackend() {
                             // Assuming a 'name' field might exist in the step definition in actionFlowJson
                             let stepNameOpt : ?Text = switch (Json.get(stepObj, "name")) {
                                 case (?(#string(s))) { ?s };
-                                case null { null };
+                                case _ { null };
                             };
 
                             switch (stepIdOpt) {
@@ -1829,7 +2218,16 @@ actor class ProjectBackend() {
 
         // 4. Iterate through userProgress
         for ((_userUUID, userMissionsMap) in StableTrieMap.entries(userProgress)) {
-            switch (StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(userMissionsMap, Nat.equal, Hash.hash, missionId)) {
+            switch (
+                StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(
+                    userMissionsMap,
+                    Nat.equal,
+                    func(n : Nat) : Hash.Hash {
+                        return Text.hash(Nat.toText(n));
+                    },
+                    missionId,
+                )
+            ) {
                 case null {}; // User hasn't interacted with this mission
                 case (?currentUserMissionProgress) {
                     totalUsersWhoAttemptedMission += 1;
@@ -1841,7 +2239,9 @@ actor class ProjectBackend() {
                             StableTrieMap.get<Nat, NewTypes.UserActionStepState>(
                                 currentUserMissionProgress.stepStates,
                                 Nat.equal,
-                                Hash.hash,
+                                func(n : Nat) : Hash.Hash {
+                                    return Text.hash(Nat.toText(n));
+                                },
                                 currentDefinedStep.id,
                             )
                         ) {

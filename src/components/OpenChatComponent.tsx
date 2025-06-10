@@ -8,7 +8,6 @@ import useFetchData from '../hooks/fetchData.tsx';
 import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../declarations/index/index.did.js';
 import { useIdentityKit } from '@nfid/identitykit/react';
 import { useNavigate } from 'react-router-dom';
-import { idlFactory as idlFactoryDefault } from '../declarations/dfinity_backend/index.js';
 import { IndexCanisterId } from '../frontend/main.tsx';
 import { toast } from 'react-hot-toast';
 

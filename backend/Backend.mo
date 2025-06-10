@@ -85,7 +85,12 @@ actor class Backend() {
       // 3. Merge globalUserStreak (UserStreak = TrieMap<Int, Nat>)
       // Since timestamps are in nanoseconds and two timestamps on the same day (day = ts / nanosecPerDay)
       // should yield only the record with the higher points, we first build a temporary map keyed by day.
-      var tempDayMap : TrieMap.TrieMap<Int, (Int, Nat)> = TrieMap.TrieMap<Int, (Int, Nat)>(Int.equal, Int.hash);
+      var tempDayMap : TrieMap.TrieMap<Int, (Int, Nat)> = TrieMap.TrieMap<Int, (Int, Nat)>(
+        Int.equal,
+        func(n : Int) : Hash.Hash {
+          return Text.hash(Int.toText(n));
+        },
+      );
 
       // Helper: process one UserStreak map into tempDayMap.
       func processUserStreak(map : TrieMap.TrieMap<Int, Nat>) : () {
@@ -116,7 +121,12 @@ actor class Backend() {
       };
 
       // Rebuild the merged UserStreak map (using the original timestamp keys from tempDayMap)
-      var mergedUserStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+      var mergedUserStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(
+        Int.equal,
+        func(n : Int) : Hash.Hash {
+          return Text.hash(Int.toText(n));
+        },
+      );
       for ((_, (ts, pts)) in tempDayMap.entries()) {
         mergedUserStreak.put(ts, pts);
       };
@@ -126,7 +136,14 @@ actor class Backend() {
       // 4. Merge globalUserProgress (UserMissions = TrieMap<Nat, Progress>)
       var mergedUserProgress : TrieMap.TrieMap<Nat, Types.Progress> = switch (globalUserProgress.get(canonicalUUID)) {
         case (?mp) { mp };
-        case null { TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash) };
+        case null {
+          TrieMap.TrieMap<Nat, Types.Progress>(
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+              return Text.hash(Nat.toText(n));
+            },
+          );
+        };
       };
 
       switch (globalUserProgress.get(mergingUUID)) {
@@ -250,7 +267,12 @@ actor class Backend() {
         var userMissions = switch (globalUserProgress.get(userId)) {
           case (?existingMissions) { existingMissions };
           case null {
-            TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+            TrieMap.TrieMap<Nat, Types.Progress>(
+              Nat.equal,
+              func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+              },
+            );
           };
         };
 
@@ -356,7 +378,12 @@ actor class Backend() {
       let text = tuple.0;
       let serializedMissions = tuple.1;
 
-      let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+      let userMissions = TrieMap.TrieMap<Nat, Types.Progress>(
+        Nat.equal,
+        func(n : Nat) : Hash.Hash {
+          return Text.hash(Nat.toText(n));
+        },
+      );
 
       for (missionTuple in Iter.fromArray(serializedMissions)) {
         let missionId = missionTuple.0;
@@ -435,7 +462,12 @@ actor class Backend() {
       let serializedStreak = tuple.1;
 
       // Initialize a new TrieMap for the UserStreak of the current Text
-      let streakMap = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+      let streakMap = TrieMap.TrieMap<Int, Nat>(
+        Int.equal,
+        func(n : Int) : Hash.Hash {
+          return Text.hash(Int.toText(n));
+        },
+      );
 
       // Iterate over each (Int, Nat) tuple in SerializedUserStreak
       for (streakTuple in Iter.fromArray(serializedStreak)) {
@@ -685,7 +717,12 @@ actor class Backend() {
 
         globalStreak.put(userUUID, 1); // 1 Time Streak
         globalStreakPercentage.put(userUUID, 80); // 80% Success if missed 1 day
-        let firstStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(Int.equal, Int.hash);
+        let firstStreak : TrieMap.TrieMap<Int, Nat> = TrieMap.TrieMap<Int, Nat>(
+          Int.equal,
+          func(n : Int) : Hash.Hash {
+            return Text.hash(Int.toText(n));
+          },
+        );
         firstStreak.put(currentTime, 300); // 5 minutes first streak
         globalUserStreak.put(userUUID, firstStreak);
 
@@ -774,7 +811,12 @@ actor class Backend() {
       // Retrieve the user's missions or create a new TrieMap if it doesn't exist
       let missions = switch (globalUserProgress.get(userUUID)) {
         case (?map) map;
-        case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+        case null TrieMap.TrieMap<Nat, Types.Progress>(
+          Nat.equal,
+          func(n : Nat) : Hash.Hash {
+            return Text.hash(Nat.toText(n));
+          },
+        );
       };
 
       // Update the mission progress
@@ -969,7 +1011,7 @@ actor class Backend() {
       };
 
       if (Option.isSome(mission.requiredPreviousMissionId)) {
-        let ?prevMissionId = mission.requiredPreviousMissionId;
+        let prevMissionId : Nat = Option.get(mission.requiredPreviousMissionId, 0);
         switch (globalUserProgress.get(userUUID)) {
           case (?userMissions) {
             switch (userMissions.get(prevMissionId)) {
@@ -1295,7 +1337,12 @@ actor class Backend() {
       // Retrieve the user's missions or create a new TrieMap if it doesn't exist
       let missions = switch (globalUserProgress.get(userUUID)) {
         case (?map) map;
-        case null TrieMap.TrieMap<Nat, Types.Progress>(Nat.equal, Hash.hash);
+        case null TrieMap.TrieMap<Nat, Types.Progress>(
+          Nat.equal,
+          func(n : Nat) : Hash.Hash {
+            return Text.hash(Nat.toText(n));
+          },
+        );
       };
 
       // Update the mission progress

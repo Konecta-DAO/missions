@@ -52,7 +52,7 @@ module Helpers {
         } else if (charIndex == 0) {
             numTextPart := s;
         } else {
-            let numericCharCount = Array.size(chars) - charIndex;
+            let numericCharCount : Nat = Array.size(chars) - charIndex;
             let subChars : [var Char] = Array.tabulateVar<Char>(
                 numericCharCount,
                 func(i : Nat) : Char {

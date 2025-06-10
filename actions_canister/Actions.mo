@@ -93,34 +93,39 @@ module Actions {
         };
     };
 
-    // Example: Handler for a "twitter_follow" action
     public func handleTwitterFollow(
-        #TwitterFollowParams(params) : Types.ActionParameters
+        param : Types.ActionParameters
     ) : Result.Result<{ outcome : Types.ActionOutcome; returnedData : ?Types.ActionReturnedData; message : ?Text }, { status : Types.ActionStatus; outcome : Types.ActionOutcome; message : Text }> {
 
-        // Simulate API call and logic
-        // In a real scenario, this would involve HTTPS outcalls, etc.
-        // For now, let's assume it's always successful for demonstration.
+        switch (param) {
+            case (#TwitterFollowParams(params)) {
+                // Tu lógica aquí
+                var followedResults : [{
+                    account : Text;
+                    status : Types.ActionStatusOutcome;
+                    detail : ?Text;
+                }] = [];
+                for (acc in params.accounts.vals()) {
+                    followedResults := Array.append(followedResults, [{ account = acc; status = #Success; detail = ?"Followed via placeholder handler." }]);
+                };
 
-        // Example: Constructing returned data
-        var followedResults : [{
-            account : Text;
-            status : Types.ActionStatusOutcome;
-            detail : ?Text;
-        }] = [];
-        for (acc in params.accounts.vals()) {
-            followedResults := Array.append(followedResults, [{ account = acc; status = #Success; detail = ?"Followed via placeholder handler." }]);
+                return #ok({
+                    outcome = #Success;
+                    returnedData = ?#TwitterFollowResult({
+                        followedAccounts = followedResults;
+                    });
+                    message = ?"Successfully processed Twitter follow (placeholder).";
+                });
+            };
+            case _ {
+                // Maneja el caso en que el parámetro no sea #TwitterFollowParams
+                return #err({
+                    status = #InvalidParameters;
+                    outcome = #Failed;
+                    message = "Invalid parameters for handleTwitterFollow";
+                });
+            };
         };
-
-        return #ok({
-            outcome = #Success;
-            returnedData = ?#TwitterFollowResult({
-                followedAccounts = followedResults;
-            });
-            message = ?"Successfully processed Twitter follow (placeholder).";
-        });
-        // Example error case:
-        // return #err({ status = #ApiError; outcome = #Failed; message = "Failed to connect to Twitter API (placeholder)."});
     };
 
     public func handleSnsVote(actionParams : Types.ActionParameters) : async HandlerResult {

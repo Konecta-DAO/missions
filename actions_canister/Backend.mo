@@ -18,7 +18,7 @@ import JsonUtils "JsonUtils";
 
 actor class Backend() {
 
-    let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+    let _indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
     stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
     stable var actionDefinitions : StableTrieMap.StableTrieMap<Text, Types.ActionDefinition> = StableTrieMap.new<Text, Types.ActionDefinition>();
@@ -764,7 +764,7 @@ actor class Backend() {
     };
 
     // Main execution function
-    public shared (msg) func executeActionStep(
+    public shared (_msg) func executeActionStep(
         actionFlowJsonText : Text,
         currentStepIdToExecute : Nat,
         userInputJsonText : ?Text,
@@ -885,7 +885,12 @@ actor class Backend() {
             };
         };
 
-        var previousStepOutputsMap : TrieMap.TrieMap<Nat, Json.Json> = TrieMap.TrieMap<Nat, Json.Json>(Nat.equal, Hash.hash);
+        var previousStepOutputsMap : TrieMap.TrieMap<Nat, Json.Json> = TrieMap.TrieMap<Nat, Json.Json>(
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+        );
         switch (JsonUtils.deserializePreviousStepOutputs(previousStepOutputsJsonText)) {
             case (#err(e)) {
                 return buildErrorReturn(#Error, #Failed, "Invalid previousStepOutputsJson: " # e);

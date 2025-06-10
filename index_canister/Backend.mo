@@ -1157,6 +1157,10 @@ actor class Backend() {
 
   };
 
+  /**
+  
+  cosas
+  */
   private func isAdmin(principalId : Principal) : Bool {
     return Array.find<Principal>(
       adminIds,

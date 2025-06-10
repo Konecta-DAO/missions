@@ -465,7 +465,7 @@ module JsonUtils {
         };
     };
 
-    private func getFieldAsText(objJson : Json.Json, fieldName : Text) : Result.Result<Text, Text> {
+    private func _getFieldAsText(objJson : Json.Json, fieldName : Text) : Result.Result<Text, Text> {
         switch (getField(objJson, fieldName)) {
             case (#err(e)) { return #err(e) };
             case (#ok(jsonVal)) {
@@ -479,7 +479,7 @@ module JsonUtils {
         };
     };
 
-    private func getFieldAsBool(objJson : Json.Json, fieldName : Text) : Result.Result<Bool, Text> {
+    private func _getFieldAsBool(objJson : Json.Json, fieldName : Text) : Result.Result<Bool, Text> {
         switch (getField(objJson, fieldName)) {
             case (#err(e)) { return #err(e) };
             case (#ok(jsonVal)) {
@@ -493,7 +493,7 @@ module JsonUtils {
         };
     };
 
-    private func getOptionalField<MotokoType>(
+    private func _getOptionalField<MotokoType>(
         objJson : Json.Json,
         fieldName : Text,
         deserializer : (Json.Json) -> Result.Result<MotokoType, Text>,
@@ -1054,7 +1054,12 @@ module JsonUtils {
         jsonText : Text // This is the JSON string from ProjectCanister, e.g., '{"1": {"outputKey":"value"}, "2": {}}'
     ) : Result.Result<TrieMap.TrieMap<Nat, Json.Json>, Text> {
         // Returns Map<StepId, Parsed_ActionReturnedData_as_Json.Json>
-        let mapResult : TrieMap.TrieMap<Nat, Json.Json> = TrieMap.TrieMap<Nat, Json.Json>(Nat.equal, Hash.hash);
+        let mapResult : TrieMap.TrieMap<Nat, Json.Json> = TrieMap.TrieMap<Nat, Json.Json>(
+            Nat.equal,
+            func(n : Nat) : Hash.Hash {
+                return Text.hash(Nat.toText(n));
+            },
+        );
 
         switch (Json.parse(jsonText)) {
             case (#err(e)) {

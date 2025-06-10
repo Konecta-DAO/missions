@@ -6,11 +6,9 @@ import Text "mo:base/Text";
 import Array "mo:base/Array";
 import Nat32 "mo:base/Nat32";
 import Time "mo:base/Time";
-import Hash "mo:base/Hash";
 import Blob "mo:base/Blob";
 import NewTypes "NewTypes";
 import Json "mo:json";
-import StableTrieMap "../StableTrieMap";
 
 module Helpers {
 
