@@ -1006,6 +1006,7 @@ actor class Backend() {
   };
 
   public shared query (msg) func getAllUsers() : async [(Text, Types.SerializedGlobalUser)] {
+    Debug.print("Checking if " # Principal.toText(msg.caller) # " is an admin");
     if (isAdmin(msg.caller)) {
       let uuidToUserEntries = uuidToUser.entries();
       return Iter.toArray(
@@ -1162,6 +1163,7 @@ actor class Backend() {
   cosas
   */
   private func isAdmin(principalId : Principal) : Bool {
+    Debug.print("Checking if " # Principal.toText(principalId) # " is an admin");
     return Array.find<Principal>(
       adminIds,
       func(id) : Bool {

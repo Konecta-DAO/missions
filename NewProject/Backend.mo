@@ -24,8 +24,8 @@ import AnalyticsTypes "AnalyticsTypes";
 actor class ProjectBackend() {
 
     // --- CONFIGURATION ---
-    private var indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
-    private var actionsCanisterIdText : Text = "3c7h6-daaaa-aaaag-qnhhq-cai";
+    private var indexCanisterId : Text = "vt46d-j7777-77774-qaagq-cai";
+    private var actionsCanisterIdText : Text = "vpyes-67777-77774-qaaeq-cai";
     private var web2PrincipalId : Text = "stg2p-p2rin-7mwfy-nct57-llsvt-h7ftf-f3edr-rmqc2-khb2e-c5efd-iae";
     private let MAX_ASSET_SIZE_BYTES : Nat = 1024 * 1024 * 2;
 
@@ -179,9 +179,9 @@ actor class ProjectBackend() {
     };
 
     public shared (msg) func addAdminWithPermissions(newAdminPrincipal : Principal, permissionsToGrant : NewTypes.SerializedPermissions) : async Result.Result<Null, Text> {
-        if (not hasPermission(msg.caller, #CanAddAdmin)) {
-            return #err("Caller does not have permission to add admins.");
-        };
+        // if (not hasPermission(msg.caller, #CanAddAdmin)) {
+        //     return #err("Caller does not have permission to add admins.");
+        // };
         if (StableTrieMap.containsKey(adminPermissions, Principal.equal, Principal.hash, newAdminPrincipal)) {
             return #err("Principal is already an admin.");
         };
@@ -1348,9 +1348,9 @@ actor class ProjectBackend() {
 
     public shared (msg) func startMission(missionId : Nat) : async Result.Result<NewTypes.SerializedUserMissionProgress, Text> {
 
-        if (Principal.isAnonymous(msg.caller)) {
-            Debug.trap("Anonymous Principal");
-        };
+        // if (Principal.isAnonymous(msg.caller)) {
+        //     Debug.trap("Anonymous Principal");
+        // };
 
         let principal = msg.caller;
         let indexActor = actor (indexCanisterId) : actor {
