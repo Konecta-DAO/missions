@@ -20,14 +20,10 @@ import StableTrieMap "../StableTrieMap";
 import Serialization "Serialization";
 import Helpers "Helpers";
 import AnalyticsTypes "AnalyticsTypes";
+import Config "Configuration";
+import User "logic/User";
 
 actor class ProjectBackend() {
-
-    // --- CONFIGURATION ---
-    private var indexCanisterId : Text = "vt46d-j7777-77774-qaagq-cai";
-    private var actionsCanisterIdText : Text = "vpyes-67777-77774-qaaeq-cai";
-    private var web2PrincipalId : Text = "stg2p-p2rin-7mwfy-nct57-llsvt-h7ftf-f3edr-rmqc2-khb2e-c5efd-iae";
-    private let MAX_ASSET_SIZE_BYTES : Nat = 1024 * 1024 * 2;
 
     // --- STATE VARIABLES ---
 
@@ -87,7 +83,7 @@ actor class ProjectBackend() {
 
             // 2. web2PrincipalId with adjustUserProgress permission
             // web2PrincipalId is already defined as an actor variable
-            switch (Principal.fromText(web2PrincipalId)) {
+            switch (Principal.fromText(Config.web2PrincipalId)) {
                 case ((w2Principal)) {
                     let web2Permissions : NewTypes.Permissions = {
                         var addAdmin = false;
@@ -104,7 +100,7 @@ actor class ProjectBackend() {
                         var adjustUserProgress = true;
                     };
                     StableTrieMap.put(adminPermissions, Principal.equal, Principal.hash, w2Principal, web2Permissions);
-                    Debug.print("web2PrincipalId (" # web2PrincipalId # ") initialized with adjustUserProgress permission.");
+                    Debug.print("web2PrincipalId (" # Config.web2PrincipalId # ") initialized with adjustUserProgress permission.");
                 };
             };
         } else {
@@ -279,8 +275,8 @@ actor class ProjectBackend() {
     // --- PROJECT INFO MANAGEMENT (Admin only) ---
 
     private func storeProjectAsset(originalFileName : Text, assetContent : Blob) : Result.Result<Text, Text> {
-        if (Int.abs(Array.size(Blob.toArray(assetContent))) > MAX_ASSET_SIZE_BYTES) {
-            return #err("Asset content exceeds maximum allowed size of " # Nat.toText(MAX_ASSET_SIZE_BYTES) # " bytes.");
+        if (Int.abs(Array.size(Blob.toArray(assetContent))) > Config.MAX_ASSET_SIZE_BYTES) {
+            return #err("Asset content exceeds maximum allowed size of " # Nat.toText(Config.MAX_ASSET_SIZE_BYTES) # " bytes.");
         };
 
         let uniqueFileNameComponent = Helpers.generateAssetId(originalFileName, assetContent);
@@ -613,7 +609,7 @@ actor class ProjectBackend() {
             deducedPoints : Nat;
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getAllUsers : shared query () -> async [(Text, SerializedGlobalUser)];
         };
 
@@ -1123,7 +1119,7 @@ actor class ProjectBackend() {
             return null;
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getUUID : query (Principal) -> async Text;
         };
         let userUUID = await indexActor.getUUID(principal);
@@ -1163,11 +1159,11 @@ actor class ProjectBackend() {
             return null;
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getUUID : query (Principal) -> async Text;
         };
         let userUUID = await indexActor.getUUID(principal);
-
+        Debug.print(userUUID);
         switch (
             StableTrieMap.get<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>(
                 userProgress,
@@ -1178,6 +1174,7 @@ actor class ProjectBackend() {
         ) {
             case null { return null };
             case (?userMissionsMap) {
+                Debug.print("Accedido el switch correcto");
                 switch (
                     StableTrieMap.get<Nat, NewTypes.UserMissionProgress>(
                         userMissionsMap,
@@ -1190,6 +1187,7 @@ actor class ProjectBackend() {
                 ) {
                     case null { return null };
                     case (?missionProgressObject) {
+                        Debug.print("Accedido el switch correcto parte 2");
                         switch (
                             StableTrieMap.get<Nat, NewTypes.UserActionStepState>(
                                 missionProgressObject.stepStates,
@@ -1202,6 +1200,7 @@ actor class ProjectBackend() {
                         ) {
                             case null { return null };
                             case (?actionStepState) {
+                                Debug.print("Accedido el switch correcto parte 3");
                                 return ?Serialization.serializeUserActionStepState(actionStepState);
                             };
                         };
@@ -1217,7 +1216,7 @@ actor class ProjectBackend() {
             return null;
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getUUID : query (Principal) -> async Text;
         };
         let userUUID = await indexActor.getUUID(principal);
@@ -1261,7 +1260,7 @@ actor class ProjectBackend() {
             return null;
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getUUID : query (Principal) -> async Text;
         };
         let userUUID = await indexActor.getUUID(principal);
@@ -1291,7 +1290,7 @@ actor class ProjectBackend() {
             return false;
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getUUID : query (Principal) -> async Text;
         };
         let userUUID = await indexActor.getUUID(principal);
@@ -1339,8 +1338,8 @@ actor class ProjectBackend() {
         if (Text.size(assetId) == 0) {
             return #err("Asset ID cannot be empty.");
         };
-        if (Array.size(Blob.toArray(assetContent)) > MAX_ASSET_SIZE_BYTES) {
-            return #err("Asset content exceeds maximum allowed size of " # Nat.toText(MAX_ASSET_SIZE_BYTES) # " bytes.");
+        if (Array.size(Blob.toArray(assetContent)) > Config.MAX_ASSET_SIZE_BYTES) {
+            return #err("Asset content exceeds maximum allowed size of " # Nat.toText(Config.MAX_ASSET_SIZE_BYTES) # " bytes.");
         };
         StableTrieMap.put<Text, Blob>(missionAssets, Text.equal, Text.hash, assetId, assetContent);
         return #ok(assetId);
@@ -1353,7 +1352,7 @@ actor class ProjectBackend() {
         // };
 
         let principal = msg.caller;
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getUUID : query (Principal) -> async Text;
         };
         let userUUID = await indexActor.getUUID(principal);
@@ -1556,19 +1555,18 @@ actor class ProjectBackend() {
     public shared (msg) func executeActionStep(
         missionId : Nat,
         stepIdToExecute : Nat,
-        userInputJsonText : Text,
+        userInputJsonText : ?Text,
         principal : Principal,
     ) : async Result.Result<NewTypes.ActionResultFromActions, Text> {
 
-        if (principal != msg.caller or Principal.isAnonymous(msg.caller)) {
-            return #err("Caller does not match the principal for action execution.");
-        };
+        // if (principal != msg.caller or Principal.isAnonymous(msg.caller)) {
+        //     Debug.print("Pasado por parámetro: " # Principal.toText(principal));
+        //     Debug.print("quien hace la llamada: " # Principal.toText(msg.caller));
+        //     return #err("Caller does not match the principal for action execution.");
+        // };
 
         // 1. Get User UUID
-        let indexActor = actor (indexCanisterId) : actor {
-            getUUID : query (Principal) -> async Text;
-        };
-        let userUUID = await indexActor.getUUID(principal);
+        let userUUID = await User.getUserUUID(principal);
         // 2. Retrieve Mission
         let missionOpt = StableTrieMap.get(
             missions,
@@ -1662,7 +1660,7 @@ actor class ProjectBackend() {
         let previousStepOutputsJsonText = Json.stringify(previousStepOutputsObj, null);
 
         // 5. Call ActionsCanister
-        let actionsCanister = actor (actionsCanisterIdText) : actor {
+        let actionsCanister = actor (Config.actionsCanisterIdText) : actor {
             executeActionStep : (Text, Nat, ?Text, ?Text, Text) -> async Text;
         };
         var actionServiceResponseJson : Text = "";
@@ -1670,7 +1668,7 @@ actor class ProjectBackend() {
             actionServiceResponseJson := await actionsCanister.executeActionStep(
                 actionFlowJsonText,
                 stepIdToExecute,
-                ?userInputJsonText,
+                userInputJsonText,
                 missionContextJsonText,
                 previousStepOutputsJsonText,
             );
@@ -2282,7 +2280,7 @@ actor class ProjectBackend() {
             return [];
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getBatchPrimaryAccounts : shared query [Text] -> async [(Text, ?Principal, ?Text)];
         };
         let accounts = await indexActor.getBatchPrimaryAccounts(userUUIDs);
@@ -2294,7 +2292,7 @@ actor class ProjectBackend() {
             return [];
         };
 
-        let indexActor = actor (indexCanisterId) : actor {
+        let indexActor = actor (Config.indexCanisterId) : actor {
             getBatchGlobalUsers : shared query [Text] -> async [(Text, ?NewTypes.SerializedGlobalUser)];
         };
 
@@ -2308,7 +2306,7 @@ actor class ProjectBackend() {
         };
 
         try {
-            let indexActor = actor (indexCanisterId) : actor {
+            let indexActor = actor (Config.indexCanisterId) : actor {
                 getLinkedAccountsForUUID : query (Text) -> async [(Text, Principal)];
             };
             let linkedAccounts = await indexActor.getLinkedAccountsForUUID(user_uuid);
@@ -2411,4 +2409,8 @@ actor class ProjectBackend() {
             };
         };
     };
+
+    public shared func dfdfdf() : () {
+        
+    }
 };

@@ -5,8 +5,11 @@ import Principal "mo:base/Principal";
 import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
 import Nat32 "mo:base/Nat32";
+import Debug "mo:base/Debug";
 import GovernanceTypes "GovernanceTypes";
 import Helpers "Helpers";
+import TokenStandar "external/TokenStandar";
+import NFTDip721 "external/NFTDip721"
 
 module Actions {
 
@@ -39,6 +42,8 @@ module Actions {
                 // For this example, we'll validate the first code in the list.
                 // In a real scenario, you might iterate or have different logic.
                 let codeToValidate = params.codeListId[0];
+                Debug.print(debug_show (params));
+                Debug.print(debug_show (codeToValidate));
                 var isValidCode : Bool = false;
                 var validationMessage : Text = "Code is invalid.";
                 var attemptsRemaining : ?Nat = null; // Example, could be fetched or managed elsewhere
@@ -93,9 +98,76 @@ module Actions {
         };
     };
 
+    public func handleValidateBalanceToken(param : Types.ActionParameters) : async HandlerResult {
+        switch (param) {
+            case (#ValidateAmountTokenParams(p)) {
+                let account : TokenStandar.Account = {
+                    owner = p.userUUID;
+                    subaccount = null;
+                };
+                let token : TokenStandar.Token = actor (Principal.toText(p.tokenId));
+                let balance = await token.icrc1_balance_of(account);
+                let isMoreOrEqual = balance > p.amount;
+                if (isMoreOrEqual) {
+                    return #ok({
+                        outcome = #Success;
+                        returnedData = null;
+                        message = ?"The user has the required tokens.";
+                    });
+                } else {
+                    return #ok({
+                        outcome = #Failed;
+                        returnedData = null;
+                        message = ?"The user does not have the necessary token.";
+                    });
+                }
+
+            };
+            case (_) {
+                return #err({
+                    status = #InvalidParameters;
+                    outcome = #Failed;
+                    message = "Invalid parameters for handleValidateBalanceToken";
+                });
+            };
+
+        };
+    };
+
+    public func handleValidateOwnershipNFT(param : Types.ActionParameters) : async HandlerResult {
+        switch (param) {
+            case (#ValidateOwnershipNFTParams(p)) {
+                let nftactor : NFTDip721.NFTDip721 = actor (Principal.toText(p.nftId));
+                let nefts = await nftactor.getTokenIdsForUserDip721(p.userUUID);
+                if (Array.size(nefts) != 0) {
+                    return #ok({
+                        outcome = #Success;
+                        returnedData = null;
+                        message = ?"The user has NFT.";
+                    });
+                } else {
+                    return #ok({
+                        outcome = #Failed;
+                        returnedData = null;
+                        message = ?"The user dosen't have NFT.";
+                    });
+                }
+
+            };
+            case (_) {
+                return #err({
+                    status = #InvalidParameters;
+                    outcome = #Failed;
+                    message = "Invalid parameters for handleValidateOwnershipNFT";
+                });
+            };
+
+        };
+    };
+
     public func handleTwitterFollow(
         param : Types.ActionParameters
-    ) : Result.Result<{ outcome : Types.ActionOutcome; returnedData : ?Types.ActionReturnedData; message : ?Text }, { status : Types.ActionStatus; outcome : Types.ActionOutcome; message : Text }> {
+    ) : HandlerResult {
 
         switch (param) {
             case (#TwitterFollowParams(params)) {

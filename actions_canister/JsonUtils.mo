@@ -185,6 +185,8 @@ module JsonUtils {
                         var results : [Text] = [];
                         var idx = 0;
                         for (elem in elements.vals()) {
+                            Debug.print("elemento N°" # Nat.toText(idx));
+                            Debug.print(debug_show (elem));
                             switch (elem) {
                                 case (#string(s)) {
                                     results := Array.append(results, [s]);

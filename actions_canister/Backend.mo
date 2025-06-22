@@ -10,6 +10,7 @@ import TrieMap "mo:base/TrieMap";
 import Nat "mo:base/Nat";
 import Hash "mo:base/Hash";
 import Int "mo:base/Int";
+import Iter "mo:base/Iter";
 import Json "mo:json";
 import StableTrieMap "../StableTrieMap";
 import Serialization "Serialization";
@@ -26,6 +27,10 @@ actor class Backend() {
     public type ActionFilter = {
         platform : ?Types.PlatformType;
         tags : ?[Text]; // Allows filtering by one or more tags (e.g., all must match, or any)
+    };
+
+    public shared func getAllActionIds() : async [Text] {
+        return Iter.toArray(StableTrieMap.keys(actionDefinitions));
     };
 
     public shared func initialize() {
@@ -177,6 +182,83 @@ actor class Backend() {
                 var tags = ?["utility", "code", "validation"];
             };
             StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateCodeDef.id, validateCodeDef);
+
+            // --- Define Action: validate_amount_token_v1 ---
+            let validateMinToken : Types.ActionDefinition = {
+                id = "validate_balance_token_v1";
+                var name = "Validate an amount of an any token";
+                var descriptionTemplate = "Using the user's principal, the token ID and an amount is validated if the user has at least that amount.";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #NoUIRequired;
+                var parameterSchema = [
+                    {
+                        name = "userUUID";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "user ID";
+                        var helpText = ?"Text plane with user's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "tokenId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "Text ID";
+                        var helpText = ?"Text plane with Token's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "amount";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "Amount of Tokens";
+                        var helpText = ?"A number with the amount to validate";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = null;
+                var executionHandler = "validate_balance_token_handler_v1";
+                var tags = ?["token", "canister", "validation"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateMinToken.id, validateMinToken);
+
+            // --- Define Action: validate_amount_token_v1 ---
+            let validateOwnershipNFT : Types.ActionDefinition = {
+                id = "validate_ownership_nft_v1";
+                var name = "Validate ownership of an NFT";
+                var descriptionTemplate = "The NFT to be requested in the mission is set and the user's ID is used to verify if they own any NFT of that type.";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #NoUIRequired;
+                var parameterSchema = [
+                    {
+                        name = "userUUID";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "user ID";
+                        var helpText = ?"Text plane with user's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "nftId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "NFT ID";
+                        var helpText = ?"Text plane with NFT's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = null;
+                var executionHandler = "validate_ownership_nft_handler_v1";
+                var tags = ?["NFT", "canister", "validation"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateOwnershipNFT.id, validateOwnershipNFT);
         };
     };
 
@@ -752,6 +834,64 @@ actor class Backend() {
                     case (#err(e)) { return #err(e) };
                 };
             };
+            case ("validate_balance_token_v1") {
+                var userUUID : Principal = Principal.fromText("aaaaa-aa");
+                var tokenId : Principal = Principal.fromText("aaaaa-aa");
+                var amount : Nat = 0;
+                var subaccount : ?Blob = null;
+                switch (getRequiredParam("userUUID")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) userUUID := p;
+                            case _ return #err("Param 'userUUID' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("tokenId")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) tokenId := p;
+                            case _ return #err("Param 'tokenId' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("amount")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#NatValue(p)) amount := p;
+                            case (#IntValue(i)) if (i >= 0) amount := Int.abs(i) else return #err("amount negative");
+                            case _ return #err("Param 'amount' not Nat");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                return #ok(#ValidateAmountTokenParams({ var userUUID = userUUID; var tokenId = tokenId; var amount = amount; var subaccount = subaccount }));
+            };
+            case ("validate_ownership_nft_v1") {
+                var userUUID : Principal = Principal.fromText("aaaaa-aa");
+                var nftId : Principal = Principal.fromText("aaaaa-aa");
+                switch (getRequiredParam("userUUID")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) userUUID := p;
+                            case _ return #err("Param 'userUUID' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("nftId")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) nftId := p;
+                            case _ return #err("Param 'tokenId' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                return #ok(#ValidateOwnershipNFTParams({ var userUUID = userUUID; var nftId = nftId }));
+            };
             case (_) {
                 if (Array.size(actionDef.parameterSchema) == 0) {
                     // Assuming #NoParams is a valid variant in Types.ActionParameters
@@ -862,18 +1002,22 @@ actor class Backend() {
                 return buildErrorReturn(#Error, #Failed, "Failed to parse actionFlowJsonText: " # Json.errToText(e));
             };
         };
-
+        Debug.print("Se consigue actionflow");
         var userInputJsonObj : ?Json.Json = null;
         if (Option.isSome(userInputJsonText)) {
+            Debug.print(debug_show (userInputJsonText));
             let txt = Option.get(userInputJsonText, "");
             switch (Json.parse(txt)) {
-                case (#ok(json)) { userInputJsonObj := ?json };
+                case (#ok(json)) {
+                    Debug.print(debug_show (json));
+                    userInputJsonObj := ?json;
+                };
                 case (#err(e)) {
                     return buildErrorReturn(#InvalidParameters, #Failed, "Failed to parse userInputJsonText: " # Json.errToText(e));
                 };
             };
         };
-
+        Debug.print("Se consigue userinput");
         var missionContextJsonObj : ?Json.Json = null;
         if (Option.isSome(missionContextJsonText)) {
             let txt = Option.get(missionContextJsonText, "");
@@ -884,7 +1028,7 @@ actor class Backend() {
                 };
             };
         };
-
+        Debug.print("Se consigue missioncontext");
         var previousStepOutputsMap : TrieMap.TrieMap<Nat, Json.Json> = TrieMap.TrieMap<Nat, Json.Json>(
             Nat.equal,
             func(n : Nat) : Hash.Hash {
@@ -897,14 +1041,14 @@ actor class Backend() {
             };
             case (#ok(map)) { previousStepOutputsMap := map };
         };
-
+        Debug.print("Se consigue el paso 1 totalmente");
         // --- 2. Find the current Types.ActionStep ---
         let currentActionStepOpt = Array.find<Types.ActionStep>(actionFlow.steps, func(s) { s.stepId == currentStepIdToExecute });
         if (Option.isNull(currentActionStepOpt)) {
             return buildErrorReturn(#InvalidParameters, #Failed, "Step ID " # Nat.toText(currentStepIdToExecute) # " not found in ActionFlow.");
         };
         let stepToExecute = Option.get(currentActionStepOpt, actionFlow.steps[0]);
-
+        Debug.print("Se consigue paso 2");
         // --- 3. Get the Types.ActionInstance ---
         var actionInstanceToExecute : Types.ActionInstance = {
             actionDefinitionId = "";
@@ -924,7 +1068,8 @@ actor class Backend() {
             };
         };
         finalActionInstanceId := actionInstanceToExecute.instanceId;
-
+        Debug.print(debug_show (actionInstanceToExecute));
+        Debug.print("Se consigue paso 3");
         // --- 4. Look up Types.ActionDefinition ---
         let actionDefOpt = StableTrieMap.get(actionDefinitions, Text.equal, Text.hash, actionInstanceToExecute.actionDefinitionId);
         if (Option.isNull(actionDefOpt)) {
@@ -936,21 +1081,27 @@ actor class Backend() {
                 Debug.trap("Critical logic error: actionDefOpt was null after explicit null check and return.");
             };
         };
-
+        Debug.print("Se consigue paso 4");
         // --- 5. Resolve all actionInstanceToExecute.parameterBindings ---
         var resolvedParamsCollector : TrieMap.TrieMap<Text, Types.ParamValue> = TrieMap.TrieMap<Text, Types.ParamValue>(Text.equal, Text.hash);
         var resolutionErrorMsg : ?Text = null;
 
         for (binding in actionInstanceToExecute.parameterBindings.vals()) {
             if (resolutionErrorMsg != null) { return "Error" };
-
+            Debug.print("Se consigue pasar primer if");
             var resolvedJsonForParam : Json.Json = Json.str("");
-
+            Debug.print(debug_show (binding));
             switch (binding.valueSource) {
                 case (#LiteralValue(jsonStringValueToParse)) {
+                    Debug.print("Se consigue el caso de uso correcto");
                     switch (Json.parse(jsonStringValueToParse)) {
-                        case (#ok(jsonVal)) { resolvedJsonForParam := jsonVal };
+                        case (#ok(jsonVal)) {
+                            Debug.print("Se consigue primera seriaización");
+                            Debug.print(debug_show (jsonVal));
+                            resolvedJsonForParam := jsonVal;
+                        };
                         case (#err(e)) {
+                            Debug.print("Dio error?");
                             resolutionErrorMsg := ?("Param '" # binding.parameterName # "': Invalid LiteralValue JSON: " # Json.errToText(e));
                         };
                     };
@@ -976,11 +1127,17 @@ actor class Backend() {
                     };
                 };
                 case (#UserSuppliedInput(source)) {
+                    Debug.print(debug_show ("Probando userSupplied"));
+                    Debug.print(debug_show (source));
+                    Debug.print(debug_show (userInputJsonObj));
                     if (userInputJsonObj == null) {
                         resolutionErrorMsg := ?("Param '" # binding.parameterName # "': UserSuppliedInput required ('" # source.inputKeyPath # "') but no user input JSON provided.");
                     } else {
                         let userInput = switch (userInputJsonObj) {
-                            case (?obj) { obj };
+                            case (?obj) {
+                                Debug.print(debug_show (obj));
+                                obj;
+                            };
                             case null { Debug.trap("userInputJsonObj is null") };
                         };
                         let valOpt = Json.get(userInput, source.inputKeyPath);
@@ -988,7 +1145,10 @@ actor class Backend() {
                             resolutionErrorMsg := ?("Param '" # binding.parameterName # "': Path '" # source.inputKeyPath # "' not found in user supplied input JSON.");
                         } else {
                             resolvedJsonForParam := switch (valOpt) {
-                                case (?v) { v };
+                                case (?v) {
+                                    Debug.print(debug_show (v));
+                                    v;
+                                };
                                 case null {
                                     Debug.trap("Unexpected null value for parameter '" # binding.parameterName # "'.");
                                 };
@@ -1022,24 +1182,30 @@ actor class Backend() {
             };
 
             if (resolutionErrorMsg != null) {};
-
+            Debug.print(debug_show (actionDef));
             var paramDefOpt = Array.find<Types.ActionParameterDefinition>(actionDef.parameterSchema, func(pd : Types.ActionParameterDefinition) : Bool { pd.name == binding.parameterName });
             if (Option.isNull(paramDefOpt)) {
+                Debug.print("Error en el null");
                 resolutionErrorMsg := ?("Schema for param '" # binding.parameterName # "' not found in ActionDef '" # actionDef.id # "'.");
             };
             let paramDef = switch (paramDefOpt) {
                 case (?pd) { pd };
                 case null {
+                    Debug.print("error en paramdef");
                     resolutionErrorMsg := ?("Schema for param '" # binding.parameterName # "' not found in ActionDef '" # actionDef.id # "'.");
                     Debug.trap("Parameter schema not found in ActionDef '" # actionDef.id # "'.");
                 };
             };
-
+            Debug.print("Se llega un momento de deserializar");
+            Debug.print(debug_show (resolvedJsonForParam));
+            Debug.print(debug_show (paramDef));
             switch (JsonUtils.deserializeJsonValueToMotokoType(resolvedJsonForParam, paramDef.dataType)) {
                 case (#err(errMsg)) {
+                    Debug.print("Error al deserializar");
                     resolutionErrorMsg := ?("Param '" # binding.parameterName # "': " # errMsg);
                 };
                 case (#ok(motokoVal)) {
+                    Debug.print("Deserialización exitosa");
                     resolvedParamsCollector.put(binding.parameterName, motokoVal);
                 };
             };
@@ -1047,16 +1213,19 @@ actor class Backend() {
         if (resolutionErrorMsg != null) {
             return buildErrorReturn(#InvalidParameters, #Failed, "Parameter resolution failed: " # Option.get(resolutionErrorMsg, "Unknown error"));
         };
-
+        Debug.print("Se consigue paso 5");
         // --- 6. Construct the concrete Types.ActionParameters variant ---
         var concreteActionParams : Types.ActionParameters = #NoParams;
+        Debug.print(debug_show (actionDef.id));
+        Debug.print(debug_show (Iter.toArray(resolvedParamsCollector.entries())));
+        Debug.print(debug_show (actionDef));
         switch (buildConcreteActionParameters(actionDef.id, resolvedParamsCollector, actionDef)) {
             case (#ok(params)) { concreteActionParams := params };
             case (#err(e)) {
                 return buildErrorReturn(#InvalidParameters, #Failed, "Failed to build concrete params: " # e);
             };
         };
-
+        Debug.print("Se consigue paso 6");
         // --- 7. Call the specific execution handler ---
         type HandlerOk = {
             outcome : Types.ActionOutcome;
@@ -1085,6 +1254,12 @@ actor class Backend() {
             case ("validate_code_handler_v1") {
                 handlerOutcome := Actions.handleValidateCode(concreteActionParams);
             };
+            case ("validate_balance_token_handler_v1") {
+                handlerOutcome := await Actions.handleValidateBalanceToken(concreteActionParams);
+            };
+            case ("validate_ownership_nft_handler_v1") {
+                handlerOutcome := await Actions.handleValidateOwnershipNFT(concreteActionParams);
+            };
             case (_) {
                 handlerOutcome := #err({
                     status = #HandlerNotFound;
@@ -1093,7 +1268,7 @@ actor class Backend() {
                 });
             };
         };
-
+        Debug.print("Se consigue paso 7");
         // --- 8. Assemble ExecuteActionResult, including next step and flow completion logic ---
         var finalResultRecord : Types.ExecuteActionResult = {
             stepIdProcessed = 0;
@@ -1112,7 +1287,7 @@ actor class Backend() {
         switch (handlerOutcome) {
             case (#ok(successData)) {
                 let instanceSuccess = (successData.outcome == #Success or successData.outcome == #AlreadyDone);
-
+                Debug.print(debug_show (instanceSuccess));
                 if (instanceSuccess) {
                     let currentStepOpt = Array.find<Types.ActionStep>(actionFlow.steps, func(s) { s.stepId == currentStepIdToExecute });
 
@@ -1198,7 +1373,7 @@ actor class Backend() {
                 };
             };
         };
-
+        Debug.print("Se consigue paso 8");
         // --- 9. Serialize finalResultRecord to JSON text and return it. ---
         return buildResultJson(finalResultRecord);
     };

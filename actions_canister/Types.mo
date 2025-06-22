@@ -1,3 +1,4 @@
+import Blob "mo:base/Blob";
 module Types {
 
     public type ParamValue = {
@@ -211,6 +212,16 @@ module Types {
         };
         #ValidateCodeParams : {
             var codeListId : [Text];
+        };
+        #ValidateAmountTokenParams : {
+            var userUUID : Principal;
+            var tokenId : Principal;
+            var amount : Nat;
+            var subaccount : ?Blob;
+        };
+        #ValidateOwnershipNFTParams : {
+            var userUUID : Principal;
+            var nftId : Principal;
         };
         #NoParams;
     };

@@ -1,0 +1,132 @@
+{
+    "a": [
+        {
+            "name": "String del nombre",
+            "steps": [
+                {
+                    "stepId": 1,
+                    "description": "String de la descripción",
+                    "item": {
+                        "ActionGroup": {
+                            "groupId": 1,
+                            "actions": [
+                                {
+                                    "instanceId": 1,
+                                    "actionDefinitionId": "Text",
+                                    "parameterBindings": [
+                                        {
+                                            "parameterName": "snsCanisterId",
+                                            "valueSource": {}
+                                        }
+                                    ],
+                                    "uiInteraction": {}
+                                }
+                            ],
+                            "completionLogic": {}
+                        }
+                    }
+                },
+                {
+                    "stepId": 2,
+                    "description": "String de la descripción",
+                    "item": {
+                        "SingleAction": {
+                            "instanceId": 1,
+                            "actionDefinitionId": "Text",
+                            "parameterBindings": [
+                                {
+                                    "parameterName": "snsCanisterId",
+                                    "valueSource": {}
+                                }
+                            ],
+                            "uiInteraction": {}
+                        }
+                    }
+                }
+            ],
+            "completionLogic": {
+                "AllInOrder": null
+            }
+        },
+        {
+            "name": "Test validate token",
+            "steps": [
+                {
+                    "stepId": 1,
+                    "description": "String de la descripción",
+                    "item": {
+                        "SingleAction": {
+                            "instanceId": 1,
+                            "actionDefinitionId": "validate_balance_token_v1",
+                            "parameterBindings": [
+                                {
+                                    "parameterName": "userUUID",
+                                    "valueSource": {
+                                        "MissionContext": {
+                                            "contextKey": "userUUID"
+                                        }
+                                    }
+                                },
+                                {
+                                    "parameterName": "tokenId",
+                                    "valueSource": {
+                                        "LiteralValue": "Valor"
+                                    }
+                                },
+                                {
+                                    "parameterName": "amount",
+                                    "valueSource": {
+                                        "LiteralValue": 100
+                                    }
+                                }
+                            ],
+                            "uiInteraction": {
+                                "Informational": null
+                            }
+                        }
+                    }
+                }
+            ],
+            "completionLogic": {
+                "AllInOrder": null
+            }
+        },
+        {
+            "name": "Test validate NFT",
+            "steps": [
+                {
+                    "stepId": 1,
+                    "description": "String de la descripción",
+                    "item": {
+                        "SingleAction": {
+                            "instanceId": 1,
+                            "actionDefinitionId": "validate_ownership_nft_v1",
+                            "parameterBindings": [
+                                {
+                                    "parameterName": "userUUID",
+                                    "valueSource": {
+                                        "MissionContext": {
+                                            "contextKey": "userUUID"
+                                        }
+                                    }
+                                },
+                                {
+                                    "parameterName": "nftId",
+                                    "valueSource": {
+                                        "LiteralValue": "Valor"
+                                    }
+                                }
+                            ],
+                            "uiInteraction": {
+                                "Informational": null
+                            }
+                        }
+                    }
+                }
+            ],
+            "completionLogic": {
+                "AllInOrder": null
+            }
+        }
+    ]
+}
