@@ -4,6 +4,8 @@
       "type": "motoko",
       "main": "backend/Backend.mo",
       "declarations": {
+        "bindings": ["ts"],
+        "output": "declarations/backend",
         "node_compatibility": true
       }
     },
@@ -11,6 +13,8 @@
       "type": "motoko",
       "main": "actions_canister/Backend.mo",
       "declarations": {
+        "bindings": ["ts"],
+        "output": "declarations/actions",
         "node_compatibility": true
       }
     },
@@ -18,6 +22,8 @@
       "type": "motoko",
       "main": "index_canister/Backend.mo",
       "declarations": {
+        "bindings": ["ts"],
+        "output": "declarations/index",
         "node_compatibility": true
       }
     },
@@ -25,6 +31,8 @@
       "type": "motoko",
       "main": "NewProject/Backend.mo",
       "declarations": {
+        "bindings": ["ts"],
+        "output": "declarations/test_backend",
         "node_compatibility": true
       }
     },
