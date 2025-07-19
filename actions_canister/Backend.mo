@@ -183,7 +183,7 @@ actor class Backend() {
             };
             StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateCodeDef.id, validateCodeDef);
 
-            // --- Define Action: validate_amount_token_v1 ---
+            // --- Define Action: validate_balance_token_v1 ---
             let validateMinToken : Types.ActionDefinition = {
                 id = "validate_balance_token_v1";
                 var name = "Validate an amount of an any token";
@@ -226,7 +226,7 @@ actor class Backend() {
             };
             StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateMinToken.id, validateMinToken);
 
-            // --- Define Action: validate_amount_token_v1 ---
+            // --- Define Action: validate_ownership_nft_v1 ---
             let validateOwnershipNFT : Types.ActionDefinition = {
                 id = "validate_ownership_nft_v1";
                 var name = "Validate ownership of an NFT";
@@ -259,6 +259,223 @@ actor class Backend() {
                 var tags = ?["NFT", "canister", "validation"];
             };
             StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateOwnershipNFT.id, validateOwnershipNFT);
+
+            // --- Define Action: validate_generic_wallet_v1 ---
+            let validateGenericWallet : Types.ActionDefinition = {
+                id = "validate_generic_wallet_v1";
+                var name = "Validate generic wallet";
+                var descriptionTemplate = "Validate the creation of a wallet before a certain date";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #NoUIRequired;
+                var parameterSchema = [
+                    {
+                        name = "canisterId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "canister ID";
+                        var helpText = ?"Text plane with canister's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "userUUID";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "user ID";
+                        var helpText = ?"Text plane with user's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "date";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "creation date";
+                        var helpText = ?"A number representing the date in nanoseconds";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "domain";
+                        dataType = #Text;
+                        isRequired = true;
+                        var inputLabel = "name of the domain";
+                        var helpText = ?"Text plane with name of the domain.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = null;
+                var executionHandler = "validate_generic_wallet_handler_v1";
+                var tags = ?["wallet", "canister", "validation"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateGenericWallet.id, validateGenericWallet);
+
+            // --- Define Action: validate_generic_tansfer_v1 ---
+            let validateGenericTransferOnWallet : Types.ActionDefinition = {
+                id = "validate_generic_tansfer_v1";
+                var name = "Validate generic transfer on wallet";
+                var descriptionTemplate = "Validate the completion of a transfer in the generic wallet";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #NoUIRequired;
+                var parameterSchema = [
+                    {
+                        name = "canisterId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "canister ID";
+                        var helpText = ?"Text plane with canister's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "userUUID";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "user ID";
+                        var helpText = ?"Text plane with user's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "date";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "creation date";
+                        var helpText = ?"A number representing the date in nanoseconds";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "amount";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "transfer amount";
+                        var helpText = ?"A number representing the transfer amount";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "domain";
+                        dataType = #Text;
+                        isRequired = true;
+                        var inputLabel = "name of the domain";
+                        var helpText = ?"Text plane with name of the domain.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = null;
+                var executionHandler = "validate_generic_tansfer_handler_v1";
+                var tags = ?["transfer", "canister", "validation", "wallet"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateGenericTransferOnWallet.id, validateGenericTransferOnWallet);
+            
+            // --- Define Action: validate_generic_track_referrals_v1 ---
+            let validateGenericTrackReferrals : Types.ActionDefinition = {
+                id = "validate_generic_track_referrals_v1";
+                var name = "Validate referral tracking";
+                var descriptionTemplate = "Generic validation of a user's referral tracking";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #NoUIRequired;
+                var parameterSchema = [
+                    {
+                        name = "canisterId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "canister ID";
+                        var helpText = ?"Text plane with canister's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "userUUID";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "user ID";
+                        var helpText = ?"Text plane with user's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "domain";
+                        dataType = #Text;
+                        isRequired = true;
+                        var inputLabel = "name of the domain";
+                        var helpText = ?"Text plane with name of the domain.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = null;
+                var executionHandler = "validate_generic_track_referrals_handler_v1";
+                var tags = ?["Track", "canister", "validation"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateGenericTrackReferrals.id, validateGenericTrackReferrals);
+            
+            // --- Define Action: validate_generic_receipt_v1 ---
+            let validateGenericReceiptOnWallet: Types.ActionDefinition = {
+                id = "validate_generic_receipt_v1";
+                var name = "Validate the receipt of money";
+                var descriptionTemplate = "Validates the receipt of money in a wallet on a particular date";
+                platform = #CanisterEndpoint;
+                var version = 1;
+                var defaultUIType = #NoUIRequired;
+                var parameterSchema = [
+                    {
+                        name = "canisterId";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "canister ID";
+                        var helpText = ?"Text plane with canister's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "userUUID";
+                        dataType = #Principal;
+                        isRequired = true;
+                        var inputLabel = "user ID";
+                        var helpText = ?"Text plane with user's ID.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "date";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "creation date";
+                        var helpText = ?"A number representing the date in nanoseconds";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "amount";
+                        dataType = #Nat;
+                        isRequired = true;
+                        var inputLabel = "transfer amount";
+                        var helpText = ?"A number representing the transfer amount";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                    {
+                        name = "domain";
+                        dataType = #Text;
+                        isRequired = true;
+                        var inputLabel = "name of the domain";
+                        var helpText = ?"Text plane with name of the domain.";
+                        var defaultValueJson = null;
+                        var validationRegex = null;
+                    },
+                ];
+                var outputSchemaJson = null;
+                var executionHandler = "validate_generic_receipt_handler_v1";
+                var tags = ?["Receipt", "canister", "validation"];
+            };
+            StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateGenericReceiptOnWallet.id, validateGenericReceiptOnWallet);
         };
     };
 
@@ -891,6 +1108,193 @@ actor class Backend() {
                     case (#err(e)) return #err(e);
                 };
                 return #ok(#ValidateOwnershipNFTParams({ var userUUID = userUUID; var nftId = nftId }));
+            };
+            case ("validate_generic_wallet_v1") {
+                var canisterId : Principal = Principal.fromText("aaaaa-aa");
+                var userUUID : Principal = Principal.fromText("aaaaa-aa");
+                var date : Nat = 0;
+                var domain : Text = "";
+                switch (getRequiredParam("canisterId")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) canisterId := p;
+                            case _ return #err("Param 'canisterId' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("userUUID")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) userUUID := p;
+                            case _ return #err("Param 'userUUID' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("date")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#NatValue(p)) date := p;
+                            case _ return #err("Param 'date' not Nat");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("domain")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#TextValue(p)) domain := p;
+                            case _ return #err("Param 'domain' not Text");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                
+                return #ok(#ValidateGenericWalletParams({ var canisterId = canisterId;var userUUID = userUUID;var date = date;var domain = domain}));
+            };
+            case ("validate_generic_tansfer_v1") {
+                var canisterId : Principal = Principal.fromText("aaaaa-aa");
+                var userUUID : Principal = Principal.fromText("aaaaa-aa");
+                var date : Nat = 0;
+                var amount : Nat = 0;
+                var domain : Text = "";
+                switch (getRequiredParam("canisterId")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) canisterId := p;
+                            case _ return #err("Param 'canisterId' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("userUUID")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) userUUID := p;
+                            case _ return #err("Param 'userUUID' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("date")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#NatValue(p)) date := p;
+                            case _ return #err("Param 'date' not Nat");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("amount")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#NatValue(p)) amount := p;
+                            case _ return #err("Param 'amount' not Nat");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("domain")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#TextValue(p)) domain := p;
+                            case _ return #err("Param 'domain' not Text");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                
+                return #ok(#ValidateGenericWalletParams({ var canisterId = canisterId;var userUUID = userUUID;var date = date;var domain = domain}));
+            };
+            case ("validate_generic_track_referrals_v1") {
+                var canisterId : Principal = Principal.fromText("aaaaa-aa");
+                var userUUID : Principal = Principal.fromText("aaaaa-aa");
+                var date : Nat = 0;
+                var domain : Text = "";
+                switch (getRequiredParam("canisterId")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) canisterId := p;
+                            case _ return #err("Param 'canisterId' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("userUUID")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) userUUID := p;
+                            case _ return #err("Param 'userUUID' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("domain")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#TextValue(p)) domain := p;
+                            case _ return #err("Param 'domain' not Text");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                
+                return #ok(#ValidateGenericWalletParams({ var canisterId = canisterId;var userUUID = userUUID;var date = date;var domain = domain}));
+            };
+            case ("validate_generic_receipt_v1") {
+                var canisterId : Principal = Principal.fromText("aaaaa-aa");
+                var userUUID : Principal = Principal.fromText("aaaaa-aa");
+                var date : Nat = 0;
+                var amount : Nat = 0;
+                var domain : Text = "";
+                switch (getRequiredParam("canisterId")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) canisterId := p;
+                            case _ return #err("Param 'canisterId' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("userUUID")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#PrincipalValue(p)) userUUID := p;
+                            case _ return #err("Param 'userUUID' not Principal");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("date")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#NatValue(p)) date := p;
+                            case _ return #err("Param 'date' not Nat");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("amount")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#NatValue(p)) amount := p;
+                            case _ return #err("Param 'amount' not Nat");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                switch (getRequiredParam("domain")) {
+                    case (#ok(val)) {
+                        switch (val) {
+                            case (#TextValue(p)) domain := p;
+                            case _ return #err("Param 'domain' not Text");
+                        };
+                    };
+                    case (#err(e)) return #err(e);
+                };
+                
+                return #ok(#ValidateGenericWalletParams({ var canisterId = canisterId;var userUUID = userUUID;var date = date;var domain = domain}));
             };
             case (_) {
                 if (Array.size(actionDef.parameterSchema) == 0) {

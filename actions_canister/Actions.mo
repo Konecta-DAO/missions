@@ -25,6 +25,99 @@ module Actions {
     };
     type HandlerResult = Result.Result<HandlerOk, HandlerErr>; // For synchronous handlers
 
+    public func handleGenericWallet(
+        actionParams : Types.ActionParameters
+    ) : HandlerResult {
+        switch (actionParams) {
+            case (#ValidateGenericWalletParams(params)) {
+                //FIXME - Implement the logic for handling generic wallet actions
+                return #ok({
+                    outcome = #Success;
+                    returnedData = null; // No specific data returned for this example
+                    message = ?"Generic wallet action processed successfully.";
+                });
+            };
+            case (_) {
+                // This case should ideally not be reached if buildConcreteActionParameters is correct
+                return #err({
+                    status = #Error; // Internal error
+                    outcome = #Failed;
+                    message = "Internal Error: handleGenericWallet received unexpected ActionParameters variant.";
+                });
+            };
+        };
+    };
+
+    public func handleGenericTransferOnWallet(
+        actionParams : Types.ActionParameters
+    ) : HandlerResult {
+        switch (actionParams) {
+            case (#ValidateGenericTransferOnWalletParams(params)) {
+                //FIXME - Implement the logic for handling generic wallet actions
+                return #ok({
+                    outcome = #Success;
+                    returnedData = null; // No specific data returned for this example
+                    message = ?"Generic transfer on wallet action processed successfully.";
+                });
+            
+            };
+            case (_) {
+                // This case should ideally not be reached if buildConcreteActionParameters is correct
+                return #err({
+                    status = #Error; // Internal error
+                    outcome = #Failed;
+                    message = "Internal Error: handleGenericTransferOnWallet received unexpected ActionParameters variant.";
+                });
+            };
+        };
+    };
+
+    public func handleGenericTrackReferrals(
+        actionParams : Types.ActionParameters
+    ) : HandlerResult {
+        switch (actionParams) {
+            case (#ValidateGenericTrackReferralsParams(params)) {
+                //FIXME - Implement the logic for handling generic wallet actions
+                return #ok({
+                    outcome = #Success;
+                    returnedData = null; // No specific data returned for this example
+                    message = ?"Generic track referrals action processed successfully.";
+                });
+            };
+            case (_) {
+                // This case should ideally not be reached if buildConcreteActionParameters is correct
+                return #err({
+                    status = #Error; // Internal error
+                    outcome = #Failed;
+                    message = "Internal Error: handleGenericTrackReferrals received unexpected ActionParameters variant.";
+                });
+            };
+        };
+    };
+
+    public func handleGenericReceiptOnWallet(
+        actionParams : Types.ActionParameters
+    ) : HandlerResult {
+        switch (actionParams) {
+            case (#ValidateGenericReceiptOnWalletParams(params)) {
+                //FIXME - Implement the logic for handling generic wallet actions
+                return #ok({
+                    outcome = #Success;
+                    returnedData = null; // No specific data returned for this example
+                    message = ?"Generic receipt on wallet action processed successfully.";
+                });
+            };
+            case (_) {
+                // This case should ideally not be reached if buildConcreteActionParameters is correct
+                return #err({
+                    status = #Error; // Internal error
+                    outcome = #Failed;
+                    message = "Internal Error: handleGenericReceiptOnWallet received unexpected ActionParameters variant.";
+                });
+            };
+        };
+    };
+
     public func handleValidateCode(
         actionParams : Types.ActionParameters
     ) : HandlerResult {

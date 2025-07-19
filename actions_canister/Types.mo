@@ -223,6 +223,31 @@ module Types {
             var userUUID : Principal;
             var nftId : Principal;
         };
+        #ValidateGenericWalletParams : {
+            var canisterId : Principal;
+            var userUUID : Principal;
+            var date : Nat;
+            var domain : Text;
+        };
+        #ValidateGenericTransferOnWalletParams : {
+            var canisterId : Principal;
+            var userUUID : Principal;
+            var date : Nat;
+            var amount : Nat;
+            var domain : Text;
+        };
+        #ValidateGenericTrackReferralsParams : {
+            var canisterId : Principal;
+            var userUUID : Principal;
+            var domain : Text;
+        };
+        #ValidateGenericReceiptOnWalletParams : {
+            var canisterId : Principal;
+            var userUUID : Principal;
+            var date : Nat;
+            var amount : Nat;
+            var domain : Text;
+        };
         #NoParams;
     };
 

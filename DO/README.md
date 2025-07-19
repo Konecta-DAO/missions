@@ -1,0 +1,3 @@
+# DO - Migración a TypeScript
+
+Este proyecto es el DO tras la migración a TS. Decidí ponerlo acá por tema de dejar todo mi trabajo en un solo lugar, y bueno, las funciones que quedan por implementar siguen escritas como comentario en el `server.ts` que ya no se está usando en esta versión. Tienen libertad de terminar de implementar lo que yo tenía acá, o usar el DO antiguo que Linker tiene en su posesión.
