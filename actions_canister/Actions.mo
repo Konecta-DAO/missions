@@ -7,6 +7,8 @@ import Nat64 "mo:base/Nat64";
 import Nat32 "mo:base/Nat32";
 import GovernanceTypes "GovernanceTypes";
 import Helpers "Helpers";
+import Json "mo:json";
+import Option "mo:base/Option";
 
 module Actions {
 
@@ -23,7 +25,8 @@ module Actions {
     type HandlerResult = Result.Result<HandlerOk, HandlerErr>; // For synchronous handlers
 
     public func handleValidateCode(
-        actionParams : Types.ActionParameters
+        actionParams : Types.ActionParameters,
+        userInputJson : ?Text
     ) : HandlerResult {
         switch (actionParams) {
             case (#ValidateCodeParams(params)) {
@@ -36,52 +39,74 @@ module Actions {
                     });
                 };
 
-                // For this example, we'll validate the first code in the list.
-                // In a real scenario, you might iterate or have different logic.
-                let codeToValidate = params.codeListId[0];
-                var isValidCode : Bool = false;
-                var validationMessage : Text = "Code is invalid.";
-                var attemptsRemaining : ?Nat = null; // Example, could be fetched or managed elsewhere
+                let userInput : Text = Option.get<Text>(userInputJson, "");
 
-                // Simulate validation logic
-                // Replace this with your actual validation (e.g., checking against a list, a pattern, etc.)
-                if (codeToValidate == "VALID123") {
-                    isValidCode := true;
-                    validationMessage := "Code successfully validated!";
-                    attemptsRemaining := ?3; // Example
-                } else if (codeToValidate == "USEDCODE") {
-                    isValidCode := false;
-                    validationMessage := "This code has already been used.";
-                    attemptsRemaining := ?0; // Example
-                } else {
-                    isValidCode := false;
-                    validationMessage := "The provided code is incorrect.";
-                    attemptsRemaining := ?2; // Example
-                };
+                switch(Json.parse(userInput)) {
+                    case (#ok(parsed)) {
+                        switch(Json.getAsText(parsed, "codeToValidate")) {
+                            case(#ok(parsedValue)) {
+                                // For this example, we'll validate the first code in the list.
+                                // In a real scenario, you might iterate or have different logic.
+                                var codeToValidate : Text = "";
+                                var isValidCode : Bool = false;
+                                var validationMessage : Text = "Code is invalid.";
+                                var attemptsRemaining : ?Nat = null; // Example, could be fetched or managed elsewhere
+                                let userInputCode = parsedValue;
 
-                let returnedData : Types.ActionReturnedData = #ValidateCodeResult({
-                    code = codeToValidate;
-                    isValid = isValidCode;
-                    message = ?validationMessage;
-                    attemptsRemaining = attemptsRemaining;
-                });
+                                // Simulate validation logic
+                                // Replace this with your actual validation (e.g., checking against a list, a pattern, etc.)
+                                for (code in params.codeListId.vals()) {
+                                    if (code == userInputCode) {
+                                        codeToValidate := code;
+                                        isValidCode := true;
+                                        validationMessage := "Code successfully validated!";
+                                        attemptsRemaining := ?3; // Example
+                                    };
+                                };
 
-                if (isValidCode) {
-                    return #ok({
-                        outcome = #Success;
-                        returnedData = ?returnedData;
-                        message = ?"Code validation process completed successfully."; // Overall message
-                    });
-                } else {
-                    // Even if the code is invalid, the action "processed" correctly,
-                    // but its business outcome is #Failed.
-                    return #ok({
-                        outcome = #Failed; // Business outcome
-                        returnedData = ?returnedData;
-                        message = ?"Code validation process completed; code was not valid."; // Overall message
-                    });
+                                let returnedData : Types.ActionReturnedData = #ValidateCodeResult({
+                                    code = codeToValidate;
+                                    isValid = isValidCode;
+                                    message = ?validationMessage;
+                                    attemptsRemaining = attemptsRemaining;
+                                });
+
+                                if (isValidCode) {
+                                    return #ok({
+                                        outcome = #Success;
+                                        returnedData = ?returnedData;
+                                        message = ?"Code validation process completed successfully."; // Overall message
+                                    });
+                                } else {
+                                    // Even if the code is invalid, the action "processed" correctly,
+                                    // but its business outcome is #Failed.
+                                    return #ok({
+                                        outcome = #Failed; // Business outcome
+                                        returnedData = ?returnedData;
+                                        message = ?"Code validation process completed; code was not valid."; // Overall message
+                                    });
+                                };
+                            };
+                            case(#err(_)) {
+                                return #err({
+                                    status = #Error; // Internal error
+                                    outcome = #Failed;
+                                    message = "Internal Error: getAsText failed to parse 'codeToValidate'.";
+                                });
+                            };
+                        };
+                    };
+
+                    case (#err(_)) {
+                        return #err({
+                            status = #Error; // Internal error
+                            outcome = #Failed;
+                            message = "Internal Error: parse function failed.";
+                        });
+                    };
                 };
             };
+
             case (_) {
                 // This case should ideally not be reached if buildConcreteActionParameters is correct
                 return #err({

@@ -863,7 +863,7 @@ actor class Backend() {
             };
         };
 
-        var userInputJsonObj : ?Json.Json = null;
+        var userInputJsonObj : ?Json.Json = null; //
         if (Option.isSome(userInputJsonText)) {
             let txt = Option.get(userInputJsonText, "");
             switch (Json.parse(txt)) {
@@ -1078,7 +1078,7 @@ actor class Backend() {
                 handlerOutcome := await Actions.handleSnsVote(concreteActionParams);
             };
             case ("validate_code_handler_v1") {
-                handlerOutcome := Actions.handleValidateCode(concreteActionParams);
+                handlerOutcome := Actions.handleValidateCode(concreteActionParams, userInputJsonText); //
             };
             case (_) {
                 handlerOutcome := #err({
