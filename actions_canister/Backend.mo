@@ -16,12 +16,12 @@ import Serialization "Serialization";
 import Actions "Actions";
 import JsonUtils "JsonUtils";
 
-actor class Backend() {
+persistent actor class Backend() {
 
-    let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+    transient let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
-    stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
-    stable var actionDefinitions : StableTrieMap.StableTrieMap<Text, Types.ActionDefinition> = StableTrieMap.new<Text, Types.ActionDefinition>();
+    var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
+    var actionDefinitions : StableTrieMap.StableTrieMap<Text, Types.ActionDefinition> = StableTrieMap.new<Text, Types.ActionDefinition>();
 
     public type ActionFilter = {
         platform : ?Types.PlatformType;
@@ -863,7 +863,7 @@ actor class Backend() {
             };
         };
 
-        var userInputJsonObj : ?Json.Json = null;
+        var userInputJsonObj : ?Json.Json = null; //
         if (Option.isSome(userInputJsonText)) {
             let txt = Option.get(userInputJsonText, "");
             switch (Json.parse(txt)) {
@@ -1078,7 +1078,7 @@ actor class Backend() {
                 handlerOutcome := await Actions.handleSnsVote(concreteActionParams);
             };
             case ("validate_code_handler_v1") {
-                handlerOutcome := Actions.handleValidateCode(concreteActionParams);
+                handlerOutcome := Actions.handleValidateCode(concreteActionParams, userInputJsonText); //
             };
             case (_) {
                 handlerOutcome := #err({

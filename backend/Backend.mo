@@ -19,31 +19,31 @@ import Bool "mo:base/Bool";
 import Nat8 "mo:base/Nat8";
 import Debug "mo:base/Debug";
 
-actor class Backend() {
+persistent actor class Backend() {
 
-  let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+  transient let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
-  let doAddress : Text = "dotest.konecta.one";
+  transient let doAddress : Text = "dotest.konecta.one";
 
-  private var globalStreakPercentage : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
+  private transient var globalStreakPercentage : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
 
-  stable var serializedGlobalStreakPercentage : [(Text, Nat)] = [];
+  var serializedGlobalStreakPercentage : [(Text, Nat)] = [];
 
-  private var globalStreak : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
+  private transient var globalStreak : TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
 
-  stable var serializedGlobalStreak : [(Text, Nat)] = [];
+  var serializedGlobalStreak : [(Text, Nat)] = [];
 
-  private var globalUserStreak : TrieMap.TrieMap<Text, Types.UserStreak> = TrieMap.TrieMap<Text, Types.UserStreak>(Text.equal, Text.hash);
+  private transient var globalUserStreak : TrieMap.TrieMap<Text, Types.UserStreak> = TrieMap.TrieMap<Text, Types.UserStreak>(Text.equal, Text.hash);
 
-  stable var serializedGlobalUserStreak : [(Text, Types.SerializedUserStreak)] = [];
+  var serializedGlobalUserStreak : [(Text, Types.SerializedUserStreak)] = [];
 
-  private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
+  private transient var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
-  stable var serializedGlobalUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
+  var serializedGlobalUserProgress : [(Text, [(Nat, Types.SerializedProgress)])] = [];
 
-  private var globalTerms : TrieMap.TrieMap<Text, Bool> = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+  private transient var globalTerms : TrieMap.TrieMap<Text, Bool> = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
 
-  stable var serializedGlobalTerms : [(Text, Bool)] = [];
+  var serializedGlobalTerms : [(Text, Bool)] = [];
 
   public shared (msg) func mergeAccounts(canonicalUUID : Text, mergingUUID : Text) : async Text {
 
@@ -1075,11 +1075,11 @@ actor class Backend() {
 
   // Mission Assets
 
-  var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
+  transient var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
 
   // Stable storage for serialized mission assets
 
-  stable var serializedMissionAssets : [(Text, Blob)] = [];
+  var serializedMissionAssets : [(Text, Blob)] = [];
 
   // Generate a unique image identifier using a combination of timestamp and hash
 
