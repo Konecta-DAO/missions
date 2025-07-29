@@ -19,11 +19,11 @@ import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Debug "mo:base/Debug";
 
-actor class Backend() {
+persistent actor class Backend() {
 
-  let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+  transient let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
-  private var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
+  private transient var globalUserProgress : TrieMap.TrieMap<Text, Types.UserMissions> = TrieMap.TrieMap<Text, Types.UserMissions>(Text.equal, Text.hash);
 
   // Stable storage for serialized data
 
@@ -194,7 +194,7 @@ actor class Backend() {
 
   // Pre-upgrade function to serialize the user progress
 
-  var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
+  transient var missionAssets : TrieMap.TrieMap<Text, Blob> = TrieMap.TrieMap<Text, Blob>(Text.equal, Text.hash);
   stable var serializedMissionAssets : [(Text, Blob)] = [];
 
   system func preupgrade() {

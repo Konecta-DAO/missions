@@ -18,31 +18,31 @@ import Blob "mo:base/Blob";
 import Option "mo:base/Option";
 import Debug "mo:base/Debug";
 
-actor class Backend() {
+persistent actor class Backend() {
 
-  let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+  transient let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
-  let konectaCanisterId : Text = "ynkdv-7qaaa-aaaag-qkluq-cai";
+  transient let konectaCanisterId : Text = "ynkdv-7qaaa-aaaag-qkluq-cai";
 
   stable var projects : Vector.Vector<Types.ProjectMissions> = Vector.new<Types.ProjectMissions>();
 
   stable var projectsV2 : Vector.Vector<Principal> = Vector.new<Principal>();
 
-  private var principalToUUID : TrieMap.TrieMap<Principal, Text> = TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
+  private transient var principalToUUID : TrieMap.TrieMap<Principal, Text> = TrieMap.TrieMap<Principal, Text>(Principal.equal, Principal.hash);
 
   stable var serializedPrincipalToUUID : [(Principal, Text)] = [];
 
-  private var uuidToLinkedAccounts : TrieMap.TrieMap<Text, [(Text, Principal)]> = TrieMap.TrieMap<Text, [(Text, Principal)]>(Text.equal, Text.hash);
+  private transient var uuidToLinkedAccounts : TrieMap.TrieMap<Text, [(Text, Principal)]> = TrieMap.TrieMap<Text, [(Text, Principal)]>(Text.equal, Text.hash);
 
   stable var serializedUuidToLinkedAccounts : [(Text, [(Text, Principal)])] = [];
 
   stable var allowedAccountTypes : [Text] = ["NFIDW", "InternetIdentity", "Oisy"];
 
-  private var uuidToUser : TrieMap.TrieMap<Text, Types.GlobalUser> = TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
+  private transient var uuidToUser : TrieMap.TrieMap<Text, Types.GlobalUser> = TrieMap.TrieMap<Text, Types.GlobalUser>(Text.equal, Text.hash);
 
   stable var serializedUuidToUser : [(Text, Types.SerializedGlobalUser)] = [];
 
-  private var accountTypeLinkTimestamps : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>> = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>>(Text.equal, Text.hash);
+  private transient var accountTypeLinkTimestamps : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>> = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, Int>>(Text.equal, Text.hash);
 
   stable var serializedAccountTypeLinkTimestamps : [(Text, [(Text, Int)])] = [];
 
@@ -207,7 +207,7 @@ actor class Backend() {
     );
   };
 
-  private var pendingLinkRequests : TrieMap.TrieMap<Text, Types.LinkRequest> = TrieMap.TrieMap<Text, Types.LinkRequest>(Text.equal, Text.hash);
+  private transient var pendingLinkRequests : TrieMap.TrieMap<Text, Types.LinkRequest> = TrieMap.TrieMap<Text, Types.LinkRequest>(Text.equal, Text.hash);
 
   stable var serializedPendingLinkRequests : [(Text, Types.LinkRequest)] = [];
 

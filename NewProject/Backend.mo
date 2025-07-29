@@ -21,13 +21,13 @@ import Serialization "Serialization";
 import Helpers "Helpers";
 import AnalyticsTypes "AnalyticsTypes";
 
-actor class ProjectBackend() {
+persistent actor class ProjectBackend() {
 
     // --- CONFIGURATION ---
-    private var indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
-    private var actionsCanisterIdText : Text = "3c7h6-daaaa-aaaag-qnhhq-cai";
-    private var web2PrincipalId : Text = "stg2p-p2rin-7mwfy-nct57-llsvt-h7ftf-f3edr-rmqc2-khb2e-c5efd-iae";
-    private let MAX_ASSET_SIZE_BYTES : Nat = 1024 * 1024 * 2;
+    private transient var indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+    private transient var actionsCanisterIdText : Text = "3c7h6-daaaa-aaaag-qnhhq-cai";
+    private transient var web2PrincipalId : Text = "stg2p-p2rin-7mwfy-nct57-llsvt-h7ftf-f3edr-rmqc2-khb2e-c5efd-iae";
+    private transient let MAX_ASSET_SIZE_BYTES : Nat = 1024 * 1024 * 2;
 
     // --- STATE VARIABLES ---
 

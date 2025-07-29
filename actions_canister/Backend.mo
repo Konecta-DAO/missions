@@ -16,12 +16,12 @@ import Serialization "Serialization";
 import Actions "Actions";
 import JsonUtils "JsonUtils";
 
-actor class Backend() {
+persistent actor class Backend() {
 
-    let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
+    transient let indexCanisterId : Text = "q3itu-vqaaa-aaaag-qngyq-cai";
 
-    stable var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
-    stable var actionDefinitions : StableTrieMap.StableTrieMap<Text, Types.ActionDefinition> = StableTrieMap.new<Text, Types.ActionDefinition>();
+    var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
+    var actionDefinitions : StableTrieMap.StableTrieMap<Text, Types.ActionDefinition> = StableTrieMap.new<Text, Types.ActionDefinition>();
 
     public type ActionFilter = {
         platform : ?Types.PlatformType;
