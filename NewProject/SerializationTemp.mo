@@ -1,9 +1,9 @@
-import NewTypes "NewTypes";
+import NewTypesTemp "NewTypesTemp";
 import Iter "mo:base/Iter";
 import StableTrieMap "../StableTrieMap";
 module Serialization {
 
-    public func deserializePermissions(permissions : NewTypes.SerializedPermissions) : NewTypes.Permissions {
+    public func deserializePermissions(permissions : NewTypesTemp.SerializedPermissions) : NewTypesTemp.Permissions {
         {
             var addAdmin = permissions.addAdmin;
             var removeAdmin = permissions.removeAdmin;
@@ -14,14 +14,14 @@ module Serialization {
             var editMissionInfo = permissions.editMissionInfo;
             var editMissionFlow = permissions.editMissionFlow;
             var updateMissionStatus = permissions.updateMissionStatus;
-            // var deleteMission = permissions.deleteMission;
+            var deleteMission = permissions.deleteMission;
             var viewAnyUserProgress = permissions.viewAnyUserProgress;
             var resetUserProgress = permissions.resetUserProgress;
             var adjustUserProgress = permissions.adjustUserProgress;
         };
     };
 
-    public func serializePermissions(permissions : NewTypes.Permissions) : NewTypes.SerializedPermissions {
+    public func serializePermissions(permissions : NewTypesTemp.Permissions) : NewTypesTemp.SerializedPermissions {
         {
             addAdmin = permissions.addAdmin;
             removeAdmin = permissions.removeAdmin;
@@ -32,14 +32,14 @@ module Serialization {
             editMissionInfo = permissions.editMissionInfo;
             editMissionFlow = permissions.editMissionFlow;
             updateMissionStatus = permissions.updateMissionStatus;
-            // deleteMission = permissions.deleteMission;
+            deleteMission = permissions.deleteMission;
             viewAnyUserProgress = permissions.viewAnyUserProgress;
             resetUserProgress = permissions.resetUserProgress;
             adjustUserProgress = permissions.adjustUserProgress;
         };
     };
 
-    public func serializeUserActionStepState(actionState : NewTypes.UserActionStepState) : NewTypes.SerializedUserActionStepState {
+    public func serializeUserActionStepState(actionState : NewTypesTemp.UserActionStepState) : NewTypesTemp.SerializedUserActionStepState {
         {
             attempts = actionState.attempts;
             lastAttemptTime = actionState.lastAttemptTime;
@@ -48,7 +48,7 @@ module Serialization {
         };
     };
 
-    public func serializeMission(mission : NewTypes.Mission) : NewTypes.SerializedMission {
+    public func serializeMission(mission : NewTypesTemp.Mission) : NewTypesTemp.SerializedMission {
         {
             name = mission.name;
             description = mission.description;
@@ -78,12 +78,12 @@ module Serialization {
     };
 
     let step_state_transformer : (
-        ((Nat, NewTypes.UserActionStepState)) -> ((Nat, NewTypes.SerializedUserActionStepState))
-    ) = func(pair : (Nat, NewTypes.UserActionStepState)) : ((Nat, NewTypes.SerializedUserActionStepState)) {
+        ((Nat, NewTypesTemp.UserActionStepState)) -> ((Nat, NewTypesTemp.SerializedUserActionStepState))
+    ) = func(pair : (Nat, NewTypesTemp.UserActionStepState)) : ((Nat, NewTypesTemp.SerializedUserActionStepState)) {
         // Destructure the single tuple argument 'pair'
         let (stepId, stepStateValue) = pair;
 
-        let serializedStepState : NewTypes.SerializedUserActionStepState = {
+        let serializedStepState : NewTypesTemp.SerializedUserActionStepState = {
             status = stepStateValue.status;
             attempts = stepStateValue.attempts;
             lastAttemptTime = stepStateValue.lastAttemptTime;
@@ -92,11 +92,11 @@ module Serialization {
         (stepId, serializedStepState);
     };
 
-    public func serializeUserMissionProgress(userprogress : NewTypes.UserMissionProgress) : NewTypes.SerializedUserMissionProgress {
+    public func serializeUserMissionProgress(userprogress : NewTypesTemp.UserMissionProgress) : NewTypesTemp.SerializedUserMissionProgress {
         {
             overallStatus = userprogress.overallStatus;
             stepStates = Iter.toArray(
-                Iter.map<(Nat, NewTypes.UserActionStepState), (Nat, NewTypes.SerializedUserActionStepState)>(
+                Iter.map<(Nat, NewTypesTemp.UserActionStepState), (Nat, NewTypesTemp.SerializedUserActionStepState)>(
                     StableTrieMap.entries(userprogress.stepStates),
                     step_state_transformer,
                 )
@@ -109,7 +109,7 @@ module Serialization {
         };
     };
 
-    private func serializeProjectContactInfo(contactInfo : NewTypes.ProjectContactInfo) : NewTypes.SerializedProjectContactInfo {
+    private func serializeProjectContactInfo(contactInfo : NewTypesTemp.ProjectContactInfo) : NewTypesTemp.SerializedProjectContactInfo {
         {
             xAccountUrl = contactInfo.xAccountUrl;
             telegramGroupUrl = contactInfo.telegramGroupUrl;
@@ -121,7 +121,7 @@ module Serialization {
         };
     };
 
-    public func serializeProjectDetails(details : NewTypes.ProjectDetails) : NewTypes.SerializedProjectDetails {
+    public func serializeProjectDetails(details : NewTypesTemp.ProjectDetails) : NewTypesTemp.SerializedProjectDetails {
         {
             name = details.name;
             isVisible = details.isVisible;

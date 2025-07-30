@@ -12,12 +12,15 @@ import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Float "mo:base/Float";
 import Nat32 "mo:base/Nat32";
+import Bool "mo:base/Bool";
 import Json "mo:json";
 
 import NewTypes "NewTypes";
+import NewTypesTemp "NewTypesTemp";
 import HTTPTypes "HTTPTypes";
 import StableTrieMap "../StableTrieMap";
 import Serialization "Serialization";
+import SerializationTemp "SerializationTemp";
 import Helpers "Helpers";
 import AnalyticsTypes "AnalyticsTypes";
 
@@ -32,6 +35,7 @@ persistent actor class ProjectBackend() {
     // --- STATE VARIABLES ---
 
     stable var adminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypes.Permissions> = StableTrieMap.new<Principal, NewTypes.Permissions>();
+    stable var newAdminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypesTemp.Permissions> = StableTrieMap.new<Principal, NewTypesTemp.Permissions>();
 
     stable var projectInfo : NewTypes.ProjectDetails = {
         var name = "Placeholder Project";
@@ -58,9 +62,74 @@ persistent actor class ProjectBackend() {
     stable var userProgress : StableTrieMap.StableTrieMap<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>> = StableTrieMap.new<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>();
     stable var missionAssets : StableTrieMap.StableTrieMap<Text, Blob> = StableTrieMap.new<Text, Blob>();
 
+    public query func getOldInfo() : async [(Principal, NewTypes.SerializedPermissions)] {
+        var result : [(Principal, NewTypes.SerializedPermissions)] = [];
+        for ((p, perms) in StableTrieMap.entries(adminPermissions)) {
+            result := Array.append(result, [(p, Serialization.serializePermissions(perms))]);
+        };
+        return result;
+    };
+
+    public query func getNewInfo() : async [(Principal, NewTypesTemp.SerializedPermissions)] {
+        var result : [(Principal, NewTypesTemp.SerializedPermissions)] = [];
+        for ((p, perms) in StableTrieMap.entries(newAdminPermissions)) {
+            result := Array.append(result, [(p, SerializationTemp.serializePermissions(perms))]);
+        };
+        return result;
+    };
+
+    //                            //
+    //       MIGRATION CODE       //
+    //   (MAKE COPY OF TRIEMAP)   //
+    //                            //
+
+    /*
+    func convertPermissions(oldPermissions: {
+        var addAdmin : Bool;
+        var removeAdmin : Bool;
+        var editAdmin : Bool;
+        var viewAdmins : Bool;
+        var editProjectInfo : Bool;
+        var createMission : Bool;
+        var editMissionInfo : Bool;
+        var editMissionFlow : Bool;
+        var updateMissionStatus : Bool;
+        var viewAnyUserProgress : Bool;
+        var resetUserProgress : Bool;
+        var adjustUserProgress : Bool;
+    }) : NewTypesTemp.Permissions {
+        {
+            var addAdmin = oldPermissions.addAdmin;
+            var removeAdmin = oldPermissions.removeAdmin;
+            var editAdmin = oldPermissions.editAdmin;
+            var viewAdmins = oldPermissions.viewAdmins;
+            var editProjectInfo = oldPermissions.editProjectInfo;
+            var createMission = oldPermissions.createMission;
+            var editMissionInfo = oldPermissions.editMissionInfo;
+            var editMissionFlow = oldPermissions.editMissionFlow;
+            var updateMissionStatus = oldPermissions.updateMissionStatus;
+            var deleteMission = oldPermissions.createMission;
+            var viewAnyUserProgress = oldPermissions.viewAnyUserProgress;
+            var resetUserProgress = oldPermissions.resetUserProgress;
+            var adjustUserProgress = oldPermissions.adjustUserProgress;
+        }
+    };
+
+    system func preupgrade() {
+        let oldMap = adminPermissions;
+        newAdminPermissions := StableTrieMap.new<Principal, NewTypesTemp.Permissions>();
+
+        for ((principal, oldPerms) in StableTrieMap.entries(oldMap)) {
+            let newPerms = convertPermissions(oldPerms); // Your conversion function
+            StableTrieMap.put(newAdminPermissions, Principal.equal, Principal.hash, principal, newPerms);
+        };
+    };
+    */
+
     system func postupgrade() {
         // This block runs on install and upgrade.
         // We only want to set initial admins if the map is currently empty (e.g., on fresh install).
+        /*
         if (StableTrieMap.isEmpty(adminPermissions)) {
             // 1. Super Admin with full permissions
             let superAdminPrincipalText = "c2c6j-722ky-pnurz-sfhtg-p36de-3kjkr-sukce-mihdx-avf5m-k2zmh-3qe";
@@ -76,6 +145,7 @@ persistent actor class ProjectBackend() {
                         var editMissionInfo = true;
                         var editMissionFlow = true;
                         var updateMissionStatus = true;
+                        // var deleteMission = true;
                         var viewAnyUserProgress = true;
                         var resetUserProgress = true;
                         var adjustUserProgress = true;
@@ -99,6 +169,7 @@ persistent actor class ProjectBackend() {
                         var editMissionInfo = false;
                         var editMissionFlow = false;
                         var updateMissionStatus = false;
+                        // var deleteMission = false;
                         var viewAnyUserProgress = false;
                         var resetUserProgress = false;
                         var adjustUserProgress = true;
@@ -110,6 +181,7 @@ persistent actor class ProjectBackend() {
         } else {
             Debug.print("Admin permissions map already populated. Skipping default admin initialization.");
         };
+        */
     };
 
     // --- ADMIN FUNCTIONS ---
@@ -149,6 +221,11 @@ persistent actor class ProjectBackend() {
                     case (#CanUpdateMissionStatus) {
                         return userPermissions.updateMissionStatus;
                     };
+                    /*
+                    case (#CanDeleteMission) {
+                        return userPermissions.deleteMission;
+                    };
+                    */
 
                     // User Progress
                     case (#CanViewAnyUserProgress) {
@@ -775,7 +852,7 @@ persistent actor class ProjectBackend() {
         return #ok(null);
     };
 
-    // --- MISSION MANAGEMENT ---
+    // --- MISSION MANAGEMENT --- //
     public shared (msg) func addOrUpdateMission(
         missionId : Nat,
         name : Text,
@@ -967,6 +1044,21 @@ persistent actor class ProjectBackend() {
         };
         return allMissions;
     };
+
+    /*
+    public shared (msg) func deleteMission(missionId : Nat) : async Result.Result<Null, Text> {
+        if (not hasPermission(msg.caller, #CanDeleteMission)) {
+            return #err("Caller does not have permission to delete missions (#CanDeleteMission).");
+        };
+        switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+            case null { return #err("Mission not found.") };
+            case (?mission) {
+                ignore StableTrieMap.remove<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId);
+                return #ok(null);
+            };
+        };
+    };
+    */
 
     // --- USER PROGRESS QUERYING ---
     public shared composite query (msg) func getUserMissionProgress(principal : Principal, missionId : Nat) : async ?NewTypes.SerializedUserMissionProgress {
