@@ -7,6 +7,9 @@ import { ActionFlow, ActionStep as ParsedActionStepType } from '../../../../type
 import ActionStepRenderer from '../ActionStepRenderer/ActionStepRenderer.tsx';
 import { constructRawIcpAssetUrl } from '../../../../../utils/utils.ts';
 import Confetti from 'react-confetti';
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { idlFactory } from '../../../../../declarations/index/index.js';
+import { IndexCanisterId } from '../../../../main.tsx';
 
 // parseActionFlow remains the same
 const parseActionFlow = (jsonString: string): ActionFlow | null => {
@@ -52,7 +55,13 @@ const MissionModal: React.FC<MissionModalProps> = ({
     closeModal,
 }) => {
     const { principalId, userProgress: globalUserProgress } = useGlobalID();
-    const { executeBackendActionStep, fetchUserMissionProgressAndSet, startBackendMission } = useFetchData();
+    const { executeBackendActionStep, fetchUserMissionProgressAndSet, startBackendMission, fetchUserGlobalProfileAndSet } = useFetchData();
+
+    const agent = HttpAgent.createSync();
+    const actor = Actor.createActor(idlFactory, {
+        agent: agent!,
+        canisterId: IndexCanisterId,
+    });
 
     const [parsedActionFlow, setParsedActionFlow] = useState<ActionFlow | null>(null);
     const [currentMissionUserProgress, setCurrentMissionUserProgress] = useState<SerializedUserMissionProgress | null>(null);
@@ -203,8 +212,18 @@ const MissionModal: React.FC<MissionModalProps> = ({
                 // The definitive completion status will come from the re-fetched currentMissionUserProgress.
                 if (actionServiceResponse.isFlowCompleted && actionServiceResponse.isFlowCompleted[0]) {
                     if (actionServiceResponse.success) { // Corrected property
+                        /*
+                        Here we will set the function to grant reward on completion.
+                        */
+
                         // The re-fetched progress will soon confirm completion and update the UI.
                         // We set the message and trigger confetti optimistically for better UX.
+                        try {
+                            if (mission.rewardType.hasOwnProperty('Points')) await actor.addMissionPoints(principalId, Number(mission.maxRewardAmount) || Number(mission.minRewardAmount));
+                            await fetchUserGlobalProfileAndSet(principalId);
+                        } catch (error) {
+                            console.error(`Error giving points: ${error}`);
+                        }
                         setFeedbackMessage({ type: 'success', text: `Mission "${mission.name}" completed! ${actionServiceResponse.message?.[0] || ''}`.trim() });
                         setShowConfetti(true);
                         setTimeout(() => setShowConfetti(false), 5000); // Show confetti for 5 seconds

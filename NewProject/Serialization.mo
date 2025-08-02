@@ -14,6 +14,7 @@ module Serialization {
             var editMissionInfo = permissions.editMissionInfo;
             var editMissionFlow = permissions.editMissionFlow;
             var updateMissionStatus = permissions.updateMissionStatus;
+            var deleteMission = permissions.deleteMission;
             var viewAnyUserProgress = permissions.viewAnyUserProgress;
             var resetUserProgress = permissions.resetUserProgress;
             var adjustUserProgress = permissions.adjustUserProgress;
@@ -31,6 +32,7 @@ module Serialization {
             editMissionInfo = permissions.editMissionInfo;
             editMissionFlow = permissions.editMissionFlow;
             updateMissionStatus = permissions.updateMissionStatus;
+            deleteMission = permissions.deleteMission;
             viewAnyUserProgress = permissions.viewAnyUserProgress;
             resetUserProgress = permissions.resetUserProgress;
             adjustUserProgress = permissions.adjustUserProgress;

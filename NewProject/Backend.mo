@@ -12,6 +12,7 @@ import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Float "mo:base/Float";
 import Nat32 "mo:base/Nat32";
+import Bool "mo:base/Bool";
 import Json "mo:json";
 
 import NewTypes "NewTypes";
@@ -20,6 +21,9 @@ import StableTrieMap "../StableTrieMap";
 import Serialization "Serialization";
 import Helpers "Helpers";
 import AnalyticsTypes "AnalyticsTypes";
+
+//import PermissionMigration "Migration";
+//(with migration = PermissionMigration.migration)
 
 persistent actor class ProjectBackend() {
 
@@ -31,9 +35,10 @@ persistent actor class ProjectBackend() {
 
     // --- STATE VARIABLES ---
 
-    stable var adminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypes.Permissions> = StableTrieMap.new<Principal, NewTypes.Permissions>();
+    var adminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypes.Permissions> = StableTrieMap.new<Principal, NewTypes.Permissions>();
+    var newAdminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypes.Permissions> = StableTrieMap.new<Principal, NewTypes.Permissions>();
 
-    stable var projectInfo : NewTypes.ProjectDetails = {
+    var projectInfo : NewTypes.ProjectDetails = {
         var name = "Placeholder Project";
         var isVisible = false;
         var iconUrl = null;
@@ -53,14 +58,32 @@ persistent actor class ProjectBackend() {
         var updatedBy = Principal.fromText("aaaaa-aa");
     };
 
-    stable var missions : StableTrieMap.StableTrieMap<Nat, NewTypes.Mission> = StableTrieMap.new<Nat, NewTypes.Mission>();
+    var missions : StableTrieMap.StableTrieMap<Nat, NewTypes.Mission> = StableTrieMap.new<Nat, NewTypes.Mission>();
     // userUUID (Text) -> Mission ID (Nat) -> ActionInstance ID (Nat) -> UserActionState
-    stable var userProgress : StableTrieMap.StableTrieMap<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>> = StableTrieMap.new<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>();
-    stable var missionAssets : StableTrieMap.StableTrieMap<Text, Blob> = StableTrieMap.new<Text, Blob>();
+    var userProgress : StableTrieMap.StableTrieMap<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>> = StableTrieMap.new<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>();
+    var missionAssets : StableTrieMap.StableTrieMap<Text, Blob> = StableTrieMap.new<Text, Blob>();
+
+    //                            //
+    //       MIGRATION CODE       //
+    //   (MAKE COPY OF TRIEMAP)   //
+    //                            //
+
+    /*
+    system func preupgrade() {
+        let oldMap = adminPermissions;
+        newAdminPermissions := StableTrieMap.new<Principal, NewTypes.Permissions>();
+
+        for ((principal, oldPerms) in StableTrieMap.entries(oldMap)) {
+            let newPerms = convertPermissions(oldPerms); // Your conversion function
+            StableTrieMap.put(newAdminPermissions, Principal.equal, Principal.hash, principal, newPerms);
+        };
+    };
+    */
 
     system func postupgrade() {
         // This block runs on install and upgrade.
         // We only want to set initial admins if the map is currently empty (e.g., on fresh install).
+
         if (StableTrieMap.isEmpty(adminPermissions)) {
             // 1. Super Admin with full permissions
             let superAdminPrincipalText = "c2c6j-722ky-pnurz-sfhtg-p36de-3kjkr-sukce-mihdx-avf5m-k2zmh-3qe";
@@ -76,6 +99,7 @@ persistent actor class ProjectBackend() {
                         var editMissionInfo = true;
                         var editMissionFlow = true;
                         var updateMissionStatus = true;
+                        var deleteMission = true;
                         var viewAnyUserProgress = true;
                         var resetUserProgress = true;
                         var adjustUserProgress = true;
@@ -99,6 +123,7 @@ persistent actor class ProjectBackend() {
                         var editMissionInfo = false;
                         var editMissionFlow = false;
                         var updateMissionStatus = false;
+                        var deleteMission = false;
                         var viewAnyUserProgress = false;
                         var resetUserProgress = false;
                         var adjustUserProgress = true;
@@ -148,6 +173,9 @@ persistent actor class ProjectBackend() {
                     };
                     case (#CanUpdateMissionStatus) {
                         return userPermissions.updateMissionStatus;
+                    };
+                    case (#CanDeleteMission) {
+                        return userPermissions.deleteMission;
                     };
 
                     // User Progress
@@ -775,7 +803,7 @@ persistent actor class ProjectBackend() {
         return #ok(null);
     };
 
-    // --- MISSION MANAGEMENT ---
+    // --- MISSION MANAGEMENT --- //
     public shared (msg) func addOrUpdateMission(
         missionId : Nat,
         name : Text,
@@ -966,6 +994,19 @@ persistent actor class ProjectBackend() {
             };
         };
         return allMissions;
+    };
+
+    public shared (msg) func deleteMission(missionId : Nat) : async Result.Result<Null, Text> {
+        if (not hasPermission(msg.caller, #CanDeleteMission)) {
+            return #err("Caller does not have permission to delete missions (#CanDeleteMission).");
+        };
+        switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+            case null { return #err("Mission not found.") };
+            case (?mission) {
+                ignore StableTrieMap.remove<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId);
+                return #ok(null);
+            };
+        };
     };
 
     // --- USER PROGRESS QUERYING ---

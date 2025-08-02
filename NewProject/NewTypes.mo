@@ -52,6 +52,7 @@ module NewTypes {
         var editMissionInfo : Bool;
         var editMissionFlow : Bool;
         var updateMissionStatus : Bool;
+        var deleteMission : Bool;
 
         // User Progress
 
@@ -70,6 +71,7 @@ module NewTypes {
         editMissionInfo : Bool;
         editMissionFlow : Bool;
         updateMissionStatus : Bool;
+        deleteMission : Bool;
         viewAnyUserProgress : Bool;
         resetUserProgress : Bool;
         adjustUserProgress : Bool;
@@ -90,6 +92,7 @@ module NewTypes {
         #CanEditMissionInfo;
         #CanEditMissionFlow;
         #CanUpdateMissionStatus;
+        #CanDeleteMission;
 
         // User Progress
         #CanViewAnyUserProgress;

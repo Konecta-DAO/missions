@@ -17,6 +17,7 @@ import Nat8 "mo:base/Nat8";
 import Blob "mo:base/Blob";
 import Option "mo:base/Option";
 import Debug "mo:base/Debug";
+import Result "mo:base/Result";
 
 persistent actor class Backend() {
 
@@ -1712,6 +1713,138 @@ persistent actor class Backend() {
       case (?accountsList) { return accountsList }; // Return the list of (AccountType, Principal)
     };
   };
+
+  //           //
+  //  Rewards  //
+  //           //
+
+  /*
+  public query func getUUIDsNoAdmin() : async [(Principal, Text)] {
+    let principalToUUIDEntries = principalToUUID.entries();
+    return Iter.toArray(
+      Iter.map<(Principal, Text), (Principal, Text)>(
+        principalToUUIDEntries,
+        func(pair : (Principal, Text)) : (Principal, Text) {
+          let (key, value) = pair;
+          (key, value);
+        },
+      )
+    );
+  };
+
+  public query func getUserNoAdmin() : async [(Text, Types.SerializedGlobalUser)] {
+    let uuidToUserEntries = uuidToUser.entries();
+    return Iter.toArray(
+      Iter.map<(Text, Types.GlobalUser), (Text, Types.SerializedGlobalUser)>(
+        uuidToUserEntries,
+        func(pair : (Text, Types.GlobalUser)) : (Text, Types.SerializedGlobalUser) {
+          let (key, user) = pair;
+          (key, Serialization.serializeUser(user));
+        },
+      )
+    );
+  };
+  */
+
+  public query func getUserUUIDByPrincipal(principal : Principal) : async Text {
+    let uuid = principalToUUID.get(principal);
+    switch (uuid) {
+      case (?uuid) {
+        return uuid;
+      };
+      case (null) {
+        return "";
+      };
+    };
+  };
+
+  public func givePoints(uuid : Text, addPts : Nat) : async Result.Result<Null, Text> {
+    switch (uuidToUser.get(uuid)) {
+      case (?user) {
+        let updatedUser : Types.GlobalUser = {
+          var twitterid = user.twitterid;
+          var twitterhandle = user.twitterhandle;
+          creationTime = user.creationTime;
+          var pfpProgress = user.pfpProgress;
+          var deducedPoints = user.deducedPoints + addPts;
+          var ocProfile = user.ocProfile;
+          var discordUser = user.discordUser;
+          var telegramUser = user.telegramUser;
+          var nuanceUser = user.nuanceUser;
+          var nnsPrincipal = user.nnsPrincipal;
+          var firstname = user.firstname;
+          var lastname = user.lastname;
+          var username = user.username;
+          var email = user.email;
+          var bio = user.bio;
+          var categories = user.categories;
+          var profilepic = user.profilepic;
+          var coverphoto = user.coverphoto;
+          var country = user.country;
+          var timezone = user.timezone;
+          var icrc1tokens = user.icrc1tokens;
+          var nft721 = user.nft721;
+        };
+        uuidToUser.put(uuid, updatedUser);
+        return #ok(null);
+      };
+      case null {
+        return #err("User not found.");
+      };
+    };
+  };
+
+  public shared func addMissionPoints(principal : Principal, addPts : Nat) : async Result.Result<Null, Text> {
+    let uuid = await getUserUUIDByPrincipal(principal);
+    if (uuid == "") {
+      return #err("User not found");
+    };
+    try {
+      let result = await givePoints(uuid, addPts);
+      switch (result) {
+        case (#ok(_)) {
+          return #ok(null);
+        };
+        case (#err(errMsg)) {
+          return #err(errMsg);
+        };
+      };
+    } catch (_) {
+      return #err("Error giving points");
+    };
+  };
+
+  /*
+  public query (msg) func getUserByPrincipal(userId : Principal) : async ?Types.SerializedGlobalUser {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      switch (uuidToUser.get(getUserUUID(userId))) {
+        case (?user) {
+          return ?Serialization.serializeUser(user);
+        };
+        case null {};
+      };
+    };
+    return null;
+  };
+
+  public query (msg) func getUserByUUID(uuid : Text) : async ?Types.SerializedGlobalUser {
+    if (isAdmin(msg.caller) or (getUserUUID(msg.caller)) == uuid) {
+      switch (uuidToUser.get(uuid)) {
+        case (?user) {
+          return ?Serialization.serializeUser(user);
+        };
+        case null {
+          return null;
+        };
+      };
+    };
+    return null;
+  };
+  */
+
+  //                  //
+  //  Misc Functions  //
+  //                  //
 
   public query func availableCycles() : async Nat {
     return Cycles.balance();
