@@ -1601,6 +1601,17 @@ persistent actor class ProjectBackend() {
         return #ok(parsedActionResult);
     };
 
+    //
+    //  Miscellaneous Functions
+    //
+
+    public shared query func verifyUserIsAdmin(principalId : Principal) : async Bool {
+        switch (StableTrieMap.get(adminPermissions, Principal.equal, Principal.hash, principalId)) {
+            case null { return false };
+            case (?_) { return true };
+        };
+    };
+
     // Analytics Function 1: High-level overview of the project
     public shared query (msg) func get_analytics_overview() : async AnalyticsTypes.ProjectGlobalAnalytics {
 

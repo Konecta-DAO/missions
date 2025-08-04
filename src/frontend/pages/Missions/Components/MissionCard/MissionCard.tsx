@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './MissionCard.module.scss'; // Assuming SCSS is co-located or adjust path
 import { RewardType, SerializedMission, UserOverallMissionStatus } from '../../../../../declarations/test_backend/test_backend.did.js'; // Adjust path if needed
+import useFetchData from '../../../../../hooks/fetchData.tsx';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 // We'll use constructRawIcpAssetUrl and formatTimeDiff passed as props from MissionGridComponent
 
 // Define a more specific type for the props MissionCard will receive
@@ -114,6 +116,17 @@ const MissionCard: React.FC<MissionCardProps> = ({
 
     const isInteractive = arePrerequisitesMet && !timeStatus.isExpired && !timeStatus.isUpcoming && isBackendMissionActive;
 
+    // 6. Misc
+    const { principalId } = useGlobalID();
+    const { verifyUserIsAdmin } = useFetchData();
+    const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
+    useEffect(() => {
+        verifyUserIsAdmin(projectCanisterId, principalId)
+            .then((isAdmin) => {
+                setIsAdmin(isAdmin);
+            });
+    }, []);
 
     return (
         <div
@@ -167,14 +180,35 @@ const MissionCard: React.FC<MissionCardProps> = ({
                     <div className={styles.userCompletedCheckmark} title="You've completed this mission!">✅</div>
                 )}
 
-                <button
-                    className={styles.ctaButton}
-                    onClick={(e) => { e.stopPropagation(); handleClick(); }} // Prevent card click if button handles it
-                    disabled={!isInteractive && !userStatus.isCompleted && !userStatus.isInProgress} // Disable if locked, expired, upcoming unless completed/inProgress
-                    aria-disabled={!isInteractive && !userStatus.isCompleted && !userStatus.isInProgress}
-                >
-                    {ctaText}
-                </button>
+                {/* Buttons */}
+                {isAdmin ? (
+                    <div className={styles.adminButtons}>
+                        <button
+                            className={styles.ctaButton}
+                            onClick={(e) => { e.stopPropagation(); handleClick(); }} // Prevent card click if button handles it
+                            disabled={!isInteractive && !userStatus.isCompleted && !userStatus.isInProgress} // Disable if locked, expired, upcoming unless completed/inProgress
+                            aria-disabled={!isInteractive && !userStatus.isCompleted && !userStatus.isInProgress}
+                        >
+                            {ctaText}
+                        </button>
+                        <a href="https://3qzqh-pqaaa-aaaag-qnheq-cai.icp0.io/" target="_blank" rel="noopener noreferrer">
+                            <button
+                                className={styles.ctaButton}
+                            >
+                                Manage Mission
+                            </button>
+                        </a>
+                    </div>
+                ) : (
+                    <button
+                        className={styles.ctaButton}
+                        onClick={(e) => { e.stopPropagation(); handleClick(); }} // Prevent card click if button handles it
+                        disabled={!isInteractive && !userStatus.isCompleted && !userStatus.isInProgress} // Disable if locked, expired, upcoming unless completed/inProgress
+                        aria-disabled={!isInteractive && !userStatus.isCompleted && !userStatus.isInProgress}
+                    >
+                        {ctaText}
+                    </button>
+                )}
             </div>
         </div>
     );

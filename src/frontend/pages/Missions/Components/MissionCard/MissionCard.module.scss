@@ -273,6 +273,14 @@
     }
 }
 
+.adminButtons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .countdown {
     font-size: 0.75rem;
     color: #ffc107; // Amber for countdown/warning

@@ -458,6 +458,28 @@ const useFetchData = () => {
         setProjects
     ]);
 
+    const verifyUserIsAdmin = useCallback(async (projectCanisterId: string, userPrincipal: Principal | null) => {
+        try {
+            if (!userPrincipal) {
+                console.error("No use principal provided for the verification.");
+                return false;
+            };
+            const projectActor = getProjectBackendActor(projectCanisterId);
+            if (!projectActor) {
+                console.error("No project actor available for the verification.");
+                return false;
+            };
+
+            // Verify if the user is an admin on the project canister backend
+            const result = await projectActor.verifyUserIsAdmin(userPrincipal) as boolean;
+
+            return result;
+        } catch (error) {
+            console.error("Network or other error on the verification.", error);
+            return false;
+        }
+    }, [getProjectBackendActor]);
+
     return {
         fetchInitialPlatformData,
         fetchAllProjectDetailsAndSet,
@@ -469,6 +491,7 @@ const useFetchData = () => {
         startBackendMission,
         fetchUserGlobalProfileAndSet,
         fetchWalletLinkInfoAndSet,
+        verifyUserIsAdmin,
     };
 };
 
