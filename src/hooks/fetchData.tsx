@@ -480,6 +480,31 @@ const useFetchData = () => {
         }
     }, [getProjectBackendActor]);
 
+    const cooldownRemainingForNewCompletion = useCallback(async (
+        projectCanisterId: string,
+        completionTime: number, // Milliseconds
+        recursiveCooldown: number // Milliseconds
+    ): Promise<number> => {
+        if (!projectCanisterId) {
+            console.error("No project canister ID provided for cooldown check.");
+            return 0;
+        }
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) {
+            console.error("No project actor available for cooldown check.");
+            return 0;
+        }
+
+        try {
+            // Assuming the method returns the time remaining in seconds
+            const timeRemaining = await projectActor.getTimeRemainingForNewCompletion(completionTime, recursiveCooldown) as number;
+            return timeRemaining;
+        } catch (error) {
+            console.error("Error fetching cooldown time remaining:", error);
+            return 0; // Return 0 or some default value on error
+        }
+    }, [getProjectBackendActor]);
+
     return {
         fetchInitialPlatformData,
         fetchAllProjectDetailsAndSet,
@@ -492,6 +517,7 @@ const useFetchData = () => {
         fetchUserGlobalProfileAndSet,
         fetchWalletLinkInfoAndSet,
         verifyUserIsAdmin,
+        cooldownRemainingForNewCompletion
     };
 };
 
