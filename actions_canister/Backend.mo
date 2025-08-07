@@ -10,6 +10,8 @@ import TrieMap "mo:base/TrieMap";
 import Nat "mo:base/Nat";
 import Hash "mo:base/Hash";
 import Int "mo:base/Int";
+import Timer "mo:base/Timer";
+import Time "mo:base/Time";
 import Json "mo:json";
 import StableTrieMap "../StableTrieMap";
 import Serialization "Serialization";
@@ -22,6 +24,18 @@ persistent actor class Backend() {
 
   var adminIds : [Principal] = [Principal.fromText("re2jg-bjb6f-frlwq-342yn-bebk2-43ofq-3qwwq-cld3p-xiwxw-bry3n-aqe")];
   var actionDefinitions : StableTrieMap.StableTrieMap<Text, Types.ActionDefinition> = StableTrieMap.new<Text, Types.ActionDefinition>();
+
+  type PendingLeaderboardInfo = {
+    projectCanisterId : Principal;
+    missionId : Nat;
+    stepId : Nat;
+    actionInstanceId : Nat;
+    endDate : Int; // Nanoseconds timestamp
+    var hasBeenTriggered : Bool; // Guard to prevent re-triggering
+  };
+  var pendingLeaderboards : StableTrieMap.StableTrieMap<Text, PendingLeaderboardInfo> = StableTrieMap.new<Text, PendingLeaderboardInfo>();
+  var jobTimerId : ?Timer.TimerId = null;
+  var isProcessingLeaderboards : Bool = false;
 
   public type ActionFilter = {
     platform : ?Types.PlatformType;
@@ -219,7 +233,144 @@ persistent actor class Backend() {
         var tags = ?["utility", "code", "validation"];
       };
       StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, validateCodeDef.id, validateCodeDef);
+
+      let leaderboardDef : Types.ActionDefinition = {
+        id = "leaderboard_mission_v1";
+        var name = "Settle Leaderboard";
+        var descriptionTemplate = "At {{endDate}}, calculates top performers across missions {{missionIds}} from project {{projectCanisterId}} and distributes {{totalReward}} points.";
+        platform = #CanisterEndpoint;
+        var version = 1;
+        var defaultUIType = #Informational;
+        var parameterSchema = [
+          {
+            name = "endDate";
+            dataType = #Int;
+            isRequired = true;
+            var inputLabel = "End Date (Nanoseconds)";
+            var helpText = ?"The nanosecond timestamp when the leaderboard should be settled.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+          {
+            name = "projectCanisterId";
+            dataType = #Principal;
+            isRequired = true;
+            var inputLabel = "Project Canister ID";
+            var helpText = ?"The canister ID of the project to check for mission completions.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+          {
+            name = "missionIds";
+            dataType = #ArrayNat;
+            isRequired = true;
+            var inputLabel = "Mission IDs";
+            var helpText = ?"An array of Mission IDs to include in the leaderboard scoring.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+          {
+            name = "totalReward";
+            dataType = #Nat;
+            isRequired = true;
+            var inputLabel = "Total Reward Pool";
+            var helpText = ?"The total amount of points to be distributed among the winners.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+        ];
+        var outputSchemaJson = ?"{ \"status\": \"#Pending|#Settled|#Failed\", \"winners\": [ { \"rank\": 1, \"userUuid\": \"string\", \"totalPoints\": 100, \"rewardAmount\": 50 } ] }";
+        var executionHandler = "leaderboard_handler_v1";
+        var tags = ?["utility", "leaderboard", "timer"];
+      };
+      StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, leaderboardDef.id, leaderboardDef);
     };
+  };
+
+  system func postupgrade() {
+    if (Option.isSome(jobTimerId)) {
+      // Timer already running, do nothing.
+      return;
+    };
+    // Check every 5 minutes
+    let interval : Timer.Duration = #seconds 300;
+    jobTimerId := ?Timer.recurringTimer<system>(
+      interval,
+      processPendingLeaderboards,
+    );
+    Debug.print("Leaderboard settlement timer started.");
+  };
+
+  public func init() : async () {
+    if (Option.isSome(jobTimerId)) {
+      // Timer already running, do nothing.
+      return;
+    };
+    // Check every 5 minutes
+    let interval : Timer.Duration = #seconds 300;
+    jobTimerId := ?Timer.recurringTimer<system>(
+      interval,
+      processPendingLeaderboards,
+    );
+    Debug.print("Leaderboard settlement timer started.");
+  };
+
+  private func processPendingLeaderboards() : async () {
+    if (isProcessingLeaderboards) {
+      Debug.print("Leaderboard processor is already running. Skipping cycle.");
+      return;
+    };
+
+    isProcessingLeaderboards := true;
+    let now = Time.now();
+    Debug.print("Checking for leaderboards to settle...");
+
+    var settledKeys : [Text] = [];
+
+    for ((key, info) in StableTrieMap.entries(pendingLeaderboards)) {
+      if (now >= info.endDate and not info.hasBeenTriggered) {
+        Debug.print("Settling leaderboard: " # key);
+
+        var updatedInfo = info;
+        updatedInfo.hasBeenTriggered := true;
+        StableTrieMap.put(pendingLeaderboards, Text.equal, Text.hash, key, updatedInfo);
+
+        type ProjectActor = actor {
+          resolve_leaderboard : (Nat, Nat, Nat) -> async Result.Result<Null, Text>;
+        };
+
+        let projectCanister : ProjectActor = actor (Principal.toText(info.projectCanisterId));
+
+        try {
+          let result = await projectCanister.resolve_leaderboard(info.missionId, info.stepId, info.actionInstanceId);
+          switch (result) {
+            case (#ok(_)) {
+              Debug.print("Successfully triggered settlement for leaderboard: " # key);
+              settledKeys := Array.append(settledKeys, [key]);
+            };
+            case (#err(e)) {
+              Debug.print("Project canister returned error for leaderboard settlement (" # key # "): " # e);
+              // Revert hasBeenTriggered to allow for retry on next cycle
+              updatedInfo.hasBeenTriggered := false;
+              StableTrieMap.put(pendingLeaderboards, Text.equal, Text.hash, key, updatedInfo);
+            };
+          };
+        } catch (e) {
+          Debug.print("CRITICAL: Failed to call project canister for leaderboard settlement (" # key # ").");
+          // Revert hasBeenTriggered to allow for retry on next cycle
+          updatedInfo.hasBeenTriggered := false;
+          StableTrieMap.put(pendingLeaderboards, Text.equal, Text.hash, key, updatedInfo);
+        };
+      };
+    };
+
+    // Clean up successfully triggered entries
+    for (key in settledKeys.vals()) {
+      ignore StableTrieMap.remove(pendingLeaderboards, Text.equal, Text.hash, key);
+      Debug.print("Removed settled leaderboard task: " # key);
+    };
+
+    isProcessingLeaderboards := false;
   };
 
   // Function to add an admin ID
@@ -775,6 +926,56 @@ persistent actor class Backend() {
       };
 
       // ---- OTHER ----
+      case ("leaderboard_mission_v1") {
+        var endDateVal : Int = 0;
+        var projectCanisterIdVal : Principal = Principal.fromText("aaaaa-aa");
+        var missionIdsVal : [Nat] = [];
+        var totalRewardVal : Nat = 0;
+
+        switch (getRequiredParam("endDate")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#IntValue(i)) { endDateVal := i };
+              case _ { return #err("Param 'endDate' not an Int") };
+            };
+          };
+          case (#err(e)) { return #err(e) };
+        };
+
+        switch (getRequiredParam("projectCanisterId")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#PrincipalValue(p)) { projectCanisterIdVal := p };
+              case _ {
+                return #err("Param 'projectCanisterId' not a Principal");
+              };
+            };
+          };
+          case (#err(e)) { return #err(e) };
+        };
+
+        switch (getRequiredParam("missionIds")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#ArrayNat(arr)) { missionIdsVal := arr };
+              case _ { return #err("Param 'missionIds' not an Array<Nat>") };
+            };
+          };
+          case (#err(e)) { return #err(e) };
+        };
+
+        switch (getRequiredParam("totalReward")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#NatValue(n)) { totalRewardVal := n };
+              case _ { return #err("Param 'totalReward' not a Nat") };
+            };
+          };
+          case (#err(e)) { return #err(e) };
+        };
+
+        return #ok(#LeaderboardParams({ endDate = endDateVal; projectCanisterId = projectCanisterIdVal; missionIds = missionIdsVal; totalReward = totalRewardVal }));
+      };
       case ("dip721_ownership_v1") {
         var nftCanisterIdVal : Principal = Principal.fromText("aaaaa-aa");
         var principalToCheckVal : Principal = Principal.fromText("aaaaa-aa");
@@ -1165,6 +1366,66 @@ persistent actor class Backend() {
       };
       case ("validate_code_handler_v1") {
         handlerOutcome := Actions.handleValidateCode(concreteActionParams, userInputJsonText); //
+      };
+      case ("leaderboard_handler_v1") {
+        handlerOutcome := Actions.handleLeaderboard(concreteActionParams);
+
+        // If the handler successfully validated params for scheduling, add it to our pending map.
+        if (Result.isOk(handlerOutcome)) {
+          switch (concreteActionParams) {
+            case (#LeaderboardParams(params)) {
+              // The missionId and stepId are needed for the callback context.
+              // They are part of the MissionContext.
+              var missionId : ?Nat = null;
+              var projectCanisterId : ?Principal = null;
+
+              if (Option.isSome(missionContextJsonText)) {
+                switch (Json.parse(Option.get(missionContextJsonText, ""))) {
+                  case (#ok(ctx)) {
+                    switch (Json.getAsNat(ctx, "missionId")) {
+                      case (#ok(val)) { missionId := ?val };
+                      case (#err(_)) {};
+                    };
+
+                    switch (Json.getAsText(ctx, "projectCanisterId")) {
+                      case (#ok(pidText)) {
+                        projectCanisterId := ?Principal.fromText(pidText);
+                      };
+                      case (#err(_)) {};
+                    };
+                  };
+                  case _ {};
+                };
+              };
+
+              if (Option.isSome(missionId) and Option.isSome(projectCanisterId)) {
+                let mId = Option.get(missionId, 0);
+                let pId = Option.get(projectCanisterId, Principal.fromText("aaaaa-aa"));
+
+                let key = Principal.toText(pId) # "-" # Nat.toText(mId) # "-" # Nat.toText(currentStepIdToExecute) # "-" # Nat.toText(actionInstanceToExecute.instanceId);
+
+                let info : PendingLeaderboardInfo = {
+                  projectCanisterId = pId;
+                  missionId = mId;
+                  stepId = currentStepIdToExecute;
+                  actionInstanceId = actionInstanceToExecute.instanceId;
+                  endDate = params.endDate;
+                  var hasBeenTriggered = false;
+                };
+                StableTrieMap.put(pendingLeaderboards, Text.equal, Text.hash, key, info);
+                Debug.print("Scheduled new leaderboard task with key: " # key);
+              } else {
+                Debug.print("CRITICAL: Leaderboard action executed without missionId or projectCanisterId in MissionContext.");
+                handlerOutcome := #err({
+                  status = #Error;
+                  outcome = #Failed;
+                  message = "Internal configuration error: Missing context for leaderboard scheduling.";
+                });
+              };
+            };
+            case _ {};
+          };
+        };
       };
       case (_) {
         handlerOutcome := #err({

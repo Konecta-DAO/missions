@@ -217,6 +217,12 @@ module Types {
     #ValidateCodeParams : {
       var codeListId : [Text];
     };
+    #LeaderboardParams : {
+      endDate : Int; // Nanoseconds timestamp
+      projectCanisterId : Principal;
+      missionIds : [Nat];
+      totalReward : Nat; // Total points to be distributed
+    };
     #NoParams;
   };
 
@@ -292,6 +298,17 @@ module Types {
       message : ?Text;
       attemptsRemaining : ?Nat;
     };
+    #LeaderboardResult : {
+      status : { #Pending; #Settled; #Failed };
+      settlementTime : ?Int;
+      winners : ?[{
+        rank : Nat;
+        userUuid : Text;
+        totalPoints : Nat;
+        rewardAmount : Nat;
+      }];
+      detailMessage : ?Text;
+    };
     #NoData;
   };
 
@@ -309,7 +326,7 @@ module Types {
         keyForUserInput : Text; // The key this input will have in the Provided JSON
         inputLabel : Text;
         placeholder : ?Text;
-        // dataType: ParameterDataType; // Hint for UI input type (text, number, url etc.) from ActionParameterDefinition
+        // dataType: ParameterDataType; // Hint for UI input type (text, number, url etc.)
         isRequired : Bool;
       }];
       buttonText : Text;

@@ -9,6 +9,7 @@ import GovernanceTypes "GovernanceTypes";
 import Helpers "Helpers";
 import Json "mo:json";
 import Option "mo:base/Option";
+import Time "mo:base/Time";
 
 module Actions {
 
@@ -149,15 +150,12 @@ module Actions {
   };
 
   public func handleNftOwnership(actionParams : Types.ActionParameters) : async HandlerResult {
-    // Define a general type for the token ID, often a Nat or Nat64
-    type TokenId = Nat;
+    type TokenId = Nat64;
 
     switch (actionParams) {
       case (#NftOwnershipParams(params)) {
         // Define the actor interface for the DIP721 canister we want to call
         let nftCanister = actor (Principal.toText(params.nftCanisterId)) : actor {
-          // This function signature is based on your provided example.
-          // Ensure the target DIP721 canister has this method.
           getTokenIdsForUserDip721 : query (Principal) -> async ([TokenId]);
         };
 
@@ -193,7 +191,6 @@ module Actions {
           };
 
         } catch (e) {
-          // This catches errors like the canister not existing, having the wrong interface, or trapping.
           return #err({
             status = #ApiError;
             outcome = #Failed;
@@ -215,8 +212,8 @@ module Actions {
     switch (actionParams) {
       case (#VoteOnProposalParams(params)) {
         let snsGovernance = actor (Principal.toText(params.snsCanisterId)) : actor {
-          get_proposal : shared query GovernanceTypes.GetProposal -> async GovernanceTypes.GetProposalResponse; // Ensure GovernanceTypes.GetProposal matches expected input
-          list_neurons : shared query GovernanceTypes.ListNeurons -> async GovernanceTypes.ListNeuronsResponse; // Ensure GovernanceTypes.ListNeurons matches expected input
+          get_proposal : shared query GovernanceTypes.GetProposal -> async GovernanceTypes.GetProposalResponse;
+          list_neurons : shared query GovernanceTypes.ListNeurons -> async GovernanceTypes.ListNeuronsResponse;
         };
         var userNeuronIds : [Blob] = [];
 
@@ -232,7 +229,6 @@ module Actions {
           for (neuronInfo in neuronsResponse.neurons.vals()) {
             switch (neuronInfo.id) {
               case (?idRecord) {
-                // Assuming idRecord has a field 'id' of type Blob
                 userNeuronIds := Array.append(userNeuronIds, [(idRecord.id)]);
               };
               case null {};
@@ -376,6 +372,48 @@ module Actions {
           status = #Error;
           outcome = #Failed;
           message = "Internal Error: handleSnsVote received unexpected ActionParameters variant.";
+        });
+      };
+    };
+  };
+
+  public func handleLeaderboard(actionParams : Types.ActionParameters) : HandlerResult {
+    switch (actionParams) {
+      case (#LeaderboardParams(params)) {
+        if (params.endDate <= Time.now()) {
+          return #err({
+            status = #InvalidParameters;
+            outcome = #Failed;
+            message = "Leaderboard end date must be in the future.";
+          });
+        };
+
+        if (Array.size(params.missionIds) == 0) {
+          return #err({
+            status = #InvalidParameters;
+            outcome = #Failed;
+            message = "At least one mission ID must be provided for the leaderboard.";
+          });
+        };
+
+        // If parameters are valid, return a pending state.
+        // The `executeActionStep` in Backend.mo will see this and schedule the timer task.
+        return #ok({
+          outcome = #PendingVerification; // This specific outcome signals a long-running/scheduled task.
+          returnedData = ?#LeaderboardResult({
+            status = #Pending;
+            settlementTime = null;
+            winners = null;
+            detailMessage = ?"Leaderboard is now active. Results will be calculated after the end date.";
+          });
+          message = ?"Leaderboard action has been scheduled successfully.";
+        });
+      };
+      case (_) {
+        return #err({
+          status = #Error;
+          outcome = #Failed;
+          message = "Internal Error: handleLeaderboard received unexpected ActionParameters variant.";
         });
       };
     };
