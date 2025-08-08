@@ -349,9 +349,15 @@ const MissionModal: React.FC<MissionModalProps> = ({
                                 ) : (
                                     <p>No completion time available</p>
                                 )}
-                                <button onClick={() => {console.log("Waiting...")}} disabled={disabledStartAgain} className={styles.actionButton}>
-                                    Start Mission
-                                </button>
+                                {disabledStartAgain ? (
+                                    <button disabled={true} className={styles.actionButton}>
+                                        Start Mission
+                                    </button>
+                                ) : (
+                                    <button onClick={handleStartMission} disabled={isStartingMission} className={styles.actionButton}>
+                                        Start Mission
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <>
