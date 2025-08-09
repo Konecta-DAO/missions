@@ -13,6 +13,7 @@ import Iter "mo:base/Iter";
 import Float "mo:base/Float";
 import Nat32 "mo:base/Nat32";
 import Bool "mo:base/Bool";
+import Order "mo:base/Order";
 import Json "mo:json";
 
 import NewTypes "NewTypes";
@@ -63,10 +64,10 @@ persistent actor class ProjectBackend() {
   var userProgress : StableTrieMap.StableTrieMap<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>> = StableTrieMap.new<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>();
   var missionAssets : StableTrieMap.StableTrieMap<Text, Blob> = StableTrieMap.new<Text, Blob>();
 
-  //                            //
-  //       MIGRATION CODE       //
-  //   (MAKE COPY OF TRIEMAP)   //
-  //                            //
+  //                             //
+  //        MIGRATION CODE       //
+  //    (MAKE COPY OF TRIEMAP)   //
+  //                             //
 
   /*
     system func preupgrade() {
@@ -829,6 +830,15 @@ persistent actor class ProjectBackend() {
     let currentTime = Time.now();
     let existingMissionOpt = StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId);
 
+    switch (existingMissionOpt) {
+      case (?m) {
+        if (m.status == #Concluded) {
+          return #err("Cannot edit a concluded mission.");
+        };
+      };
+      case null {};
+    };
+
     // --- Step 1: Process image/icon inputs to get final URLs ---
     // Helper function to process an image/icon input against an optional existing URL
     func processImageInput(inputOpt : ?NewTypes.ImageUploadInput, existingUrlOpt : ?Text) : Result.Result<?Text, Text> {
@@ -1515,7 +1525,19 @@ persistent actor class ProjectBackend() {
     stepState.lastAttemptTime := ?Time.now();
     stepState.lastMessageFromAction := parsedActionResult.message;
 
-    if (parsedActionResult.success) {
+    let outcomeText : Text = switch (Json.parse(actionServiceResponseJson)) {
+      case (#err(_)) { "" }; // If JSON parsing fails, it's not a valid outcome.
+      case (#ok(parsedJson)) {
+        switch (Json.getAsText(parsedJson, "actionOutcome")) {
+          case (#ok(textValue)) { textValue };
+          case (#err(_)) { "" }; // If key doesn't exist or not text.
+        };
+      };
+    };
+
+    if (outcomeText == "PendingVerification") {
+      stepState.status := #PendingSettlement;
+    } else if (parsedActionResult.success) {
       // This 'success' is based on ActionOutcome (#Success or #AlreadyDone)
       stepState.status := #Verified;
       // Store returned data if any
@@ -1601,36 +1623,208 @@ persistent actor class ProjectBackend() {
     return #ok(parsedActionResult);
   };
 
-  //
-  //  Miscellaneous Functions
-  //
-
-  public shared query func verifyUserIsAdmin(principalId : Principal) : async Bool {
-    switch (StableTrieMap.get(adminPermissions, Principal.equal, Principal.hash, principalId)) {
-      case null { return false };
-      case (?_) { return true };
+  public shared (msg) func resolve_leaderboard(missionId : Nat, stepId : Nat, actionInstanceId : Nat) : async Result.Result<Null, Text> {
+    // 1. Authentication: Only the Actions Canister can call this.
+    if (msg.caller != Principal.fromText(actionsCanisterIdText)) {
+      return #err("Caller is not authorized to resolve leaderboards.");
     };
-  };
 
-  public shared query func checkMissionIsRecursive(missionId : Nat) : async Bool {
-    switch (StableTrieMap.get(missions, Nat.equal, Hash.hash, missionId)) {
-      case null { return false };
-      case (?mission) {
-        return mission.isRecursive;
+    // 2. Get the mission
+    let missionOpt = StableTrieMap.get(missions, Nat.equal, Hash.hash, missionId);
+    let mission : NewTypes.Mission = switch (missionOpt) {
+      case null { return #err("Leaderboard Mission not found.") };
+      case (?m) m;
+    };
+
+    // 3. Prevent re-settlement
+    if (mission.status == #Concluded) {
+      return #err("This leaderboard has already been concluded.");
+    };
+
+    // 4. Find the specific leaderboard action instance and extract its parameters
+    var missionIdsToCheck : [Nat] = [];
+    var totalReward : Nat = 0;
+
+    switch (Json.parse(mission.actionFlowJson)) {
+      case (#err(parseErr)) {
+        return #err("Internal Error: Failed to parse mission's actionFlowJson. " # Json.errToText(parseErr));
+      };
+      case (#ok(flowObj)) {
+        switch (Helpers.findActionInstanceInFlow(flowObj, stepId, actionInstanceId)) {
+          case (#err(findErr)) {
+            return #err("Internal Error: Could not find the leaderboard action instance in the mission flow. " # findErr);
+          };
+          case (#ok(instanceObj)) {
+            // Extract missionIds and totalReward from the instance's parameter bindings
+            let missionIdsOpt = Helpers.getNatArrayFromParamBinding(instanceObj, "missionIds");
+            let totalRewardOpt = Helpers.getNatFromParamBinding(instanceObj, "totalReward");
+
+            if (Option.isNull(missionIdsOpt) or Option.isNull(totalRewardOpt)) {
+              return #err("Internal Error: Leaderboard action instance is missing required 'missionIds' or 'totalReward' parameter bindings.");
+            };
+
+            missionIdsToCheck := Option.get(missionIdsOpt, []);
+            totalReward := Option.get(totalRewardOpt, 0);
+
+            if (Array.size(missionIdsToCheck) == 0) {
+              return #err("Configuration Error: Leaderboard action has an empty 'missionIds' list.");
+            };
+          };
+        };
       };
     };
-  };
 
-  public shared query func getTimeRemainingForNewCompletion(
-    completionTime : Int, // Comes in miliseconds
-    recursiveCooldown : Int // Comes in miliseconds
-  ) : async Int {
-    let currentTime = Time.now(); // Nanoseconds
-    if (currentTime < (completionTime * 1000000) + (recursiveCooldown * 1000000)) {
-      return ((((completionTime * 1000000) + (recursiveCooldown * 1000000)) - currentTime) / 1000000);
-    } else {
-      return 0; // Cooldown has passed
+    if (totalReward == 0) {
+      return #err("Total reward for leaderboard cannot be zero.");
     };
+
+    // 5. Aggregate user scores
+    type UserScore = {
+      userUuid : Text;
+      var totalPoints : Nat;
+      var completionTimes : [Int];
+    };
+    var userScores = StableTrieMap.new<Text, UserScore>();
+
+    // Iterate through ALL users who have progress
+    for ((userUuid, userMissionsMap) in StableTrieMap.entries(userProgress)) {
+      var score : UserScore = {
+        userUuid;
+        var totalPoints = 0;
+        var completionTimes = [];
+      };
+      var hasCompletedAtLeastOne = false;
+
+      for (mId in missionIdsToCheck.vals()) {
+        switch (StableTrieMap.get(userMissionsMap, Nat.equal, Hash.hash, mId)) {
+          case (?progress) {
+            if (progress.overallStatus == #CompletedSuccess) {
+              switch (StableTrieMap.get(missions, Nat.equal, Hash.hash, mId)) {
+                case (?completedMission) {
+                  hasCompletedAtLeastOne := true;
+                  score.totalPoints += completedMission.minRewardAmount;
+                  if (Option.isSome(progress.completionTime)) {
+                    score.completionTimes := Array.append(score.completionTimes, [Option.get(progress.completionTime, 0)]);
+                  };
+                };
+                case null {}; // Mission deleted, ignore
+              };
+            };
+          };
+          case null {};
+        };
+      };
+
+      if (hasCompletedAtLeastOne) {
+        StableTrieMap.put(userScores, Text.equal, Text.hash, userUuid, score);
+      };
+    };
+
+    // 6. Rank users
+    type UserRankInfo = {
+      userUuid : Text;
+      totalPoints : Nat;
+      avgCompletionTime : Int;
+    };
+    var rankedUsers : [UserRankInfo] = [];
+    for ((_, score) in StableTrieMap.entries(userScores)) {
+      let numCompletions = Array.size(score.completionTimes);
+      if (numCompletions > 0) {
+        var sum : Int = 0;
+        for (t in score.completionTimes.vals()) { sum += t };
+        let avg = sum / (numCompletions : Nat);
+        rankedUsers := Array.append(rankedUsers, [{ userUuid = score.userUuid; totalPoints = score.totalPoints; avgCompletionTime = avg }]);
+      };
+    };
+
+    // Sort: Primary by points (desc), secondary by time (asc)
+    rankedUsers := Array.sort<UserRankInfo>(
+      rankedUsers,
+      func(a : UserRankInfo, b : UserRankInfo) : Order.Order {
+        if (a.totalPoints > b.totalPoints) { return #less };
+        if (a.totalPoints < b.totalPoints) { return #greater };
+        // Points are equal, use time
+        if (a.avgCompletionTime < b.avgCompletionTime) { return #less };
+        if (a.avgCompletionTime > b.avgCompletionTime) { return #greater };
+        return #equal;
+      },
+    );
+
+    // 7. Calculate and record winner data
+    type Winner = {
+      rank : Nat;
+      userUuid : Text;
+      totalPoints : Nat;
+      rewardAmount : Nat;
+    };
+    var winners : [Winner] = [];
+
+    if (Array.size(rankedUsers) >= 1) {
+      let first = rankedUsers[0];
+      winners := Array.append(winners, [{ rank = 1; userUuid = first.userUuid; totalPoints = first.totalPoints; rewardAmount = totalReward * 50 / 100 }]);
+    };
+    if (Array.size(rankedUsers) >= 2) {
+      let second = rankedUsers[1];
+      winners := Array.append(winners, [{ rank = 2; userUuid = second.userUuid; totalPoints = second.totalPoints; rewardAmount = totalReward * 30 / 100 }]);
+    };
+    if (Array.size(rankedUsers) >= 3) {
+      let third = rankedUsers[2];
+      winners := Array.append(winners, [{ rank = 3; userUuid = third.userUuid; totalPoints = third.totalPoints; rewardAmount = totalReward * 20 / 100 }]);
+    };
+
+    // 8. Update progress for ALL participants of this leaderboard mission
+    let settlementTime = Time.now();
+    for ((userUuid, userMissionsMap) in StableTrieMap.entries(userProgress)) {
+      switch (StableTrieMap.get(userMissionsMap, Nat.equal, Hash.hash, missionId)) {
+        case (?progress) {
+          if (progress.overallStatus != #CompletedSuccess) {
+            var updatedProgress = progress;
+            updatedProgress.overallStatus := #CompletedSuccess;
+            updatedProgress.completionTime := ?settlementTime;
+
+            var rankForUser : ?Nat = null;
+            var rewardForUser : ?Nat = null;
+            for (w in winners.vals()) {
+              if (w.userUuid == userUuid) {
+                rankForUser := ?w.rank;
+                rewardForUser := ?w.rewardAmount;
+              };
+            };
+
+            let resultDataJson = "{ \"status\": \"Settled\", \"rank\": " # (switch (rankForUser) { case (?r) Nat.toText(r); case null "null" }) # ", \"reward\": " # (switch (rewardForUser) { case (?r) Nat.toText(r); case null "null" }) # " }";
+
+            StableTrieMap.put(updatedProgress.flowOutputs, Nat.equal, Hash.hash, stepId, resultDataJson);
+
+            // Update the step state as well
+            let defaultStepState : NewTypes.UserActionStepState = {
+              var status = #NotStarted;
+              var attempts = 0;
+              var lastAttemptTime = null;
+              var lastMessageFromAction = null;
+            };
+            var stepState = Option.get(
+              StableTrieMap.get(updatedProgress.stepStates, Nat.equal, Hash.hash, stepId),
+              defaultStepState,
+            );
+            stepState.status := #Verified;
+            stepState.lastMessageFromAction := ?"Leaderboard settled.";
+            StableTrieMap.put(updatedProgress.stepStates, Nat.equal, Hash.hash, stepId, stepState);
+
+            StableTrieMap.put(userMissionsMap, Nat.equal, Hash.hash, missionId, updatedProgress);
+          };
+        };
+        case null {};
+      };
+    };
+
+    // 9. Finalize the mission itself
+    var updatedMission = mission;
+    updatedMission.status := #Concluded;
+    updatedMission.updates := Array.append(updatedMission.updates, [(settlementTime, msg.caller)]);
+    StableTrieMap.put(missions, Nat.equal, Hash.hash, missionId, updatedMission);
+
+    Debug.print("Leaderboard mission " # Nat.toText(missionId) # " has been successfully settled and concluded.");
+    return #ok(null);
   };
 
   /*
