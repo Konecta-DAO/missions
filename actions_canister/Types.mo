@@ -223,6 +223,13 @@ module Types {
       missionIds : [Nat];
       totalReward : Nat; // Total points to be distributed
     };
+    #EventJoinParams : {
+      var eventId : Text;
+      var principalToCheck : Principal;
+    };
+    #EventCreateAnyParams : {
+      var principalToCheck : Principal;
+    };
     #NoParams;
   };
 
@@ -308,6 +315,18 @@ module Types {
         rewardAmount : Nat;
       }];
       detailMessage : ?Text;
+    };
+    #EventJoinResult : {
+      eventId : Text;
+      principalChecked : Principal;
+      hasJoined : Bool;
+      verificationStatus : ActionStatusOutcome;
+    };
+    #EventCreateAnyResult : {
+      principalChecked : Principal;
+      hasCreatedEvents : Bool;
+      createdEventsCount : Nat;
+      verificationStatus : ActionStatusOutcome;
     };
     #NoData;
   };

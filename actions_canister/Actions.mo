@@ -10,6 +10,9 @@ import Helpers "Helpers";
 import Json "mo:json";
 import Option "mo:base/Option";
 import Time "mo:base/Time";
+import Debug "mo:base/Debug";
+import Int "mo:base/Int";
+import EventCanisterTypes "EventCanisterTypes";
 
 module Actions {
 
@@ -414,6 +417,155 @@ module Actions {
           status = #Error;
           outcome = #Failed;
           message = "Internal Error: handleLeaderboard received unexpected ActionParameters variant.";
+        });
+      };
+    };
+  };
+
+  public func handleEventJoin(actionParams : Types.ActionParameters) : async HandlerResult {
+    switch (actionParams) {
+      case (#EventJoinParams(params)) {
+        let eventCanister = actor ("yhl4v-6iaaa-aaaag-qnhma-cai") : actor {
+          checkIfAttendeeOrAcceptedUserExistsForEvent : query (Principal, Text) -> async Bool;
+        };
+
+        try {
+          let hasJoined = await eventCanister.checkIfAttendeeOrAcceptedUserExistsForEvent(params.principalToCheck, params.eventId);
+
+          let resultData : Types.ActionReturnedData = #EventJoinResult({
+            eventId = params.eventId;
+            principalChecked = params.principalToCheck;
+            hasJoined = hasJoined;
+            verificationStatus = #Success;
+          });
+
+          if (hasJoined) {
+            return #ok({
+              outcome = #Success;
+              returnedData = ?resultData;
+              message = ?"Successfully verified that the user has joined the event.";
+            });
+          } else {
+            return #ok({
+              outcome = #Failed;
+              returnedData = ?resultData;
+              message = ?"Verification complete: User has not joined the event.";
+            });
+          };
+
+        } catch (e) {
+          return #err({
+            status = #ApiError;
+            outcome = #Failed;
+            message = "An error occurred while calling the event canister to verify participation.";
+          });
+        };
+      };
+      case (_) {
+        return #err({
+          status = #Error;
+          outcome = #Failed;
+          message = "Internal Error: handleEventJoin received unexpected ActionParameters variant.";
+        });
+      };
+    };
+  };
+
+  public func handleEventCreateAny(actionParams : Types.ActionParameters) : async HandlerResult {
+    switch (actionParams) {
+      case (#EventCreateAnyParams(params)) {
+        let eventCanister = actor ("yhl4v-6iaaa-aaaag-qnhma-cai") : actor {
+          getPaginatedFilteredEvents : query (EventCanisterTypes.GetFilteredEventsPayload) -> async Result.Result<{ items : [EventCanisterTypes.EventWithUserDataPayload]; totalRecords : Nat }, [Text]>;
+        };
+
+        let now = Time.now();
+
+        // Query for past/present events created by the user
+        let pastPayload : EventCanisterTypes.GetFilteredEventsPayload = {
+          currentTimestamp = Int.abs(now);
+          isFuture = false;
+          eventType = null;
+          status = null;
+          userId = ?params.principalToCheck;
+          categories = null;
+          recordingType = null;
+          limit = 1;
+          cursor = null;
+        };
+
+        // Query for future events created by the user
+        let futurePayload : EventCanisterTypes.GetFilteredEventsPayload = {
+          currentTimestamp = Int.abs(now);
+          isFuture = true;
+          eventType = null;
+          status = null;
+          userId = ?params.principalToCheck;
+          categories = null;
+          recordingType = null;
+          limit = 1;
+          cursor = null;
+        };
+
+        try {
+          var totalEvents : Nat = 0;
+
+          let pastResult = await eventCanister.getPaginatedFilteredEvents(pastPayload);
+          switch (pastResult) {
+            case (#ok(res)) {
+              totalEvents += res.totalRecords;
+            };
+            case (#err(e)) {
+              // Fail gracefully, maybe log the error, but continue to check future events
+              Debug.print("Error checking past events for user " # Principal.toText(params.principalToCheck));
+            };
+          };
+
+          let futureResult = await eventCanister.getPaginatedFilteredEvents(futurePayload);
+          switch (futureResult) {
+            case (#ok(res)) {
+              totalEvents += res.totalRecords;
+            };
+            case (#err(e)) {
+              Debug.print("Error checking future events for user " # Principal.toText(params.principalToCheck));
+            };
+          };
+
+          let hasCreated = totalEvents > 0;
+
+          let resultData : Types.ActionReturnedData = #EventCreateAnyResult({
+            principalChecked = params.principalToCheck;
+            hasCreatedEvents = hasCreated;
+            createdEventsCount = totalEvents;
+            verificationStatus = #Success;
+          });
+
+          if (hasCreated) {
+            return #ok({
+              outcome = #Success;
+              returnedData = ?resultData;
+              message = ?"Successfully verified that the user has created at least one event.";
+            });
+          } else {
+            return #ok({
+              outcome = #Failed;
+              returnedData = ?resultData;
+              message = ?"Verification complete: User has not created any events.";
+            });
+          };
+
+        } catch (e) {
+          return #err({
+            status = #ApiError;
+            outcome = #Failed;
+            message = "An error occurred while calling the event canister to check for created events.";
+          });
+        };
+      };
+      case (_) {
+        return #err({
+          status = #Error;
+          outcome = #Failed;
+          message = "Internal Error: handleEventCreateAny received unexpected ActionParameters variant.";
         });
       };
     };

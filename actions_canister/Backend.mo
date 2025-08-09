@@ -284,6 +284,63 @@ persistent actor class Backend() {
         var tags = ?["utility", "leaderboard", "timer"];
       };
       StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, leaderboardDef.id, leaderboardDef);
+      let eventJoinDef : Types.ActionDefinition = {
+        id = "event_join_v1";
+        var name = "Verify Event Participation";
+        var descriptionTemplate = "Verify if user {{principalToCheck}} has joined the event with ID {{eventId}}.";
+        platform = #CanisterEndpoint;
+        var version = 1;
+        var defaultUIType = #ButtonOnly({ buttonText = "Verify Participation" });
+        var parameterSchema = [
+          {
+            name = "eventId";
+            dataType = #Text;
+            isRequired = true;
+            var inputLabel = "Event ID";
+            var helpText = ?"The unique ID of the event to check participation for.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+          {
+            name = "principalToCheck";
+            dataType = #Principal;
+            isRequired = true;
+            var inputLabel = "User's Principal";
+            var helpText = ?"The Principal ID of the user whose participation should be checked.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+        ];
+        var outputSchemaJson = ?"{ \"eventId\": \"string\", \"principalChecked\": \"principal\", \"hasJoined\": true, \"verificationStatus\": \"#Success|#Failed\" }";
+        var executionHandler = "event_join_handler_v1";
+        var tags = ?["event", "konecta", "participation", "on-chain"];
+      };
+      StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, eventJoinDef.id, eventJoinDef);
+
+      // --- Define Action: event_create_any_v1 ---
+      let eventCreateAnyDef : Types.ActionDefinition = {
+        id = "event_create_any_v1";
+        var name = "Verify Event Creation";
+        var descriptionTemplate = "Verify if user {{principalToCheck}} has created any event.";
+        platform = #CanisterEndpoint;
+        var version = 1;
+        var defaultUIType = #ButtonOnly({ buttonText = "Verify Creation" });
+        var parameterSchema = [
+          {
+            name = "principalToCheck";
+            dataType = #Principal;
+            isRequired = true;
+            var inputLabel = "User's Principal";
+            var helpText = ?"The Principal ID of the user who should have created an event.";
+            var defaultValueJson = null;
+            var validationRegex = null;
+          },
+        ];
+        var outputSchemaJson = ?"{ \"principalChecked\": \"principal\", \"hasCreatedEvents\": true, \"createdEventsCount\": 1, \"verificationStatus\": \"#Success|#Failed\" }";
+        var executionHandler = "event_create_any_handler_v1";
+        var tags = ?["event", "konecta", "creation", "on-chain"];
+      };
+      StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, eventCreateAnyDef.id, eventCreateAnyDef);
     };
   };
 
@@ -587,7 +644,6 @@ persistent actor class Backend() {
         };
       };
       case ("twitter_retweet_v1") {
-        // ... (existing correct logic for required params)
         switch (getRequiredParam("tweetIds")) {
           case (#ok(rawParamValue)) {
             switch (rawParamValue) {
@@ -698,7 +754,6 @@ persistent actor class Backend() {
         return #ok(#VerifyTweetParams({ var keywords = keywordsOpt; var mentions = mentionsOpt; var hashtags = hashtagsOpt; var cashtags = cashtagsOpt; var emojis = emojisOpt }));
       };
       case ("twitter_like_v1") {
-        // ... (existing correct logic for required params)
         switch (getRequiredParam("tweetIds")) {
           case (#ok(rawParamValue)) {
             switch (rawParamValue) {
@@ -888,7 +943,6 @@ persistent actor class Backend() {
         return #ok(#VoteOnProposalParams({ var snsCanisterId = snsCanisterIdVal; var proposalId = proposalIdVal; var principalToCheck = principalToCheckVal }));
       };
       case ("sns_create_proposal_v1") {
-        // ... (existing correct logic for required params)
         switch (getRequiredParam("snsCanisterId")) {
           case (#ok(rawParamValue)) {
             switch (rawParamValue) {
@@ -906,7 +960,6 @@ persistent actor class Backend() {
 
       // ---- NUANCE ----
       case ("nuance_follow_v1") {
-        // ... (existing correct logic for required params)
         switch (getRequiredParam("nuanceUsernames")) {
           case (#ok(rawParamValue)) {
             switch (rawParamValue) {
@@ -923,6 +976,48 @@ persistent actor class Backend() {
           };
           case (#err(e)) { return #err(e) };
         };
+      };
+
+      // ---- EVENT CANISTER ACTIONS ----
+      case ("event_join_v1") {
+        var eventIdVal : Text = "";
+        var principalToCheckVal : Principal = Principal.fromText("aaaaa-aa");
+
+        switch (getRequiredParam("eventId")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#TextValue(t)) eventIdVal := t;
+              case _ return #err("Param 'eventId' not Text");
+            };
+          };
+          case (#err(e)) return #err(e);
+        };
+
+        switch (getRequiredParam("principalToCheck")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#PrincipalValue(p)) principalToCheckVal := p;
+              case _ return #err("Param 'principalToCheck' not Principal");
+            };
+          };
+          case (#err(e)) return #err(e);
+        };
+        return #ok(#EventJoinParams({ var eventId = eventIdVal; var principalToCheck = principalToCheckVal }));
+      };
+
+      case ("event_create_any_v1") {
+        var principalToCheckVal : Principal = Principal.fromText("aaaaa-aa");
+
+        switch (getRequiredParam("principalToCheck")) {
+          case (#ok(val)) {
+            switch (val) {
+              case (#PrincipalValue(p)) principalToCheckVal := p;
+              case _ return #err("Param 'principalToCheck' not Principal");
+            };
+          };
+          case (#err(e)) return #err(e);
+        };
+        return #ok(#EventCreateAnyParams({ var principalToCheck = principalToCheckVal }));
       };
 
       // ---- OTHER ----
@@ -1426,6 +1521,12 @@ persistent actor class Backend() {
             case _ {};
           };
         };
+      };
+      case ("event_join_handler_v1") {
+        handlerOutcome := await Actions.handleEventJoin(concreteActionParams);
+      };
+      case ("event_create_any_handler_v1") {
+        handlerOutcome := await Actions.handleEventCreateAny(concreteActionParams);
       };
       case (_) {
         handlerOutcome := #err({
