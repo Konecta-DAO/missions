@@ -263,3 +263,27 @@
   color: var(--accent-color, #7f79f5); // Or a neutral info color
   font-style: italic;
 }
+
+.actionButton {
+    background-color: var(--accent-color, #6C63FF);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    margin-top: 10px; // Space if it's after inputs
+
+    &:hover:not(:disabled) {
+        background-color: var(--accent-hover-color, #534bff);
+    }
+
+    &:disabled {
+        background-color: var(--disabled-bg-color, #4a4466);
+        color: var(--disabled-text-color, #8c88a2);
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+}

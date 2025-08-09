@@ -64,10 +64,10 @@ persistent actor class ProjectBackend() {
   var userProgress : StableTrieMap.StableTrieMap<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>> = StableTrieMap.new<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>();
   var missionAssets : StableTrieMap.StableTrieMap<Text, Blob> = StableTrieMap.new<Text, Blob>();
 
-  //                            //
-  //       MIGRATION CODE       //
-  //   (MAKE COPY OF TRIEMAP)   //
-  //                            //
+  //                             //
+  //        MIGRATION CODE       //
+  //    (MAKE COPY OF TRIEMAP)   //
+  //                             //
 
   /*
     system func preupgrade() {
@@ -1827,16 +1827,29 @@ persistent actor class ProjectBackend() {
     return #ok(null);
   };
 
-  //
-  //  Miscellaneous Functions
-  //
-
-  public shared query func verifyUserIsAdmin(principalId : Principal) : async Bool {
-    switch (StableTrieMap.get(adminPermissions, Principal.equal, Principal.hash, principalId)) {
-      case null { return false };
-      case (?_) { return true };
+  /*
+    public shared query func getTimeRemainingTest(recursiveCooldown : Int) : async Int {
+        let completionTime = Time.now();
+        let currentTime = Time.now(); // Nanoseconds
+        if (currentTime < (completionTime) + (recursiveCooldown * 1000000)) {
+            return ((((completionTime) + (recursiveCooldown * 1000000)) - currentTime) / 1000000);
+        } else {
+            return 0; // Cooldown has passed
+        };
     };
-  };
+
+    public shared query func getMissionsInfo() : async [(Nat, NewTypes.SerializedMission)] {
+        var missionsInfo : [(Nat, NewTypes.SerializedMission)] = [];
+        for ((id, mission) in StableTrieMap.entries(missions)) {
+            missionsInfo := Array.append(missionsInfo, [(id, Serialization.serializeMission(mission))]);
+        };
+        return missionsInfo;
+    };
+    */
+
+  //
+  //  Analytics Functions
+  //
 
   // Analytics Function 1: High-level overview of the project
   public shared query (msg) func get_analytics_overview() : async AnalyticsTypes.ProjectGlobalAnalytics {
@@ -1906,6 +1919,26 @@ persistent actor class ProjectBackend() {
       for ((_uuid, missionsProgressMap) in StableTrieMap.entries(userProgress)) {
         if (StableTrieMap.containsKey(missionsProgressMap, Nat.equal, Hash.hash, id)) {
           estimated_starts_for_mission += 1;
+        };
+      };
+
+      var active_missions_count : Nat = 0;
+      var expired_missions_count : Nat = 0;
+      var completed_overall_missions_count : Nat = 0;
+      var draft_missions_count : Nat = 0;
+      var paused_missions_count : Nat = 0;
+      var concluded_missions_count : Nat = 0;
+      var project_lifetime_completions_sum : Nat = 0;
+
+      for ((_id, m) in StableTrieMap.entries(missions)) {
+        project_lifetime_completions_sum += m.currentTotalCompletions;
+        switch (m.status) {
+          case (#Active) { active_missions_count += 1 };
+          case (#Expired) { expired_missions_count += 1 };
+          case (#Completed) { completed_overall_missions_count += 1 };
+          case (#Draft) { draft_missions_count += 1 };
+          case (#Paused) { paused_missions_count += 1 };
+          case (#Concluded) { concluded_missions_count += 1 };
         };
       };
 

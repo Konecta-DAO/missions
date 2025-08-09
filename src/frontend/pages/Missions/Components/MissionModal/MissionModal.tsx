@@ -10,6 +10,7 @@ import Confetti from 'react-confetti';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory } from '../../../../../declarations/index/index.js';
 import { IndexCanisterId } from '../../../../main.tsx';
+import Timer from './Timer.tsx';
 
 // parseActionFlow remains the same
 const parseActionFlow = (jsonString: string): ActionFlow | null => {
@@ -55,7 +56,7 @@ const MissionModal: React.FC<MissionModalProps> = ({
     closeModal,
 }) => {
     const { principalId, userProgress: globalUserProgress } = useGlobalID();
-    const { executeBackendActionStep, fetchUserMissionProgressAndSet, startBackendMission, fetchUserGlobalProfileAndSet } = useFetchData();
+    const { executeBackendActionStep, fetchUserMissionProgressAndSet, startBackendMission, fetchUserGlobalProfileAndSet, cooldownRemainingForNewCompletion } = useFetchData();
 
     const agent = HttpAgent.createSync();
     const actor = Actor.createActor(idlFactory, {
@@ -71,6 +72,8 @@ const MissionModal: React.FC<MissionModalProps> = ({
     const [isLoadingAction, setIsLoadingAction] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
     const [isStartingMission, setIsStartingMission] = useState(false);
+    const [cooldownRemaining, setCooldownRemaining] = useState(0);
+    const [disabledStartAgain, setDisabledStartAgain] = useState(true);
     const [showConfetti, setShowConfetti] = useState(false);
 
     // 1. Parse ActionFlow when mission changes (existing - good)
@@ -239,6 +242,43 @@ const MissionModal: React.FC<MissionModalProps> = ({
         setIsLoadingAction(false);
     };
 
+    const formatMilliseconds = (ms: bigint | number): number => {
+        let milliseconds = ms.toString();
+        return Number(milliseconds.slice(0, -6));
+    };
+
+    const formatDate = (timestamp: bigint | number): string => {
+        const date = new Date(formatMilliseconds(timestamp));
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    };
+
+    useEffect(() => {
+        if (!projectCanisterId || !currentMissionUserProgress || !mission.isRecursive || !mission.recursiveTimeCooldown) return;
+        if (!currentMissionUserProgress.completionTime[0]) return;
+        if (!mission.recursiveTimeCooldown[0]) return;
+
+        try {
+            cooldownRemainingForNewCompletion(
+                projectCanisterId,
+                formatMilliseconds(currentMissionUserProgress.completionTime[0]) || 0,
+                formatMilliseconds(mission.recursiveTimeCooldown[0]) || 0
+            ).then((remaining) => {
+                if (Number(remaining) === 0) setDisabledStartAgain(false);
+                setCooldownRemaining(remaining);
+            });
+        } catch (error) {
+            console.error("Error checking cooldown:", error);
+            setCooldownRemaining(0); // Reset on error
+        }
+    }, [projectCanisterId, currentMissionUserProgress, mission.isRecursive, mission.recursiveTimeCooldown, cooldownRemainingForNewCompletion]);
+
     const missionIconDisplayUrl = mission.iconUrl?.[0]?.trim() && projectCanisterId
         ? constructRawIcpAssetUrl(mission.iconUrl[0], projectCanisterId)
         : '/assets/KonectaIconPB.webp';
@@ -298,11 +338,41 @@ const MissionModal: React.FC<MissionModalProps> = ({
                                 ? `🎉 Mission Complete! 🎉`
                                 : `🚫 Mission Attempt Ended.`}
                         </h3>
-                        <p>
-                            {currentMissionUserProgress?.overallStatus.hasOwnProperty('CompletedSuccess')
-                                ? `You've successfully completed "${mission.name}". Well done!`
-                                : `This mission attempt has concluded. Check your progress or try again if available.`}
-                        </p>
+                        {mission.isRecursive ? (
+                            <>
+                                {currentMissionUserProgress?.completionTime[0]
+                                ? (
+                                    <>
+                                        <p>{`Completion Time: ${formatDate(currentMissionUserProgress.completionTime[0])}`}</p>
+                                        <Timer milliseconds={BigInt(cooldownRemaining)} />
+                                    </>
+                                ) : (
+                                    <p>No completion time available</p>
+                                )}
+                                {disabledStartAgain ? (
+                                    <button disabled={true} className={styles.actionButton}>
+                                        Start Mission
+                                    </button>
+                                ) : (
+                                    <button onClick={handleStartMission} disabled={isStartingMission} className={styles.actionButton}>
+                                        Start Mission
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <p>
+                                    {currentMissionUserProgress?.overallStatus.hasOwnProperty('CompletedSuccess')
+                                        ? `You've successfully completed "${mission.name}". Well done!`
+                                        : `This mission attempt has concluded. Check your progress or try again if available.`}
+                                </p>
+                                <p>
+                                    {currentMissionUserProgress?.completionTime[0]
+                                    ? `Completion Time: ${formatDate(currentMissionUserProgress.completionTime[0])}`
+                                    : "No completion time available"}
+                                </p>
+                            </>
+                        )}
                         {/* Optionally show outputs or claimed reward status */}
                     </div>
                 ) : currentStepDefinition ? (
