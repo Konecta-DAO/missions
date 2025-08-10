@@ -122,36 +122,6 @@ module Actions {
     };
   };
 
-  // Example: Handler for a "twitter_follow" action
-  public func handleTwitterFollow(
-    #TwitterFollowParams(params) : Types.ActionParameters
-  ) : Result.Result<{ outcome : Types.ActionOutcome; returnedData : ?Types.ActionReturnedData; message : ?Text }, { status : Types.ActionStatus; outcome : Types.ActionOutcome; message : Text }> {
-
-    // Simulate API call and logic
-    // In a real scenario, this would involve HTTPS outcalls, etc.
-    // For now, let's assume it's always successful for demonstration.
-
-    // Example: Constructing returned data
-    var followedResults : [{
-      account : Text;
-      status : Types.ActionStatusOutcome;
-      detail : ?Text;
-    }] = [];
-    for (acc in params.accounts.vals()) {
-      followedResults := Array.append(followedResults, [{ account = acc; status = #Success; detail = ?"Followed via placeholder handler." }]);
-    };
-
-    return #ok({
-      outcome = #Success;
-      returnedData = ?#TwitterFollowResult({
-        followedAccounts = followedResults;
-      });
-      message = ?"Successfully processed Twitter follow (placeholder).";
-    });
-    // Example error case:
-    // return #err({ status = #ApiError; outcome = #Failed; message = "Failed to connect to Twitter API (placeholder)."});
-  };
-
   public func handleNftOwnership(actionParams : Types.ActionParameters) : async HandlerResult {
     type TokenId = Nat64;
 

@@ -43,8 +43,7 @@ persistent actor class Backend() {
   };
 
   public shared func initialize() {
-    // This check ensures that we only populate the definitions on the first installation,
-    // as the stable map will persist across upgrades.
+    // Populate the definitions on the first installation,
     if (StableTrieMap.isEmpty(actionDefinitions)) {
       // --- Define Action: twitter_follow_v1 ---
       let twitterFollowDef : Types.ActionDefinition = {
@@ -53,6 +52,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Follow the account @{{accounts}} on Twitter.";
         platform = #Twitter;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({ buttonText = "Verify Follow" });
         var parameterSchema = [{
           name = "accounts";
@@ -67,7 +67,6 @@ persistent actor class Backend() {
         var executionHandler = "twitter_follow_handler_v1";
         var tags = ?["twitter", "social", "follow"];
       };
-      // Correct syntax for StableTrieMap insertion
       StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, twitterFollowDef.id, twitterFollowDef);
 
       // --- Define Action: twitter_like_v1 ---
@@ -77,6 +76,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Like the tweet with ID {{tweetIds}}.";
         platform = #Twitter;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({ buttonText = "Verify Like" });
         var parameterSchema = [{
           name = "tweetIds";
@@ -100,6 +100,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Join the Discord server.";
         platform = #Discord;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({
           buttonText = "Verify Membership";
         });
@@ -125,6 +126,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Verify if user {{principalToCheck}} has voted on proposal #{{proposalId}} in the {{snsCanisterId}} SNS.";
         platform = #SNS;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({ buttonText = "Verify Vote" });
         var parameterSchema = [
           {
@@ -167,6 +169,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Verify ownership of at least {{requiredTokenCount}} NFT(s) from the collection at canister ID {{nftCanisterId}}.";
         platform = #CanisterEndpoint; // Or you could add a #DIP721 variant to PlatformType
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({ buttonText = "Verify NFT Ownership" });
         var parameterSchema = [
           {
@@ -210,6 +213,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Enter the secret code to complete this action.";
         platform = #CanisterEndpoint;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #InputAndButton({
           inputFields = [{
             keyForUserInput = "codeToValidate";
@@ -240,6 +244,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "At {{endDate}}, calculates top performers across missions {{missionIds}} from project {{projectCanisterId}} and distributes {{totalReward}} points.";
         platform = #CanisterEndpoint;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #Informational;
         var parameterSchema = [
           {
@@ -290,6 +295,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Verify if user {{principalToCheck}} has joined the event with ID {{eventId}}.";
         platform = #CanisterEndpoint;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({ buttonText = "Verify Participation" });
         var parameterSchema = [
           {
@@ -324,6 +330,7 @@ persistent actor class Backend() {
         var descriptionTemplate = "Verify if user {{principalToCheck}} has created any event.";
         platform = #CanisterEndpoint;
         var version = 1;
+        var enabled = true;
         var defaultUIType = #ButtonOnly({ buttonText = "Verify Creation" });
         var parameterSchema = [
           {
@@ -534,6 +541,33 @@ persistent actor class Backend() {
       Serialization.serializeActionDefinition,
     );
     return serializedResults;
+  };
+
+  public shared (msg) func toggleActionDefinitionStatus(id : Text, enable : Bool) : async Result.Result<Null, Text> {
+    // 1. Check if the caller is an authorized admin
+    if (not isAdmin(msg.caller)) {
+      return #err("Caller is not authorized.");
+    };
+
+    // 2. Get the action definition from the map
+    switch (StableTrieMap.get(actionDefinitions, Text.equal, Text.hash, id)) {
+      case null {
+        return #err("Action definition with ID '" # id # "' not found.");
+      };
+      case (?def) {
+        // 3. Update the 'enabled' field
+        var mutableDef = def;
+        mutableDef.enabled := enable;
+
+        // 4. Put the updated definition back into the map
+        StableTrieMap.put(actionDefinitions, Text.equal, Text.hash, id, mutableDef);
+
+        let statusText = if (enable) "enabled" else "disabled";
+        Debug.print("Action '" # id # "' has been " # statusText # " by " # Principal.toText(msg.caller));
+
+        return #ok(null);
+      };
+    };
   };
 
   // --- ACTION EXECUTION ENGINE ---
@@ -1450,9 +1484,6 @@ persistent actor class Backend() {
       message = "Default error: handler outcome not initialized.";
     });
     switch (actionDef.executionHandler) {
-      case ("twitter_follow_handler_v1") {
-        handlerOutcome := Actions.handleTwitterFollow(concreteActionParams);
-      };
       case ("sns_vote_handler_v1") {
         handlerOutcome := await Actions.handleSnsVote(concreteActionParams);
       };

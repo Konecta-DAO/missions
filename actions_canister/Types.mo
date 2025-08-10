@@ -95,6 +95,7 @@ module Types {
     // e.g., "Follow {{accounts}} on Twitter." Placeholders match ParameterDefinition.name.
     platform : PlatformType;
     var version : Nat; // Version of this action definition
+    var enabled : Bool;
     var defaultUIType : UIInteractionType; // Suggested UI if not overridden in ActionInstance
     // Defines expected parameters, their types, validation, and UI hints.
     var parameterSchema : [ActionParameterDefinition];
@@ -112,6 +113,7 @@ module Types {
     descriptionTemplate : Text;
     platform : PlatformType;
     version : Nat;
+    enabled : Bool;
     defaultUIType : UIInteractionType;
     parameterSchema : [SerializedActionParameterDefinition];
     outputSchemaJson : ?Text;
