@@ -505,6 +505,48 @@ const useFetchData = () => {
         }
     }, [getProjectBackendActor]);
 
+    const checkUserCompletions = useCallback(async (
+        projectCanisterId: string,
+        missionId: bigint,
+        userPrincipal: Principal | null,
+    ) => {
+        if (!userPrincipal) {
+            console.error("No user principal available for completion check.");
+            return;
+        }
+
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) {
+            console.error("No project actor available for completion check.");
+            return;
+        }
+
+        try {
+            const completionsCount = await projectActor.getUserCompletionsCount(userPrincipal, missionId);
+            return completionsCount;
+        } catch (error) {
+            console.error("Error fetching user completions:", error);
+        }
+    }, [getProjectBackendActor]);
+
+    const checkMissionCompletions = useCallback(async (
+        projectCanisterId: string,
+        missionId: bigint,
+    ) => {
+        const projectActor = getProjectBackendActor(projectCanisterId);
+        if (!projectActor) {
+            console.error("No project actor available for completion check.");
+            return;
+        }
+
+        try {
+            const completionsCount = await projectActor.getMissionCompletionsCount(missionId);
+           return completionsCount;
+        } catch (error) {
+            console.error("Error fetching mission completions:", error);
+        }
+    }, [getProjectBackendActor]);
+
     return {
         fetchInitialPlatformData,
         fetchAllProjectDetailsAndSet,
@@ -517,7 +559,9 @@ const useFetchData = () => {
         fetchUserGlobalProfileAndSet,
         fetchWalletLinkInfoAndSet,
         verifyUserIsAdmin,
-        cooldownRemainingForNewCompletion
+        cooldownRemainingForNewCompletion,
+        checkUserCompletions,
+        checkMissionCompletions,
     };
 };
 

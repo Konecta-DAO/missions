@@ -56,7 +56,15 @@ const MissionModal: React.FC<MissionModalProps> = ({
     closeModal,
 }) => {
     const { principalId, userProgress: globalUserProgress } = useGlobalID();
-    const { executeBackendActionStep, fetchUserMissionProgressAndSet, startBackendMission, fetchUserGlobalProfileAndSet, cooldownRemainingForNewCompletion } = useFetchData();
+    const {
+        executeBackendActionStep,
+        fetchUserMissionProgressAndSet,
+        startBackendMission,
+        fetchUserGlobalProfileAndSet,
+        cooldownRemainingForNewCompletion,
+        checkUserCompletions,
+        checkMissionCompletions
+    } = useFetchData();
 
     const agent = HttpAgent.createSync();
     const actor = Actor.createActor(idlFactory, {
@@ -74,6 +82,9 @@ const MissionModal: React.FC<MissionModalProps> = ({
     const [isStartingMission, setIsStartingMission] = useState(false);
     const [cooldownRemaining, setCooldownRemaining] = useState(0);
     const [disabledStartAgain, setDisabledStartAgain] = useState(true);
+    const [disabledCompletionLimit, setDisabledCompletionLimit] = useState(true);
+    const [disabledUserCompletionLimit, setDisabledUserCompletionLimit] = useState(true);
+    const [loadingInfo, setLoadingInfo] = useState(true);
     const [showConfetti, setShowConfetti] = useState(false);
 
     // 1. Parse ActionFlow when mission changes (existing - good)
@@ -279,6 +290,45 @@ const MissionModal: React.FC<MissionModalProps> = ({
         }
     }, [projectCanisterId, currentMissionUserProgress, mission.isRecursive, mission.recursiveTimeCooldown, cooldownRemainingForNewCompletion]);
 
+    useEffect(() => {
+        if (!projectCanisterId || !currentMissionUserProgress) return;
+
+        const userLimit = mission.maxCompletionsPerUser[0] || 0;
+        const missionLimit = mission.maxTotalCompletions[0] || 0;
+
+        try {
+            checkUserCompletions(projectCanisterId, missionId, principalId)
+            .then((res) => {
+                if (userLimit === 0) {
+                    setDisabledUserCompletionLimit(false);
+                } else if (res as number >= userLimit) {
+                    setDisabledUserCompletionLimit(true);
+                } else {
+                    setDisabledUserCompletionLimit(false);
+                }
+                setLoadingInfo(false);
+            });
+        } catch (error) {
+            console.error("Error checking completion:", error);
+        }
+
+        try {
+            checkMissionCompletions(projectCanisterId, missionId)
+            .then((res) => {
+                if (missionLimit === 0) {
+                    setDisabledCompletionLimit(false);
+                } else if (res as number >= missionLimit) {
+                    setDisabledCompletionLimit(true);
+                } else {
+                    setDisabledCompletionLimit(false);
+                }
+                setLoadingInfo(false);
+            });
+        } catch (error) {
+            console.error("Error checking completion:", error);
+        }
+    }, [projectCanisterId, currentMissionUserProgress, missionId, principalId, mission.maxCompletionsPerUser, mission.maxTotalCompletions, checkUserCompletions, checkMissionCompletions]);
+
     const missionIconDisplayUrl = mission.iconUrl?.[0]?.trim() && projectCanisterId
         ? constructRawIcpAssetUrl(mission.iconUrl[0], projectCanisterId)
         : '/assets/KonectaIconPB.webp';
@@ -349,13 +399,15 @@ const MissionModal: React.FC<MissionModalProps> = ({
                                 ) : (
                                     <p>No completion time available</p>
                                 )}
-                                {disabledStartAgain ? (
-                                    <button disabled={true} className={styles.actionButton}>
+                                {(!disabledStartAgain && !disabledCompletionLimit && !disabledUserCompletionLimit)  ? (
+                                    <button onClick={handleStartMission} disabled={isStartingMission} className={styles.actionButton}>
                                         Start Mission
                                     </button>
                                 ) : (
-                                    <button onClick={handleStartMission} disabled={isStartingMission} className={styles.actionButton}>
-                                        Start Mission
+                                    <button disabled={true} className={styles.actionButton}>
+                                        {loadingInfo
+                                        ? "Loading..."
+                                        : "Completed or Not Available"}
                                     </button>
                                 )}
                             </>
