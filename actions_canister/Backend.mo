@@ -43,6 +43,8 @@ persistent actor class Backend() {
   };
 
   public shared func initialize() {
+    // Clear the action definitions
+    StableTrieMap.clear(actionDefinitions);
     // Populate the definitions on the first installation,
     if (StableTrieMap.isEmpty(actionDefinitions)) {
       // --- Define Action: twitter_follow_v1 ---
