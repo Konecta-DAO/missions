@@ -1831,57 +1831,83 @@ persistent actor class ProjectBackend() {
   //  Miscellaneous Functions
   //
 
-    public shared query func verifyUserIsAdmin(principalId : Principal) : async Bool {
-        switch (StableTrieMap.get(adminPermissions, Principal.equal, Principal.hash, principalId)) {
-            case null { return false };
-            case (?_) { return true };
-        };
+  public func principalToUUID(principal : Principal) : async Text {
+    let indexActor = actor (indexCanisterId) : actor {
+      getUUID : query (Principal) -> async Text;
     };
+    let userUUID = await indexActor.getUUID(principal);
+    return userUUID;
+  };
 
-    public shared query func checkMissionIsRecursive(missionId : Nat) : async Bool {
-        switch (StableTrieMap.get(missions, Nat.equal, Hash.hash, missionId)) {
-            case null { return false };
-            case (?mission) {
-                return mission.isRecursive;
-            };
-        };
+  public shared func getUserCompletionsCount(principal : Principal, missionId : Nat) : async Nat {
+    let userUUID = await principalToUUID(principal);
+
+    switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+      case null { return 0 };
+      case (?m) {
+        return Option.get(StableTrieMap.get<Text, Nat>(m.usersWhoCompletedCount, Text.equal, Text.hash, userUUID), 0);
+      };
     };
+  };
 
-    public shared query func getTimeRemainingForNewCompletion(
-        completionTime : Int, // Comes in miliseconds
-        recursiveCooldown : Int // Comes in miliseconds
-    ) : async Int {
-        let currentTime = Time.now(); // Nanoseconds
-        if (currentTime < (completionTime * 1000000) + (recursiveCooldown * 1000000)) {
-            return ((((completionTime * 1000000) + (recursiveCooldown * 1000000)) - currentTime) / 1000000);
-        } else {
-            return 0; // Cooldown has passed
-        };
+  public shared func getMissionCompletionsCount(missionId : Nat) : async Nat {
+    switch (StableTrieMap.get<Nat, NewTypes.Mission>(missions, Nat.equal, Hash.hash, missionId)) {
+      case null { return 0 };
+      case (?m) {
+        return m.currentTotalCompletions;
+      };
     };
+  };
 
-    /*
-    public shared query func getTimeRemainingTest(recursiveCooldown : Int) : async Int {
-        let completionTime = Time.now();
-        let currentTime = Time.now(); // Nanoseconds
-        if (currentTime < (completionTime) + (recursiveCooldown * 1000000)) {
-            return ((((completionTime) + (recursiveCooldown * 1000000)) - currentTime) / 1000000);
-        } else {
-            return 0; // Cooldown has passed
-        };
+  public shared query func verifyUserIsAdmin(principalId : Principal) : async Bool {
+    switch (StableTrieMap.get(adminPermissions, Principal.equal, Principal.hash, principalId)) {
+      case null { return false };
+      case (?_) { return true };
     };
+  };
 
-    public shared query func getMissionsInfo() : async [(Nat, NewTypes.SerializedMission)] {
-        var missionsInfo : [(Nat, NewTypes.SerializedMission)] = [];
-        for ((id, mission) in StableTrieMap.entries(missions)) {
-            missionsInfo := Array.append(missionsInfo, [(id, Serialization.serializeMission(mission))]);
-        };
-        return missionsInfo;
+  public shared query func checkMissionIsRecursive(missionId : Nat) : async Bool {
+    switch (StableTrieMap.get(missions, Nat.equal, Hash.hash, missionId)) {
+      case null { return false };
+      case (?mission) {
+        return mission.isRecursive;
+      };
     };
-    */
+  };
 
-    //
-    //  Analytics Functions
-    //
+  public shared query func getTimeRemainingForNewCompletion(
+    completionTime : Int, // Comes in miliseconds
+    recursiveCooldown : Int // Comes in miliseconds
+  ) : async Int {
+    let currentTime = Time.now(); // Nanoseconds
+    if (currentTime < (completionTime * 1000000) + (recursiveCooldown * 1000000)) {
+      return ((((completionTime * 1000000) + (recursiveCooldown * 1000000)) - currentTime) / 1000000);
+    } else {
+      return 0; // Cooldown has passed
+    };
+  };
+
+  public shared query func getTimeRemainingTest(recursiveCooldown : Int) : async Int {
+    let completionTime = Time.now();
+    let currentTime = Time.now(); // Nanoseconds
+    if (currentTime < (completionTime) + (recursiveCooldown * 1000000)) {
+      return ((((completionTime) + (recursiveCooldown * 1000000)) - currentTime) / 1000000);
+    } else {
+      return 0; // Cooldown has passed
+    };
+  };
+
+  public shared query func getMissionsInfo() : async [(Nat, NewTypes.SerializedMission)] {
+    var missionsInfo : [(Nat, NewTypes.SerializedMission)] = [];
+    for ((id, mission) in StableTrieMap.entries(missions)) {
+      missionsInfo := Array.append(missionsInfo, [(id, Serialization.serializeMission(mission))]);
+    };
+    return missionsInfo;
+  };
+
+  //
+  //  Analytics Functions
+  //
 
   // Analytics Function 1: High-level overview of the project
   public shared query (msg) func get_analytics_overview() : async AnalyticsTypes.ProjectGlobalAnalytics {
