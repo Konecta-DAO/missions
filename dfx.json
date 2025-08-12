@@ -14,6 +14,13 @@
         "node_compatibility": true
       }
     },
+    "nft_p": {
+      "type": "motoko",
+      "main": "dip721_placeholder_canister/DIP721_NFT_Canister.mo",
+      "declarations": {
+        "node_compatibility": true
+      }
+    },
     "test_backend": {
       "type": "motoko",
       "main": "NewProject/Backend.mo",
