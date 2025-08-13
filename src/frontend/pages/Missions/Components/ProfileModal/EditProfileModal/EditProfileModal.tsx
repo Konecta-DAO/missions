@@ -54,16 +54,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
 
   const handleBackgroundClick = (e: FormEvent) => {
     if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-  
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
       closeModal();
-      setIsClosing(false); // Reset for next open
-    }, 300); // Match animation duration
+    }
   };
 
   const handleSaving = (e: React.FormEvent) => {
@@ -86,6 +78,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
       username: [userName],
       firstname: [firstName],
       lastname: [lastName],
+      bio: [userBio],
     };
     
     updateUserProfile(principalId, updatedProfile).then(() => {
@@ -103,7 +96,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
   return (
     <div className={styles.modalOverlay} onClick={handleBackgroundClick}>
       <form onSubmit={handleSaving} className={`${styles.modalContent} ${isClosing ? styles.hide : styles.show}`}>
-        <button onClick={handleClose} className={styles.closeButton}>&times;</button>
+        <button onClick={closeModal} className={styles.closeButton}>&times;</button>
 
         <div className={styles.profileHeader}>
           <img src={displayCoverPhoto} alt="Cover" className={styles.coverPhoto} />
@@ -114,46 +107,49 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
 
         <div className={styles.profileInfo}>
           <div className={styles.inputFieldContainer}>
-            <input
-              id="userName"
-              placeholder="Username"
-              className={styles.inputField}
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-            />
-            <input
-              id="firstName"
-              placeholder="First Name"
-              className={styles.inputField}
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
+            <div className={styles.inputFieldGroup}>
+              <label className={styles.inputLabel} htmlFor="userName">Username</label>
+              <input
+                id="userName"
+                placeholder="Enter your username"
+                className={styles.inputField}
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.inputFieldGroup}>
+              <label className={styles.inputLabel} htmlFor="firstName">First Name</label>
+              <input
+                id="firstName"
+                placeholder="Enter your first name"
+                className={styles.inputField}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.inputFieldGroup}>
+            <label className={styles.inputLabel} htmlFor="lastName">Last Name</label>
             <input
               id="lastName"
-              placeholder="Last Name"
+              placeholder="Enter your last name"
               className={styles.inputField}
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
             />
-          </div>
-
-          {bio && bio.length > 0 && <p className={styles.bio}>{bio[0]}</p>}
-
-          <div className={styles.statsSection}>
-            <div className={styles.statItem}>
-              <span className={styles.statValue}>{deducedPoints.toString()}</span>
-              <span className={styles.statLabel}>Points</span>
             </div>
-            <div className={styles.statItem}>
-              <span className={styles.statValue}>{formatDate(creationTime)}</span>
-              <span className={styles.statLabel}>Member Since</span>
+
+            <div className={styles.inputFieldGroup}>
+              <label className={styles.inputLabel} htmlFor="userBio">Bio</label>
+              <textarea
+                id="userBio"
+                placeholder="Enter your bio"
+                className={styles.textAreaField}
+                value={userBio}
+                onChange={(e) => setUserBio(e.target.value)}
+              />
             </div>
-            {getOptionalText(country) && (
-              <div className={styles.statItem}>
-                <span className={styles.statValue}>{getOptionalText(country)}</span>
-                <span className={styles.statLabel}>Country</span>
-              </div>
-            )}
           </div>
 
           <div className={styles.socialLinks}>
@@ -172,7 +168,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
           )}
 
           <div className={styles.editProfileContainer}>
-            <button onClick={handleClose} className={styles.cancelButton}>Cancel</button>
+            <button onClick={closeModal} className={styles.cancelButton}>Cancel</button>
             <button type='submit' className={styles.editProfileButton} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
