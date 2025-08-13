@@ -683,6 +683,46 @@ persistent actor class Backend() {
     return null;
   };
 
+  public shared (msg) func updateUser(userId : Principal, user : Types.SerializedGlobalUser) : async Result.Result<Null, Text> {
+    if (isAdmin(msg.caller) or userId == msg.caller and not Principal.isAnonymous(msg.caller)) {
+      switch(principalToUUID.get(userId)) {
+        case (?uuid) {
+          let newUser : Types.GlobalUser = {
+            var twitterid = user.twitterid;
+            var twitterhandle = user.twitterhandle;
+            creationTime = user.creationTime;
+            var pfpProgress = user.pfpProgress;
+            var deducedPoints = user.deducedPoints;
+            var ocProfile = user.ocProfile;
+            var discordUser = user.discordUser;
+            var telegramUser = user.telegramUser;
+            var nuanceUser = user.nuanceUser;
+            var nnsPrincipal = user.nnsPrincipal;
+            var firstname = user.firstname;
+            var lastname = user.lastname;
+            var username = user.username;
+            var email = user.email;
+            var bio = user.bio;
+            var categories = user.categories;
+            var profilepic = user.profilepic;
+            var coverphoto = user.coverphoto;
+            var country = user.country;
+            var timezone = user.timezone;
+            var icrc1tokens = user.icrc1tokens;
+            var nft721 = user.nft721;
+          };
+
+          uuidToUser.put(uuid, newUser);
+          return #ok(null);
+        };
+        case null {
+          return #err("User not found");
+        };
+      };
+    };
+    return #err("Not authorized");
+  };
+
   public query (msg) func getUUID(userId : Principal) : async Text {
 
     if (isAdmin(msg.caller) or isProject(msg.caller) or (userId == msg.caller and not Principal.isAnonymous(msg.caller))) {

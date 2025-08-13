@@ -6,7 +6,7 @@ import { useGlobalID } from './globalID.tsx';
 import { idlFactory as indexIdlFactory, canisterId as indexCanisterIdString } from '../declarations/index/index.js';
 import { idlFactory as projectBackendIdlFactory, SerializedMission } from '../declarations/test_backend/test_backend.did.js';
 import { LinkRequest, SerializedGlobalUser } from '../declarations/index/index.did.js';
-import { SerializedUserMissionProgress, SerializedProjectDetails as BackendSerializedProjectDetails, ActionResultFromActions, Result_2, Result_5 } from '../declarations/test_backend/test_backend.did.js';
+import { SerializedUserMissionProgress, SerializedProjectDetails as BackendSerializedProjectDetails, ActionResultFromActions, Result_1, Result_2, Result_5 } from '../declarations/test_backend/test_backend.did.js';
 import { SerializedProjectDetails } from '../frontend/types.ts';
 
 export interface WalletLinkInfo {
@@ -547,6 +547,25 @@ const useFetchData = () => {
         }
     }, [getProjectBackendActor]);
 
+    const updateUserProfile = useCallback(async (userId: Principal, user: SerializedGlobalUser): Promise<void> => {
+        const indexActor = getIndexActor();
+        if (!indexActor) {
+            console.error("No index actor available for updating user profile.");
+            return;
+        }
+
+        try {
+            const result = await indexActor.updateUser(userId, user) as Result_1;
+            if ('ok' in result) {
+                console.log("User profile updated successfully.");
+            } else {
+                console.error("Error updating user profile:", result.err);
+            }
+        } catch (error) {
+            console.error("Network or other error updating user profile:", error);
+        }
+    }, [getIndexActor]);
+
     return {
         fetchInitialPlatformData,
         fetchAllProjectDetailsAndSet,
@@ -562,6 +581,7 @@ const useFetchData = () => {
         cooldownRemainingForNewCompletion,
         checkUserCompletions,
         checkMissionCompletions,
+        updateUserProfile
     };
 };
 

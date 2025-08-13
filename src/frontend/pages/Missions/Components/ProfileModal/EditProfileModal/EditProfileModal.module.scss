@@ -194,7 +194,7 @@
 
 .editProfileContainer {
     // Style if you add an edit button
-    padding-top: 20px;
+    padding: 20px 0px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -230,4 +230,27 @@
     margin-right: 0px;
     font-weight: 600;
     font-size: medium;
+}
+
+.inputFieldContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.inputField {
+    background: transparent;
+    outline: none;
+    border: none;
+    border-bottom: 3px solid #7f79f5;
+    color: white;
+    font-size: larger;
+    padding: 6px 12px;
+
+    &:focus {
+        outline: none;
+    }
 }

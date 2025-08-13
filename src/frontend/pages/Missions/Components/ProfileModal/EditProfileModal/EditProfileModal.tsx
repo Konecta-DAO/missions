@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import styles from './EditProfileModal.module.scss';
 import { formatDate } from '../../../../../../components/Utilities.tsx';
-//import { useGlobalID } from '../../../../../../hooks/globalID.tsx';
 import { SerializedGlobalUser } from '../../../../../../declarations/index/index.did.js';
+import useFetchData from '../../../../../../hooks/fetchData.tsx';
+import { useGlobalID } from '../../../../../../hooks/globalID.tsx';
 
 // Default assets
 const DEFAULT_COVER_URL = '/assets/KonectaIconPB.webp'; // Create a generic cover
@@ -19,34 +20,9 @@ const getOptionalText = (field: string[] | undefined | null): string | null => {
 };
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeModal }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { principalId } = useGlobalID();
+  const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
-
-  const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-  
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      closeModal();
-      setIsClosing(false); // Reset for next open
-    }, 300); // Match animation duration
-  };
-
-  if (!globalUser) {
-    return (
-      <div className={styles.modalOverlay} onClick={handleBackgroundClick}>
-        <div className={`${styles.modalContent} ${isClosing ? styles.hide : ''}`}>
-          <button onClick={handleClose} className={styles.closeButton}>&times;</button>
-          <p>Loading profile information...</p>
-        </div>
-      </div>
-    );
-  }
-
   const {
     profilepic,
     coverphoto,
@@ -66,15 +42,67 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
     // categories, // Example: display as tags
     // email, // Consider privacy if displaying email
   } = globalUser;
+  const [userName, setUserName] = useState<string>(getOptionalText(username) || '');
+  const [firstName, setFirstName] = useState<string>(getOptionalText(firstname) || '');
+  const [lastName, setLastName] = useState<string>(getOptionalText(lastname) || '');
+  const [userBio, setUserBio] = useState<string>(getOptionalText(bio) || '');
+
+  const {
+    fetchUserGlobalProfileAndSet,
+    updateUserProfile,
+  } = useFetchData();
+
+  const handleBackgroundClick = (e: FormEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+  
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      closeModal();
+      setIsClosing(false); // Reset for next open
+    }, 300); // Match animation duration
+  };
+
+  const handleSaving = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    if (userName.trim() === "" || firstName.trim() === "" || lastName.trim() === "") {
+      setIsSaving(false);
+      return;
+    };
+
+    if (!principalId) {
+      console.error("No principal ID found. Cannot update profile.");
+      setIsSaving(false);
+      return;
+    };
+
+    const updatedProfile: SerializedGlobalUser = {
+      ...globalUser,
+      username: [userName],
+      firstname: [firstName],
+      lastname: [lastName],
+    };
+    
+    updateUserProfile(principalId, updatedProfile).then(() => {
+      fetchUserGlobalProfileAndSet(principalId).then(() => {
+        closeModal();
+        setIsSaving(false);
+        return
+      });
+    });
+  };
 
   const displayProfilePic = getOptionalText(profilepic) || DEFAULT_PROFILE_PIC_URL;
   const displayCoverPhoto = getOptionalText(coverphoto) || DEFAULT_COVER_URL;
-  const displayUsername = getOptionalText(username) || 'Anonymous User';
-  const displayName = [getOptionalText(firstname), getOptionalText(lastname)].filter(Boolean).join(' ') || displayUsername;
 
   return (
     <div className={styles.modalOverlay} onClick={handleBackgroundClick}>
-      <div className={`${styles.modalContent} ${isClosing ? styles.hide : styles.show}`}>
+      <form onSubmit={handleSaving} className={`${styles.modalContent} ${isClosing ? styles.hide : styles.show}`}>
         <button onClick={handleClose} className={styles.closeButton}>&times;</button>
 
         <div className={styles.profileHeader}>
@@ -85,10 +113,29 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
         </div>
 
         <div className={styles.profileInfo}>
-          <h2 className={styles.displayName}>{displayName}</h2>
-          {getOptionalText(username) && displayName !== getOptionalText(username) && (
-            <p className={styles.username}>@{getOptionalText(username)}</p>
-          )}
+          <div className={styles.inputFieldContainer}>
+            <input
+              id="userName"
+              placeholder="Username"
+              className={styles.inputField}
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+            />
+            <input
+              id="firstName"
+              placeholder="First Name"
+              className={styles.inputField}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+            <input
+              id="lastName"
+              placeholder="Last Name"
+              className={styles.inputField}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
 
           {bio && bio.length > 0 && <p className={styles.bio}>{bio[0]}</p>}
 
@@ -126,10 +173,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ globalUser, closeMo
 
           <div className={styles.editProfileContainer}>
             <button onClick={handleClose} className={styles.cancelButton}>Cancel</button>
-            <button className={styles.editProfileButton}>Save Changes</button>
+            <button type='submit' className={styles.editProfileButton} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };
