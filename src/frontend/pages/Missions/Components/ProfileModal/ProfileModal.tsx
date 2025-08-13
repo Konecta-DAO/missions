@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styles from './ProfileModal.module.scss';
 import { formatDate } from '../../../../../components/Utilities.tsx';
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
+import EditProfileModal from './EditProfileModal/EditProfileModal.tsx';
 
 // Default assets
 const DEFAULT_COVER_URL = '/assets/KonectaIconPB.webp'; // Create a generic cover
@@ -19,11 +20,20 @@ const getOptionalText = (field: string[] | undefined | null): string | null => {
 const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
     const { userGlobalProfile } = useGlobalID();
     const [isClosing, setIsClosing] = useState(false);
+    const [openEdit, setOpenEdit] = useState(false);
 
     const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
         if (e.target === e.currentTarget) {
             handleClose();
         }
+    };
+
+    const handleOpenEdit = () => {
+        setOpenEdit(true);
+    };
+
+    const handleCloseEdit = () => {
+        setOpenEdit(false);
     };
 
     const handleClose = () => {
@@ -121,9 +131,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ closeModal }) => {
                             <p>{nnsPrincipal[0]?.toText()}</p>
                         </div>
                     )}
+
+                    <div className={styles.editProfileContainer}>
+                        <button onClick={handleOpenEdit} className={styles.editProfileButton}>Edit Profile</button>
+                    </div>
                 </div>
-                {/* Add Edit Profile button if functionality exists or is planned */}
-                {/* <button className={styles.editProfileButton}>Edit Profile (Placeholder)</button> */}
+
+                {openEdit && (
+                    <EditProfileModal globalUser={userGlobalProfile} closeModal={handleCloseEdit} />
+                )}
             </div>
         </div>
     );

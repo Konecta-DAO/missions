@@ -2,8 +2,8 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     background-color: rgba(0, 0, 0, 0.75); // Darker overlay
     display: flex;
     justify-content: center;
@@ -16,7 +16,7 @@
     background-color: #1c1830; // Consistent dark theme
     color: #e0e0e0;
     border-radius: 16px; // More rounded
-    width: 90%;
+    width: 100%;
     max-width: 550px; // Profile modal can be a bit narrower
     max-height: 90vh;
     overflow: hidden; // Hide overflow initially for header
@@ -208,7 +208,7 @@
     padding: 12px 20px;
     border-radius: 8px;
     cursor: pointer;
-    margin-left: auto;
+    margin-left: 8px;
     margin-right: 0px;
     font-weight: 600;
     font-size: medium;
@@ -216,4 +216,18 @@
     &:hover {
         background-color: #7b74ff;
     }
+}
+
+.cancelButton {
+    // Style if you add an edit button
+    background: transparent;
+    border: 2px solid #7f79f5;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-left: auto;
+    margin-right: 0px;
+    font-weight: 600;
+    font-size: medium;
 }
