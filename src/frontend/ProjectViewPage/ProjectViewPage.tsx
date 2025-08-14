@@ -44,7 +44,9 @@ const ProjectViewPage: React.FC = () => {
     const [rewardFilter, setRewardFilter] = useState<RewardFilter>("all");
     const [sortOption, setSortOption] = useState<SortOption>("default");
     const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-    const [selectedTags, setSelectedTags] = useState<string[]>([])
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [startDate, setStartDate] = useState<Date>(new Date("2025-01-01"));
+    const [endDate, setEndDate] = useState<Date>(new Date());
 
     const [selectedMissionForModal, setSelectedMissionForModal] = useState<SerializedMission | null>(null);
     const [selectedMissionIdForModal, setSelectedMissionIdForModal] = useState<bigint | null>(null);
@@ -128,6 +130,19 @@ const ProjectViewPage: React.FC = () => {
             setSelectedMissionIdForModal(null);
         }
     }, [missionIdFromUrl, currentProjectDetails, allProjectMissionsData, navigate, isMissionModalOpen]);
+
+    const formatMilliseconds = (ms: bigint | number): number => {
+        let milliseconds = ms.toString();
+        return Number(milliseconds.slice(0, -6));
+    };
+
+    const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setStartDate(new Date(e.target.value));
+    };
+
+    const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEndDate(new Date(e.target.value));
+    };
 
     const handleCloseMissionModal = () => {
         setIsMissionModalOpen(false);
@@ -244,6 +259,12 @@ const ProjectViewPage: React.FC = () => {
                 if (!hasSelectedTag) return false;
             }
 
+            const missionDateFilter = new Date(formatMilliseconds(pm.data.startTime));
+
+            if (startDate > missionDateFilter || missionDateFilter > endDate) {
+                return false;
+            }
+
             return true;
         });
 
@@ -278,7 +299,7 @@ const ProjectViewPage: React.FC = () => {
 
         return processedList;
 
-    }, [currentProjectDetails, allProjectMissionsData, globalUserProgress, statusFilter, rewardFilter, dateFilter, selectedTags, sortOption]);
+    }, [currentProjectDetails, allProjectMissionsData, globalUserProgress, statusFilter, rewardFilter, dateFilter, selectedTags, sortOption, startDate, endDate]);
 
     const shortTagline = useMemo(
         () =>
@@ -369,6 +390,28 @@ const ProjectViewPage: React.FC = () => {
                                 <option value="rewardAsc">Reward: Low to High</option>
                                 <option value="rewardDesc">Reward: High to Low</option>
                             </select>
+
+                            {/* Start Date Range Filter */}
+                            <label className={styles.dateRangeLabel}>
+                                From:
+                                <input
+                                    type="date"
+                                    min="2025-01-01"
+                                    value={startDate.toISOString().split('T')[0]}
+                                    onChange={handleStartDateChange}
+                                    aria-label="Filter missions by start date"
+                                />
+                            </label>
+                            <label className={styles.dateRangeLabel}>
+                                To:
+                                <input
+                                    type="date"
+                                    min="2025-01-01"
+                                    value={endDate.toISOString().split('T')[0]}
+                                    onChange={handleEndDateChange}
+                                    aria-label="Filter missions by end date"
+                                />
+                            </label>
                         </div>
                         <div className={styles.missionsGridWrapper}> {/* Existing wrapper for scroll */}
                             <MissionGridComponent

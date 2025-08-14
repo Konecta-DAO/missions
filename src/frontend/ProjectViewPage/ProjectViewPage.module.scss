@@ -751,4 +751,18 @@
         padding: 6px 10px;
         font-size: 0.9rem;
     }
+
+}
+
+.dateRangeLabel {
+    font-weight: 600;
+    font-size: clamp(1rem, 0.8vw, 1.2rem);
+    color: rgb(216 255 248);
+    line-height: 1.5rem;
+    border: 1.5px solid #9f9aff;
+    border-radius: 8px;
+
+    &:focus {
+        outline: none;
+    }
 }
