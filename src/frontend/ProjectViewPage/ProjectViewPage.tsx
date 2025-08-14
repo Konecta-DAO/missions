@@ -392,26 +392,38 @@ const ProjectViewPage: React.FC = () => {
                             </select>
 
                             {/* Start Date Range Filter */}
-                            <label className={styles.dateRangeLabel}>
-                                From:
+                            <div className={styles.datepickerToggle}>
+                                <label htmlFor="startDateInput" className={styles.datepickerToggleButton}>
+                                    From:
+                                </label>
+                                <span className={styles.datepickerDisplay}>{startDate.toISOString().split('T')[0]}</span>
                                 <input
+                                    className={styles.dateInput}
+                                    required
+                                    id="startDateInput"
                                     type="date"
                                     min="2025-01-01"
                                     value={startDate.toISOString().split('T')[0]}
                                     onChange={handleStartDateChange}
                                     aria-label="Filter missions by start date"
                                 />
-                            </label>
-                            <label className={styles.dateRangeLabel}>
-                                To:
+                            </div>
+                            <div className={styles.datepickerToggle}>
+                                <label htmlFor="endDateInput" className={styles.datepickerToggleButton}>
+                                    To:
+                                </label>
+                                <span className={styles.datepickerDisplay}>{endDate.toISOString().split('T')[0]}</span>
                                 <input
+                                    className={styles.dateInput}
+                                    required
+                                    id="endDateInput"
                                     type="date"
                                     min="2025-01-01"
                                     value={endDate.toISOString().split('T')[0]}
                                     onChange={handleEndDateChange}
                                     aria-label="Filter missions by end date"
                                 />
-                            </label>
+                            </div>
                         </div>
                         <div className={styles.missionsGridWrapper}> {/* Existing wrapper for scroll */}
                             <MissionGridComponent
