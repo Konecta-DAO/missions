@@ -45,8 +45,8 @@ const ProjectViewPage: React.FC = () => {
     const [sortOption, setSortOption] = useState<SortOption>("default");
     const [dateFilter, setDateFilter] = useState<DateFilter>("all");
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
-    const [startDate, setStartDate] = useState<Date>(new Date("2025-01-01"));
-    const [endDate, setEndDate] = useState<Date>(new Date());
+    const [startDate, setStartDate] = useState<string>("2025-01-01");
+    const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
     const [selectedMissionForModal, setSelectedMissionForModal] = useState<SerializedMission | null>(null);
     const [selectedMissionIdForModal, setSelectedMissionIdForModal] = useState<bigint | null>(null);
@@ -83,7 +83,6 @@ const ProjectViewPage: React.FC = () => {
         if (currentProjectDetails?.canisterId) {
             // Check if missions for this project are already loaded to avoid redundant fetches
             if (!allProjectMissionsData.has(currentProjectDetails.canisterId)) {
-                console.log(`Workspaceing missions for project: ${currentProjectDetails.canisterId}`);
                 fetchMissionsForProjectAndSet(currentProjectDetails.canisterId);
             }
         }
@@ -137,11 +136,11 @@ const ProjectViewPage: React.FC = () => {
     };
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setStartDate(new Date(e.target.value));
+        setStartDate(e.target.value);
     };
 
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEndDate(new Date(e.target.value));
+        setEndDate(e.target.value);
     };
 
     const handleCloseMissionModal = () => {
@@ -170,8 +169,6 @@ const ProjectViewPage: React.FC = () => {
 
         const projectUserProgressMap = globalUserProgress.get(currentProjectDetails.canisterId);
         const nowSeconds = Date.now() / 1000;
-
-        console.log("MissionsMap:", projectMissionsMap);
 
         let processedList: ProcessedMissionData[] = Array.from(projectMissionsMap.entries()).map(
             ([id, missionData]) => {
@@ -261,7 +258,10 @@ const ProjectViewPage: React.FC = () => {
 
             const missionDateFilter = new Date(formatMilliseconds(pm.data.startTime));
 
-            if (startDate > missionDateFilter || missionDateFilter > endDate) {
+            const startDateObj = new Date(startDate);
+            const endDateObj = new Date(endDate);
+
+            if (startDateObj > missionDateFilter || missionDateFilter > endDateObj) {
                 return false;
             }
 
@@ -396,14 +396,14 @@ const ProjectViewPage: React.FC = () => {
                                 <label htmlFor="startDateInput" className={styles.datepickerToggleButton}>
                                     From:
                                 </label>
-                                <span className={styles.datepickerDisplay}>{startDate.toISOString().split('T')[0]}</span>
+                                <span className={styles.datepickerDisplay}>{startDate}</span>
                                 <input
                                     className={styles.dateInput}
                                     required
                                     id="startDateInput"
                                     type="date"
                                     min="2025-01-01"
-                                    value={startDate.toISOString().split('T')[0]}
+                                    value={startDate}
                                     onChange={handleStartDateChange}
                                     aria-label="Filter missions by start date"
                                 />
@@ -412,14 +412,14 @@ const ProjectViewPage: React.FC = () => {
                                 <label htmlFor="endDateInput" className={styles.datepickerToggleButton}>
                                     To:
                                 </label>
-                                <span className={styles.datepickerDisplay}>{endDate.toISOString().split('T')[0]}</span>
+                                <span className={styles.datepickerDisplay}>{endDate}</span>
                                 <input
                                     className={styles.dateInput}
                                     required
                                     id="endDateInput"
                                     type="date"
                                     min="2025-01-01"
-                                    value={endDate.toISOString().split('T')[0]}
+                                    value={endDate}
                                     onChange={handleEndDateChange}
                                     aria-label="Filter missions by end date"
                                 />
