@@ -46,7 +46,7 @@ const ProjectViewPage: React.FC = () => {
     const [dateFilter, setDateFilter] = useState<DateFilter>("all");
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [startDate, setStartDate] = useState<string>("2025-01-01");
-    const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState<string>(new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]);
 
     const [selectedMissionForModal, setSelectedMissionForModal] = useState<SerializedMission | null>(null);
     const [selectedMissionIdForModal, setSelectedMissionIdForModal] = useState<bigint | null>(null);

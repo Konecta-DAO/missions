@@ -42,6 +42,10 @@ persistent actor class Backend() {
     tags : ?[Text]; // Allows filtering by one or more tags (e.g., all must match, or any)
   };
 
+  //              //
+  //  Initialize  //
+  //              //
+
   public shared func initialize() {
     // Clear the action definitions
     StableTrieMap.clear(actionDefinitions);
@@ -1089,7 +1093,8 @@ persistent actor class Backend() {
           case (#ok(val)) {
             switch (val) {
               case (#ArrayNat(arr)) { missionIdsVal := arr };
-              case _ { return #err("Param 'missionIds' not an Array<Nat>") };
+              case (#NatValue(n)) { missionIdsVal := [n] };
+              case _ { return #err("Param 'missionIds' must be an Array<Nat> or Nat") };
             };
           };
           case (#err(e)) { return #err(e) };
@@ -1505,7 +1510,7 @@ persistent actor class Backend() {
               // The missionId and stepId are needed for the callback context.
               // They are part of the MissionContext.
               var missionId : ?Nat = null;
-              var projectCanisterId : ?Principal = null;
+              var projectCanisterId : Principal = params.projectCanisterId;
 
               if (Option.isSome(missionContextJsonText)) {
                 switch (Json.parse(Option.get(missionContextJsonText, ""))) {
@@ -1514,21 +1519,14 @@ persistent actor class Backend() {
                       case (#ok(val)) { missionId := ?val };
                       case (#err(_)) {};
                     };
-
-                    switch (Json.getAsText(ctx, "projectCanisterId")) {
-                      case (#ok(pidText)) {
-                        projectCanisterId := ?Principal.fromText(pidText);
-                      };
-                      case (#err(_)) {};
-                    };
                   };
                   case _ {};
                 };
               };
 
-              if (Option.isSome(missionId) and Option.isSome(projectCanisterId)) {
+              if (Option.isSome(missionId)) {
                 let mId = Option.get(missionId, 0);
-                let pId = Option.get(projectCanisterId, Principal.fromText("aaaaa-aa"));
+                let pId = projectCanisterId;
 
                 let key = Principal.toText(pId) # "-" # Nat.toText(mId) # "-" # Nat.toText(currentStepIdToExecute) # "-" # Nat.toText(actionInstanceToExecute.instanceId);
 

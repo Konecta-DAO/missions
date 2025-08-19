@@ -58,7 +58,7 @@ const ActionStepRenderer: React.FC<ActionStepRendererProps> = ({
                     {/* Display stepDefinition.description or other informational text */}
                     <p>{stepDefinition.description?.[0] || "Please review the information above."}</p>
                     {/* Informational steps might auto-proceed or have a simple "Continue" button */}
-                    <button onClick={onSubmitStep} disabled={isLoadingAction}>
+                    <button onClick={onSubmitStep} disabled={isLoadingAction} className={styles.actionButton}>
                         {isLoadingAction ? "Processing..." : "Continue"}
                     </button>
                 </div>

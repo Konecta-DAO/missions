@@ -226,6 +226,16 @@ module JsonUtils {
             };
             return #ok(#ArrayNat(results));
           };
+          case (#number(num)) {
+            switch (num) {
+              case (#int(i)) {
+                return #ok(#ArrayNat([Int.abs(i)]));
+              };
+              case (#float(f)) {
+                return #ok(#ArrayNat([Int.abs(Float.toInt(f))]));
+              };
+            };
+          };
           case _ {
             return #err(numberConversionErrorMessage("Array<Nat>", jsonValue, "Expected a JSON array."));
           };
