@@ -32,7 +32,7 @@ const ProjectExplorerPage: React.FC = () => {
     } = useGlobalID();
     const navigate = useNavigate();
     const { identity, user } = useIdentityKit();
-    const { fetchInitialPlatformData } = useFetchData();
+    const { fetchInitialPlatformData, fetchMissionsForProjectAndSet } = useFetchData();
 
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const isLandscape = useMediaQuery({ query: '(orientation: landscape)' });
@@ -64,6 +64,14 @@ const ProjectExplorerPage: React.FC = () => {
             navigate('/konnect');
         }
     }, [principalId, identity, user, fetchInitialPlatformData, navigate]);
+
+    useEffect(() => {
+        if (projects && projects.length > 0) {
+            projects.forEach(project => {
+                fetchMissionsForProjectAndSet(project.canisterId);
+            });
+        }
+    }, [projects, fetchMissionsForProjectAndSet]);
 
     const getActiveMissionsCountForProject = (projectCanisterId: string): number => {
         const projectMissionsMap = allProjectsMissionsData.get(projectCanisterId);
