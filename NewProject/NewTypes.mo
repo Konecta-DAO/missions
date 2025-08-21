@@ -3,6 +3,7 @@ import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
 import Text "mo:base/Text";
 import StableTrieMap "../StableTrieMap";
+import Blob "mo:base/Blob";
 
 module NewTypes {
 
@@ -319,5 +320,13 @@ module NewTypes {
     returnedDataJson : ?Text;
     nextStepIdToProcess : ?Nat;
     isFlowCompleted : ?Bool;
+  };
+
+  // --- Types for ICRC1 Interaction ---
+  public type SubAccount = Blob;
+
+  public type Account = {
+    owner : Principal;
+    subaccount : ?SubAccount;
   };
 };

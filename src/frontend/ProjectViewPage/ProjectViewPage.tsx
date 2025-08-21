@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styles from './ProjectViewPage.module.scss'; // Uses the SCSS above
+import styles from './ProjectViewPage.module.scss';
 import { useGlobalID } from '../../hooks/globalID.tsx';
 import useFetchData from '../../hooks/fetchData.tsx';
+import { ActionFlow } from '../types.ts';
 import { SerializedProjectDetails } from '../types.ts';
 import { SerializedMission } from '../../declarations/test_backend/test_backend.did.js';
 import MissionGridComponent, { ProcessedMissionData } from '../pages/Missions/Components/MissionGridComponent/MissionGridComponent.tsx';
@@ -12,12 +13,54 @@ import { constructRawIcpAssetUrl } from '../../utils/utils.ts';
 const DEFAULT_PROJECT_BANNER_URL = '/assets/KBanner.webp';
 const DEFAULT_PROJECT_ICON_URL = '/assets/KonectaIconPB.webp';
 
-type TabKey = 'missions' | 'about' | 'community';
+const MISSION_TYPE_MAP = {
+    'dip721_ownership_v1': 'NFT Ownership',
+    'sns_vote_proposal_v1': 'SNS Voting',
+    'event_join_v1': 'Event Participation',
+    'event_create_any_v1': 'Event Creation',
+    'validate_code_v1': 'Secret Code',
+    'leaderboard_mission_v1': 'Leaderboard',
+    // You can add other types like Twitter, Discord etc. here
+    'twitter_follow_v1': 'Twitter Follow',
+};
 
+type TabKey = 'missions' | 'about' | 'community';
+type MissionTypeFilter = "all" | "nftOwnership" | "snsVoting" | "eventParticipation" | "eventCreation" | "secretCode" | "leaderboard" | "twitterFollow";
 type StatusFilter = "all" | "available" | "inProgress" | "completedByUser";
 type RewardFilter = "all" | "points" | "icp" | "time" | "none";
 type DateFilter = "all" | "endingSoon" | "newest" | "startingSoon";
 type SortOption = "default" | "rewardAsc" | "rewardDesc" | "expiryDate" | "priority";
+
+// Helper function to check the actionFlowJson for a specific action ID
+const missionContainsActionId = (actionFlowJson: string, targetId: string): boolean => {
+    try {
+        const flow = JSON.parse(actionFlowJson) as ActionFlow;
+        if (!flow || !Array.isArray(flow.steps)) {
+            return false;
+        }
+
+        for (const step of flow.steps) {
+            if (step.item) {
+                if ('SingleAction' in step.item) {
+                    if (step.item.SingleAction.actionDefinitionId === targetId) {
+                        return true;
+                    }
+                } else if ('ActionGroup' in step.item && Array.isArray(step.item.ActionGroup.actions)) {
+                    for (const action of step.item.ActionGroup.actions) {
+                        if (action.actionDefinitionId === targetId) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse actionFlowJson for filtering:", e);
+        return false; // If JSON is invalid, it doesn't contain the action
+    }
+    return false;
+};
+
 
 const ProjectViewPage: React.FC = () => {
     const { projectCanisterId: projectCIdFromUrl, missionId: missionIdFromUrl } = useParams<{
@@ -47,7 +90,7 @@ const ProjectViewPage: React.FC = () => {
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [startDate, setStartDate] = useState<string>("2025-01-01");
     const [endDate, setEndDate] = useState<string>(new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]);
-
+    const [missionTypeFilter, setMissionTypeFilter] = useState<MissionTypeFilter>("all");
     const [selectedMissionForModal, setSelectedMissionForModal] = useState<SerializedMission | null>(null);
     const [selectedMissionIdForModal, setSelectedMissionIdForModal] = useState<bigint | null>(null);
     const [isMissionModalOpen, setIsMissionModalOpen] = useState<boolean>(false);
@@ -265,6 +308,12 @@ const ProjectViewPage: React.FC = () => {
                 return false;
             }
 
+            if (missionTypeFilter !== "all") {
+                if (!missionContainsActionId(pm.data.actionFlowJson, missionTypeFilter)) {
+                    return false;
+                }
+            }
+
             return true;
         });
 
@@ -299,7 +348,7 @@ const ProjectViewPage: React.FC = () => {
 
         return processedList;
 
-    }, [currentProjectDetails, allProjectMissionsData, globalUserProgress, statusFilter, rewardFilter, dateFilter, selectedTags, sortOption, startDate, endDate]);
+    }, [currentProjectDetails, allProjectMissionsData, globalUserProgress, statusFilter, rewardFilter, dateFilter, selectedTags, sortOption, startDate, endDate, missionTypeFilter]);
 
     const shortTagline = useMemo(
         () =>
@@ -366,6 +415,13 @@ const ProjectViewPage: React.FC = () => {
                                 <option value="icp">ICP</option>
                                 <option value="time">TIME</option>
                                 <option value="none">No Reward</option>
+                            </select>
+
+                            <select value={missionTypeFilter} onChange={e => setMissionTypeFilter(e.target.value as MissionTypeFilter)} aria-label="Filter by mission type">
+                                <option value="all">All Mission Types</option>
+                                {Object.entries(MISSION_TYPE_MAP).map(([id, label]) => (
+                                    <option key={id} value={id}>{label}</option>
+                                ))}
                             </select>
 
                             {/*  Date Filter */}

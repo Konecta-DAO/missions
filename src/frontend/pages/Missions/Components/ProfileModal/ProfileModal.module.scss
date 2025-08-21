@@ -1,3 +1,5 @@
+//--- File: src/frontend/pages/Missions/Components/ProfileModal/ProfileModal.module.scss ---
+
 .modalOverlay {
     position: fixed;
     top: 0;
@@ -69,7 +71,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    // border-radius: 16px 16px 0 0; // Rounded top corners if not covered by avatar logic
 }
 
 .avatarContainer {
@@ -192,28 +193,210 @@
     }
 }
 
+/* --- NEW & MODIFIED STYLES FOR INLINE EDITING --- */
+
 .editProfileContainer {
-    // Style if you add an edit button
     padding-top: 20px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
+    /* Align buttons to the right */
     align-items: center;
+    gap: 15px;
+    /* Space between buttons */
 }
 
-.editProfileButton {
-    // Style if you add an edit button
+.editProfileButton,
+.saveButton {
     background-color: #7f79f5;
     color: white;
     border: none;
-    padding: 12px 20px;
+    padding: 10px 20px;
     border-radius: 8px;
     cursor: pointer;
-    margin-left: auto;
-    margin-right: 0px;
     font-weight: 600;
-    font-size: medium;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background-color: #6a63d9;
+    }
+
+    &:disabled {
+        background-color: #4a4466;
+        cursor: not-allowed;
+    }
+}
+
+.cancelButton {
+    background: transparent;
+    border: 2px solid #4a4466;
+    color: #a09cb8;
+    padding: 8px 20px;
+    /* Note: padding is 2px less to account for border */
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 
     &:hover {
+        background-color: #4a4466;
+        color: white;
+    }
+}
+
+.formFieldsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    /* Space between each form field group */
+    text-align: left;
+    margin-bottom: 25px;
+}
+
+.fieldGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.fieldLabel {
+    font-size: 0.9rem;
+    color: #a09cb8;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.inputField,
+.textAreaField {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #443e66;
+    background-color: #120f22;
+    color: #e0e0e0;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+        outline: none;
+        border-color: #7f79f5;
+        box-shadow: 0 0 0 2px rgba(127, 121, 245, 0.3);
+    }
+}
+
+.textAreaField {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+    /* Ensure textarea uses the same font */
+}
+
+/* --- NEW STYLES FOR WALLET LINKING --- */
+.principalIdContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 8px;
+    background-color: #2a264050;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.copyButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+    color: #a09cb8;
+    transition: color 0.2s;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+.walletLinkingSection {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #3a3f7260;
+
+    h3 {
+        font-size: 1.1rem;
+        color: #c0b8e0;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+}
+
+.accountLinkContainer {
+    background-color: #2a2640;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    text-align: center;
+
+    h4 {
+        margin: 0;
+        font-size: 1rem;
+        color: #ffffff;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #a09cb8;
+    }
+}
+
+.linkInput {
+    width: 100%;
+    max-width: 300px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #443e66;
+    background-color: #120f22;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+
+    &:focus {
+        outline: none;
+        border-color: #7f79f5;
+    }
+}
+
+.buttonColumn {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.linkButton {
+    background-color: #7f79f5;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+
+    &:hover:not(:disabled) {
         background-color: #7b74ff;
+    }
+
+    &:disabled {
+        background-color: #4a4466;
+        cursor: not-allowed;
     }
 }

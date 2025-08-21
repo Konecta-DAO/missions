@@ -15,7 +15,7 @@ import Nat32 "mo:base/Nat32";
 import Bool "mo:base/Bool";
 import Order "mo:base/Order";
 import Json "mo:json";
-
+import Sha256 "mo:sha2/Sha256";
 import NewTypes "NewTypes";
 import HTTPTypes "HTTPTypes";
 import StableTrieMap "../StableTrieMap";
@@ -37,7 +37,6 @@ persistent actor class ProjectBackend() {
   // --- STATE VARIABLES ---
 
   var adminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypes.Permissions> = StableTrieMap.new<Principal, NewTypes.Permissions>();
-  var newAdminPermissions : StableTrieMap.StableTrieMap<Principal, NewTypes.Permissions> = StableTrieMap.new<Principal, NewTypes.Permissions>();
 
   var projectInfo : NewTypes.ProjectDetails = {
     var name = "Placeholder Project";
@@ -64,22 +63,25 @@ persistent actor class ProjectBackend() {
   var userProgress : StableTrieMap.StableTrieMap<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>> = StableTrieMap.new<Text, StableTrieMap.StableTrieMap<Nat, NewTypes.UserMissionProgress>>();
   var missionAssets : StableTrieMap.StableTrieMap<Text, Blob> = StableTrieMap.new<Text, Blob>();
 
-  //                            //
-  //       MIGRATION CODE       //
-  //   (MAKE COPY OF TRIEMAP)   //
-  //                            //
+  private func getMissionSubaccount(missionId : Nat) : [Nat8] {
+    // Using a prefix "konecta-mission" to avoid collisions with other potential subaccounts.
+    let prefix = Text.encodeUtf8("konecta-mission");
+    let missionIdText = Text.encodeUtf8(Nat.toText(missionId));
+    let combined = Blob.fromArray(Array.append(Blob.toArray(prefix), Blob.toArray(missionIdText)));
 
-  /*
-    system func preupgrade() {
-        let oldMap = adminPermissions;
-        newAdminPermissions := StableTrieMap.new<Principal, NewTypes.Permissions>();
+    // Hash the combined blob to get a 256-bit (32-byte) value
+    let hashBlob = Sha256.fromBlob(#sha256, combined);
+    let hashBytes = Blob.toArray(hashBlob);
 
-        for ((principal, oldPerms) in StableTrieMap.entries(oldMap)) {
-            let newPerms = convertPermissions(oldPerms); // Your conversion function
-            StableTrieMap.put(newAdminPermissions, Principal.equal, Principal.hash, principal, newPerms);
-        };
+    // Ensure it's exactly 32 bytes by padding with zeros if necessary (though SHA-256 is always 32 bytes)
+    var subaccount = Array.init<Nat8>(32, 0 : Nat8);
+    for (i in Iter.range(0, 31)) {
+      if (i < Array.size(hashBytes)) {
+        subaccount[i] := hashBytes[i];
+      };
     };
-    */
+    return Array.freeze(subaccount);
+  };
 
   system func postupgrade() {
     // This block runs on install and upgrade.
@@ -882,6 +884,57 @@ persistent actor class ProjectBackend() {
     let finalImageUrl = switch (processImageInput(imageInput, existingImageUrl)) {
       case (#ok(url)) url;
       case (#err(e)) { return #err("Image processing failed: " # e) };
+    };
+
+    switch (rewardType) {
+      case (#ICPToken(icpTokenDetails)) {
+        if (Option.isNull(existingMissionOpt)) {
+          let maxCompletions = switch (maxTotalCompletions) {
+            case (?max) max;
+            case null {
+              return #err("maxTotalCompletions must be set for token-based rewards.");
+            };
+          };
+          if (maxCompletions == 0) {
+            return #err("maxTotalCompletions cannot be zero for token-based rewards.");
+          };
+
+          let tokenCanister = actor (icpTokenDetails.canisterId) : actor {
+            icrc1_fee : query () -> async (Nat);
+            icrc1_balance_of : query (NewTypes.Account) -> async (Nat);
+          };
+
+          try {
+            let fee = await tokenCanister.icrc1_fee();
+            let totalRewardAmount = rewardAmount * maxCompletions;
+            let totalFees = fee * (maxCompletions + 1);
+            let requiredBalance = totalRewardAmount + totalFees;
+
+            let subaccountBytes = getMissionSubaccount(missionId);
+            let selfPrincipal = Principal.fromText("3635p-uaaaa-aaaag-qnhfq-cai");
+
+            let accountToCheck : NewTypes.Account = {
+              owner = selfPrincipal;
+              subaccount = ?Blob.fromArray(subaccountBytes);
+            };
+
+            let currentBalance = await tokenCanister.icrc1_balance_of(accountToCheck);
+
+            if (currentBalance < requiredBalance) {
+              return #err(
+                "Insufficient funds in mission subaccount. Required (smallest unit): " # Nat.toText(requiredBalance) #
+                ", Found: " # Nat.toText(currentBalance) # ". Please ensure the deposit was successful."
+              );
+            };
+          } catch (e) {
+            Debug.print("Error during token pre-funding verification");
+            return #err("Could not verify mission funds with the token canister. It may be invalid or unavailable.");
+          };
+        };
+      };
+      case (_) {
+        // Not an ICPToken reward, or it's an existing mission. No funding check needed here.
+      };
     };
 
     // --- Step 2: Perform permission checks ---
