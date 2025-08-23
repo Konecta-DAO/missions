@@ -162,7 +162,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                                         className={styles.ProjectIcon} // Use existing style
                                     />
                                 }
-                                Completed: <strong>{entry.missionName}</strong> ({entry.projectName})
+                                {"Completed: "}{entry.missionName}{" - "}{`[${entry.projectName}]`}
                             </p>
                         )}
                         {entry.type === 'streakClaim' && (
@@ -175,11 +175,16 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ closeModal }) => {
                         className={styles.RightSection}
                         // The gradient logic for points might be harder to replicate if mission.mode isn't directly available
                         // For Phase 1, we can use a generic style or a simplified one
-                        style={{ background: 'linear-gradient(135deg, #555, #333)' }}
+                        style={{ background: `${
+                            entry.type === 'missionCompletion'
+                            ? 'linear-gradient(135deg, #d8d832, #9a9a24ff)'
+                            : 'linear-gradient(135deg, #4aec9e, #2a9b64ff)'
+                        }` }}
                     >
                         <div className={styles.PointsEarned}>
                             {/* This used to show points. Now it's part of rewardTextDisplay */}
-                            {entry.type === 'missionCompletion' ? 'MISSION' : 'STREAK'}
+                            {/*entry.type === 'missionCompletion' ? 'MISSION' : 'STREAK'*/}
+                            {entry.rewardTextDisplay}
                         </div>
                     </div>
                 </div>
