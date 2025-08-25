@@ -6,7 +6,7 @@ import './index.scss';
 import { canisterId as backId } from '../declarations/backend/index.js';
 import { BrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { IdentityKitProvider, useIdentityKit } from "@nfid/identitykit/react";
-import { NFIDW } from "@nfid/identitykit";
+import { NFIDW, InternetIdentity } from "@nfid/identitykit";
 import { GlobalProvider } from '../hooks/globalID.tsx';
 import { Routes, Route } from 'react-router-dom';
 import RadialBackground from '../components/RadialBackground/RadialBackground.tsx';
@@ -67,7 +67,7 @@ const fetchTargets = async (): Promise<string[]> => {
       <GlobalProvider>
         <BrowserRouter>
           <IdentityKitProvider
-            signers={[NFIDW]}
+            signers={[NFIDW, InternetIdentity]}
             featuredSigner={NFIDW}
             signerClientOptions={{
               derivationOrigin: derivationOrigin,
