@@ -1,18 +1,14 @@
-/* import React, { act, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-import { ProjectData, useGlobalID } from '../../../../../hooks/globalID.tsx';
+import { useGlobalID } from '../../../../../hooks/globalID.tsx';
 import { formatTimeRemaining } from '../../../../../components/Utilities.tsx';
-import { canisterId, idlFactory } from '../../../../../declarations/backend/index.js';
 import { idlFactory as idlFactoryDefault } from '../../../../../declarations/dfinity_backend/index.js';
-import { Actor, HttpAgent } from '@dfinity/agent';
-import { useIdentityKit } from '@nfid/identitykit/react';
+import { Actor } from '@dfinity/agent';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import { useMediaQuery } from 'react-responsive';
 import { Usergeek } from 'usergeek-ic-js';
-import { idlFactory as idlFactoryIndex, SerializedProjectMissions } from '../../../../../declarations/index/index.did.js';
-import { useNavigate } from 'react-router-dom';
-import { IndexCanisterId } from '../../../../main.tsx';
+import { SerializedProjectMissions } from '../../../../../declarations/index/index.did.js';
 import { toast } from 'react-hot-toast';
 
 type DisplayState = 'CLAIM' | 'CLAIM_FINAL' | 'TIMER' | 'REVIVE';
@@ -24,26 +20,39 @@ interface DailyStreakButtonProps {
 }
 
 const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsClaimClicked, setJackpotState }) => {
-    const globalID = useGlobalID();
-    const { identity, disconnect } = useIdentityKit();
-    const fetchData = useFetchData();
-    const navigate = useNavigate();
+    const {
+        principalId,
+        streakResetTime,
+        userLastTimeStreak,
+        userStreakAmount,
+        userStreakPercentage
+    } = useGlobalID();
+    const { fetchDailyStreakInfoAndSet, handleClaimStreak } = useFetchData();
     const isPortrait = useMediaQuery({ query: '(orientation: portrait)' });
     const [isMoved, setIsMoved] = useState(false);
     const [showContinueButton, setShowContinueButton] = useState(false);
     const [showSeparators, setShowSeparators] = useState(false);
-    const [displayState, setDisplayState] = useState<DisplayState>('CLAIM');
     const [responseState, setResponseState] = useState<string>('');
     const [messageResponse, setMessageResponse] = useState<string>('');
     const [endDate, setEndDate] = useState<bigint>(0n);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+    
     const [isLoading, setIsLoading] = useState(false);
-
+    
     const autoContinueTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    const [displayState, setDisplayState] = useState<DisplayState>('CLAIM');
+    const [displayStreakAmount, setDisplayStreakAmount] = useState<bigint>(0n);
+    
+    useEffect(() => {
+        const newDisplayStreakAmount = displayState === 'CLAIM_FINAL' ? 0n : userStreakAmount;
+        setDisplayStreakAmount(newDisplayStreakAmount);
 
+        const newDisplayState = displayState === 'CLAIM_FINAL' ? 'CLAIM' : displayState;
+        setDisplayState(newDisplayState);
+    }, [userStreakAmount]);
 
     const clearExistingTimers = () => {
         if (timeoutRef.current) {
@@ -67,50 +76,74 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
         clearExistingTimers();
 
         const nowNsInitial = BigInt(Date.now()) * 1_000_000n;
-        const streakResetTimeNs: bigint = globalID.streakResetTime;
-        const userLastTimeStreakNs: bigint = globalID.userLastTimeStreak;
+        const streakResetTimeNs: bigint = streakResetTime;
+        const userLastTimeStreakNs: bigint = userLastTimeStreak;
 
         let newDisplayState: DisplayState = 'CLAIM';
         let nextChangeInNs: bigint | null = null;
         let newEndDate: bigint | null = null;
 
-        if (globalID.userStreakAmount === 0n) {
+        if (userStreakAmount === 0n) {
             newDisplayState = 'CLAIM';
             newEndDate = streakResetTimeNs + userLastTimeStreakNs;
             nextChangeInNs = streakResetTimeNs;
         } else {
 
-            const t1 = userLastTimeStreakNs + streakResetTimeNs;         // StreakResetTime + LastStreak
-            const t2 = userLastTimeStreakNs + 2n * streakResetTimeNs;    // 2 * StreakResetTime + LastStreak
-            const t3 = userLastTimeStreakNs + 3n * streakResetTimeNs;     // 3 * StreakResetTime + LastStreak
+            //const t1 = streakResetTimeNs !== 0n ? userLastTimeStreakNs + streakResetTimeNs : userLastTimeStreakNs;         // StreakResetTime + LastStreak
+            //const t2 = streakResetTimeNs !== 0n ? userLastTimeStreakNs + 2n * streakResetTimeNs : userLastTimeStreakNs;    // 2 * StreakResetTime + LastStreak
+            //const t3 = streakResetTimeNs !== 0n ? userLastTimeStreakNs + 3n * streakResetTimeNs : userLastTimeStreakNs;     // 3 * StreakResetTime + LastStreak
+
+            const t1 = userLastTimeStreakNs;
+            const t2 = userLastTimeStreakNs * 2n;
+            const t3 = userLastTimeStreakNs * 3n;
 
             if (nowNsInitial >= t3) {
                 // State: CLAIM_FINAL
                 newDisplayState = 'CLAIM_FINAL';
                 newEndDate = 0n;
+
+                console.log("T1");
             } else if (nowNsInitial >= t2) {
                 // State: REVIVE
                 newDisplayState = 'REVIVE';
                 newEndDate = t3;
                 nextChangeInNs = t3 - nowNsInitial; // Next state change after (t3 - nowNs)
                 setReviveRemainingTime(t3);
+
+                console.log("T2");
             } else if (nowNsInitial >= t1) {
                 // State: CLAIM
                 newDisplayState = 'CLAIM';
                 newEndDate = t2;
                 nextChangeInNs = t2 - nowNsInitial;// Next state change after (t2 - nowNs)
+
+                console.log("T3");
             } else {
                 // State: TIMER
                 newDisplayState = 'TIMER';
                 newEndDate = t1;
                 nextChangeInNs = t1 - nowNsInitial;
+
+                console.log("TE");
             }
+
+            console.log("Comparisions");
+            console.log("TS", nowNsInitial);
+            console.log("T1", t1);
+            console.log("T2", t2);
+            console.log("T3", t3);
         }
+
+        console.log(newDisplayState);
+        console.log(endDate, newEndDate);
+        console.log("User Last Time Streak");
+        console.log(userLastTimeStreak);
 
         setDisplayState(newDisplayState);
         setEndDate(newEndDate);
 
         // Schedule next state change
+        /*
         if (nextChangeInNs !== null && nextChangeInNs > 0n) {
             // Convert nanoseconds to milliseconds for setTimeout
             const nextChangeInMs = Number(nextChangeInNs / 1_000_000n);
@@ -118,6 +151,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 determineDisplayState();
             }, nextChangeInMs);
         }
+        */
 
         // If in TIMER state, start interval to update remaining time every second
         if (newDisplayState === 'TIMER' || newDisplayState === 'REVIVE') {
@@ -149,6 +183,8 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     };
 
     useEffect(() => {
+        determineDisplayState();
+
         return () => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current); // For display state changes
             if (intervalRef.current) clearInterval(intervalRef.current);
@@ -156,12 +192,10 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     }, []);
 
     useEffect(() => {
-        determineDisplayState();
-
-        return () => {
-            clearExistingTimers();
-        };
-    }, [globalID.userLastTimeStreak, globalID.streakResetTime]);
+        if (principalId) {
+            fetchDailyStreakInfoAndSet(principalId);
+        }
+    }, [principalId]);
 
     const isRevive = displayState === 'REVIVE';
     const [reviveRemainingTime, setReviveRemainingTime] = useState<bigint>(0n);
@@ -169,100 +203,68 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     const isClickable = !isMoved && displayState !== 'TIMER';
 
     const handleClick = async () => {
+        determineDisplayState();
         setIsMoved(true);
         setIsLoading(true);
 
         try {
-            const agent = HttpAgent.createSync({ identity });
-            const actor = Actor.createActor(idlFactory, {
-                agent: agent,
-                canisterId,
-            });
-
-            const actorIndex = Actor.createActor(idlFactoryIndex, {
-                agent: agent!,
-                canisterId: IndexCanisterId,
-            });
-
-            const projects = await actorIndex.getAllProjectMissions() as SerializedProjectMissions[];
-            const targets: string[] = projects.map(project => project.canisterId.toText());
-
-            if (JSON.stringify(targets) !== JSON.stringify(globalID.canisterIds) && globalID.canisterIds != null) {
-                toast('A new project has been added to Konecta! Refreshing the page...', { icon: '👀' });
-                disconnect();
-                window.location.href = '/konnect';
-            } else {
-
-                const mappedProjects: ProjectData[] = projects.map((project) => ({
-                    id: project.canisterId.toText(),
-                    name: project.name,
-                    icon: project.icon,
-                }));
-
-                globalID.setProjects(mappedProjects);
-
-                const actors = targets.map(targetCanisterId => {
-                    return Actor.createActor(idlFactoryDefault, {
-                        agent: agent!,
-                        canisterId: targetCanisterId,
-                    });
-                });
-
-
-
-                const b = await actor.claimStreak(globalID.principalId) as [string, bigint];
-
-                const message = b[0]; // string part
-
-                if (message.startsWith("You have earned")) {
-                    Usergeek.trackEvent("Daily Streak: Default");
-                    await Promise.all([
-                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
-                        fetchData.fetchUserStreak(actor, globalID.principalId!)
-                    ]);
-                    setResponseState("SUCCESS");
-                    setMessageResponse(message);
-                    setShowContinueButton(true);
-
-                } else if (message.startsWith("Your streak is ALIVE!")) {
-                    Usergeek.trackEvent("Daily Streak: Survived");
-                    setIsLoading(false);
-                    setShowSeparators(true);
-                    setJackpotState('WIN');
-                    await Promise.all([
-                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
-                        fetchData.fetchUserStreak(actor, globalID.principalId!)
-                    ]);
-                    messageTimeoutRef.current = setTimeout(() => {
-                        setMessageResponse(message);
-                        setShowContinueButton(true);
-                    }, 6000);
-
-                } else if (message.startsWith("Too bad, your past streak")) {
-                    Usergeek.trackEvent("Daily Streak: Died");
-                    setIsLoading(false);
-                    setShowSeparators(true);
-                    setJackpotState('LOSE');
-                    await Promise.all([
-                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
-                        fetchData.fetchUserStreak(actor, globalID.principalId!)
-                    ]);
-                    messageTimeoutRef.current = setTimeout(() => {
-                        setMessageResponse(message);
-                        setShowContinueButton(true);
-                    }, 6000);
-
-                } else if (message.startsWith("You have lost your past streak")) {
-                    Usergeek.trackEvent("Daily Streak: Forgot");
-                    await Promise.all([
-                        fetchData.fetchUserSeconds(actor, actors, targets, globalID.principalId!),
-                        fetchData.fetchUserStreak(actor, globalID.principalId!)
-                    ]);
-                    setResponseState("CLAIMED");
-                    setMessageResponse(message);
-                    setShowContinueButton(true);
-                }
+            if (!principalId) {
+                throw new Error("Principal ID is not available.");
             }
+
+            const b = await handleClaimStreak(principalId) as [string, bigint];
+
+            if (!b) {
+                throw new Error("'b' is undefined or null.");
+            }
+
+            const [message, newStreakAmount] = b;
+
+            if (message.startsWith("You have earned")) {
+                Usergeek.trackEvent("Daily Streak: Default");
+                
+                setResponseState("SUCCESS");
+                setMessageResponse(message);
+                setShowContinueButton(true);
+
+            } else if (message.startsWith("You can't claim your streak yet")) {
+                Usergeek.trackEvent("Daily Streak: Default");
+                
+                setResponseState("COOLDOWN");
+                setMessageResponse(message);
+                setShowContinueButton(true);
+
+            } else if (message.startsWith("Your streak is ALIVE!")) {
+                Usergeek.trackEvent("Daily Streak: Survived");
+                setIsLoading(false);
+                setShowSeparators(true);
+                setJackpotState('WIN');
+
+                messageTimeoutRef.current = setTimeout(() => {
+                    setMessageResponse(message);
+                    setShowContinueButton(true);
+                }, 6000);
+
+            } else if (message.startsWith("Too bad, your past streak")) {
+                Usergeek.trackEvent("Daily Streak: Died");
+                setIsLoading(false);
+                setShowSeparators(true);
+                setJackpotState('LOSE');
+                
+                messageTimeoutRef.current = setTimeout(() => {
+                    setMessageResponse(message);
+                    setShowContinueButton(true);
+                }, 6000);
+
+            } else if (message.startsWith("You have lost your past streak")) {
+                Usergeek.trackEvent("Daily Streak: Forgot");
+                
+                setResponseState("CLAIMED");
+                setMessageResponse(message);
+                setShowContinueButton(true);
+            }
+        } catch (e) {
+            console.error(e)
         } finally {
             setIsLoading(false);
         }
@@ -303,19 +305,6 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
         };
     }, [showContinueButton]);
 
-
-
-    const displayStreakAmount =
-        displayState === 'CLAIM_FINAL'
-            ? 0
-            : Number(globalID.userStreakAmount);
-
-    const renderDisplayState =
-        displayState === 'CLAIM_FINAL'
-            ? 'CLAIM'
-            : displayState;
-
-
     return (
         <>
             <svg
@@ -335,7 +324,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 }}
             >
                 <defs>
-                    {/* Gradients 
+                    Gradients 
                     <linearGradient
                         id="SVGID_1_"
                         gradientUnits="userSpaceOnUse"
@@ -648,7 +637,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                             fontFamily="Inter, sans-serif"
                             fontWeight="bold"
                         >
-                            Revive Chance: {Number(globalID.userStreakPercentage)}%
+                            Revive Chance: {Number(userStreakPercentage)}%
                         </text>
                     )}
 
@@ -712,7 +701,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                                 fontFamily="Inter, sans-serif"
                                 fontWeight="bold"
                             >
-                                {renderDisplayState}
+                                {displayState}
                             </text>
                         )
                     ) : isLoading ? (
@@ -822,4 +811,3 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 };
 
 export default DailyStreakButtonComponent;
- */

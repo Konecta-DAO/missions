@@ -9,7 +9,7 @@ import HexagonButton from '../../../../components/HexagonButton/hexagonButton.ts
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import { useNavigate } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
-// import DailyStreakButtonComponent from '../DailyStreakButton/DailyStreakButtonComponent.tsx';
+import DailyStreakButtonComponent from '../DailyStreakButton/DailyStreakButtonComponent.tsx';
 
 import JackpotRoller from '../DailyStreakButton/JackpotRoller.tsx';
 
@@ -516,7 +516,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                             className={`${styles.topbarButtonClaim} ${isClaimClicked ? styles.claimClicked : ''}`}
                             onClick={!isDisabled ? handleClaimClick : undefined}
                         >
-                            {/* <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} /> */}
+                            <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
 
                             {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
                                 <>
@@ -604,7 +604,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
                                         onClick={!isDisabled ? handleClaimClick : undefined}
                                     >
-                                        {/* <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} /> */}
+                                        <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
 
                                         {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
                                             <>
@@ -684,7 +684,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                         className={`${styles.topbarButtonClaimMobile} ${isClaimClicked ? styles.claimClickedMobile : ''}`}
                                         onClick={!isDisabled ? handleClaimClick : undefined}
                                     >
-                                        {/* <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} /> */}
+                                        <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
 
                                         {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
                                             <>
@@ -748,7 +748,7 @@ const TopBar: React.FC<TopBarProps> = ({ toggleModal }) => {
                                     className={`${styles.topbarButtonClaim} ${isClaimClicked ? styles.claimClicked : ''}`}
                                     onClick={!isDisabled ? handleClaimClick : undefined}
                                 >
-                                    {/* <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} /> */}
+                                    <DailyStreakButtonComponent setIsClaimClicked={setIsClaimClicked} setJackpotState={setJackpotState} />
 
                                     {(jackpotState === 'WIN' || jackpotState === 'LOSE') && (
                                         <>
