@@ -22,6 +22,7 @@ import StableTrieMap "../StableTrieMap";
 import Serialization "Serialization";
 import Helpers "Helpers";
 import AnalyticsTypes "AnalyticsTypes";
+import Error "mo:base/Error";
 
 //import PermissionMigration "Migration";
 //(with migration = PermissionMigration.migration)
@@ -1878,6 +1879,84 @@ persistent actor class ProjectBackend() {
 
     Debug.print("Leaderboard mission " # Nat.toText(missionId) # " has been successfully settled and concluded.");
     return #ok(null);
+  };
+
+  //
+  //  Reward Functions
+  //
+  
+  private func getMissionSubaccountHelper(missionId : Nat) : [Nat8] {
+    // Using a prefix "konecta-mission" to avoid collisions with other potential subaccounts.
+    let prefix = Text.encodeUtf8("konecta-mission");
+    let missionIdText = Text.encodeUtf8(Nat.toText(missionId));
+    let combined = Blob.fromArray(Array.append(Blob.toArray(prefix), Blob.toArray(missionIdText)));
+
+    // Hash the combined blob to get a 256-bit (32-byte) value
+    let hashBlob = Sha256.fromBlob(#sha256, combined);
+    let hashBytes = Blob.toArray(hashBlob);
+
+    // Ensure it's exactly 32 bytes by padding with zeros if necessary (though SHA-256 is always 32 bytes)
+    var subaccount = Array.init<Nat8>(32, 0 : Nat8);
+    for (i in Iter.range(0, 31)) {
+      if (i < Array.size(hashBytes)) {
+        subaccount[i] := hashBytes[i];
+      };
+    };
+    return Array.freeze(subaccount);
+  };
+
+  private func validateNatSubtract(number1 : Nat, number2 : Nat) : Nat {
+    if (number1 >= number2) {
+      return number1 - number2;
+    } else {
+      return 0;
+    };
+  };
+
+  public shared func giveMissionICP(principal : Principal, icpToTransfer : Nat, canisterId : Text, missionId : Nat) : async ?NewTypes.TransferResult {
+    try {
+      let tokenCanister = actor (canisterId) : actor {
+        icrc1_fee : query () -> async (Nat);
+        icrc1_balance_of : query (NewTypes.Account) -> async (Nat);
+        icrc1_transfer : (NewTypes.TransferArgs) -> async NewTypes.TransferResult;
+      };
+
+      let fee = await tokenCanister.icrc1_fee();
+      let totalReward = validateNatSubtract(icpToTransfer, fee);
+
+      let selfPrincipal = Principal.fromText("3635p-uaaaa-aaaag-qnhfq-cai");
+      let subaccountBytes = getMissionSubaccountHelper(missionId);
+
+      let accountToTransfer : NewTypes.Account = {
+        owner = principal;
+        subaccount = null;
+      };
+
+      let accountToCheck : NewTypes.Account = {
+        owner = selfPrincipal;
+        subaccount = ?Blob.fromArray(subaccountBytes);
+      };
+
+      let currentBalance = await tokenCanister.icrc1_balance_of(accountToCheck);
+      Debug.print("Current Balance before transfer: " # debug_show(currentBalance));
+
+      let transferArgs : NewTypes.TransferArgs = {
+        from_subaccount = ?Blob.fromArray(subaccountBytes); // Canister's default account
+        to = accountToTransfer;
+        amount = totalReward; // 0.1 ICP in e8s
+        fee = ?fee; // Standard fee
+        memo = null;
+        created_at_time = null;
+      };
+
+      let result = await tokenCanister.icrc1_transfer(transferArgs);
+      Debug.print(debug_show(result));
+
+      return ?result;
+    } catch (e) {
+      Debug.print(Error.message(e));
+      return null;
+    };
   };
 
   //

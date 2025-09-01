@@ -329,4 +329,27 @@ module NewTypes {
     owner : Principal;
     subaccount : ?SubAccount;
   };
+
+  public type TransferArgs = {
+    from_subaccount : ?Blob;
+    to : Account;
+    amount : Nat;
+    fee : ?Nat;
+    memo : ?Blob;
+    created_at_time : ?Nat64;
+  };
+
+  public type TransferError = {
+    #BadFee : { expected_fee : Nat };
+    #InsufficientFunds : { balance : Nat };
+    #TooOld;
+    #CreatedInFuture : { ledger_time : Nat64 };
+    #Duplicate : { duplicate_of : Nat };
+    #GenericError : { error_code : Nat; message : Text };
+  };
+
+  public type TransferResult = {
+    #Ok : Nat;
+    #Err : TransferError;
+  };
 };

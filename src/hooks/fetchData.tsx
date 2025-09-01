@@ -851,6 +851,38 @@ const useFetchData = () => {
     []
   );
 
+  const giveICPTokens = useCallback(
+    async (
+      userPrincipal: Principal,
+      projectCanisterId: string,
+      icpToTransfer: Number,
+      canisterId: string,
+      missionId: Number
+    ) => {
+      if (!userPrincipal) {
+        console.error("User Principal is invalid");
+        return;
+      };
+      if (!backendCanisterIdString) {
+        console.error("Backend Canister ID is invalid");
+        return;
+      };
+
+      const backendActor = getProjectBackendActor(projectCanisterId);
+      if (!backendActor) {
+        console.error("Project Backend Actor is null");
+        return;
+      };
+
+      try {
+        await backendActor.giveMissionICP(userPrincipal, icpToTransfer, canisterId, missionId);
+      } catch (error) {
+        console.error("Network or other error when giving ICP tokens:", error);
+      }
+    },
+    [getProjectBackendActor]
+  );
+
   return {
     fetchInitialPlatformData,
     fetchDailyStreakInfoAndSet,
@@ -868,7 +900,8 @@ const useFetchData = () => {
     checkUserCompletions,
     checkMissionCompletions,
     updateUserProfile,
-    handleClaimStreak
+    handleClaimStreak,
+    giveICPTokens
   };
 };
 

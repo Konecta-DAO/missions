@@ -11,6 +11,7 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory } from '../../../../../declarations/index/index.js';
 import { IndexCanisterId } from '../../../../main.tsx';
 import Timer from './Timer.tsx';
+import { Console } from 'console';
 
 // parseActionFlow remains the same
 const parseActionFlow = (jsonString: string): ActionFlow | null => {
@@ -63,7 +64,8 @@ const MissionModal: React.FC<MissionModalProps> = ({
         fetchUserGlobalProfileAndSet,
         cooldownRemainingForNewCompletion,
         checkUserCompletions,
-        checkMissionCompletions
+        checkMissionCompletions,
+        giveICPTokens
     } = useFetchData();
 
     const agent = HttpAgent.createSync();
@@ -233,7 +235,15 @@ const MissionModal: React.FC<MissionModalProps> = ({
                         // The re-fetched progress will soon confirm completion and update the UI.
                         // We set the message and trigger confetti optimistically for better UX.
                         try {
-                            if (mission.rewardType.hasOwnProperty('Points')) await actor.addMissionPoints(principalId, Number(mission.maxRewardAmount) || Number(mission.minRewardAmount));
+                            // Mission Points
+                            if (mission.rewardType.hasOwnProperty('Points')) {
+                                await actor.addMissionPoints(principalId, Number(mission.maxRewardAmount) || Number(mission.minRewardAmount));
+                            }
+                            
+                            // Mission ICP Tokens
+                            if (mission.rewardType.hasOwnProperty('ICPToken') && 'ICPToken' in mission.rewardType) {
+                                await giveICPTokens(principalId, projectCanisterId, Number(mission.maxRewardAmount) || Number(mission.minRewardAmount), mission.rewardType.ICPToken.canisterId, Number(missionId));
+                            }
                             await fetchUserGlobalProfileAndSet(principalId);
                         } catch (error) {
                             console.error(`Error giving points: ${error}`);
