@@ -1922,7 +1922,7 @@ persistent actor class ProjectBackend() {
       };
 
       let fee = await tokenCanister.icrc1_fee();
-      let totalReward = validateNatSubtract(icpToTransfer, fee);
+      let totalReward = icpToTransfer; //validateNatSubtract(icpToTransfer, fee);
 
       let selfPrincipal = Principal.fromText("3635p-uaaaa-aaaag-qnhfq-cai");
       let subaccountBytes = getMissionSubaccountHelper(missionId);
