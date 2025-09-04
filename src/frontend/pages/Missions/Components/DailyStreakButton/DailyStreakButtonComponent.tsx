@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { formatTimeRemaining } from '../../../../../components/Utilities.tsx';
 import { idlFactory as idlFactoryDefault } from '../../../../../declarations/dfinity_backend/index.js';
 import { Actor } from '@dfinity/agent';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
@@ -10,6 +9,7 @@ import { useMediaQuery } from 'react-responsive';
 import { Usergeek } from 'usergeek-ic-js';
 import { SerializedProjectMissions } from '../../../../../declarations/index/index.did.js';
 import { toast } from 'react-hot-toast';
+import DailyTimer from './DailyTimer.tsx';
 
 type DisplayState = 'CLAIM' | 'CLAIM_FINAL' | 'TIMER' | 'REVIVE';
 type JackpotState = 'DEFAULT' | 'WIN' | 'LOSE';
@@ -45,6 +45,23 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     
     const [displayState, setDisplayState] = useState<DisplayState>('CLAIM');
     const [displayStreakAmount, setDisplayStreakAmount] = useState<bigint>(0n);
+
+    const formatMilliseconds = (ms: bigint | number): number => {
+        let milliseconds = ms.toString();
+        return Number(milliseconds.slice(0, -6));
+    };
+
+    const formatDate = (timestamp: bigint | number): string => {
+        const date = new Date(formatMilliseconds(timestamp));
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    };
     
     useEffect(() => {
         const newDisplayStreakAmount = displayState === 'CLAIM_FINAL' ? 0n : userStreakAmount;
@@ -80,67 +97,47 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
         const userLastTimeStreakNs: bigint = userLastTimeStreak;
 
         let newDisplayState: DisplayState = 'CLAIM';
-        let nextChangeInNs: bigint | null = null;
         let newEndDate: bigint | null = null;
 
         if (userStreakAmount === 0n) {
             newDisplayState = 'CLAIM';
             newEndDate = streakResetTimeNs + userLastTimeStreakNs;
-            nextChangeInNs = streakResetTimeNs;
         } else {
+            
+            const threshold = 86_400_000_000_000n; // 24 hours in nanoseconds
+            const timerNs = (nowNsInitial - userLastTimeStreakNs) / 1_000_000n / 1_000n / 60n / 60n / 24n;
 
-            //const t1 = streakResetTimeNs !== 0n ? userLastTimeStreakNs + streakResetTimeNs : userLastTimeStreakNs;         // StreakResetTime + LastStreak
-            //const t2 = streakResetTimeNs !== 0n ? userLastTimeStreakNs + 2n * streakResetTimeNs : userLastTimeStreakNs;    // 2 * StreakResetTime + LastStreak
-            //const t3 = streakResetTimeNs !== 0n ? userLastTimeStreakNs + 3n * streakResetTimeNs : userLastTimeStreakNs;     // 3 * StreakResetTime + LastStreak
-
-            const t1 = userLastTimeStreakNs;
-            const t2 = userLastTimeStreakNs * 2n;
-            const t3 = userLastTimeStreakNs * 3n;
-
-            if (nowNsInitial >= t3) {
+            if (timerNs >= 24n) {
                 // State: CLAIM_FINAL
-                newDisplayState = 'CLAIM_FINAL';
+                newDisplayState = 'CLAIM';
                 newEndDate = 0n;
 
                 console.log("T1");
-            } else if (nowNsInitial >= t2) {
-                // State: REVIVE
-                newDisplayState = 'REVIVE';
-                newEndDate = t3;
-                nextChangeInNs = t3 - nowNsInitial; // Next state change after (t3 - nowNs)
-                setReviveRemainingTime(t3);
-
-                console.log("T2");
-            } else if (nowNsInitial >= t1) {
-                // State: CLAIM
-                newDisplayState = 'CLAIM';
-                newEndDate = t2;
-                nextChangeInNs = t2 - nowNsInitial;// Next state change after (t2 - nowNs)
-
-                console.log("T3");
             } else {
                 // State: TIMER
                 newDisplayState = 'TIMER';
-                newEndDate = t1;
-                nextChangeInNs = t1 - nowNsInitial;
+                newEndDate = (userLastTimeStreakNs + threshold) - nowNsInitial;
+                // nextChangeInNs = userLastTimeStreakNs - nowNsInitial;
 
                 console.log("TE");
             }
 
-            console.log("Comparisions");
-            console.log("TS", nowNsInitial);
-            console.log("T1", t1);
-            console.log("T2", t2);
-            console.log("T3", t3);
+            /*
+            console.log("Comparisions:")
+            console.log(nowNsInitial)
+            console.log(userLastTimeStreakNs)
+            */
         }
 
+        /*
         console.log(newDisplayState);
         console.log(endDate, newEndDate);
         console.log("User Last Time Streak");
         console.log(userLastTimeStreak);
+        */
 
         setDisplayState(newDisplayState);
-        setEndDate(newEndDate);
+        setEndDate(BigInt(formatMilliseconds(newEndDate)));
 
         // Schedule next state change
         /*
@@ -154,21 +151,15 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
         */
 
         // If in TIMER state, start interval to update remaining time every second
-        if (newDisplayState === 'TIMER' || newDisplayState === 'REVIVE') {
+        /*
+        if (newDisplayState === 'TIMER') {
             if (!intervalRef.current) { // Prevent multiple intervals
                 intervalRef.current = setInterval(() => {
                     const nowNs = BigInt(Date.now()) * 1_000_000n; // Update current time each second
                     if (newEndDate) {
                         const newRemaining = newEndDate - nowNs;
-                        if (newDisplayState === 'REVIVE') {
-                            // Update tick to trigger re-render
-                            if (newRemaining <= 0n) {
-                                determineDisplayState();
-                            }
-                        } else {
-                            if (newRemaining <= 0n) {
-                                determineDisplayState();
-                            }
+                        if (newRemaining <= 0n) {
+                            determineDisplayState();
                         }
                     }
                 }, 1000);
@@ -180,6 +171,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                 intervalRef.current = null;
             }
         }
+        */
     };
 
     useEffect(() => {
@@ -622,7 +614,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
                             fontFamily="Inter, sans-serif"
                             fontWeight="bold"
                         >
-                            {formatTimeRemaining(endDate)}
+                            {endDate}
                         </text>
                     )}
 
@@ -678,18 +670,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 		L655.5,498.9z"/>
                     {!isMoved ? (
                         displayState === 'TIMER' ? (
-                            <text
-                                x="1025"
-                                y="655"
-                                fontSize="175"
-                                fill="#FFFFFF"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fontFamily="Inter, sans-serif"
-                                fontWeight="bold"
-                            >
-                                {formatTimeRemaining(endDate)}
-                            </text>
+                            <DailyTimer milliseconds={endDate} />
                         ) : (
                             <text
                                 x="1025"
