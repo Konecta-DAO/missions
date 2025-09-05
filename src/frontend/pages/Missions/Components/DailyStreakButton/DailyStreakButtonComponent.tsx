@@ -1,14 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { useGlobalID } from '../../../../../hooks/globalID.tsx';
-import { idlFactory as idlFactoryDefault } from '../../../../../declarations/dfinity_backend/index.js';
-import { Actor } from '@dfinity/agent';
 import useFetchData from '../../../../../hooks/fetchData.tsx';
 import { isMobileOnly, isTablet } from 'react-device-detect';
 import { useMediaQuery } from 'react-responsive';
 import { Usergeek } from 'usergeek-ic-js';
-import { SerializedProjectMissions } from '../../../../../declarations/index/index.did.js';
-import { toast } from 'react-hot-toast';
 import DailyTimer from './DailyTimer.tsx';
 
 type DisplayState = 'CLAIM' | 'CLAIM_FINAL' | 'TIMER' | 'REVIVE';
@@ -138,40 +134,6 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
 
         setDisplayState(newDisplayState);
         setEndDate(BigInt(formatMilliseconds(newEndDate)));
-
-        // Schedule next state change
-        /*
-        if (nextChangeInNs !== null && nextChangeInNs > 0n) {
-            // Convert nanoseconds to milliseconds for setTimeout
-            const nextChangeInMs = Number(nextChangeInNs / 1_000_000n);
-            timeoutRef.current = setTimeout(() => {
-                determineDisplayState();
-            }, nextChangeInMs);
-        }
-        */
-
-        // If in TIMER state, start interval to update remaining time every second
-        /*
-        if (newDisplayState === 'TIMER') {
-            if (!intervalRef.current) { // Prevent multiple intervals
-                intervalRef.current = setInterval(() => {
-                    const nowNs = BigInt(Date.now()) * 1_000_000n; // Update current time each second
-                    if (newEndDate) {
-                        const newRemaining = newEndDate - nowNs;
-                        if (newRemaining <= 0n) {
-                            determineDisplayState();
-                        }
-                    }
-                }, 1000);
-            }
-        } else {
-            // Clear interval if not in TIMER or REVIVE
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        }
-        */
     };
 
     useEffect(() => {
@@ -192,7 +154,7 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
     const isRevive = displayState === 'REVIVE';
     const [reviveRemainingTime, setReviveRemainingTime] = useState<bigint>(0n);
 
-    const isClickable = !isMoved && displayState !== 'TIMER';
+    const isClickable = !isMoved;
 
     const handleClick = async () => {
         determineDisplayState();
@@ -211,6 +173,9 @@ const DailyStreakButtonComponent: React.FC<DailyStreakButtonProps> = ({ setIsCla
             }
 
             const [message, newStreakAmount] = b;
+
+            console.log(message);
+            console.log(newStreakAmount);
 
             if (message.startsWith("You have earned")) {
                 Usergeek.trackEvent("Daily Streak: Default");
