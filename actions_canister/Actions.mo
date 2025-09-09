@@ -12,6 +12,7 @@ import Option "mo:base/Option";
 import Time "mo:base/Time";
 import Debug "mo:base/Debug";
 import Int "mo:base/Int";
+import Error "mo:base/Error";
 import EventCanisterTypes "EventCanisterTypes";
 
 module Actions {
@@ -445,7 +446,7 @@ module Actions {
     switch (actionParams) {
       case (#EventCreateAnyParams(params)) {
         let eventCanister = actor ("yhl4v-6iaaa-aaaag-qnhma-cai") : actor {
-          getPaginatedFilteredEvents : query (EventCanisterTypes.GetFilteredEventsPayload) -> async Result.Result<{ items : [EventCanisterTypes.EventWithUserDataPayload]; totalRecords : Nat }, [Text]>;
+          getPaginatedFilteredEventsNoComposite : (EventCanisterTypes.GetFilteredEventsPayload) -> async Result.Result<{ items : [EventCanisterTypes.EventWithUserDataPayload]; totalRecords : Nat }, [Text]>;
         };
 
         let now = Time.now();
@@ -479,23 +480,23 @@ module Actions {
         try {
           var totalEvents : Nat = 0;
 
-          let pastResult = await eventCanister.getPaginatedFilteredEvents(pastPayload);
+          let pastResult = await eventCanister.getPaginatedFilteredEventsNoComposite(pastPayload);
           switch (pastResult) {
             case (#ok(res)) {
               totalEvents += res.totalRecords;
             };
-            case (#err(e)) {
+            case (#err(_)) {
               // Fail gracefully, maybe log the error, but continue to check future events
               Debug.print("Error checking past events for user " # Principal.toText(params.principalToCheck));
             };
           };
 
-          let futureResult = await eventCanister.getPaginatedFilteredEvents(futurePayload);
+          let futureResult = await eventCanister.getPaginatedFilteredEventsNoComposite(futurePayload);
           switch (futureResult) {
             case (#ok(res)) {
               totalEvents += res.totalRecords;
             };
-            case (#err(e)) {
+            case (#err(_)) {
               Debug.print("Error checking future events for user " # Principal.toText(params.principalToCheck));
             };
           };
@@ -524,6 +525,7 @@ module Actions {
           };
 
         } catch (e) {
+          Debug.print(Error.message(e));
           return #err({
             status = #ApiError;
             outcome = #Failed;
